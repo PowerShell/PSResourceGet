@@ -6,7 +6,7 @@ using System.Collections;
 
 using Dbg = System.Diagnostics.Debug;
 
-namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
+namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
     /// <summary>
     /// Wrapper class for the results from Find server level APIs.

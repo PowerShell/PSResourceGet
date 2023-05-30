@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Management.Automation;
 using NuGet.Versioning;
 
-namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
+namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
     /// <summary>
     /// This class contains information for a PSScriptFileInfo (representing a .ps1 file contents).

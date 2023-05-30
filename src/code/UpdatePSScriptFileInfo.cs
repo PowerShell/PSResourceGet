@@ -6,9 +6,9 @@ using System.Collections;
 using System.IO;
 using System.Management.Automation;
 using Microsoft.PowerShell.Commands;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Updates a .ps1 file with specified properties.

@@ -13,7 +13,7 @@ using Microsoft.PowerShell.Commands;
 
 using Dbg = System.Diagnostics.Debug;
 
-namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
+namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
     #region Enums
 
@@ -304,7 +304,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
         /// <summary>
         /// Writes the PSGetResourceInfo properties to the specified file path as a
         /// PowerShell serialized xml file, maintaining compatibility with
-        /// PowerShellGet v2 file format.
+        /// PSResourceGet file format.
         /// </summary>
         public bool TryWrite(
             string filePath,
@@ -334,7 +334,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 errorMsg = string.Format(
                     CultureInfo.InvariantCulture,
-                    @"TryWritePSGetInfo: Cannot convert and write the PowerShellGet information to file, with error: {0}",
+                    @"TryWritePSGetInfo: Cannot convert and write the PSResourceGet information to file, with error: {0}",
                     ex.Message);
 
                 return false;
@@ -404,7 +404,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
             {
                 errorMsg = string.Format(
                     CultureInfo.InvariantCulture,
-                    @"TryReadPSGetInfo: Cannot read the PowerShellGet information file with error: {0}",
+                    @"TryReadPSGetInfo: Cannot read the PSResourceGet information file with error: {0}",
                     ex.Message);
 
                 return false;

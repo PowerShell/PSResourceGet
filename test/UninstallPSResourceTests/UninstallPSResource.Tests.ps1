@@ -40,7 +40,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         param($Name, $ErrorId)
         Uninstall-PSResource -Name $Name -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.UninstallPSResource"
     }
 
     It "Uninstall a list of modules by name" {
@@ -257,7 +257,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $pkg = Get-InstalledPSResource "RequiredModule1"
         $pkg | Should -Not -Be $null
 
-        $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallPSResourcePackageIsaDependency,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource', 'UninstallResourceError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
+        $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallPSResourcePackageIsaDependency,Microsoft.PowerShell.PSResourceGet.Cmdlets.UninstallPSResource', 'UninstallResourceError,Microsoft.PowerShell.PSResourceGet.Cmdlets.UninstallPSResource'
     }
 
     It "Uninstall module that is a dependency for another module using -SkipDependencyCheck" {
@@ -296,7 +296,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
 
     It "Uninstall module that is not installed should throw error" {
         Uninstall-PSResource -Name "NonInstalledModule" -ErrorVariable ev -ErrorAction SilentlyContinue
-        $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallResourceError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UninstallPSResource'
+        $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallResourceError,Microsoft.PowerShell.PSResourceGet.Cmdlets.UninstallPSResource'
     }
 
     # Windows only

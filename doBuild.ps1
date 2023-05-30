@@ -75,7 +75,7 @@ function DoBuild
 
             # Place build results
             $assemblyNames = @(
-                'PowerShellGet'
+                'PSResourceGet'
                 'NuGet.Commands'
                 'NuGet.Common'
                 'NuGet.Configuration'

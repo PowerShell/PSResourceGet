@@ -107,7 +107,7 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
         $pkgDir | Should -BeNullOrEmpty
         $Error.Count | Should -BeGreaterThan 0
-        $Error[0].FullyQualifiedErrorId  | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+        $Error[0].FullyQualifiedErrorId  | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
 
     It "Save PSResourceInfo object piped in for prerelease version object" {
@@ -163,6 +163,6 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         $res = Save-PSResource -Name $moduleName -Version "5.0.0" -AuthenticodeCheck -Repository $localRepo -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue -ErrorVariable err -PassThru
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -BeNullOrEmpty
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.SavePSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
 }

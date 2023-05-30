@@ -44,7 +44,7 @@ Describe "Test Unregister-PSResourceRepository" -tags 'CI' {
 
     It "not unregister repo not previously registered and throw expected error message" {
         $name = "nonRegisteredRepository"
-        {Unregister-PSResourceRepository -Name $name -ErrorAction Stop} | Should -Throw -ErrorId "ErrorUnregisteringSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
+        {Unregister-PSResourceRepository -Name $name -ErrorAction Stop} | Should -Throw -ErrorId "ErrorUnregisteringSpecifiedRepo,Microsoft.PowerShell.PSResourceGet.Cmdlets.UnregisterPSResourceRepository"
 
     }
 
@@ -53,7 +53,7 @@ Describe "Test Unregister-PSResourceRepository" -tags 'CI' {
         Register-PSResourceRepository -Name "testRepository2" -Uri $tmpDir2Path
         Unregister-PSResourceRepository -Name "testRepository*" -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "nameContainsWildCardError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "nameContainsWildCardError,Microsoft.PowerShell.PSResourceGet.Cmdlets.UnregisterPSResourceRepository"
     }
 
     It "when multiple repo Names provided, if one name isn't valid unregister the rest and write error message" {
@@ -61,15 +61,15 @@ Describe "Test Unregister-PSResourceRepository" -tags 'CI' {
         Register-PSResourceRepository -Name "testRepository" -Uri $tmpDir1Path
         Unregister-PSResourceRepository -Name $nonRegisteredRepoName,"testRepository" -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorUnregisteringSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorUnregisteringSpecifiedRepo,Microsoft.PowerShell.PSResourceGet.Cmdlets.UnregisterPSResourceRepository"
     }
 
     It "throw error if Name is null or empty" {
-        {Unregister-PSResourceRepository -Name "" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
+        {Unregister-PSResourceRepository -Name "" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.UnregisterPSResourceRepository"
     }
 
     It "throw error if Name is null" {
-        {Unregister-PSResourceRepository -Name $null -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.UnregisterPSResourceRepository"
+        {Unregister-PSResourceRepository -Name $null -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.UnregisterPSResourceRepository"
     }
 
     It "unregister repository using -PassThru" {
@@ -79,6 +79,6 @@ Describe "Test Unregister-PSResourceRepository" -tags 'CI' {
         $res = Get-PSResourceRepository -Name $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSResourceRepository"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSResourceRepository"
     }
 }

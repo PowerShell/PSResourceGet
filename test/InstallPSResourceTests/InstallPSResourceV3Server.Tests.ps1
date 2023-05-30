@@ -39,7 +39,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         param($Name, $ErrorId)
         Install-PSResource -Name $Name -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
     }
 
     It "Install specific module resource by name" {
@@ -68,7 +68,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $pkg = Get-InstalledPSResource "NonExistantModule"
         $pkg.Name | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
     }
 
     # Do some version testing, but Find-PSResource should be doing thorough testing
@@ -108,7 +108,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         }
         catch
         {}
-        $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
         $res = Get-InstalledPSResource $testModuleName
         $res | Should -BeNullOrEmpty
@@ -230,7 +230,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     #     {
     #         # Reinstall of resource should fail with one of its files locked.
     #         Install-PSResource -Name $testModuleName -Repository $NuGetGalleryName -TrustRepository -Reinstall -ErrorVariable ev -ErrorAction Silent
-    #         $ev.FullyQualifiedErrorId | Should -BeExactly 'InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource'
+    #         $ev.FullyQualifiedErrorId | Should -BeExactly 'InstallPackageFailed,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource'
     #     }
     #     finally
     #     {

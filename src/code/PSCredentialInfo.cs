@@ -7,7 +7,7 @@ using System.Net;
 using System.Security;
 using System.Collections;
 
-namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
+namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
     /// <summary>
     /// This class contains information for a repository's authentication credential.

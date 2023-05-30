@@ -13,9 +13,9 @@ using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
 using Microsoft.PowerShell.Commands;
-using Microsoft.PowerShell.PowerShellGet.Cmdlets;
+using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 
-namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
+namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
     #region Utils
 
@@ -1368,7 +1368,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 iss.LanguageMode = PSLanguageMode.FullLanguage;
                 // Import the current PowerShellGet module.
                 var modPathObjects = cmdlet.InvokeCommand.InvokeScript(
-                    script: "(Get-Module -Name PowerShellGet).Path");
+                    script: "(Get-Module -Name PSResourceGet).Path");
                 string modPath = (modPathObjects.Count > 0 &&
                                   modPathObjects[0].BaseObject is string modPathStr)
                                   ? modPathStr : string.Empty;

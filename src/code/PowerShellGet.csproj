@@ -3,8 +3,8 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <RootNamespace>PowerShellGet</RootNamespace>
-    <AssemblyName>PowerShellGet</AssemblyName>
+    <RootNamespace>PSResourceGet</RootNamespace>
+    <AssemblyName>PSResourceGet</AssemblyName>
     <AssemblyVersion>3.0.21.0</AssemblyVersion>
     <FileVersion>3.0.21</FileVersion>
     <InformationalVersion>3.0.21</InformationalVersion>

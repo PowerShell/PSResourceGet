@@ -17,7 +17,7 @@ resources:
 
 stages:
 - stage: Build
-  displayName: Build PowerShellGet Module Package
+  displayName: Build PSResourceGet Module Package
   jobs:
   - job: BuildPkg
     displayName: Build Package
@@ -47,9 +47,9 @@ stages:
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-        Write-Verbose -Verbose "Install PowerShellGet V3 to temp module path"
-        Save-Module -Name PowerShellGet -Path $modulePath -MinimumVersion 3.0.18-beta18 -AllowPrerelease -Force
-      displayName: Install PowerShellGetV3
+        Write-Verbose -Verbose "Install PSResourceGet to temp module path"
+        Save-Module -Name PowerShellGet -MinimumVersion 3.0.18-beta18 -Path $modulePath -AllowPrerelease -Force
+      displayName: Install PowerShellGet v3
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
@@ -99,7 +99,7 @@ stages:
           $null = New-Item -Path $net472Path -ItemType Directory -Verbose
         }
         Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "net472") -Filter '*.dll' | Foreach-Object {
-          if ($_.Name -ne 'PowerShellGet.dll') {
+          if ($_.Name -ne 'PSResourceGet.dll') {
             $sig = Get-AuthenticodeSignature -FilePath $_.FullName
             if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notlike '*Microsoft*' -or $sig.SignerCertificate.Issuer -notlike '*Microsoft Code Signing PCA*') {
               # Copy for third party signing
@@ -180,7 +180,7 @@ stages:
           $null = New-Item -Path $net472SignedOutPath -ItemType Directory -Verbose
         }
         Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "net472") -Filter '*.dll' | Foreach-Object {
-          if ($_.Name -ne 'PowerShellGet.dll') {
+          if ($_.Name -ne 'PSResourceGet.dll') {
             $sig = Get-AuthenticodeSignature -FilePath $_.FullName
             if ($sig.Status -eq 'Valid' -and ($sig.SignerCertificate.Subject -like '*Microsoft*' -and $sig.SignerCertificate.Issuer -like '*Microsoft Code Signing PCA*')) {
               # Copy already signed files directly to output
@@ -217,14 +217,14 @@ stages:
         if (! (Test-Path -Path $createdSignSrcPath)) {
           $null = New-Item -Path $createdSignSrcPath -ItemType Directory -Verbose
         }
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "PowerShellGet.psd1") -Dest $createdSignSrcPath -Force -Verbose
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "PSResourceGet.psd1") -Dest $createdSignSrcPath -Force -Verbose
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "PSGet.Format.ps1xml") -Dest $createdSignSrcPath -Force -Verbose
 
         $net472Path = Join-Path -Path $createdSignSrcPath -ChildPath "net472"
         if (! (Test-Path -Path $net472Path)) {
           $null = New-Item -Path $net472Path -ItemType Directory -Verbose
         }
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "net472\PowerShellGet.dll") -Dest $net472Path -Force -Verbose
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "net472\PSResourceGet.dll") -Dest $net472Path -Force -Verbose
 
         $signOutPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'CreatedFilesOut'
         if (! (Test-Path -Path $signOutPath)) {
@@ -295,8 +295,8 @@ stages:
       - template: Sbom.yml@ComplianceRepo
         parameters:
           BuildDropPath: $(signOutPath)
-          Build_Repository_Uri: 'https://github.com/powershell/powershellget'
-          PackageName: 'PowerShellGet'
+          Build_Repository_Uri: 'https://github.com/powershell/PSResourceGet'
+          PackageName: 'PSResourceGet'
           PackageVersion: '3.0.20'
 
     - pwsh: |
@@ -358,11 +358,11 @@ stages:
     - checkout: ComplianceRepo
       clean: true
     - download: current
-      artifact: 'PowerShellGet'
+      artifact: 'PSResourceGet'
     - template: assembly-module-compliance.yml@ComplianceRepo
       parameters:
         # binskim
-        AnalyzeTarget: '$(Pipeline.Workspace)/PowerShellGet/net472/PowerShellGet.dll'
+        AnalyzeTarget: '$(Pipeline.Workspace)/PSResourceGet/net472/PSResourceGet.dll'
         AnalyzeSymPath: 'SRV*'
         # component-governance
         sourceScanPath: '$(Build.SourcesDirectory)'

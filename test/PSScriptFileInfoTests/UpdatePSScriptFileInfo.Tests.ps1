@@ -120,7 +120,7 @@ Describe "Test Update-PSScriptFileInfo" -tags 'CI' {
     It "not update script file with invalid version" {
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -Version "4.0.0.0.0" -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "VersionParseIntoNuGetVersion,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSScriptFileInfo"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "VersionParseIntoNuGetVersion,Microsoft.PowerShell.PSResourceGet.Cmdlets.UpdatePSScriptFileInfo"
     }
 
     It "update script file Description property" {
@@ -313,7 +313,7 @@ Describe "Test Update-PSScriptFileInfo" -tags 'CI' {
         $null = Copy-Item -Path $scriptFilePath -Destination $TestDrive
         $tmpScriptFilePath = Join-Path -Path $TestDrive -ChildPath $scriptName
 
-        { Update-PSScriptFileInfo -Path $tmpScriptFilePath -Version "2.0.0.0" } | Should -Throw -ErrorId "ScriptToBeUpdatedContainsSignature,Microsoft.PowerShell.PowerShellGet.Cmdlets.UpdatePSScriptFileInfo"
+        { Update-PSScriptFileInfo -Path $tmpScriptFilePath -Version "2.0.0.0" } | Should -Throw -ErrorId "ScriptToBeUpdatedContainsSignature,Microsoft.PowerShell.PSResourceGet.Cmdlets.UpdatePSScriptFileInfo"
     }
 
     It "update signed script when using RemoveSignature parameter" {
