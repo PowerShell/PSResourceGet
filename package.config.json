@@ -1,5 +1,5 @@
 {
-  "ModuleName": "PowerShellGet",
+  "ModuleName": "PSResourceGet",
   "FormatFileName": "PSGet.Format",
   "Culture": "en-US",
   "BuildOutputPath": "out",
