@@ -1,6 +1,3 @@
-
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -63,7 +60,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
-        /// Not supported for ADO repository.
+        /// Not supported for V3 repository.
         /// </summary>
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
@@ -93,7 +90,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Find method which allows for searching for packages with specified Command or DSCResource name.
-        /// Not supported for ADO repository.
+        /// Not supported for V3 repository.
         /// </summary>
         public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
         {
@@ -750,6 +747,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
 
         /// <summary>
         /// Finds all resources present in the repository's service index.
+        /// For example: https://api.nuget.org/v3/index.json
         /// </summary>
         private Dictionary<string, string> GetResourcesFromServiceIndex(out ExceptionDispatchInfo edi)
         {

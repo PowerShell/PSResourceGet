@@ -5,9 +5,6 @@ $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-$psmodulePaths = $env:PSModulePath -split ';'
-Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
-
 Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
 
     BeforeAll {
@@ -37,6 +34,8 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         Install-PSResource -Name $Name -Repository $ADORepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource"
+        $res = Get-InstalledPSResource $Name
+        $res | Should -BeNullOrEmpty
     }
 
     It "Install specific module resource by name" {
@@ -63,7 +62,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     It "Should not install resource given nonexistant name" {
         Install-PSResource -Name "NonExistantModule" -Repository $ADORepoName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
         $pkg = Get-InstalledPSResource "NonExistantModule"
-        $pkg.Name | Should -BeNullOrEmpty
+        $pkg | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource" 
     }
@@ -133,13 +132,6 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0"
     }
 
-    It "Install resource under specified in PSModulePath" {
-        Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository
-        $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Name | Should -Be $testModuleName
-        ($env:PSModulePath).Contains($pkg.InstalledLocation)
-    }
-
     It "Install resource with companyname and repository source location and validate properties" {
         Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $ADORepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
@@ -195,7 +187,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     It "Should not install resource that is already installed" {
         Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Name | Should -Be $testModuleName
+        $pkg | Should -Be $testModuleName
         Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository -WarningVariable WarningVar -warningaction SilentlyContinue
         $WarningVar | Should -Not -BeNullOrEmpty
     }
@@ -210,32 +202,6 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
     }
-
-    # It "Restore resource after reinstall fails" {
-    #     Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository
-    #     $pkg = Get-InstalledPSResource $testModuleName
-    #     $pkg.Name | Should -Contain $testModuleName
-    #     $pkg.Version | Should -Contain "5.0.0"
-
-    #     $resourcePath = Split-Path -Path $pkg.InstalledLocation -Parent
-    #     $resourceFiles = Get-ChildItem -Path $resourcePath -Recurse
-
-    #     # Lock resource file to prevent reinstall from succeeding.
-    #     $fs = [System.IO.File]::Open($resourceFiles[0].FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read)
-    #     try
-    #     {
-    #         # Reinstall of resource should fail with one of its files locked.
-    #         Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository -Reinstall -ErrorVariable ev -ErrorAction Silent
-    #         $ev.FullyQualifiedErrorId | Should -BeExactly 'InstallPackageFailed,Microsoft.PowerShell.PowerShellGet.Cmdlets.InstallPSResource'
-    #     }
-    #     finally
-    #     {
-    #         $fs.Close()
-    #     }
-
-    #     # Verify that resource module has been restored.
-    #     (Get-ChildItem -Path $resourcePath -Recurse).Count | Should -BeExactly $resourceFiles.Count
-    # }
 
     # It "Install resource that requires accept license with -AcceptLicense flag" {
     #     Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName -AcceptLicense
