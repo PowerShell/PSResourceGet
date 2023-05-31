@@ -622,6 +622,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     string versionValue = versionElement.ToString();
                     metadata["Version"] = ParseHttpVersion(versionValue, out string prereleaseLabel);
                     metadata["Prerelease"] = prereleaseLabel;
+                    // ADO server response does not contain "isPrerelease" element, so we set it here.
+                    metadata["IsPrerelease"] = !String.IsNullOrEmpty(prereleaseLabel);
 
                     if (!NuGetVersion.TryParse(versionValue, out NuGetVersion parsedNormalizedVersion))
                     {
@@ -631,6 +633,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                         parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
                     }
+
                     metadata["NormalizedVersion"] = parsedNormalizedVersion;
                 }
 
@@ -644,6 +647,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 if (rootDom.TryGetProperty("projectUrl", out JsonElement projectUrlElement))
                 {
                     metadata["ProjectUrl"] = ParseHttpUrl(projectUrlElement.ToString()) as Uri;
+                }
+
+                // Icon Url
+                if (rootDom.TryGetProperty("iconUrl", out JsonElement iconUrlElement))
+                {
+                    metadata["IconUrl"] = ParseHttpUrl(iconUrlElement.ToString()) as Uri;
                 }
 
                 // Tags
@@ -664,9 +673,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // Dependencies 
-                // TODO 3.0.0-beta21, a little complicated 
+                // TODO vNext, a little complicated 
 
                 // IsPrerelease
+                // NuGet.org repository's response does contain 'isPrerelease' element so it can be accquired and set here.
                 if (rootDom.TryGetProperty("isPrerelease", out JsonElement isPrereleaseElement))
                 {
                     metadata["IsPrerelease"] = isPrereleaseElement.GetBoolean();
