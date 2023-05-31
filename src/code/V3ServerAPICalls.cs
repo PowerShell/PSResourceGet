@@ -361,6 +361,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             string tagsQueryTerm = $"tags:{String.Join(" ", tags)}";
             // Get responses for all packages that contain the required tags
+            // example query: 
             JsonElement[] tagPkgEntries = GetVersionedPackageEntriesFromSearchQueryResource(tagsQueryTerm, includePrerelease, out edi);
             if (edi != null)
             {
@@ -944,14 +945,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Get the package's tags from the tags JsonElement
             try
             {
-                List<string> tagsFound = new List<string>();
-                JsonElement[] pkgTagElements = tagsElement.EnumerateArray().ToArray();
-                foreach (JsonElement tagItem in pkgTagElements)
+                if (tagsElement.ValueKind == JsonValueKind.Array)
                 {
-                    tagsFound.Add(tagItem.ToString().ToLower());
-                }
+                    List<string> tagsFound = new List<string>();
+                    foreach (JsonElement tagItem in tagsElement.EnumerateArray())
+                    {
+                        tagsFound.Add(tagItem.ToString());
+                    }
 
-                pkgTags = tagsFound.ToArray();
+                    pkgTags = tagsFound.ToArray();
+                }
+                else if (tagsElement.ValueKind == JsonValueKind.String)
+                {
+                    string tagStr = tagsElement.ToString();
+                    pkgTags = tagStr.Split(new char[]{' '}, StringSplitOptions.RemoveEmptyEntries);
+                }
             }
             catch (Exception e)
             {

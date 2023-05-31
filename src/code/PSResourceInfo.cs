@@ -658,12 +658,24 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // Tags
                 if (rootDom.TryGetProperty("tags", out JsonElement tagsElement))
                 {
-                    List<string> tags = new List<string>();
-                    foreach (var tag in tagsElement.EnumerateArray())
+                    string[] pkgTags = Utils.EmptyStrArray;
+                    if (tagsElement.ValueKind == JsonValueKind.Array)
                     {
-                        tags.Add(tag.ToString());
+                        List<string> tags = new List<string>();
+                        foreach (var tag in tagsElement.EnumerateArray())
+                        {
+                            tags.Add(tag.ToString());
+                        }
+
+                        pkgTags = tags.ToArray();
                     }
-                    metadata["Tags"] = tags.ToArray();
+                    else if (tagsElement.ValueKind == JsonValueKind.String)
+                    {
+                        string tagStr = tagsElement.ToString();
+                        pkgTags = tagStr.Split(new char[]{' '}, StringSplitOptions.RemoveEmptyEntries);
+                    }
+
+                    metadata["Tags"] = pkgTags;
                 }
 
                 // PublishedDate
