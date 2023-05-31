@@ -94,6 +94,23 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         $isPkgUpdated | Should -BeTrue
     }
 
+    It "Update resource installed given Name and Version '3.*' parameters" {
+        Install-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -TrustRepository
+
+        Update-PSResource -Name $moduleName -Version "3.*" -Repository $localRepo -TrustRepository
+        $res = Get-InstalledPSResource -Name $moduleName
+        $isPkgUpdated = $false
+        foreach ($pkg in $res)
+        {
+            if ([System.Version]$pkg.Version -eq [System.Version]"3.0.0")
+            {
+                $isPkgUpdated = $true
+            }
+        }
+
+        $isPkgUpdated | Should -BeTrue
+    }
+
     # Windows only
     It "update resource under CurrentUser scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
         # TODO: perhaps also install TestModule with the highest version (the one above 1.2.0.0) to the AllUsers path too

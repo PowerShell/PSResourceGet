@@ -3,9 +3,9 @@
 
 using System;
 using System.Management.Automation;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Retrieve the contents of a .ps1 file
@@ -47,7 +47,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             var resolvedPath = resolvedPaths[0].Path;
-            bool isValidScript = PSScriptFileInfo.TryTestPSScriptFile(
+            bool isValidScript = PSScriptFileInfo.TryTestPSScriptFileInfo(
                 scriptFileInfoPath: resolvedPath,
                 parsedScript: out PSScriptFileInfo psScriptFileInfo,
                 errors: out ErrorRecord[] errors,

@@ -27,10 +27,10 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $randomSecret = [System.IO.Path]::GetRandomFileName()
         $randomPassword = [System.IO.Path]::GetRandomFileName()
         
-        $credentialInfo1 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret)
+        $credentialInfo1 = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret)
         $secureString = ConvertTo-SecureString $randomPassword -AsPlainText -Force
         $credential = New-Object pscredential ("testusername", $secureString)
-        $credentialInfo2 = New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret, $credential)
+        $credentialInfo2 = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret, $credential)
     }
     AfterEach {
         Get-RevertPSResourceRepositoryFile
@@ -107,7 +107,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $hashtable1 = @{Name = $TestRepoName1; Uri = $tmpDir1Path}
         $hashtable2 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
         $hashtable3 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $hashtable4 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret))}
+        $hashtable4 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret))}
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
         Register-PSResourceRepository -Repository $arrayOfHashtables
@@ -151,7 +151,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $hashtable2 = @{Name = $TestRepoName1; Uri = $tmpDir1Path}
         $hashtable3 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
         $hashtable4 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $hashtable5 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret))}
+        $hashtable5 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret))}
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4, $hashtable5
 
         Register-PSResourceRepository -Repository $arrayOfHashtables
@@ -186,30 +186,30 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
     }
 
     It "not register repository when Name is provided but Uri is not" {
-        {Register-PSResourceRepository -Name $TestRepoName1 -Uri "" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        {Register-PSResourceRepository -Name $TestRepoName1 -Uri "" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register repository when Name is empty but Uri is provided" {
-        {Register-PSResourceRepository -Name "" -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        {Register-PSResourceRepository -Name "" -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register repository when Name is null but Uri is provided" {
-        {Register-PSResourceRepository -Name $null -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        {Register-PSResourceRepository -Name $null -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register repository when Name is just whitespace but Uri is provided" {
-        {Register-PSResourceRepository -Name " " -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        {Register-PSResourceRepository -Name " " -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register PSGallery with NameParameterSet" {
-        {Register-PSResourceRepository -Name $PSGalleryName -Uri $PSGalleryUri -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        {Register-PSResourceRepository -Name $PSGalleryName -Uri $PSGalleryUri -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     # this error message comes from the parameter cmdlet tags (earliest point of detection)
     It "not register PSGallery when PSGallery parameter provided with Name, Uri or CredentialInfo" {
-        {Register-PSResourceRepository -PSGallery -Name $PSGalleryName -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
-        {Register-PSResourceRepository -PSGallery -Uri $PSGalleryUri -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
-        {Register-PSResourceRepository -PSGallery -CredentialInfo $credentialInfo1 -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        {Register-PSResourceRepository -PSGallery -Name $PSGalleryName -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+        {Register-PSResourceRepository -PSGallery -Uri $PSGalleryUri -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+        {Register-PSResourceRepository -PSGallery -CredentialInfo $credentialInfo1 -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     $testCases = @{Type = "Name key specified with PSGallery key"; IncorrectHashTable = @{PSGallery = $True; Name=$PSGalleryName}},
@@ -227,7 +227,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "NotProvideNameUriCredentialInfoForPSGalleryRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "NotProvideNameUriCredentialInfoForPSGalleryRepositoriesParameterSetRegistration,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $res.Name | Should -Be $TestRepoName1
@@ -249,7 +249,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
 
-        $ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        $ErrorId = "NullNameForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -Be $ErrorId
 
@@ -274,7 +274,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
 
-        $ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        $ErrorId = "PSGalleryProvidedAsNameRepoPSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -Be $ErrorId
 
@@ -299,7 +299,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
 
-        $ErrorId = "NullUriForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        $ErrorId = "NullUriForRepositoriesParameterSetRegistration,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -Be $ErrorId
 
@@ -324,7 +324,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
 
-        $ErrorId = "InvalidUri,Microsoft.PowerShell.PowerShellGet.Cmdlets.RegisterPSResourceRepository"
+        $ErrorId = "InvalidUri,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -Be $ErrorId
 

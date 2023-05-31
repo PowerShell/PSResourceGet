@@ -23,7 +23,7 @@ namespace Benchmarks
             pwsh = System.Management.Automation.PowerShell.Create(defaultSS);
 
             // Using PSGet v3 in order to save the Az modules and its dependencies
-            pwsh.AddScript("Import-Module PowerShellGet -RequiredVersion 3.0.14 -Force");
+            pwsh.AddScript("Import-Module PSResourceGet -Force");
             pwsh.AddScript("New-Item TestRepo -ItemType Directory");
             pwsh.AddScript("Save-PSResource -Name Az -Repository PSGallery -AsNupkg -TrustRepository -Path .\\TestRepo");
 			

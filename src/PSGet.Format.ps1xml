@@ -4,7 +4,7 @@
         <View>
             <Name>PSResourceInfo</Name>
             <ViewSelectedBy>
-                <TypeName>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSResourceInfo</TypeName>
+                <TypeName>Microsoft.PowerShell.PSResourceGet.UtilClasses.PSResourceInfo</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -30,7 +30,7 @@
         <View>
             <Name>PSCommandResourceInfo</Name>
             <ViewSelectedBy>
-                <TypeName>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSCommandResourceInfo</TypeName>
+                <TypeName>Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCommandResourceInfo</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -52,7 +52,7 @@
         <View>
             <Name>PSIncludedResourceInfoTable</Name>
             <ViewSelectedBy>
-                <TypeName>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSIncludedResourceInfo</TypeName>
+                <TypeName>Microsoft.PowerShell.PSResourceGet.UtilClasses.PSIncludedResourceInfo</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -86,7 +86,7 @@
         <View>
             <Name>PSRepositoryInfo</Name>
             <ViewSelectedBy>
-                <TypeName>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSRepositoryInfo</TypeName>
+                <TypeName>Microsoft.PowerShell.PSResourceGet.UtilClasses.PSRepositoryInfo</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -110,7 +110,7 @@
         <View>
             <Name>PSScriptFileInfo</Name>
             <ViewSelectedBy>
-                <TypeName>Microsoft.PowerShell.PowerShellGet.UtilClasses.PSScriptFileInfo</TypeName>
+                <TypeName>Microsoft.PowerShell.PSResourceGet.UtilClasses.PSScriptFileInfo</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>

@@ -5,7 +5,7 @@ $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 # Explicitly import build module because in CI PowerShell can autoload PSGetv2
 # This ensures the build module is always being tested
-$buildModule = "$psscriptroot/../../out/PowerShellGet"
+$buildModule = "$psscriptroot/../../out/PSResourceGet"
 Import-Module $buildModule -Force -Verbose
 
 $testDir = (get-item $psscriptroot).parent.FullName
@@ -26,7 +26,7 @@ Describe "Test Get-PSScriptFileInfo" -tags 'CI' {
     It "should get script file object given script with minimal required fields" {
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testscript.ps1"
         $scriptDescription = "this is a test script"
-        New-PSScriptFile -Path $scriptFilePath -Description $scriptDescription
+        New-PSScriptFileInfo -Path $scriptFilePath -Description $scriptDescription
 
         $res = Get-PSScriptFileInfo $scriptFilePath
         $res.Name | Should -Be "testscript"
@@ -36,27 +36,27 @@ Describe "Test Get-PSScriptFileInfo" -tags 'CI' {
     It "should not get script file object given an invalid path" {
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testscript.psd1"
 
-        { Get-PSScriptFileInfo $scriptFilePath -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "InvalidPath,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSScriptFileInfo"
+        { Get-PSScriptFileInfo $scriptFilePath -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "InvalidPath,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSScriptFileInfo"
     }
 
     It "should not get script file object given a nonexistent path" {
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testscript1.ps1"
 
-        { Get-PSScriptFileInfo $scriptFilePath -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "PathNotFound,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSScriptFileInfo"
+        { Get-PSScriptFileInfo $scriptFilePath -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "PathNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSScriptFileInfo"
     }
 
     It "should not get script file object given script with Author and Version field missing" {
         $scriptName = "InvalidScriptMissingAuthorAndVersion.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
-        { Get-PSScriptFileInfo $scriptFilePath -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "InvalidPSScriptFile,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSScriptFileInfo"
+        { Get-PSScriptFileInfo $scriptFilePath -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "InvalidPSScriptFile,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSScriptFileInfo"
     }
 
     It "should not get script file object given script with Description field missing" {
         $scriptName = "InvalidScriptMissingDescription.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
-        { Get-PSScriptFileInfo $scriptFilePath -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "InvalidPSScriptFile,Microsoft.PowerShell.PowerShellGet.Cmdlets.GetPSScriptFileInfo"
+        { Get-PSScriptFileInfo $scriptFilePath -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "InvalidPSScriptFile,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSScriptFileInfo"
     }
 
     It "should get script file object given script without empty lines in PSScriptInfo comment content" {

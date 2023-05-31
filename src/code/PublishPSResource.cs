@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using NuGet.Commands;
 using NuGet.Common;
 using NuGet.Configuration;
@@ -18,7 +18,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Xml;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Publishes a module, script, or nupkg to a designated repository.
@@ -47,7 +47,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// Specifies the path to the resource that you want to publish. This parameter accepts the path to the folder that contains the resource.
         /// Specifies a path to one or more locations. Wildcards are permitted. The default location is the current directory (.).
         /// </summary>
-        [Parameter (Mandatory = true, HelpMessage = "Path to the resource to be published.")]
+        [Parameter (Mandatory = true, Position = 0, HelpMessage = "Path to the resource to be published.")]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
 
@@ -225,7 +225,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             Hashtable parsedMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
             if (resourceType == ResourceType.Script)
             {
-                if (!PSScriptFileInfo.TryTestPSScriptFile(
+                if (!PSScriptFileInfo.TryTestPSScriptFileInfo(
                     scriptFileInfoPath: pathToScriptFileToPublish,
                     parsedScript: out PSScriptFileInfo scriptToPublish,
                     out ErrorRecord[] errors,

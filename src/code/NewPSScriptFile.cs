@@ -6,14 +6,14 @@ using System.Collections;
 using System.IO;
 using System.Management.Automation;
 using Microsoft.PowerShell.Commands;
-using Microsoft.PowerShell.PowerShellGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Creates a new .ps1 file with script information required for publishing a script.
     /// </summary>
-    [Cmdlet(VerbsCommon.New, "PSScriptFile")]
+    [Cmdlet(VerbsCommon.New, "PSScriptFileInfo")]
     public sealed class NewPSScriptFile : PSCmdlet
     {
         #region Parameters
@@ -99,6 +99,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// The tags associated with the script.
         /// </summary>
         [Parameter]
+        [Alias("Tag")]
         [ValidateNotNullOrEmpty()]
         public string[] Tags { get; set; }
 

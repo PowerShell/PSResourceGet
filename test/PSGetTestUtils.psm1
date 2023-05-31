@@ -5,7 +5,7 @@ $script:DotnetCommandPath = @()
 $script:EnvironmentVariableTarget = @{ Process = 0; User = 1; Machine = 2 }
 $script:EnvPATHValueBackup = $null
 
-$script:PowerShellGet = 'PowerShellGet'
+$script:PSResourceGet = 'PSResourceGet'
 $script:IsInbox = $PSHOME.EndsWith('\WindowsPowerShell\v1.0', [System.StringComparison]::OrdinalIgnoreCase)
 $script:IsWindows = $IsWindows
 if ($IsWindows -eq $null) {
@@ -80,11 +80,11 @@ $script:MyDocumentsScriptsPath = Microsoft.PowerShell.Management\Join-Path -Path
 $script:TempPath = [System.IO.Path]::GetTempPath()
 
 if($script:IsWindows) {
-    $script:PSGetProgramDataPath = Microsoft.PowerShell.Management\Join-Path -Path $env:ProgramData -ChildPath 'Microsoft\Windows\PowerShell\PowerShellGet\'
-    $script:PSGetAppLocalPath = Microsoft.PowerShell.Management\Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Microsoft\Windows\PowerShell\PowerShellGet\'
+    $script:PSGetProgramDataPath = Microsoft.PowerShell.Management\Join-Path -Path $env:ProgramData -ChildPath 'Microsoft\Windows\PowerShell\PSResourceGet\'
+    $script:PSGetAppLocalPath = Microsoft.PowerShell.Management\Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Microsoft\Windows\PowerShell\PSResourceGet\'
 } else {
-    $script:PSGetProgramDataPath = Join-Path -Path ([System.Management.Automation.Platform]::SelectProductNameForDirectory('CONFIG')) -ChildPath 'PowerShellGet'
-    $script:PSGetAppLocalPath = Join-Path -Path ([System.Management.Automation.Platform]::SelectProductNameForDirectory('CACHE')) -ChildPath 'PowerShellGet'
+    $script:PSGetProgramDataPath = Join-Path -Path ([System.Management.Automation.Platform]::SelectProductNameForDirectory('CONFIG')) -ChildPath 'PSResourceGet'
+    $script:PSGetAppLocalPath = Join-Path -Path ([System.Management.Automation.Platform]::SelectProductNameForDirectory('CACHE')) -ChildPath 'PSResourceGet'
 }
 
 $script:ProgramDataExePath = Microsoft.PowerShell.Management\Join-Path -Path $script:PSGetProgramDataPath -ChildPath $script:NuGetExeName
@@ -180,7 +180,7 @@ function Get-RemoveTestDirs {
 
 function Get-NewPSResourceRepositoryFile {
     # register our own repositories with desired priority
-    $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet"
+    $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PSResourceGet"
     $originalXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml"
     $tempXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "temp.xml"
 
@@ -198,7 +198,7 @@ function Get-NewPSResourceRepositoryFile {
 }
 
 function Get-RevertPSResourceRepositoryFile {
-    $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet"
+    $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PSResourceGet"
     $originalXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml"
     $tempXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "temp.xml"
 
@@ -211,7 +211,7 @@ function Get-RevertPSResourceRepositoryFile {
 
 function Get-NewPSResourceRepositoryFileWithCredentialInfo {
     # register our own repositories with desired priority
-    $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PowerShellGet"
+    $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PSResourceGet"
     $originalXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml"
     $tempXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "temp.xml"
 
@@ -427,6 +427,15 @@ function New-TestModule
         [string]
         $prereleaseLabel,
 
+        [string]
+        $cmdletToExport = "Test-ModuleCmdlet",
+
+        [string]
+        $cmdletToExport2 = "Test-ModuleCmdlet2",
+
+        [string]
+        $dscResourceToExport = "Test-ModuleDSCResource",
+
         [string[]]
         $tags
     )
@@ -452,16 +461,18 @@ function New-TestModule
         Author            = 'None'
         Description       = 'None'
         GUID              = '0c2829fc-b165-4d72-9038-ae3a71a755c1'
+        CmdletsToExport = @('{1}', '{2}')
+        DscResourcesToExport = @('{3}')
         FunctionsToExport = @()
         RequiredModules   = @()
         PrivateData = @{{
             PSData = @{{
-                {1}
-                {2}
+                {4}
+                {5}
             }}
         }}
     }}
-'@ -f $packageVersion, $prereleaseEntry, $tagsEntry | Out-File -FilePath $moduleMan
+'@ -f $packageVersion, $cmdletToExport, $cmdletToExport2, $dscResourceToExport, $prereleaseEntry, $tagsEntry | Out-File -FilePath $moduleMan
 
     Publish-PSResource -Path $modulePath -Repository $repoName
 }

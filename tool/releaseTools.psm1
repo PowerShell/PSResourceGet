@@ -7,7 +7,7 @@ using namespace System.Management.Automation
 $script:PullRequests = @()
 $script:BugFixes = @()
 $script:NewFeatures = @()
-$script:Repo = Get-GitHubRepository -OwnerName PowerShell -RepositoryName PowerShellGet
+$script:Repo = Get-GitHubRepository -OwnerName PowerShell -RepositoryName PSResourceGet
 $script:Path = (Get-Item $PSScriptRoot).Parent.FullName
 $script:ChangelogFile = "$Path/CHANGELOG.md"
 
@@ -104,7 +104,7 @@ function Update-Changelog {
 
 <#
 .SYNOPSIS
-    Updates the PowerShellGet.psd1 file
+    Updates the PSResourceGet.psd1 file
 # Note: Update ModuleVersion and Prerelease after this, manually.
 #>
 function Update-PSDFile {
@@ -113,17 +113,17 @@ function Update-PSDFile {
         [Parameter(Mandatory)]
         [string]$Version
     )
-    $CurrentPSDFile = Get-Content -Path ".\src\PowerShellGet.psd1"
+    $CurrentPSDFile = Get-Content -Path ".\src\PSResourceGet.psd1"
     $Header = $CurrentPSDFile.Where({$_.StartsWith("## ")}, "First")
 
     @(
         $CurrentPSDFile.Where({ $_ -eq $Header }, "Until")
         Set-Changelog $Version
         $CurrentPSDFile.Where({ $_ -eq $Header }, "SkipUntil")
-    ) | Set-Content -Encoding utf8NoBOM -Path ".\src\PowerShellGet.psd1"
+    ) | Set-Content -Encoding utf8NoBOM -Path ".\src\PSResourceGet.psd1"
 
-    if ($PSCmdlet.ShouldProcess(".\src\PowerShellGet.psd1", "git add")) {
-        git add "src\PowerShellGet.psd1"
+    if ($PSCmdlet.ShouldProcess(".\src\PSResourceGet.psd1", "git add")) {
+        git add "src\PSResourceGet.psd1"
     }
 }
 

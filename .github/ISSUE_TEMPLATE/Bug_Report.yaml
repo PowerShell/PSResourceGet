@@ -10,14 +10,14 @@ body:
 
       For PowerShellGet v2 issues, please use [PowerShellGetv2 repo](https://github.com/PowerShell/PowerShellGetv2).
 
-      This repository is **ONLY** for PowerShellGet v3 issues.
+      This repository is **ONLY** for PSResourceGet issues.
 - type: checkboxes
   attributes:
     label: Prerequisites
     options:
     - label: Write a descriptive title.
       required: true
-    - label: Make sure you are able to repro it on the [latest released version](https://www.powershellgallery.com/packages/PowerShellGet)
+    - label: Make sure you are able to repro it on the [latest released version](https://www.powershellgallery.com/packages/PSResourceGet)
       required: true
     - label: Search the existing issues.
       required: true
@@ -59,9 +59,9 @@ body:
 - type: textarea
   attributes:
     label: Environment data
-    description: Paste verbatim output from `Get-Module PowerShellGet; $PSVersionTable` below.
+    description: Paste verbatim output from `Get-Module PSResourceGet; $PSVersionTable` below.
     render: powershell
-    placeholder: PS> Get-Module PowerShellGet; $PSVersionTable | Format-Table
+    placeholder: PS> Get-Module PSResourceGet; $PSVersionTable | Format-Table
   validations:
     required: true
 - type: textarea

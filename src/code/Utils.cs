@@ -13,9 +13,9 @@ using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
 using Microsoft.PowerShell.Commands;
-using Microsoft.PowerShell.PowerShellGet.Cmdlets;
+using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 
-namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
+namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
     #region Utils
 
@@ -219,8 +219,39 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 return true;
             }
 
+            bool isVersionRange;
+            if (version.Contains("*"))
+            {
+                string modifiedVersion;
+                string[] versionSplit = version.Split(new string[] { "." }, StringSplitOptions.None);
+                if (versionSplit.Length == 2 && versionSplit[1].Equals("*"))
+                {
+                    // eg: 2.* should translate to the version range "[2.0,2.99999]" 
+                    modifiedVersion = $"[{versionSplit[0]}.0,{versionSplit[0]}.999999]";
+                }
+                else if (versionSplit.Length == 3 && versionSplit[2].Equals("*"))
+                {
+                    // eg: 2.1.* should translate to the version range "[2.1.0,2.1.99999]" 
+                    modifiedVersion = $"[{versionSplit[0]}.{versionSplit[1]}.0,{versionSplit[0]}.{versionSplit[1]}.999999]";
+                }
+                else if (versionSplit.Length == 4 && versionSplit[3].Equals("*"))
+                {
+                    // eg: 2.8.8.* should translate to the version range "[2.1.3.0,2.1.3.99999]" 
+                    modifiedVersion = $"[{versionSplit[0]}.{versionSplit[1]}.{versionSplit[2]}.0,{versionSplit[0]}.{versionSplit[1]}.{versionSplit[2]}.999999]";
+                }
+                else {
+                    error = "Argument for -Version parameter is not in the proper format";
+                    return false;
+                }
+
+                VersionRange.TryParse(modifiedVersion, out versionRange);
+                versionType = VersionType.VersionRange;
+
+                return true;
+            }
+
             bool isNugetVersion = NuGetVersion.TryParse(version, out nugetVersion);
-            bool isVersionRange = VersionRange.TryParse(version, out versionRange);
+            isVersionRange = VersionRange.TryParse(version, out versionRange);
 
             if (!isNugetVersion && !isVersionRange)
             {
@@ -690,21 +721,13 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                out string programFilesPath);
 
             List<string> resourcePaths = new List<string>();
-
-            // Path search order is PSModulePath paths first, then default paths.
-            if (scope is null)
-            {
-                string psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
-                resourcePaths.AddRange(psModulePath.Split(Path.PathSeparator).ToList());
-            }
-
             if (scope is null || scope.Value is ScopeType.CurrentUser)
             {
                 resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
                 resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
             }
 
-            if (scope is null || scope.Value is ScopeType.AllUsers)
+            if (scope.Value is ScopeType.AllUsers)
             {
                 resourcePaths.Add(Path.Combine(programFilesPath, "Modules"));
                 resourcePaths.Add(Path.Combine(programFilesPath, "Scripts"));
@@ -1345,7 +1368,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
                 iss.LanguageMode = PSLanguageMode.FullLanguage;
                 // Import the current PowerShellGet module.
                 var modPathObjects = cmdlet.InvokeCommand.InvokeScript(
-                    script: "(Get-Module -Name PowerShellGet).Path");
+                    script: "(Get-Module -Name PSResourceGet).Path");
                 string modPath = (modPathObjects.Count > 0 &&
                                   modPathObjects[0].BaseObject is string modPathStr)
                                   ? modPathStr : string.Empty;

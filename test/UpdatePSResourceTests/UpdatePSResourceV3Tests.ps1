@@ -24,7 +24,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
 
         Update-PSResource -Name $testModuleName -Repository $NuGetGalleryName -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleName
-
+        $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -42,6 +42,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
 
         Update-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $NuGetGalleryName -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleName
+        $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -86,6 +87,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         Update-PSResource -Name $testModuleName -Version $Version -Repository $NuGetGalleryName -TrustRepository 2>$null
 
         $res = Get-InstalledPSResource -Name $testModuleName
+        $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -102,7 +104,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $NuGetGalleryName -TrustRepository
         Update-PSResource -Name $testModuleName -Prerelease -Repository $NuGetGalleryName -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleName
-
+        $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -125,7 +127,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $NuGetGalleryName -TrustRepository -Scope CurrentUser
 
         $res = Get-InstalledPSResource -Name $testModuleName
-
+        $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -157,7 +159,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         Update-PSResource -Name $testModuleName -Version "3.0.0.0" -Repository $NuGetGalleryName -TrustRepository -verbose
 
         $res = Get-InstalledPSResource -Name $testModuleName
-
+        $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -181,7 +183,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         Update-PSResource -Name $testModuleName -Repository $NuGetGalleryName -TrustRepository -Scope CurrentUser
 
         $res = Get-InstalledPSResource -Name $testModuleName
-
+        $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -205,7 +207,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         Update-PSResource -Name $testModuleName -Repository $NuGetGalleryName -TrustRepository -Scope AllUsers
 
         $res = Get-InstalledPSResource -Name $testModuleName
-
+        $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -229,7 +231,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         Update-PSResource -Name $testModuleName -Repository $NuGetGalleryName -TrustRepository
 
         $res = Get-InstalledPSResource -Name $testModuleName
-
+        $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
@@ -265,7 +267,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
         Update-PSResource -Name $testModuleName -WhatIf -Repository $NuGetGalleryName -TrustRepository
 
         $res = Get-InstalledPSResource -Name $testModuleName
-
+        $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {

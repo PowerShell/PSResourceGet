@@ -32,10 +32,6 @@ function DoBuild
         $null = New-Item -ItemType Directory -Path $BuildOutputBin
     }
 
-    # Copy help
-    Write-Verbose -Verbose -Message "Copying help files to '$BuildOutPath'"
-    Copy-Item -Path "${HelpPath}/${Culture}" -Dest "$BuildOutPath" -Recurse -Force
-
     # Copy license
     Write-Verbose -Verbose -Message "Copying LICENSE file to '$BuildOutPath'"
     Copy-Item -Path "./LICENSE" -Dest "$BuildOutPath"
@@ -79,7 +75,7 @@ function DoBuild
 
             # Place build results
             $assemblyNames = @(
-                'PowerShellGet'
+                'PSResourceGet'
                 'NuGet.Commands'
                 'NuGet.Common'
                 'NuGet.Configuration'

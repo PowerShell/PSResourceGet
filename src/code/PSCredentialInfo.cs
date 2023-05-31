@@ -7,7 +7,7 @@ using System.Net;
 using System.Security;
 using System.Collections;
 
-namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
+namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
     /// <summary>
     /// This class contains information for a repository's authentication credential.
@@ -49,7 +49,7 @@ namespace Microsoft.PowerShell.PowerShellGet.UtilClasses
 			else
 				SecretName = hashtable["Name"] as string;
 
-			if (hashtable.ContainsKey("Credential") && hashtable["PSCredential"] is PSCredential psCred)
+			if (hashtable.ContainsKey("Credential") && hashtable["Credential"] is PSCredential psCred)
 			{
 				Credential = psCred;
 			}

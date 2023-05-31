@@ -3,7 +3,7 @@ using System.Management.Automation;
 using System.IO;
 using System.Reflection;
 
-namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
 #if NET472
     public class UnsafeAssemblyHandler : IModuleAssemblyInitializer, IModuleAssemblyCleanup
