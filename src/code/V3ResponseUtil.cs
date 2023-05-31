@@ -38,28 +38,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string[] responses = responseResults.StringResponse;
             foreach (string response in responses)
             {
-                string parseError = String.Empty;
-                JsonDocument pkgVersionEntry = null;
+                string responseConversionError = String.Empty;
+                PSResourceInfo pkg = null;
+
                 try
                 {
-                    pkgVersionEntry = JsonDocument.Parse(response);
+                    using (JsonDocument pkgVersionEntry = JsonDocument.Parse(response))
+                    {
+                        PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out pkg, Repository, out responseConversionError);
+                    }
                 }
                 catch (Exception e)
                 {
-                    parseError = e.Message;
+                    responseConversionError = e.Message;
                 }
 
-                if (!String.IsNullOrEmpty(parseError))
+                if (!String.IsNullOrEmpty(responseConversionError))
                 {
-                    yield return new PSResourceResult(returnedObject: null, errorMsg: parseError, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, errorMsg: responseConversionError, isTerminatingError: false);
                 }
 
-                if (!PSResourceInfo.TryConvertFromJson(pkgVersionEntry, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
-                {
-                    yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
-                }
-
-                yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: pkg, errorMsg: String.Empty, isTerminatingError: false);
             }
         }
 

@@ -179,29 +179,30 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> satisfyingVersions = new List<string>();
             foreach (string response in versionedResponses)
             {
-                JsonElement pkgVersionElement;
                 try
                 {
-                    JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
-                    JsonElement rootDom = pkgVersionEntry.RootElement;
-                    if (!rootDom.TryGetProperty(versionName, out pkgVersionElement))
+                    using (JsonDocument pkgVersionEntry = JsonDocument.Parse(response))
                     {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain 'version' element."));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                        JsonElement rootDom = pkgVersionEntry.RootElement;
+                        if (!rootDom.TryGetProperty(versionName, out JsonElement pkgVersionElement))
+                        {
+                            edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{versionName}' element."));
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                        }
+
+                        if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion) && versionRange.Satisfies(pkgVersion))
+                        {
+                            if (!pkgVersion.IsPrerelease || includePrerelease)
+                            {
+                                satisfyingVersions.Add(response);
+                            }
+                        }
                     }
                 }
                 catch (Exception e)
                 {
                     edi = ExceptionDispatchInfo.Capture(e);
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                }
-
-                if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion) && versionRange.Satisfies(pkgVersion))
-                {
-                    if (!pkgVersion.IsPrerelease || includePrerelease)
-                    {
-                        satisfyingVersions.Add(response);
-                    }
                 }
             }
 
@@ -394,27 +395,29 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 try
                 {
-                    JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
-                    JsonElement rootDom = pkgVersionEntry.RootElement;
-                    if (!rootDom.TryGetProperty(versionName, out JsonElement pkgVersionElement))
+                    using (JsonDocument pkgVersionEntry = JsonDocument.Parse(response))
                     {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{versionName}' element for search with Name {packageName} in '{Repository.Name}'."));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-                    if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem))
-                    {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{tagsName}' element for search with Name {packageName} in '{Repository.Name}'."));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-
-                    if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
-                    {
-                        if (!pkgVersion.IsPrerelease || includePrerelease)
+                        JsonElement rootDom = pkgVersionEntry.RootElement;
+                        if (!rootDom.TryGetProperty(versionName, out JsonElement pkgVersionElement))
                         {
-                            // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
-                            latestVersionResponse = response;
-                            isTagMatch = IsRequiredTagSatisfied(tagsItem, tags, out edi);
-                            break;
+                            edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{versionName}' element for search with Name {packageName} in '{Repository.Name}'."));
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                        }
+                        if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem))
+                        {
+                            edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{tagsName}' element for search with Name {packageName} in '{Repository.Name}'."));
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                        }
+
+                        if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                        {
+                            if (!pkgVersion.IsPrerelease || includePrerelease)
+                            {
+                                // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
+                                latestVersionResponse = response;
+                                isTagMatch = IsRequiredTagSatisfied(tagsItem, tags, out edi);
+                                break;
+                            }
                         }
                     }
                 }
@@ -471,25 +474,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0
                 try
                 {
-                    JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
-                    JsonElement rootDom = pkgVersionEntry.RootElement;
-                    if (!rootDom.TryGetProperty(versionName, out JsonElement pkgVersionElement))
+                    using (JsonDocument pkgVersionEntry = JsonDocument.Parse(response))
                     {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{versionName}' element for search with Name {packageName} and Version {version} in '{Repository.Name}'."));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-                    if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem))
-                    {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{tagsName}' element for search with Name {packageName} and Version {version} in '{Repository.Name}'."));
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                    }
-                    if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
-                    {
-                        if (pkgVersion == requiredVersion)
+                        JsonElement rootDom = pkgVersionEntry.RootElement;
+                        if (!rootDom.TryGetProperty(versionName, out JsonElement pkgVersionElement))
                         {
-                            latestVersionResponse = response;
-                            isTagMatch = IsRequiredTagSatisfied(tagsItem, tags, out edi);
-                            break;
+                            edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{versionName}' element for search with Name {packageName} and Version {version} in '{Repository.Name}'."));
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                        }
+                        if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem))
+                        {
+                            edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{tagsName}' element for search with Name {packageName} and Version {version} in '{Repository.Name}'."));
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                        }
+                        if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                        {
+                            if (pkgVersion == requiredVersion)
+                            {
+                                latestVersionResponse = response;
+                                isTagMatch = IsRequiredTagSatisfied(tagsItem, tags, out edi);
+                                break;
+                            }
                         }
                     }
                 }
@@ -792,75 +797,75 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 // parse out JSON response we get from RegistrationsUrl
-                JsonDocument pkgVersionEntry = JsonDocument.Parse(pkgMappingResponse);
-
-                // The response has a "items" array element, which only has useful 1st element
-                JsonElement rootDom = pkgVersionEntry.RootElement;
-                rootDom.TryGetProperty(itemsName, out JsonElement itemsElement);
-                if (itemsElement.GetArrayLength() == 0)
+                using (JsonDocument pkgVersionEntry = JsonDocument.Parse(pkgMappingResponse))
                 {
-                    edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain '{itemsName}' element, for package with Name {packageName}."));
-                    return Utils.EmptyStrArray;
-                }
-
-                JsonElement firstItem = itemsElement[0];
-
-                // https://api.nuget.org/v3/registration5-gz-semver2/test_module/index.json
-                // The "items" property contains an inner "items" element and a "count" element
-                // The inner "items" property is the metadata array for each version of the package.
-                // The "count" property represents how many versions are present for that package, (i.e how many elements are in the inner "items" array)
-
-                if (!firstItem.TryGetProperty(itemsName, out JsonElement innerItemsElements))
-                {
-                    edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{itemsName}' element, for package with Name {packageName}."));
-                    return Utils.EmptyStrArray;
-                }
-                
-                if (!firstItem.TryGetProperty(countName, out JsonElement countElement) || !countElement.TryGetInt32(out int count))
-                {
-                    edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{countName}' element or it is not a valid integer, for package with Name {packageName}."));
-                    return Utils.EmptyStrArray;
-                }
-
-                if (!firstItem.TryGetProperty("upper", out JsonElement upperVersionElement))
-                {
-                    edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner 'upper' element, for package with Name {packageName}."));
-                    return Utils.EmptyStrArray;
-                }
-
-                for (int i = 0; i < count; i++)
-                {
-                    // Get the specific entry for each package version
-                    JsonElement versionedItem = innerItemsElements[i];
-
-                    // For search:
-                    // The "catalogEntry" property in the specific package version entry contains package metadata
-                    // For download:
-                    // The "packageContent" property in the specific package version entry has the .nupkg URI for each version of the package.
-                    if (!versionedItem.TryGetProperty(property, out JsonElement metadataElement))
+                    // The response has a "items" array element, which only has useful 1st element
+                    JsonElement rootDom = pkgVersionEntry.RootElement;
+                    if (!rootDom.TryGetProperty(itemsName, out JsonElement itemsElement) || itemsElement.GetArrayLength() == 0)
                     {
-                        edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{property}' element, for package with Name {packageName}."));
+                        edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain '{itemsName}' element, for package with Name {packageName}."));
+                        return Utils.EmptyStrArray;
+                    }
+
+                    JsonElement firstItem = itemsElement[0];
+
+                    // https://api.nuget.org/v3/registration5-gz-semver2/test_module/index.json
+                    // The "items" property contains an inner "items" element and a "count" element
+                    // The inner "items" property is the metadata array for each version of the package.
+                    // The "count" property represents how many versions are present for that package, (i.e how many elements are in the inner "items" array)
+
+                    if (!firstItem.TryGetProperty(itemsName, out JsonElement innerItemsElements))
+                    {
+                        edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{itemsName}' element, for package with Name {packageName}."));
                         return Utils.EmptyStrArray;
                     }
                     
-                    versionedResponses.Add(metadataElement.ToString());
-                }
-
-                // Reverse array of versioned responses, if needed, so that version entries are in descending order.
-                string upperVersion = upperVersionElement.ToString();
-                versionedResponseArr = versionedResponses.ToArray();
-                if (isSearch)
-                {
-                    if (!IsLatestVersionFirstForSearch(versionedResponseArr, upperVersion, out edi))
+                    if (!firstItem.TryGetProperty(countName, out JsonElement countElement) || !countElement.TryGetInt32(out int count))
                     {
-                        Array.Reverse(versionedResponseArr);
+                        edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{countName}' element or it is not a valid integer, for package with Name {packageName}."));
+                        return Utils.EmptyStrArray;
                     }
-                }
-                else
-                {
-                    if (!IsLatestVersionFirstForInstall(versionedResponseArr, upperVersion, out edi))
+
+                    if (!firstItem.TryGetProperty("upper", out JsonElement upperVersionElement))
                     {
-                        Array.Reverse(versionedResponseArr);
+                        edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner 'upper' element, for package with Name {packageName}."));
+                        return Utils.EmptyStrArray;
+                    }
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        // Get the specific entry for each package version
+                        JsonElement versionedItem = innerItemsElements[i];
+
+                        // For search:
+                        // The "catalogEntry" property in the specific package version entry contains package metadata
+                        // For download:
+                        // The "packageContent" property in the specific package version entry has the .nupkg URI for each version of the package.
+                        if (!versionedItem.TryGetProperty(property, out JsonElement metadataElement))
+                        {
+                            edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{property}' element, for package with Name {packageName}."));
+                            return Utils.EmptyStrArray;
+                        }
+                        
+                        versionedResponses.Add(metadataElement.ToString());
+                    }
+
+                    // Reverse array of versioned responses, if needed, so that version entries are in descending order.
+                    string upperVersion = upperVersionElement.ToString();
+                    versionedResponseArr = versionedResponses.ToArray();
+                    if (isSearch)
+                    {
+                        if (!IsLatestVersionFirstForSearch(versionedResponseArr, upperVersion, out edi))
+                        {
+                            Array.Reverse(versionedResponseArr);
+                        }
+                    }
+                    else
+                    {
+                        if (!IsLatestVersionFirstForInstall(versionedResponseArr, upperVersion, out edi))
+                        {
+                            Array.Reverse(versionedResponseArr);
+                        }
                     }
                 }
             }
@@ -889,23 +894,33 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             string firstResponse = versionedResponses[0];
-            JsonDocument firstResponseJson = JsonDocument.Parse(firstResponse);
-            JsonElement firstResponseDom = firstResponseJson.RootElement;
-            if (!firstResponseDom.TryGetProperty(versionName, out JsonElement firstVersionElement))
+            try
             {
-                edi = ExceptionDispatchInfo.Capture(new JsonParsingException($"Response did not contain '{versionName}' element"));
-                return latestVersionFirst;
-            }
-
-            string firstVersion = firstVersionElement.ToString();
-            if (NuGetVersion.TryParse(upperVersion, out NuGetVersion upperPkgVersion) && NuGetVersion.TryParse(firstVersion, out NuGetVersion firstPkgVersion))
-            {
-                if (firstPkgVersion != upperPkgVersion)
+                using (JsonDocument firstResponseJson = JsonDocument.Parse(firstResponse))
                 {
-                    latestVersionFirst = false;
+                    JsonElement firstResponseDom = firstResponseJson.RootElement;
+                    if (!firstResponseDom.TryGetProperty(versionName, out JsonElement firstVersionElement))
+                    {
+                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException($"Response did not contain '{versionName}' element"));
+                        return latestVersionFirst;
+                    }
+
+                    string firstVersion = firstVersionElement.ToString();
+                    if (NuGetVersion.TryParse(upperVersion, out NuGetVersion upperPkgVersion) && NuGetVersion.TryParse(firstVersion, out NuGetVersion firstPkgVersion))
+                    {
+                        if (firstPkgVersion != upperPkgVersion)
+                        {
+                            latestVersionFirst = false;
+                        }
+                    }
                 }
             }
-
+            catch (Exception e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+                return true;
+            }
+        
             return latestVersionFirst;
         }
 
@@ -987,7 +1002,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private JsonElement[] GetJsonElementArr(string request, string propertyName, out ExceptionDispatchInfo edi)
         {
-            JsonElement[] pkgsArr = new JsonElement[0];
+            List<JsonElement> responseEntries = new List<JsonElement>();
+            JsonElement[] entries = new JsonElement[0];
             try
             { 
                 string response = HttpRequestCall(request, out edi);
@@ -996,11 +1012,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new JsonElement[]{};
                 }
 
-                JsonDocument pkgsDom = JsonDocument.Parse(response);
+                using (JsonDocument pkgsDom = JsonDocument.Parse(response))
+                {
+                    pkgsDom.RootElement.TryGetProperty(propertyName, out JsonElement entryElement);
+                    foreach (JsonElement entry in entryElement.EnumerateArray())
+                    {
+                        responseEntries.Add(entry.Clone());
+                    }
 
-                pkgsDom.RootElement.TryGetProperty(propertyName, out JsonElement pkgs);
-
-                pkgsArr = pkgs.EnumerateArray().ToArray();
+                    entries = responseEntries.ToArray();
+                }
             }
             catch (Exception e)
             {
@@ -1008,7 +1029,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
             }
 
-            return pkgsArr;
+            return entries;
         }
 
         /// <summary>
