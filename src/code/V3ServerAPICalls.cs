@@ -327,14 +327,13 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     }
 
                     id = idItem.ToString();
-                    pkgTags = GetTagsFromJsonElement(tagsElement: tagsItem);
 
                     // determine if id matches our wildcard criteria
                     if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.ToLower().Contains(querySearchTerm.ToLower())) ||
                         (packageName.EndsWith("*") && id.StartsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)) ||
                         (packageName.StartsWith("*") && id.EndsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)))
                     {
-                        bool isTagMatch = DeterminePkgTagsSatisfyRequiredTags(pkgTags: pkgTags, requiredTags: tags);
+                        bool isTagMatch = IsRequiredTagSatisfied(tagsItem, tags, out edi);
                         if (!isTagMatch)
                         {
                             continue;
@@ -389,17 +388,33 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             string latestVersionResponse = String.Empty;
+            bool isTagMatch = true;
             foreach (string response in versionedResponses)
             {
-                JsonElement pkgVersionElement;
                 try
                 {
                     JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
                     JsonElement rootDom = pkgVersionEntry.RootElement;
-                    if (!rootDom.TryGetProperty(versionName, out pkgVersionElement))
+                    if (!rootDom.TryGetProperty(versionName, out JsonElement pkgVersionElement))
                     {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{versionName}' element."));
+                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{versionName}' element for search with Name {packageName} in '{Repository.Name}'."));
                         return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                    }
+                    if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem))
+                    {
+                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{tagsName}' element for search with Name {packageName} in '{Repository.Name}'."));
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                    }
+
+                    if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                    {
+                        if (!pkgVersion.IsPrerelease || includePrerelease)
+                        {
+                            // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
+                            latestVersionResponse = response;
+                            isTagMatch = IsRequiredTagSatisfied(tagsItem, tags, out edi);
+                            break;
+                        }
                     }
                 }
                 catch (Exception e)
@@ -407,18 +422,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                     edi = ExceptionDispatchInfo.Capture(e);
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                 }
-
-                if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
-                {
-                    if (!pkgVersion.IsPrerelease || includePrerelease)
-                    {
-                        // versions are reported in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
-                        latestVersionResponse = response;
-
-                        // TODO: technically we could call GetTagsFromJsonElement() and DeterminePkgTagsSatisfyRequiredTags() so we don't parse into JsonDocument again
-                        break;
-                    }
-                } 
             }
 
             if (String.IsNullOrEmpty(latestVersionResponse))
@@ -428,7 +431,7 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            bool isTagMatch = DetermineTagsPresent(response: latestVersionResponse, tags: tags, out edi);
+            // Check and write error for tags matching requirement. If no tags were required the isTagMatch variable will be true.
             if (!isTagMatch)
             {
                 if (edi == null)
@@ -461,35 +464,38 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
             }
 
             string latestVersionResponse = String.Empty;
+            bool isTagMatch = true;
             foreach (string response in versionedResponses)
             {
-                // this assumes latest versions are reported first i.e 5.0.0, 3.0.0, 1.0.0
-                JsonElement pkgVersionElement;
+                // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0
                 try
                 {
                     JsonDocument pkgVersionEntry = JsonDocument.Parse(response);
                     JsonElement rootDom = pkgVersionEntry.RootElement;
-                    if (!rootDom.TryGetProperty(versionName, out pkgVersionElement))
+                    if (!rootDom.TryGetProperty(versionName, out JsonElement pkgVersionElement))
                     {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{versionName}' element for search with Name {packageName} and Version {version}."));
+                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{versionName}' element for search with Name {packageName} and Version {version} in '{Repository.Name}'."));
                         return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                    }
+                    if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem))
+                    {
+                        edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Response does not contain '{tagsName}' element for search with Name {packageName} and Version {version} in '{Repository.Name}'."));
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                    }
+                    if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                    {
+                        if (pkgVersion == requiredVersion)
+                        {
+                            latestVersionResponse = response;
+                            isTagMatch = IsRequiredTagSatisfied(tagsItem, tags, out edi);
+                            break;
+                        }
                     }
                 }
                 catch (Exception e)
                 {
                     edi = ExceptionDispatchInfo.Capture(e);
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-                }
-
-                if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
-                {
-                    if (pkgVersion == requiredVersion)
-                    {
-                        latestVersionResponse = response;
-                        // TODO: technically we could call GetTagsFromJsonElement() and DeterminePkgTagsSatisfyRequiredTags() so we don't parse into JsonDocument again
-                        // regardless of wheter tags are satisfied we would break - if false that just means we had right version but no tags, so search fails and edi is set but response is empty (handled below)
-                        break;
-                    }
                 }
             }
 
@@ -499,7 +505,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            bool isTagMatch = DetermineTagsPresent(response: latestVersionResponse, tags: tags, out edi);
             if (!isTagMatch)
             {
                 if (edi == null)
@@ -985,64 +990,37 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         }
 
         /// <summary>
-        /// Helper method that determines if specified tags are present in response representing package(s).
+        /// Helper method that determines if specified tags are present in package's tags.
         /// </summary>
-        private bool DetermineTagsPresent(string response, string[] tags, out ExceptionDispatchInfo edi)
+        private bool IsRequiredTagSatisfied(JsonElement tagsElement, string[] tags, out ExceptionDispatchInfo edi)
         {
             edi = null;
             string[] pkgTags = Utils.EmptyStrArray;
 
+            // Get the package's tags from the tags JsonElement
             try
             {
-                JsonDocument pkgMappingDom = JsonDocument.Parse(response);
-                JsonElement rootPkgMappingDom = pkgMappingDom.RootElement;
-
-                if (!rootPkgMappingDom.TryGetProperty(tagsName, out JsonElement tagsElement))
+                List<string> tagsFound = new List<string>();
+                JsonElement[] pkgTagElements = tagsElement.EnumerateArray().ToArray();
+                foreach (JsonElement tagItem in pkgTagElements)
                 {
-                    string errMsg = $"FindNameWithTag(): Tags element could not be found in response or was empty.";
-                    edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
-                    return false;
+                    tagsFound.Add(tagItem.ToString().ToLower());
                 }
 
-                pkgTags = GetTagsFromJsonElement(tagsElement: tagsElement);
+                pkgTags = tagsFound.ToArray();
             }
             catch (Exception e)
             {
-                string errMsg = $"DetermineTagsPresent(): Exception parsing JSON for respository {Repository.Uri} with error: {e.Message}";
+                string errMsg = $"DetermineTagsPresent(): Exception parsing 'Tags' element found in JSON from respository {Repository.Name} with error: {e.Message}";
                 edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
                 return false;
             }
 
-            bool isTagMatch = DeterminePkgTagsSatisfyRequiredTags(pkgTags: pkgTags, requiredTags: tags);
-
-            return isTagMatch;
-        }
-
-        /// <summary>
-        /// Helper method that finds all tags for package with the given tags JSonElement.
-        /// </summary>
-        private string[] GetTagsFromJsonElement(JsonElement tagsElement)
-        {
-            List<string> tagsFound = new List<string>();
-            JsonElement[] pkgTagElements = tagsElement.EnumerateArray().ToArray();
-            foreach (JsonElement tagItem in pkgTagElements)
-            {
-                tagsFound.Add(tagItem.ToString().ToLower());
-            }
-
-            return tagsFound.ToArray();
-        }
-
-        /// <summary>
-        /// Helper method that compares the tags requests to be present to the tags present in the package.
-        /// </summary>
-        private bool DeterminePkgTagsSatisfyRequiredTags(string[] pkgTags, string[] requiredTags)
-        {
+            // determine if all required tags are present within package's tags.
             bool isTagMatch = true;
-
-            foreach (string tag in requiredTags)
+            foreach (string requiredTag in tags)
             {
-                if (!pkgTags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+                if (!pkgTags.Contains(requiredTag, StringComparer.OrdinalIgnoreCase))
                 {
                     isTagMatch = false;
                     break;
@@ -1057,7 +1035,6 @@ namespace Microsoft.PowerShell.PowerShellGet.Cmdlets
         /// </summary>
         private JsonElement[] GetJsonElementArr(string request, string propertyName, out ExceptionDispatchInfo edi)
         {
-            // TODO: for "data" propertyName, basically SearchQueryService, if "totalHits" == 0 no matches were found, so populate edi and caller and early out.
             JsonElement[] pkgsArr = new JsonElement[0];
             try
             { 

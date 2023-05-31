@@ -246,7 +246,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         Install-PSResource -Name "test_module_with_license" -Repository $NuGetGalleryName -AcceptLicense
         $pkg = Get-InstalledPSResource "test_module_with_license"
         $pkg.Name | Should -Be "test_module_with_license"
-        $pkg.Version | Should -Be "1.0.0"
+        $pkg.Version | Should -Be "2.0.0"
     }
 
     It "Install PSResourceInfo object piped in" {
