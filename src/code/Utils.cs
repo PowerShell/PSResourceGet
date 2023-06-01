@@ -36,7 +36,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         #region String fields
 
         public static readonly string[] EmptyStrArray = Array.Empty<string>();
-        public static readonly char[] SpaceSeparator = new char[]{' '};
+        public static readonly char[] WhitespaceSeparator = new char[]{' '};
         public const string PSDataFileExt = ".psd1";
         private const string ConvertJsonToHashtableScript = @"
             param (

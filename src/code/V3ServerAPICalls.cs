@@ -962,7 +962,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (tagsElement.ValueKind == JsonValueKind.Array)
                 {
-                    List<string> tagsFound = new List<string>();
+                    var arrayLength = tagsElement.GetArrayLength();
+                    List<string> tagsFound = new List<string>(arrayLength);
                     foreach (JsonElement tagItem in tagsElement.EnumerateArray())
                     {
                         tagsFound.Add(tagItem.ToString());
@@ -973,7 +974,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 else if (tagsElement.ValueKind == JsonValueKind.String)
                 {
                     string tagStr = tagsElement.ToString();
-                    pkgTags = tagStr.Split(Utils.SpaceSeparator, StringSplitOptions.RemoveEmptyEntries);
+                    pkgTags = tagStr.Split(Utils.WhitespaceSeparator, StringSplitOptions.RemoveEmptyEntries);
                 }
             }
             catch (Exception e)

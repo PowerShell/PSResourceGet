@@ -661,7 +661,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     string[] pkgTags = Utils.EmptyStrArray;
                     if (tagsElement.ValueKind == JsonValueKind.Array)
                     {
-                        List<string> tags = new List<string>();
+                        var arrayLength = tagsElement.GetArrayLength();
+                        List<string> tags = new List<string>(arrayLength);
                         foreach (var tag in tagsElement.EnumerateArray())
                         {
                             tags.Add(tag.ToString());
@@ -672,7 +673,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     else if (tagsElement.ValueKind == JsonValueKind.String)
                     {
                         string tagStr = tagsElement.ToString();
-                        pkgTags = tagStr.Split(new char[]{' '}, StringSplitOptions.RemoveEmptyEntries);
+                        pkgTags = tagStr.Split(Utils.WhitespaceSeparator, StringSplitOptions.RemoveEmptyEntries);
                     }
 
                     metadata["Tags"] = pkgTags;
