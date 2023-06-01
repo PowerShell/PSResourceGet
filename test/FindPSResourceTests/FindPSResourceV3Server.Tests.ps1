@@ -268,4 +268,12 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindAllFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
+
+    # This test is time consuming, so marked as pending for now, should always be manually tested.
+    It "Should find more than 100 Az* packages" -Pending {
+        # Tests pagination
+        $res = Find-PSResource -Name "Az*" -Repository $NuGetGalleryName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterThan 100
+    }
 }
