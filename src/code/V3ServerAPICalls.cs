@@ -847,6 +847,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             return Utils.EmptyStrArray;
                         }
                         
+                        // If metadata has a "listed" property, but it's set to false, skip this package version
+                        if (metadataElement.TryGetProperty("listed", out JsonElement listedElement))
+                        {
+                            if (bool.TryParse(listedElement.ToString(), out bool listed) && !listed)
+                            {
+                                continue;
+                            }
+                        }
+                        
                         versionedResponses.Add(metadataElement.ToString());
                     }
 
