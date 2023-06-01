@@ -53,6 +53,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             var requiredAssembly = new AssemblyName(args.Name);
 
+            // If on .NET framework and requesting assembly is System.Memory load the version dependency folder
+            if (s_proxy is null
+                && string.Equals(requiredAssembly.Name, "System.Runtime.CompilerServices.Unsafe"))
+            {
+                var compileServiceDllPath = Path.Combine(s_dependencyFolder, "System.Runtime.CompilerServices.Unsafe.dll");
+                return Assembly.LoadFrom(compileServiceDllPath);
+            }
+
             if (IsAssemblyMatching(requiredAssembly, args.RequestingAssembly))
             {
                 string possibleAssembly = Path.Combine(s_dependencyFolder, $"{requiredAssembly.Name}.dll");
