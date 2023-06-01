@@ -298,7 +298,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            JsonElement[] matchingPkgEntries = GetVersionedPackageEntriesFromSearchQueryResource(querySearchTerm, includePrerelease, out edi);
+            var matchingPkgEntries = GetVersionedPackageEntriesFromSearchQueryResource(querySearchTerm, includePrerelease, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -363,7 +363,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string tagsQueryTerm = $"tags:{String.Join(" ", tags)}";
             // Get responses for all packages that contain the required tags
             // example query: 
-            JsonElement[] tagPkgEntries = GetVersionedPackageEntriesFromSearchQueryResource(tagsQueryTerm, includePrerelease, out edi);
+            var tagPkgEntries = GetVersionedPackageEntriesFromSearchQueryResource(tagsQueryTerm, includePrerelease, out edi);
             if (edi != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -622,9 +622,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// i.e when the package Name being searched for contains wildcards or a Tag query search is performed
         /// This is called by FindNameGlobbingFromNuGetRepo() and FindTagsFromNuGetRepo()
         /// </summary>
-        private JsonElement[] GetVersionedPackageEntriesFromSearchQueryResource(string queryTerm, bool includePrerelease, out ExceptionDispatchInfo edi)
+        private List<JsonElement> GetVersionedPackageEntriesFromSearchQueryResource(string queryTerm, bool includePrerelease, out ExceptionDispatchInfo edi)
         {
-            JsonElement[] pkgEntries = new JsonElement[]{};
+            List<JsonElement> pkgEntries = new();
             Dictionary<string, string> resources = GetResourcesFromServiceIndex(out edi);
             if (edi != null)
             {
@@ -637,13 +637,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return pkgEntries;
             }
 
-            string query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0";
+            // Get initial response 
+            int skip = 0;
+            string query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
 
             // Get responses for all packages that contain the required tags
-            pkgEntries = GetJsonElementArr(query, dataName, out edi);
-            if (edi != null)
+            pkgEntries.AddRange(GetJsonElementArr(query, dataName, out int initialCount, out edi).ToList());
+
+            // check count (ie "totalHits") 425 ==> count/100  ~~> 5 calls 
+            int count = initialCount / 100;
+            // if more than 100 count, loop and add response to list
+            while (count > 0)
             {
-                return new JsonElement[]{};
+                skip += 100;
+                pkgEntries.AddRange(GetJsonElementArr(query, dataName, out int unneededCount, out edi).ToList());
+                count--;
             }
 
             return pkgEntries;
@@ -656,7 +664,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private Dictionary<string, string> GetResourcesFromServiceIndex(out ExceptionDispatchInfo edi)
         {
             Dictionary<string, string> resources = new Dictionary<string, string>();
-            JsonElement[] resourcesArray = GetJsonElementArr($"{Repository.Uri}", resourcesName, out edi);
+            JsonElement[] resourcesArray = GetJsonElementArr($"{Repository.Uri}", resourcesName, out int totalHits, out edi);
             if (edi != null)
             {
                 return resources;
@@ -1001,10 +1009,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Helper method that parses response for given property and returns result for that property as a JsonElement array.
         /// </summary>
-        private JsonElement[] GetJsonElementArr(string request, string propertyName, out ExceptionDispatchInfo edi)
+        private JsonElement[] GetJsonElementArr(string request, string propertyName, out int totalHits, out ExceptionDispatchInfo edi)
         {
             List<JsonElement> responseEntries = new List<JsonElement>();
             JsonElement[] entries = new JsonElement[0];
+            totalHits = 0;
             try
             { 
                 string response = HttpRequestCall(request, out edi);
@@ -1019,6 +1028,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     foreach (JsonElement entry in entryElement.EnumerateArray())
                     {
                         responseEntries.Add(entry.Clone());
+                    }
+
+                    totalHits = 0;
+                    if (pkgsDom.RootElement.TryGetProperty("totalHits", out JsonElement totalHitsElement))
+                    {
+                        int.TryParse(totalHitsElement.ToString(), out totalHits);
                     }
 
                     entries = responseEntries.ToArray();
