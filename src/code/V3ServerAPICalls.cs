@@ -1036,14 +1036,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         responseEntries.Add(entry.Clone());
                     }
 
-                    if (!pkgsDom.RootElement.TryGetProperty("totalHits", out JsonElement totalHitsElement))
+                    totalHits = 0;
+                    if (pkgsDom.RootElement.TryGetProperty("totalHits", out JsonElement totalHitsElement))
                     {
-                        totalHits = 0;
-                    }
-                    if (!int.TryParse(totalHitsElement.ToString(), out totalHits))
-                    {
-                        string errMsg = $"GetCountFromResponse(): Error parsing totalHits.";
-                        edi = ExceptionDispatchInfo.Capture(new JsonParsingException(errMsg));
+                        int.TryParse(totalHitsElement.ToString(), out totalHits);
                     }
 
                     entries = responseEntries.ToArray();
