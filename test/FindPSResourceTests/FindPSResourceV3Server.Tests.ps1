@@ -269,11 +269,13 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindAllFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
-    # This test is time consuming, so marked as pending for now, should always be manually tested.
-    It "Should find more than 100 Az* packages" -Pending {
+    # "carb*" is intentionally chosen as a sequence that will trigger pagination (ie more than 100 results),
+    # but is not too time consuming.
+    # There are currently between 300-350 packages that should be returned
+    It "Should find more than 100 packages that contain 'carb*' in the name" {
         # Tests pagination
-        $res = Find-PSResource -Name "Az*" -Repository $NuGetGalleryName
+        $res = Find-PSResource -Name "carb*" -Repository $NuGetGalleryName
         $res | Should -Not -BeNullOrEmpty
-        $res.Count | Should -BeGreaterThan 100
+        $res.Count | Should -BeGreaterThan 300
     }
 }
