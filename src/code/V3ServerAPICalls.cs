@@ -852,7 +852,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         {
                             if (bool.TryParse(listedElement.ToString(), out bool listed) && !listed)
                             {
-                                continue;
+                                return Utils.EmptyStrArray;
                             }
                         }
 
