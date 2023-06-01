@@ -194,9 +194,9 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     # Windows only
     It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
         Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository -Scope AllUsers -Verbose
-        $pkg = Get-Module $testModuleName -ListAvailable
+        $pkg = Get-InstalledPSResource $testModuleName -Scope AllUsers
         $pkg.Name | Should -Be $testModuleName
-        $pkg.Path.ToString().Contains("Program Files")
+        $pkg.InstalledLocation.ToString().Contains("Program Files") | Should -Be $true
     }
 
     # Windows only

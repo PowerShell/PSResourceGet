@@ -622,6 +622,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     string versionValue = versionElement.ToString();
                     metadata["Version"] = ParseHttpVersion(versionValue, out string prereleaseLabel);
                     metadata["Prerelease"] = prereleaseLabel;
+                    // ADO server response does not contain "isPrerelease" element, so we set it here.
+                    metadata["IsPrerelease"] = !String.IsNullOrEmpty(prereleaseLabel);
 
                     if (!NuGetVersion.TryParse(versionValue, out NuGetVersion parsedNormalizedVersion))
                     {
@@ -631,6 +633,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                         parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
                     }
+
                     metadata["NormalizedVersion"] = parsedNormalizedVersion;
                 }
 
@@ -646,15 +649,34 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     metadata["ProjectUrl"] = ParseHttpUrl(projectUrlElement.ToString()) as Uri;
                 }
 
+                // Icon Url
+                if (rootDom.TryGetProperty("iconUrl", out JsonElement iconUrlElement))
+                {
+                    metadata["IconUrl"] = ParseHttpUrl(iconUrlElement.ToString()) as Uri;
+                }
+
                 // Tags
                 if (rootDom.TryGetProperty("tags", out JsonElement tagsElement))
                 {
-                    List<string> tags = new List<string>();
-                    foreach (var tag in tagsElement.EnumerateArray())
+                    string[] pkgTags = Utils.EmptyStrArray;
+                    if (tagsElement.ValueKind == JsonValueKind.Array)
                     {
-                        tags.Add(tag.ToString());
+                        var arrayLength = tagsElement.GetArrayLength();
+                        List<string> tags = new List<string>(arrayLength);
+                        foreach (var tag in tagsElement.EnumerateArray())
+                        {
+                            tags.Add(tag.ToString());
+                        }
+
+                        pkgTags = tags.ToArray();
                     }
-                    metadata["Tags"] = tags.ToArray();
+                    else if (tagsElement.ValueKind == JsonValueKind.String)
+                    {
+                        string tagStr = tagsElement.ToString();
+                        pkgTags = tagStr.Split(Utils.WhitespaceSeparator, StringSplitOptions.RemoveEmptyEntries);
+                    }
+
+                    metadata["Tags"] = pkgTags;
                 }
 
                 // PublishedDate
@@ -663,10 +685,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     metadata["PublishedDate"] = ParseHttpDateTime(publishedElement.ToString());
                 }
 
-                // Dependencies 
-                // TODO 3.0.0-beta21, a little complicated 
+                // Dependencies
+                // TODO, tracked via: https://github.com/PowerShell/PSResourceGet/issues/1169
 
                 // IsPrerelease
+                // NuGet.org repository's response does contain 'isPrerelease' element so it can be accquired and set here.
                 if (rootDom.TryGetProperty("isPrerelease", out JsonElement isPrereleaseElement))
                 {
                     metadata["IsPrerelease"] = isPrereleaseElement.GetBoolean();

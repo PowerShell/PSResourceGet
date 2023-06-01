@@ -21,6 +21,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 case PSRepositoryInfo.APIVersion.v3:
                     currentResponseUtil = new V3ResponseUtil(repository);
                     break;
+
                 case PSRepositoryInfo.APIVersion.local:
                     currentResponseUtil = new LocalResponseUtil(repository);
                     break;
