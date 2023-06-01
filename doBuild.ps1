@@ -25,14 +25,6 @@ function DoBuild
     Write-Verbose -Verbose -Message "Copy-Item ${SrcPath}/${FormatFileName}.ps1xml to $BuildOutPath"
     Copy-Item -Path "${SrcPath}/${FormatFileName}.ps1xml" -Dest "$BuildOutPath" -Force
 
-    <# Create BuildFramework directory for binary location
-    $BuildOutputBin = Join-Path -Path $BuildOutPath -ChildPath $BuildFramework
-    if (! (Test-Path -Path $BuildOutputBin)) {
-        Write-Verbose -Verbose "Creating output path for binaries: $BuildOutputBin"
-        $null = New-Item -ItemType Directory -Path $BuildOutputBin
-    }
-    #>
-
     # Copy license
     Write-Verbose -Verbose -Message "Copying LICENSE file to '$BuildOutPath'"
     Copy-Item -Path "./LICENSE" -Dest "$BuildOutPath"

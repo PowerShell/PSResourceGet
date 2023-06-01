@@ -18,7 +18,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             s_self = Assembly.GetExecutingAssembly();
             s_dependencyFolder = Path.Combine(Path.GetDirectoryName(s_self.Location), "dependencies");
             s_dependencies = new HashSet<string>(StringComparer.Ordinal);
-            s_proxy = AssemblyLoadContextProxy.CreateLoadContext("powershellget-load-context");
+            s_proxy = AssemblyLoadContextProxy.CreateLoadContext("psresourceget-load-context");
 
             foreach (string filePath in Directory.EnumerateFiles(s_dependencyFolder, "*.dll"))
             {
