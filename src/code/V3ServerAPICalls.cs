@@ -973,7 +973,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 else if (tagsElement.ValueKind == JsonValueKind.String)
                 {
                     string tagStr = tagsElement.ToString();
-                    pkgTags = tagStr.Split(new char[]{' '}, StringSplitOptions.RemoveEmptyEntries);
+                    pkgTags = tagStr.Split(Utils.SpaceSeparator, StringSplitOptions.RemoveEmptyEntries);
                 }
             }
             catch (Exception e)

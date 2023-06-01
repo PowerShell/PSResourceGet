@@ -684,8 +684,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     metadata["PublishedDate"] = ParseHttpDateTime(publishedElement.ToString());
                 }
 
-                // Dependencies 
-                // TODO vNext, a little complicated 
+                // Dependencies
+                // TODO, tracked via: https://github.com/PowerShell/PSResourceGet/issues/1169
 
                 // IsPrerelease
                 // NuGet.org repository's response does contain 'isPrerelease' element so it can be accquired and set here.
