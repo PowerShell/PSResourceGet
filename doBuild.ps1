@@ -25,13 +25,6 @@ function DoBuild
     Write-Verbose -Verbose -Message "Copy-Item ${SrcPath}/${FormatFileName}.ps1xml to $BuildOutPath"
     Copy-Item -Path "${SrcPath}/${FormatFileName}.ps1xml" -Dest "$BuildOutPath" -Force
 
-    # Create BuildFramework directory for binary location
-    $BuildOutputBin = Join-Path -Path $BuildOutPath -ChildPath $BuildFramework
-    if (! (Test-Path -Path $BuildOutputBin)) {
-        Write-Verbose -Verbose "Creating output path for binaries: $BuildOutputBin"
-        $null = New-Item -ItemType Directory -Path $BuildOutputBin
-    }
-
     # Copy license
     Write-Verbose -Verbose -Message "Copying LICENSE file to '$BuildOutPath'"
     Copy-Item -Path "./LICENSE" -Dest "$BuildOutPath"
@@ -76,12 +69,18 @@ function DoBuild
             # Place build results
             $assemblyNames = @(
                 'PSResourceGet'
+            )
+
+            $depAssemblyNames = @(
                 'NuGet.Commands'
                 'NuGet.Common'
                 'NuGet.Configuration'
+                'NuGet.Credentials'
+                'NuGet.DependencyResolver.Core'
                 'NuGet.Frameworks'
+                'NuGet.LibraryModel'
                 'NuGet.Packaging'
-                'NuGet.ProjectModel' 
+                'NuGet.ProjectModel'
                 'NuGet.Protocol'
                 'NuGet.Versioning'
                 'Newtonsoft.Json'
@@ -91,12 +90,15 @@ function DoBuild
                 'System.Numerics.Vectors'
                 'System.Runtime.CompilerServices.Unsafe'
                 'System.Text.Encodings.Web'
+                'System.Text.Json'
                 'System.Threading.Tasks.Extensions'
                 'Microsoft.Bcl.AsyncInterfaces'
                 'System.ValueTuple'
             )
 
             $buildSuccess = $true
+
+            # Copy module binaries
             foreach ($fileName in $assemblyNames)
             {
                 # Copy bin file
@@ -108,14 +110,36 @@ function DoBuild
                     continue
                 }
 
-                Copy-Item -Path $filePath -Dest $BuildOutputBin -Verbose -Force
+                Copy-Item -Path $filePath -Dest $BuildOutPath -Verbose -Force
 
                 # Copy pdb file if available
                 $filePathPdb = Join-Path -Path $BuildSrcPath -ChildPath "${fileName}.pdb"
                 if (Test-Path -Path $filePathPdb)
                 {
-                    Copy-Item -Path $filePathPdb -Dest $BuildOutputBin -Verbose -Force
+                    Copy-Item -Path $filePathPdb -Dest $BuildOutPath -Verbose -Force
                 }
+            }
+
+            $depsOutputBinPath = Join-Path -Path $BuildOutPath -ChildPath "dependencies"
+
+            if (-not (Test-Path $depsOutputBinPath)) {
+                Write-Verbose -Verbose -Message "Creating output path for dependencies: $depsOutputBinPath"
+                $null = New-Item -ItemType Directory -Path $depsOutputBinPath
+            }
+
+            # Copy dependencies
+            foreach ($fileName in $depAssemblyNames)
+            {
+                # Copy bin file
+                $filePath = Join-Path -Path $BuildSrcPath -ChildPath "${fileName}.dll"
+                if (! (Test-Path -Path $filePath))
+                {
+                    Write-Error "Expected file $filePath is missing from build output."
+                    $BuildSuccess = $false
+                    continue
+                }
+
+                Copy-Item -Path $filePath -Dest $depsOutputBinPath -Verbose -Force
             }
 
             if (! $buildSuccess)
