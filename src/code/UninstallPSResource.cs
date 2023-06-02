@@ -168,16 +168,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void EndProcessing()
         {
-            if (_dependentModules is not null)
-            {
-                _dependentModules.Clear();
-                _dependentModules = null;
-            }
-
-            if (_pwsh is not null)
-            {
-                _pwsh.Dispose();
-            }
+            _dependentModules?.Clear();
+            _pwsh?.Dispose();
         }
 
         #endregion
@@ -363,23 +355,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // TODO:  implement a dependencies database for querying dependency info
             // cannot uninstall a module if another module is dependent on it
 
-            if (_pwsh is null)
-            {
-                _pwsh = System.Management.Automation.PowerShell.Create();
-            }
+            _pwsh ??= System.Management.Automation.PowerShell.Create();
 
             // Check all modules for dependencies
-            if (_dependentModules == null || _dependentModules.Count == 0)
+            if (_dependentModules is null || _dependentModules.Count == 0)
             {
-                _dependentModules = _pwsh.AddCommand("Get-Module").AddParameter("ListAvailable").Invoke<PSModuleInfo>();
+                _dependentModules = _pwsh.AddCommand("Microsoft.PowerShell.Core\\Get-Module").AddParameter("ListAvailable").Invoke<PSModuleInfo>();
             }
 
             // Structure of LINQ call:
             // Results is a collection of PSModuleInfo objects that contain a property listing module dependencies, "RequiredModules".
             // RequiredModules is collection of PSModuleInfo objects that need to be iterated through to see if any of them are the pkg we're trying to uninstall
             // If we anything from the final call gets returned, there is a dependency on this pkg.
-
-            //IEnumerable<PSObject> pkgsWithRequiredModules = new List<PSObject>();
 
             HashSet<string> uniquePackageNames = new();
 
