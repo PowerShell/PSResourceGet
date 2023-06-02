@@ -269,6 +269,13 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindAllFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
+    It "should not find an unlisted module" {
+        $res = Find-PSResource -Name "PMTestDependency1" -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -BeGreaterThan 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+    
     # "carb*" is intentionally chosen as a sequence that will trigger pagination (ie more than 100 results),
     # but is not too time consuming.
     # There are currently between 300-350 packages that should be returned
