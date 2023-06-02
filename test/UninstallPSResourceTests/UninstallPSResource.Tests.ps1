@@ -252,7 +252,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
     It "Do not Uninstall module that is a dependency for another module" {
         $null = Install-PSResource "test_module" -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue
 
-        Uninstall-PSResource -Name "RequiredModule1" -ErrorVariable ev -ErrorAction SilentlyContinue -SkipDependencyCheck
+        Uninstall-PSResource -Name "RequiredModule1" -ErrorVariable ev -ErrorAction SilentlyContinue
 
         $pkg = Get-InstalledPSResource "RequiredModule1"
         $pkg | Should -Not -Be $null
@@ -263,7 +263,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
     It "Uninstall module that is a dependency for another module using -SkipDependencyCheck" {
         $null = Install-PSResource $testModuleName -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue
 
-        Uninstall-PSResource -Name "RequiredModule1" -SkipDependencyCheck -SkipDependencyCheck
+        Uninstall-PSResource -Name "RequiredModule1" -SkipDependencyCheck
 
         $pkg = Get-InstalledPSResource "RequiredModule1"
         $pkg | Should -BeNullOrEmpty
