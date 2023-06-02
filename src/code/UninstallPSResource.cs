@@ -75,6 +75,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private Collection<PSModuleInfo> _dependentModules;
 
+        private System.Management.Automation.PowerShell _pwsh;
+
         #endregion
 
         #region Method overrides
@@ -82,7 +84,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         protected override void BeginProcessing()
         {
             _pathsToSearch = Utils.GetAllResourcePaths(this, Scope);
-            _dependentModules = new Collection<PSModuleInfo>();
         }
 
         protected override void ProcessRecord()
@@ -167,10 +168,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void EndProcessing()
         {
-            if (_dependentModules != null)
+            if (_dependentModules is not null)
             {
                 _dependentModules.Clear();
                 _dependentModules = null;
+            }
+
+            if (_pwsh is not null)
+            {
+                _pwsh.Dispose();
             }
         }
 
@@ -356,63 +362,67 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // this is a primitive implementation
             // TODO:  implement a dependencies database for querying dependency info
             // cannot uninstall a module if another module is dependent on it
-            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+
+            if (_pwsh is null)
             {
-                // Check all modules for dependencies
-                if (_dependentModules.Count == 0)
+                _pwsh = System.Management.Automation.PowerShell.Create();
+            }
+
+            // Check all modules for dependencies
+            if (_dependentModules == null || _dependentModules.Count == 0)
+            {
+                _dependentModules = _pwsh.AddCommand("Get-Module").AddParameter("ListAvailable").Invoke<PSModuleInfo>();
+            }
+
+            // Structure of LINQ call:
+            // Results is a collection of PSModuleInfo objects that contain a property listing module dependencies, "RequiredModules".
+            // RequiredModules is collection of PSModuleInfo objects that need to be iterated through to see if any of them are the pkg we're trying to uninstall
+            // If we anything from the final call gets returned, there is a dependency on this pkg.
+
+            //IEnumerable<PSObject> pkgsWithRequiredModules = new List<PSObject>();
+
+            HashSet<string> uniquePackageNames = new();
+
+            errorRecord = null;
+            try
+            {
+                for (int i = 0; i < _dependentModules.Count; i++)
                 {
-                    _dependentModules = pwsh.AddCommand("Get-Module").AddParameter("ListAvailable").Invoke<PSModuleInfo>();
-                }
+                    var reqModules = _dependentModules[i].RequiredModules;
 
-                // Structure of LINQ call:
-                // Results is a collection of PSModuleInfo objects that contain a property listing module dependencies, "RequiredModules".
-                // RequiredModules is collection of PSModuleInfo objects that need to be iterated through to see if any of them are the pkg we're trying to uninstall
-                // If we anything from the final call gets returned, there is a dependency on this pkg.
-
-                //IEnumerable<PSObject> pkgsWithRequiredModules = new List<PSObject>();
-
-                HashSet<string> uniquePackageNames = new();
-
-                errorRecord = null;
-                try
-                {
-                    for(int i=0; i < _dependentModules.Count; i++)
+                    for (int j = 0; j < reqModules.Count; j++)
                     {
-                        var reqModules = _dependentModules[i].RequiredModules;
-
-                        for(int j=0; j < reqModules.Count; j++)
+                        if (reqModules[j].Name.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase))
                         {
-                            if (reqModules[j].Name.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase))
-                            {
-                                uniquePackageNames.Add(_dependentModules[i].Name);
-                            }
+                            uniquePackageNames.Add(_dependentModules[i].Name);
                         }
                     }
                 }
-                catch (Exception e)
-                {
-                    errorRecord = new ErrorRecord(
-                        new PSInvalidOperationException(
-                            $"Error checking if resource is a dependency: {e.Message}."),
-                        "UninstallPSResourceDependencyCheckError",
-                        ErrorCategory.InvalidOperation,
-                        null);
-                }
-
-                if (uniquePackageNames.Count > 0)
-                {
-                    var strUniquePkgNames = string.Join(",", uniquePackageNames.ToArray());
-
-                    errorRecord = new ErrorRecord(
-                        new PSInvalidOperationException(
-                            $"Cannot uninstall '{pkgName}'. The following package(s) take a dependency on this package: {strUniquePkgNames}. If you would still like to uninstall, rerun the command with -SkipDependencyCheck"),
-                        "UninstallPSResourcePackageIsaDependency",
-                        ErrorCategory.InvalidOperation,
-                        null);
-
-                    return true;
-                }
             }
+            catch (Exception e)
+            {
+                errorRecord = new ErrorRecord(
+                    new PSInvalidOperationException(
+                        $"Error checking if resource is a dependency: {e.Message}."),
+                    "UninstallPSResourceDependencyCheckError",
+                    ErrorCategory.InvalidOperation,
+                    null);
+            }
+
+            if (uniquePackageNames.Count > 0)
+            {
+                var strUniquePkgNames = string.Join(",", uniquePackageNames.ToArray());
+
+                errorRecord = new ErrorRecord(
+                    new PSInvalidOperationException(
+                        $"Cannot uninstall '{pkgName}'. The following package(s) take a dependency on this package: {strUniquePkgNames}. If you would still like to uninstall, rerun the command with -SkipDependencyCheck"),
+                    "UninstallPSResourcePackageIsaDependency",
+                    ErrorCategory.InvalidOperation,
+                    null);
+
+                return true;
+            }
+
 
             return false;
         }
