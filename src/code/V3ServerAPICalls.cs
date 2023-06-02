@@ -844,15 +844,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         if (!versionedItem.TryGetProperty(property, out JsonElement metadataElement))
                         {
                             edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{property}' element, for package with Name {packageName}."));
-                            return Utils.EmptyStrArray;
+                            continue;
                         }
                         
                         // If metadata has a "listed" property, but it's set to false, skip this package version
-                        if (metadataElement.TryGetProperty("listed", out JsonElement listedElement))
+                        if (property.Equals("catalogEntry") && metadataElement.TryGetProperty("listed", out JsonElement listedElement))
                         {
                             if (bool.TryParse(listedElement.ToString(), out bool listed) && !listed)
                             {
-                                return Utils.EmptyStrArray;
+                                continue;
                             }
                         }
 
