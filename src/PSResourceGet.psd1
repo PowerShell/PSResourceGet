@@ -71,7 +71,8 @@
 - Bug fix for PSCredentialInfo constructor (#1156)
 - Bug fix for Install-PSResource -NoClobber parameter (#1121)
 - Save-PSResource now searches through all repos when no repo is specified (#1125)
-
+- Caching for improved performance in Uninstall-PSResource (#1175)
+- Bug fix for parsing package tags from local repository (#1119) 
 
 See change log (CHANGELOG.md) at https://github.com/PowerShell/PSResourceGet
 '@
