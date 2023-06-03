@@ -5,9 +5,9 @@
     <OutputType>Library</OutputType>
     <RootNamespace>PSResourceGet</RootNamespace>
     <AssemblyName>PSResourceGet</AssemblyName>
-    <AssemblyVersion>3.0.21.0</AssemblyVersion>
-    <FileVersion>3.0.21</FileVersion>
-    <InformationalVersion>3.0.21</InformationalVersion>
+    <AssemblyVersion>0.5.22.0</AssemblyVersion>
+    <FileVersion>0.5.22</FileVersion>
+    <InformationalVersion>0.5.22</InformationalVersion>
     <TargetFrameworks>net472;netstandard2.0</TargetFrameworks>
     <LangVersion>9.0</LangVersion>
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
