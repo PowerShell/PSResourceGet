@@ -31,6 +31,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private static readonly string versionName = "version";
         private static readonly string dataName = "data";
         private static readonly string idName = "id";
+        private static readonly string idLinkName = "@id";
         private static readonly string tagsName = "tags";
         private static readonly string catalogEntryProperty = "catalogEntry";
         private static readonly string packageContentProperty = "packageContent";
@@ -782,6 +783,44 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return searchQueryServiceUrl;
         }
 
+        private JsonElement GetMetadataElementForJFrogRepo(JsonElement itemsElement, string packageName, out ExceptionDispatchInfo edi)
+        {
+            JsonElement metadataElement;
+            if (!itemsElement.TryGetProperty(idLinkName, out metadataElement))
+            {
+                edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain '{idLinkName}' element for package with Name {packageName}, from JFrog repository {Repository.Name}"));
+                return metadataElement;
+            }
+
+            string metadataUri = metadataElement.ToString();
+            string response = HttpRequestCall(metadataUri, out edi);
+            if (edi != null)
+            {
+                return metadataElement;
+            }
+
+            try
+            {
+                using (JsonDocument metadataEntries = JsonDocument.Parse(response))
+                {
+                    JsonElement rootDom = metadataEntries.RootElement;
+                    if (!rootDom.TryGetProperty(itemsName, out JsonElement innerItemsElement))
+                    {
+                        edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{itemsName}' element for package with Name {packageName}, from JFrog repository {Repository.Name}"));
+                        return metadataElement;
+                    }
+
+                    metadataElement = innerItemsElement.Clone();
+                }
+            }
+            catch (Exception e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
+
+            return metadataElement;
+        }
+
         /// <summary>
         /// Helper method iterates through the entries in the registrationsUrl for a specific package and all its versions.
         /// This contains an inner items element (containing the package metadata) and the packageContent element (containing URI through which the .nupkg can be downloaded)
@@ -817,21 +856,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     JsonElement firstItem = itemsElement[0];
 
+                    // this is the "items" element directly containing package version entries we hope to enumerate
+                    if (!firstItem.TryGetProperty(itemsName, out JsonElement innerItemsElement))
+                    {
+                        innerItemsElement = GetMetadataElementForJFrogRepo(firstItem, packageName, out edi);
+                    }
+
                     // https://api.nuget.org/v3/registration5-gz-semver2/test_module/index.json
                     // The "items" property contains an inner "items" element and a "count" element
                     // The inner "items" property is the metadata array for each version of the package.
                     // The "count" property represents how many versions are present for that package, (i.e how many elements are in the inner "items" array)
-
-                    if (!firstItem.TryGetProperty(itemsName, out JsonElement innerItemsElements))
-                    {
-                        edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{itemsName}' element, for package with Name {packageName}."));
-                        return Utils.EmptyStrArray;
-                    }
-                    
                     if (!firstItem.TryGetProperty(countName, out JsonElement countElement) || !countElement.TryGetInt32(out int count))
                     {
                         edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{countName}' element or it is not a valid integer, for package with Name {packageName}."));
                         return Utils.EmptyStrArray;
+                    }
+
+                    if (count == 0)
+                    {
+                        return Utils.EmptyStrArray; // TODO: verify   
                     }
 
                     if (!firstItem.TryGetProperty("upper", out JsonElement upperVersionElement))
@@ -840,10 +883,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return Utils.EmptyStrArray;
                     }
 
-                    for (int i = 0; i < count; i++)
+                    // for (int i = 0; i < count; i++)
+                    foreach (JsonElement versionedItem in innerItemsElement.EnumerateArray())
                     {
                         // Get the specific entry for each package version
-                        JsonElement versionedItem = innerItemsElements[i];
+                        // JsonElement versionedItem = mainItem[i];
 
                         // For search:
                         // The "catalogEntry" property in the specific package version entry contains package metadata
