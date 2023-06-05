@@ -29,8 +29,10 @@ jobs:
 
   - ${{ parameters.powershellExecutable }}: |
       Write-Verbose -Verbose "Username: $(github_username)"
-      Write-Verbose -Verbose "PAT: $(github_pat)"
+      Write-Verbose -Verbose "PAT: $(MAPPED_GITHUB_PAT)"
     displayName: Capture variable grp
+    env:
+      MAPPED_GITHUB_PAT: $(github_pat)
 
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
