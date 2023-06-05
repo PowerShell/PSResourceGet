@@ -33,6 +33,8 @@ stages:
 
     - pwsh: |
         Get-ChildItem -Path env:
+      env:
+        MY_GH_PAT: $(github_pat)
       displayName: Capture environment for build
       condition: succeededOrFailed()
 
