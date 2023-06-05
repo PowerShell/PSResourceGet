@@ -28,8 +28,9 @@ jobs:
     displayName: Capture artifacts directory
 
   - ${{ parameters.powershellExecutable }}: |
+      Get-ChildItem Env: | Out-String | Write-Verbose -Verbose
       Write-Verbose -Verbose "Username: $(github_username)"
-      Write-Verbose -Verbose "PAT: $(MAPPED_GITHUB_PAT)"
+      Write-Verbose -Verbose "PAT: $env:MAPPED_GITHUB_PAT"
     displayName: Capture variable grp
     env:
       MAPPED_GITHUB_PAT: $(github_pat)
