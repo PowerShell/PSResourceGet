@@ -6,6 +6,7 @@ Import-Module $modPath -Force -Verbose
 
 Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
 
+    Get-ChildItem -Path env: | Out-String | Write-Verbose -Verbose
     BeforeAll{
         $testModuleName = "test_module"
         $testScriptName = "test_script"
@@ -15,7 +16,6 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         Register-PSResourceRepository -Name $GithubPackagesRepoName -Uri $GithubPackagesRepoUri
 
         $secureString = ConvertTo-SecureString $env:MAPPED_GITHUB_PAT -AsPlainText -Force
-        Get-ChildItem -Path env:
         $credential = New-Object pscredential ($env:GITHUB_USERNAME, $secureString)
     }
 
@@ -24,6 +24,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     }
 
     It "find resource given specific Name, Version null" {
+        Get-ChildItem -Path env: | Out-String | Write-Verbose -Verbose
         # FindName()
         $res = Find-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential
         $res.Name | Should -Be $testModuleName
