@@ -5,9 +5,6 @@ parameters:
   powershellExecutable: pwsh
   buildDirectory: '.'
 
-variables:
-  - group: GithubTestingFeedCreds
-
 jobs:
 - job: ${{ parameters.jobName }}
   pool:
