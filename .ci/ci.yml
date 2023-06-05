@@ -28,14 +28,11 @@ stages:
 
     steps:
 
-    - env:
-        GITHUB_USERNAME: $(github_username)
-        GITHUB_PAT: $(github_pat)
-      displayName: Set additional environment variables
-      condition: succeededOrFailed()
-
     - pwsh: |
         Get-ChildItem -Path env:
+      env:
+        GITHUB_USERNAME: $(github_username)
+        GITHUB_PAT: $(github_pat)
       displayName: Capture environment for build
       condition: succeededOrFailed()
 
