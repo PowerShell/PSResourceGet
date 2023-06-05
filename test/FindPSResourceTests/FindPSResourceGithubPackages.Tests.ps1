@@ -14,7 +14,8 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         Get-NewPSResourceRepositoryFile
         Register-PSResourceRepository -Name $GithubPackagesRepoName -Uri $GithubPackagesRepoUri
 
-        $credential = New-Object pscredential (${ENV:GITHUB_USERNAME}, ${ENV:GITHUB_PAT})
+        $secureString = ConvertTo-SecureString $env:GITHUB_PAT -AsPlainText -Force
+        $credential = New-Object pscredential ($env:GITHUB_USERNAME, $secureString)
     }
 
     AfterAll {
