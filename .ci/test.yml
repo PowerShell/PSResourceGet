@@ -10,6 +10,10 @@ jobs:
   pool:
     vmImage: ${{ parameters.imageName }}
   displayName: ${{ parameters.displayName }}
+
+  variables:
+  - group: GithubTestingFeedCreds
+
   steps:
   - task: DownloadBuildArtifacts@0
     displayName: 'Download artifacts'
@@ -22,6 +26,11 @@ jobs:
   - ${{ parameters.powershellExecutable }}: |
       Get-ChildItem -Path "$(System.ArtifactsDirectory)"
     displayName: Capture artifacts directory
+
+  - ${{ parameters.powershellExecutable }}: |
+      Write-Verbose -Verbose "Username: $(github_username)"
+      Write-Verbose -Verbose "PAT: $(github_pat)"
+    displayName: Capture variable grp
 
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
@@ -54,6 +63,10 @@ jobs:
     workingDirectory: ${{ parameters.buildDirectory }}
 
   - ${{ parameters.powershellExecutable }}: |
+      Write-Verbose -Verbose "Username: $(github_username)"
+      Write-Verbose -Verbose "PAT: $(github_pat)"
+      Write-Verbose -Verbose "PAT: $(MAPPED_GITHUB_PAT)"
+
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
       $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
       Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
