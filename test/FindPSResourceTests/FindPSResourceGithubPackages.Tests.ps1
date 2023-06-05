@@ -13,6 +13,8 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         $GithubPackagesRepoUri = "https://nuget.pkg.github.com/PowerShell/index.json"
         Get-NewPSResourceRepositoryFile
         Register-PSResourceRepository -Name $GithubPackagesRepoName -Uri $GithubPackagesRepoUri
+
+        $credential = New-Object pscredential (${ENV:GITHUB_USERNAME}, ${ENV:GITHUB_PAT})
     }
 
     AfterAll {
@@ -21,14 +23,14 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
 
     It "find resource given specific Name, Version null" {
         # FindName()
-        $res = Find-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName
+        $res = Find-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0"
     }
 
     It "should not find resource given nonexistant Name" {
         # FindName()
-        $res = Find-PSResource -Name NonExistantModule -Repository $GithubPackagesRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name NonExistantModule -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -37,7 +39,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     It "find resource(s) given wildcard Name" {
         # FindNameGlobbing
         $wildcardName = "test_module*"
-        $res = Find-PSResource -Name $wildcardName -Repository $GithubPackagesRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $wildcardName -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameGlobbingFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -57,7 +59,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     It "find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
         # FindVersionGlobbing()
         param($Version, $ExpectedVersions)
-        $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $GithubPackagesRepoName
+        $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $GithubPackagesRepoName -Credential $credential
         $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
             $item.Name | Should -Be $testModuleName
@@ -67,7 +69,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
 
     It "find all versions of resource when given specific Name, Version not null --> '*'" {
         # FindVersionGlobbing()
-        $res = Find-PSResource -Name $testModuleName -Version "*" -Repository $GithubPackagesRepoName
+        $res = Find-PSResource -Name $testModuleName -Version "*" -Repository $GithubPackagesRepoName -Credential $credential
         $res | Should -Not -BeNullOrEmpty
         $res | ForEach-Object {
             $_.Name | Should -Be $testModuleName
@@ -79,25 +81,25 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     It "find resource with latest (including prerelease) version given Prerelease parameter" {
         # FindName()
         # test_module resource's latest version is a prerelease version, before that it has a non-prerelease version
-        $res = Find-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName
+        $res = Find-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential
         $res.Version | Should -Be "5.0.0"
 
-        $resPrerelease = Find-PSResource -Name $testModuleName -Prerelease -Repository $GithubPackagesRepoName
+        $resPrerelease = Find-PSResource -Name $testModuleName -Prerelease -Repository $GithubPackagesRepoName -Credential $credential
         $resPrerelease.Version | Should -Be "5.2.5"
         $resPrerelease.Prerelease | Should -Be "alpha001"
     }
 
     It "find resources, including Prerelease version resources, when given Prerelease parameter" {
         # FindVersionGlobbing()
-        $resWithoutPrerelease = Find-PSResource -Name $testModuleName -Version "*" -Repository $GithubPackagesRepoName
-        $resWithPrerelease = Find-PSResource -Name $testModuleName -Version "*" -Repository $GithubPackagesRepoName
+        $resWithoutPrerelease = Find-PSResource -Name $testModuleName -Version "*" -Repository $GithubPackagesRepoName -Credential $credential
+        $resWithPrerelease = Find-PSResource -Name $testModuleName -Version "*" -Repository $GithubPackagesRepoName -Credential $credential
         $resWithPrerelease.Count | Should -BeGreaterOrEqual $resWithoutPrerelease.Count
     }
 
     It "find resource that satisfies given Name and Tag property (single tag)" {
         # FindNameWithTag()
         $requiredTag = "test"
-        $res = Find-PSResource -Name $testModuleName -Tag $requiredTag -Repository $GithubPackagesRepoName
+        $res = Find-PSResource -Name $testModuleName -Tag $requiredTag -Repository $GithubPackagesRepoName -Credential $credential
         $res.Name | Should -Be $testModuleName
         $res.Tags | Should -Contain $requiredTag
     }
@@ -105,7 +107,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     It "should not find resource if Name and Tag are not both satisfied (single tag)" {
         # FindNameWithTag
         $requiredTag = "Windows" # tag "windows" is not present for test_module package
-        $res = Find-PSResource -Name $testModuleName -Tag $requiredTag -Repository $GithubPackagesRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $testModuleName -Tag $requiredTag -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -114,7 +116,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     It "find resource that satisfies given Name and Tag property (multiple tags)" {
         # FindNameWithTag()
         $requiredTags = @("test", "Tag2")
-        $res = Find-PSResource -Name $testModuleName -Tag $requiredTags -Repository $GithubPackagesRepoName
+        $res = Find-PSResource -Name $testModuleName -Tag $requiredTags -Repository $GithubPackagesRepoName -Credential $credential
         $res.Name | Should -Be $testModuleName
         $res.Tags | Should -Contain $requiredTags[0]
         $res.Tags | Should -Contain $requiredTags[1]
@@ -123,7 +125,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     It "should not find resource if Name and Tag are not both satisfied (multiple tag)" {
         # FindNameWithTag
         $requiredTags = @("test", "Windows") # tag "windows" is not present for test_local_mod package
-        $res = Find-PSResource -Name $testModuleName -Tag $requiredTags -Repository $GithubPackagesRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $testModuleName -Tag $requiredTags -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -133,7 +135,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         # FindNameGlobbingWithTag()
         $requiredTag = "test"
         $nameWithWildcard = "test_local_m*"
-        $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTag -Repository $GithubPackagesRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTag -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameGlobbingFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -142,7 +144,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     It "find resource that satisfies given Name, Version and Tag property (single tag)" {
         # FindVersionWithTag()
         $requiredTag = "test"
-        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $GithubPackagesRepoName
+        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $GithubPackagesRepoName -Credential $credential
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0"
         $res.Tags | Should -Contain $requiredTag
@@ -151,7 +153,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     It "should not find resource if Name, Version and Tag property are not all satisfied (single tag)" {
         # FindVersionWithTag()
         $requiredTag = "windows" # tag "windows" is not present for test_local_mod package
-        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $GithubPackagesRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -160,7 +162,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     It "find resource that satisfies given Name, Version and Tag property (multiple tags)" {
         # FindVersionWithTag()
         $requiredTags = @("test", "Tag2")
-        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTags -Repository $GithubPackagesRepoName
+        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTags -Repository $GithubPackagesRepoName -Credential $credential
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0"
         $res.Tags | Should -Contain $requiredTags[0]
@@ -171,7 +173,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     It "should not find resource if Name, Version and Tag property are not all satisfied (multiple tags)" {
         # FindVersionWithTag()
         $requiredTags = @("test", "windows")
-        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTags -Repository $GithubPackagesRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTags -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -180,7 +182,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     It "should not find resources given Tag property" {
         # FindTag()
         $tagToFind = "Tag2"
-        $res = Find-PSResource -Tag $tagToFind -Repository $GithubPackagesRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Tag $tagToFind -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindTagFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -188,7 +190,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
 
     It "should not find resource given CommandName" {
         # FindCommandOrDSCResource()
-        $res = Find-PSResource -CommandName "command" -Repository $GithubPackagesRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -CommandName "command" -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindCommandOrDSCResourceFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -196,7 +198,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
 
     It "should not find resource given DscResourceName" {
         # FindCommandOrDSCResource()
-        $res = Find-PSResource -DscResourceName "dscResource" -Repository $GithubPackagesRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -DscResourceName "dscResource" -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindCommandOrDSCResourceFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -204,7 +206,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
 
     It "should not find all resources given Name '*'" {
         # FindAll()
-        $res = Find-PSResource -Name "*" -Repository $GithubPackagesRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name "*" -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindAllFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
