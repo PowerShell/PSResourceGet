@@ -32,7 +32,7 @@ stages:
         Get-ChildItem -Path env:
       env:
         GITHUB_USERNAME: $(github_username)
-        GITHUB_PAT: $(github_pat)
+        GITHUB_PAT2: $(github_pat2)
       displayName: Capture environment for build
       condition: succeededOrFailed()
 

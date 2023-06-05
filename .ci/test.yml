@@ -62,7 +62,7 @@ jobs:
       Invoke-ModuleTests -Type Functional
     env:
       GITHUB_USERNAME: $(github_username)
-      GITHUB_PAT: $(github_pat)
+      GITHUB_PAT2: $(github_pat2)
     displayName: Execute functional tests
     workingDirectory: ${{ parameters.buildDirectory }}
     errorActionPreference: continue
