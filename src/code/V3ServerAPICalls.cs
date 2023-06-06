@@ -22,6 +22,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override PSRepositoryInfo Repository { get; set; }
         private HttpClient _sessionClient { get; set; }
         private bool _isNuGetRepo { get; set; }
+        private bool _isJFrogRepo { get; set; }
         public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         private static readonly string nugetRepoUri = "https://api.nuget.org/v3/index.json";
@@ -31,6 +32,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private static readonly string versionName = "version";
         private static readonly string dataName = "data";
         private static readonly string idName = "id";
+        private static readonly string idLinkName = "@id";
         private static readonly string tagsName = "tags";
         private static readonly string catalogEntryProperty = "catalogEntry";
         private static readonly string packageContentProperty = "packageContent";
@@ -52,6 +54,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _sessionClient = new HttpClient(handler);
 
             _isNuGetRepo = String.Equals(Repository.Uri.AbsoluteUri, nugetRepoUri, StringComparison.InvariantCultureIgnoreCase);
+            _isJFrogRepo = Repository.Uri.AbsoluteUri.ToLower().Contains("jfrog.io");
         }
 
         #endregion
@@ -76,7 +79,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            if (_isNuGetRepo)
+            if (_isNuGetRepo || _isJFrogRepo)
             {
                 return FindTagsFromNuGetRepo(tags, includePrerelease, out edi);
             }
@@ -128,7 +131,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            if (_isNuGetRepo)
+            if (_isNuGetRepo || _isJFrogRepo)
             {
                 return FindNameGlobbingFromNuGetRepo(packageName, tags: Utils.EmptyStrArray, includePrerelease, out edi);
             }
@@ -783,6 +786,49 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
+        /// For JFrog repository, the metadata is located under "@id" > inner "items" element
+        /// This is different than other V3 repositories response's metadata location.
+        /// </summary>
+        private JsonElement GetMetadataElementForJFrogRepo(JsonElement itemsElement, string packageName, out ExceptionDispatchInfo edi)
+        {
+            JsonElement metadataElement;
+            if (!itemsElement.TryGetProperty(idLinkName, out metadataElement))
+            {
+                edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain '{idLinkName}' element for package with Name {packageName}, from JFrog repository {Repository.Name}"));
+                return metadataElement;
+            }
+
+            string metadataUri = metadataElement.ToString();
+            string response = HttpRequestCall(metadataUri, out edi);
+            if (edi != null)
+            {
+                return metadataElement;
+            }
+
+            try
+            {
+                using (JsonDocument metadataEntries = JsonDocument.Parse(response))
+                {
+                    JsonElement rootDom = metadataEntries.RootElement;
+                    if (!rootDom.TryGetProperty(itemsName, out JsonElement innerItemsElement))
+                    {
+                        edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{itemsName}' element for package with Name {packageName}, from JFrog repository {Repository.Name}"));
+                        return metadataElement;
+                    }
+
+                    // return clone, otherwise this JsonElement will be out of scope to the caller once JsonDocument is disposed
+                    metadataElement = innerItemsElement.Clone();
+                }
+            }
+            catch (Exception e)
+            {
+                edi = ExceptionDispatchInfo.Capture(e);
+            }
+
+            return metadataElement;
+        }
+
+        /// <summary>
         /// Helper method iterates through the entries in the registrationsUrl for a specific package and all its versions.
         /// This contains an inner items element (containing the package metadata) and the packageContent element (containing URI through which the .nupkg can be downloaded)
         /// <param name="property"> This can be the "catalogEntry" or "packageContent" property.
@@ -817,20 +863,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     JsonElement firstItem = itemsElement[0];
 
+                    // this is the "items" element directly containing package version entries we hope to enumerate
+                    if (!firstItem.TryGetProperty(itemsName, out JsonElement innerItemsElement))
+                    {
+                        if (_isJFrogRepo)
+                        {
+                            innerItemsElement = GetMetadataElementForJFrogRepo(firstItem, packageName, out edi);
+                        }
+                        else
+                        {
+                            edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain '{itemsName}' element, for package with Name {packageName}."));
+                            return Utils.EmptyStrArray;
+                        }
+                    }
+
                     // https://api.nuget.org/v3/registration5-gz-semver2/test_module/index.json
                     // The "items" property contains an inner "items" element and a "count" element
                     // The inner "items" property is the metadata array for each version of the package.
                     // The "count" property represents how many versions are present for that package, (i.e how many elements are in the inner "items" array)
-
-                    if (!firstItem.TryGetProperty(itemsName, out JsonElement innerItemsElements))
-                    {
-                        edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{itemsName}' element, for package with Name {packageName}."));
-                        return Utils.EmptyStrArray;
-                    }
-                    
                     if (!firstItem.TryGetProperty(countName, out JsonElement countElement) || !countElement.TryGetInt32(out int count))
                     {
                         edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain inner '{countName}' element or it is not a valid integer, for package with Name {packageName}."));
+                        return Utils.EmptyStrArray;
+                    }
+
+                    if (count == 0)
+                    {
                         return Utils.EmptyStrArray;
                     }
 
@@ -840,11 +898,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return Utils.EmptyStrArray;
                     }
 
-                    for (int i = 0; i < count; i++)
+                    // Get the specific entry for each package version
+                    foreach (JsonElement versionedItem in innerItemsElement.EnumerateArray())
                     {
-                        // Get the specific entry for each package version
-                        JsonElement versionedItem = innerItemsElements[i];
-
                         // For search:
                         // The "catalogEntry" property in the specific package version entry contains package metadata
                         // For download:
@@ -1036,6 +1092,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     pkgsDom.RootElement.TryGetProperty(propertyName, out JsonElement entryElement);
                     foreach (JsonElement entry in entryElement.EnumerateArray())
                     {
+                        // return clone, otherwise this JsonElement will be out of scope to the caller once JsonDocument is disposed
                         responseEntries.Add(entry.Clone());
                     }
 
