@@ -17,6 +17,9 @@ resources:
     endpoint: ComplianceGHRepo
     name: PowerShell/compliance
 
+variables:
+  - group: GithubTestingFeedCreds
+
 stages:
 - stage: Build
   displayName: Build PSResourceGet Module Package

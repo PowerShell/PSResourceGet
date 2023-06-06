@@ -60,6 +60,8 @@ jobs:
       Import-Module -Name (Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1') -Force
       #
       Invoke-ModuleTests -Type Functional
+    env:
+      MAPPED_GITHUB_PAT: $(github_pat)
     displayName: Execute functional tests
     workingDirectory: ${{ parameters.buildDirectory }}
     errorActionPreference: continue
