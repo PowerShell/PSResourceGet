@@ -410,7 +410,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return true;
             }
 
-
             return false;
         }
 
