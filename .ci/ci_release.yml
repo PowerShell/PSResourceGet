@@ -27,7 +27,6 @@ stages:
       - ImageOverride -equals PSMMS2019-Secure
 
     steps:
-
     - pwsh: |
         Get-ChildItem -Path env:
         Get-ChildItem -Path . -Recurse -Directory
