@@ -816,6 +816,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return metadataElement;
                     }
 
+                    // return clone, otherwise this JsonElement will be out of scope to the caller once JsonDocument is disposed
                     metadataElement = innerItemsElement.Clone();
                 }
             }
@@ -1091,6 +1092,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     pkgsDom.RootElement.TryGetProperty(propertyName, out JsonElement entryElement);
                     foreach (JsonElement entry in entryElement.EnumerateArray())
                     {
+                        // return clone, otherwise this JsonElement will be out of scope to the caller once JsonDocument is disposed
                         responseEntries.Add(entry.Clone());
                     }
 
