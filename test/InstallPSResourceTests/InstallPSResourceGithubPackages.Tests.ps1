@@ -52,7 +52,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         Install-PSResource -Name $testScriptName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $testScriptName
         $pkg.Name | Should -Be $testScriptName
-        $pkg.Version | Should -Be "1.0.0"
+        $pkg.Version | Should -Be "3.5.0"
     }
 
     It "Install multiple resources by name" {
@@ -129,7 +129,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     }
 
     It "Install resource via InputObject by piping from Find-PSresource" {
-        Find-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential | Install-PSResource -TrustRepository 
+        Find-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential | Install-PSResource -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
@@ -141,7 +141,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.2.5"
         $pkg.Prerelease | Should -Be "alpha001"
 
-        $pkg.CompanyName | Should -Be "None"
+        $pkg.CompanyName | Should -Be "Anam Navied"
         $pkg.RepositorySourceLocation | Should -Be $ADORepoUri
     }
 
