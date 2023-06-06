@@ -28,16 +28,6 @@ jobs:
     displayName: Capture artifacts directory
 
   - ${{ parameters.powershellExecutable }}: |
-      Get-ChildItem Env: | Out-String | Write-Verbose -Verbose
-      Write-Verbose -Verbose "Username: $(github_username)"
-      Write-Verbose -Verbose "Testing secret: $env:MAPPED_SECRET"
-      Write-Verbose -Verbose "PAT: $env:MAPPED_GITHUB_PAT"
-    displayName: Capture variable grp
-    env:
-      MAPPED_GITHUB_PAT: $(github_pat)
-      MAPPED_SECRET: $(TESTINGSECRET)
-
-  - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
       if (Test-Path -Path $modulePath) {
         Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
@@ -68,9 +58,6 @@ jobs:
     workingDirectory: ${{ parameters.buildDirectory }}
 
   - ${{ parameters.powershellExecutable }}: |
-      Write-Verbose -Verbose "Username: $(github_username)"
-      Write-Verbose -Verbose "PAT: $(MAPPED_GITHUB_PAT)"
-
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
       $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
       Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
