@@ -23,6 +23,12 @@ jobs:
       itemPattern: '**/*.nupkg'
       downloadPath: '$(System.ArtifactsDirectory)'
 
+  - pwsh: |
+      Write-Verbose -Verbose $env:MAPPED_GITHUB_PAT
+    displayName: Persist env variables
+    env:
+      MAPPED_GITHUB_PAT: $(github_pat)
+
   - ${{ parameters.powershellExecutable }}: |
       Get-ChildItem -Path "$(System.ArtifactsDirectory)"
     displayName: Capture artifacts directory
