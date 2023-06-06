@@ -48,10 +48,12 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
     It "find resource given Name, Version null (package containing nuspec only)" {
         # FindName()
         $pkgName = "test_nonpsresource"
+        $requiredTag = "Tag1"
         Save-PSResource -Name $pkgName -Repository "NuGetGallery" -Path $localRepoUriAddress -AsNupkg
         $res = Find-PSResource -Name $pkgName -Repository $localRepo
         $res.Name | Should -Be $pkgName
         $res.Repository | Should -Be $localRepo
+        $res.Tags | Should -Contain $requiredTag
     }
 
     It "should not find resource given nonexistant Name" {
