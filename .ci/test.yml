@@ -35,7 +35,7 @@ jobs:
     displayName: Capture variable grp
     env:
       MAPPED_GITHUB_PAT: $(github_pat)
-      MAPPED_SECRET: $(testingsecret)
+      MAPPED_SECRET: $(TESTINGSECRET)
 
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
