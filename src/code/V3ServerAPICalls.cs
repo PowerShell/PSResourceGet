@@ -22,6 +22,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override PSRepositoryInfo Repository { get; set; }
         private HttpClient _sessionClient { get; set; }
         private bool _isNuGetRepo { get; set; }
+        private bool _isJFrogRepo { get; set; }
         public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         private static readonly string nugetRepoUri = "https://api.nuget.org/v3/index.json";
@@ -53,6 +54,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _sessionClient = new HttpClient(handler);
 
             _isNuGetRepo = String.Equals(Repository.Uri.AbsoluteUri, nugetRepoUri, StringComparison.InvariantCultureIgnoreCase);
+            _isJFrogRepo = Repository.Uri.AbsoluteUri.ToLower().Contains("jfrog.io");
         }
 
         #endregion
@@ -783,6 +785,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return searchQueryServiceUrl;
         }
 
+        /// <summary>
+        /// For JFrog repository, the metadata is located under "@id" > inner "items" element
+        /// This is different than other V3 repositories response's metadata location.
+        /// </summary>
         private JsonElement GetMetadataElementForJFrogRepo(JsonElement itemsElement, string packageName, out ExceptionDispatchInfo edi)
         {
             JsonElement metadataElement;
@@ -859,7 +865,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // this is the "items" element directly containing package version entries we hope to enumerate
                     if (!firstItem.TryGetProperty(itemsName, out JsonElement innerItemsElement))
                     {
-                        innerItemsElement = GetMetadataElementForJFrogRepo(firstItem, packageName, out edi);
+                        if (_isJFrogRepo)
+                        {
+                            innerItemsElement = GetMetadataElementForJFrogRepo(firstItem, packageName, out edi);
+                        }
+                        else
+                        {
+                            edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Response does not contain '{itemsName}' element, for package with Name {packageName}."));
+                            return Utils.EmptyStrArray;
+                        }
                     }
 
                     // https://api.nuget.org/v3/registration5-gz-semver2/test_module/index.json
@@ -874,7 +888,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (count == 0)
                     {
-                        return Utils.EmptyStrArray; // TODO: verify   
+                        return Utils.EmptyStrArray;
                     }
 
                     if (!firstItem.TryGetProperty("upper", out JsonElement upperVersionElement))
