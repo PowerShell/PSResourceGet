@@ -155,7 +155,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
 
     # Windows only
     It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
-        Uninstall-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -SkipDependencyCheck -Scope AllUsers
+        Uninstall-PSResource -Name $testModuleName -SkipDependencyCheck -Scope AllUsers
         Install-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -Scope AllUsers -Verbose
         $pkg = Get-InstalledPSResource $testModuleName -Scope AllUsers
         $pkg.Name | Should -Be $testModuleName
