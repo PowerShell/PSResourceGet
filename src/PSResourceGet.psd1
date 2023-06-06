@@ -79,5 +79,5 @@ See change log (CHANGELOG.md) at https://github.com/PowerShell/PSResourceGet
         }
     }
 
-    HelpInfoUri       = 'https://aka.ms/powershellget-3.x'
+    HelpInfoUri       = 'https://go.microsoft.com/fwlink/?linkid=2238183'
 }
