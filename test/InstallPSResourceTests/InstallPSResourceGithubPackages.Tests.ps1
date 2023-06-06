@@ -142,7 +142,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $pkg.Prerelease | Should -Be "alpha001"
 
         $pkg.CompanyName | Should -Be "Anam Navied"
-        $pkg.RepositorySourceLocation | Should -Be $ADORepoUri
+        $pkg.RepositorySourceLocation | Should -Be $GithubPackagesRepoUri
     }
 
     # Windows only
