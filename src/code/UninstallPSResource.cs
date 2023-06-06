@@ -168,7 +168,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void EndProcessing()
         {
-            _dependentModules?.Clear();
             _pwsh?.Dispose();
         }
 
