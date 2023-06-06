@@ -21,6 +21,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
 
+        $localRepoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
         $tagsEscaped = @("'Test'", "'Tag2'", "'$cmdName'", "'$dscName'")
         $prereleaseLabel = "alpha001"
 
@@ -37,11 +38,20 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    It "find resource given specific Name, Version null" {
+    It "find resource given specific Name, Version null (module)" {
         # FindName()
         $res = Find-PSResource -Name $testModuleName -Repository $localRepo
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0"
+    }
+
+    It "find resource given Name, Version null (package containing nuspec only)" {
+        # FindName()
+        $pkgName = "test_nonpsresource"
+        Save-PSResource -Name $pkgName -Repository "NuGetGallery" -Path $localRepoUriAddress -AsNupkg
+        $res = Find-PSResource -Name $pkgName -Repository $localRepo
+        $res.Name | Should -Be $pkgName
+        $res.Repository | Should -Be $localRepo
     }
 
     It "should not find resource given nonexistant Name" {
