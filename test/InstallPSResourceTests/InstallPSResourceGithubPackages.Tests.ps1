@@ -155,6 +155,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
 
     # Windows only
     It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
+        Uninstall-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -SkipDependencyCheck -Scope AllUsers
         Install-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -Scope AllUsers -Verbose
         $pkg = Get-InstalledPSResource $testModuleName -Scope AllUsers
         $pkg.Name | Should -Be $testModuleName
@@ -207,7 +208,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     }
 
     It "Install PSResourceInfo object piped in" {
-        Find-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $GithubPackagesRepoName -Credential $credential | Install-PSResource -TrustRepository
+        Find-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $GithubPackagesRepoName -Credential $credential | Install-PSResource -Credential $credential -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleName
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "1.0.0"
