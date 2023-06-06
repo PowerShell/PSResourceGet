@@ -897,12 +897,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return Utils.EmptyStrArray;
                     }
 
-                    // for (int i = 0; i < count; i++)
+                    // Get the specific entry for each package version
                     foreach (JsonElement versionedItem in innerItemsElement.EnumerateArray())
                     {
-                        // Get the specific entry for each package version
-                        // JsonElement versionedItem = mainItem[i];
-
                         // For search:
                         // The "catalogEntry" property in the specific package version entry contains package metadata
                         // For download:
