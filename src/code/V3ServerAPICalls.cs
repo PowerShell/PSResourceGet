@@ -79,7 +79,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            if (_isNuGetRepo)
+            if (_isNuGetRepo || _isJFrogRepo)
             {
                 return FindTagsFromNuGetRepo(tags, includePrerelease, out edi);
             }
@@ -131,7 +131,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            if (_isNuGetRepo)
+            if (_isNuGetRepo || _isJFrogRepo)
             {
                 return FindNameGlobbingFromNuGetRepo(packageName, tags: Utils.EmptyStrArray, includePrerelease, out edi);
             }
