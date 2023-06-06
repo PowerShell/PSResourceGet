@@ -363,7 +363,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 _dependentModules = _pwsh.AddCommand("Microsoft.PowerShell.Core\\Get-Module").AddParameter("ListAvailable").Invoke<PSModuleInfo>();
             }
 
-            // Structure of LINQ call:
             // Results is a collection of PSModuleInfo objects that contain a property listing module dependencies, "RequiredModules".
             // RequiredModules is collection of PSModuleInfo objects that need to be iterated through to see if any of them are the pkg we're trying to uninstall
             // If we anything from the final call gets returned, there is a dependency on this pkg.
