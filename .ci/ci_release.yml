@@ -4,6 +4,7 @@ pr: none
 
 variables:
   - group: ESRP
+  - group: GithubTestingFeedCreds
   # Prevents auto-injection of nuget-security-analysis (not needed for open source projects)
   - name: skipNugetSecurityAnalysis
     value: true
