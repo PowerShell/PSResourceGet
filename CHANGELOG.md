@@ -1,4 +1,34 @@
 # CHANGELOG
+## 0.5.22-beta22
+
+### Breaking Changes
+- PowerShellGet is now PSResourceGet! (#1164)
+- Update-PSScriptFile is now Update-PSScriptFileInfo (#1140)
+- New-PSScriptFile is now New-PSScriptFileInfo (#1140)
+- Update-ModuleManifest is now Update-PSModuleManifest (#1139)
+- -Tags parameter changed to -Tag in New-PSScriptFile, Update-PSScriptFileInfo, and Update-ModuleManifest (#1123)
+- Change the type of -InputObject from PSResourceInfo to PSResourceInfo[] for Install-PSResource, Save-PSResource, and Uninstall-PSResource (#1124)
+
+- PSModulePath is no longer referenced when searching paths (#1154)
+
+### New Features
+- Support for Azure Artifacts, GitHub Packages, and Artifactory (#1167, #1180, #1183)
+
+
+### Bug Fixes
+- Filter out unlisted packages (#1172, #1161)
+- Add paging for V3 server requests (#1170)
+- Support for floating versions (#1117)
+- Update, Save, and Install with wildcard gets the latest version within specified range (#1117)
+- Add positonal parameter for -Path in Publish-PSResource (#1111)
+- Uninstall-PSResource -WhatIf now shows version and path of package being uninstalled (#1116)
+- Find returns packages from the highest priority repository only (#1155)
+- Bug fix for PSCredentialInfo constructor (#1156)
+- Bug fix for Install-PSResource -NoClobber parameter (#1121)
+- Save-PSResource now searches through all repos when no repo is specified (#1125)
+- Caching for improved performance in Uninstall-PSResource (#1175)
+- Bug fix for parsing package tags for packages that only have .nuspec from local repository (#1119) 
+
 
 ## 3.0.21-beta21
 
