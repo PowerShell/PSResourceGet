@@ -136,14 +136,45 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
-    It "should not find resources when given Name with wildcard and Tag proprties" {
+    It "find all resources that satisfy Name pattern and have specified Tag (single tag)" {
         # FindNameGlobbingWithTag()
         $requiredTag = "test"
-        $nameWithWildcard = "test_local_m*"
-        $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTag -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
+        $nameWithWildcard = "test_*"
+        $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTag -Repository $GithubPackagesRepoName -Credential $credential
+        $res.Count | Should -BeGreaterThan 1
+        foreach ($pkg in $res)
+        {
+            $pkg.Name | Should -BeLike $nameWithWildcard
+            $pkg.Tags | Should -Contain $requiredTag
+        }
+    }
+
+    It "should not find resources if both Name pattern and Tags are not satisfied (single tag)" {
+        # FindNameGlobbingWithTag()
+        $requiredTag = "windows" # tag "windows" is not present for test_module or test_module2 package
+        $res = Find-PSResource -Name "test_module*" -Tag $requiredTag -Repository $GithubPackagesRepoName -Credential $credential
         $res | Should -BeNullOrEmpty
-        $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameGlobbingFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+
+    It "find all resources that satisfy Name pattern and have specified Tag (multiple tags)" {
+        # FindNameGlobbingWithTag()
+        $requiredTags = @("test", "Tag2")
+        $nameWithWildcard = "test_module*"
+        $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTags -Repository $GithubPackagesRepoName -Credential $credential
+        $res.Count | Should -BeGreaterThan 1
+        foreach ($pkg in $res)
+        {
+            $pkg.Name | Should -BeLike $nameWithWildcard
+            $pkg.Tags | Should -Contain $requiredTags[0]
+            $pkg.Tags | Should -Contain $requiredTags[1]
+        }
+    }
+
+    It "should not find resources if both Name pattern and Tags are not satisfied (multiple tags)" {
+        # FindNameGlobbingWithTag() # tag "windows" is not present for test_module package
+        $requiredTags = @("test", "windows")
+        $res = Find-PSResource -Name "test_module*" -Tag $requiredTags -Repository $GithubPackagesRepoName -Credential $credential
+        $res | Should -BeNullOrEmpty
     }
 
     It "find resource that satisfies given Name, Version and Tag property (single tag)" {

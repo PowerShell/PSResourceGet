@@ -152,7 +152,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            if (_isNuGetRepo)
+            if (_isNuGetRepo || _isJFrogRepo || _isGHPkgsRepo)
             {
                 return FindNameGlobbingFromNuGetRepo(packageName, tags, includePrerelease, out edi);
             }
