@@ -7,7 +7,8 @@
 - New-PSScriptFile is now New-PSScriptFileInfo (#1140)
 - Update-ModuleManifest is now Update-PSModuleManifest (#1139)
 - -Tags parameter changed to -Tag in New-PSScriptFile, Update-PSScriptFileInfo, and Update-ModuleManifest (#1123)
-- Change the type of -InputObject from PSResource to PSResource[] for Install-PSResource, Save-PSResource, and Uninstall-PSResource (#1124)
+- Change the type of -InputObject from PSResourceInfo to PSResourceInfo[] for Install-PSResource, Save-PSResource, and Uninstall-PSResource (#1124)
+
 - PSModulePath is no longer referenced when searching paths (#1154)
 
 ### New Features
