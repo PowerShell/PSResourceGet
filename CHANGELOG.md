@@ -12,7 +12,8 @@
 - PSModulePath is no longer referenced when searching paths (#1154)
 
 ### New Features
-- Support for Azure Artifacts, GitHub Packages, and Artifactory (#1167, #1180)
+- Support for Azure Artifacts, GitHub Packages, and Artifactory (#1167, #1180, #1183)
+
 
 ### Bug Fixes
 - Filter out unlisted packages (#1172, #1161)
