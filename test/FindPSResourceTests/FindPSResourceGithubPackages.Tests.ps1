@@ -41,10 +41,13 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     It "find resource(s) given wildcard Name" {
         # FindNameGlobbing
         $wildcardName = "test_module*"
-        $res = Find-PSResource -Name $wildcardName -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
-        $res | Should -BeNullOrEmpty
-        $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameGlobbingFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $res = Find-PSResource -Name $wildcardName -Repository $GithubPackagesRepoName -Credential $credential
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterThan 1
+        foreach ($item in $res)
+        {
+            $item.Name | Should -BeLike $wildcardName
+        }
     }
 
     $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0");                              Reason="validate version, exact match"},
