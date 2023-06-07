@@ -23,6 +23,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private HttpClient _sessionClient { get; set; }
         private bool _isNuGetRepo { get; set; }
         private bool _isJFrogRepo { get; set; }
+        private bool _isGHPkgsRepo { get; set; }
         public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         private static readonly string nugetRepoUri = "https://api.nuget.org/v3/index.json";
@@ -55,6 +56,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             _isNuGetRepo = String.Equals(Repository.Uri.AbsoluteUri, nugetRepoUri, StringComparison.InvariantCultureIgnoreCase);
             _isJFrogRepo = Repository.Uri.AbsoluteUri.ToLower().Contains("jfrog.io");
+            _isGHPkgsRepo = Repository.Uri.AbsoluteUri.ToLower().Contains("pkg.github.com");
         }
 
         #endregion
@@ -131,7 +133,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            if (_isNuGetRepo || _isJFrogRepo)
+            if (_isNuGetRepo || _isJFrogRepo || _isGHPkgsRepo)
             {
                 return FindNameGlobbingFromNuGetRepo(packageName, tags: Utils.EmptyStrArray, includePrerelease, out edi);
             }
@@ -150,7 +152,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
         {
-            if (_isNuGetRepo)
+            if (_isNuGetRepo || _isJFrogRepo || _isGHPkgsRepo)
             {
                 return FindNameGlobbingFromNuGetRepo(packageName, tags, includePrerelease, out edi);
             }
