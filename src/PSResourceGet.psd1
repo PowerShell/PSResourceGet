@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 @{
-    RootModule        = './PSResourceGet.dll'
+    RootModule        = './Microsoft.PowerShell.PSResourceGet.dll'
     ModuleVersion     = '0.5.22'
     CompatiblePSEditions = @('Core', 'Desktop')
     GUID              = 'e4e0bda1-0703-44a5-b70d-8fe704cd0643'
