@@ -1369,7 +1369,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 iss.LanguageMode = PSLanguageMode.FullLanguage;
                 // Import the current PowerShellGet module.
                 var modPathObjects = cmdlet.InvokeCommand.InvokeScript(
-                    script: "(Get-Module -Name PSResourceGet).Path");
+                    script: "(Get-Module -Name Microsoft.PowerShell.PSResourceGet).Path");
                 string modPath = (modPathObjects.Count > 0 &&
                                   modPathObjects[0].BaseObject is string modPathStr)
                                   ? modPathStr : string.Empty;
