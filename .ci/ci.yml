@@ -103,7 +103,7 @@ stages:
     - checkout: ComplianceRepo
       clean: true
     - download: current
-      artifact: 'PSResourceGet'
+      artifact: 'Microsoft.PowerShell.PSResourceGet'
     - template: ci-compliance.yml@ComplianceRepo
       parameters:
         # credscan
