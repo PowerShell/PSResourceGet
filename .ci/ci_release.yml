@@ -100,7 +100,7 @@ stages:
           $null = New-Item -Path $depsPath -ItemType Directory -Verbose
         }
         Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "dependencies") -Filter '*.dll' | Foreach-Object {
-          if ($_.Name -ne 'PSResourceGet.dll') {
+          if ($_.Name -ne 'Microsoft.PowerShell.PSResourceGet.dll') {
             $sig = Get-AuthenticodeSignature -FilePath $_.FullName
             if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notlike '*Microsoft*' -or $sig.SignerCertificate.Issuer -notlike '*Microsoft Code Signing PCA*') {
               # Copy for third party signing
@@ -179,7 +179,7 @@ stages:
           $null = New-Item -Path $depsSignedOutPath -ItemType Directory -Verbose
         }
         Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "dependencies") -Filter '*.dll' | Foreach-Object {
-          if ($_.Name -ne 'PSResourceGet.dll') {
+          if ($_.Name -ne 'Microsoft.PowerShell.PSResourceGet.dll') {
             $sig = Get-AuthenticodeSignature -FilePath $_.FullName
             if ($sig.Status -eq 'Valid' -and ($sig.SignerCertificate.Subject -like '*Microsoft*' -and $sig.SignerCertificate.Issuer -like '*Microsoft Code Signing PCA*')) {
               # Copy already signed files directly to output
@@ -216,9 +216,9 @@ stages:
         if (! (Test-Path -Path $createdSignSrcPath)) {
           $null = New-Item -Path $createdSignSrcPath -ItemType Directory -Verbose
         }
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "PSResourceGet.psd1") -Dest $createdSignSrcPath -Force -Verbose
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Microsoft.PowerShell.PSResourceGet.psd1") -Dest $createdSignSrcPath -Force -Verbose
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "PSGet.Format.ps1xml") -Dest $createdSignSrcPath -Force -Verbose
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "PSResourceGet.dll") -Dest $createdSignSrcPath -Force -Verbose
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Microsoft.PowerShell.PSResourceGet.dll") -Dest $createdSignSrcPath -Force -Verbose
 
         $signOutPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'CreatedFilesOut'
         if (! (Test-Path -Path $signOutPath)) {
@@ -290,8 +290,8 @@ stages:
         parameters:
           BuildDropPath: $(signOutPath)
           Build_Repository_Uri: 'https://github.com/powershell/PSResourceGet'
-          PackageName: 'PSResourceGet'
-          PackageVersion: '3.0.20'
+          PackageName: 'Microsoft.PowerShell.PSResourceGet'
+          PackageVersion: '0.5.22-beta22'
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
@@ -352,11 +352,11 @@ stages:
     - checkout: ComplianceRepo
       clean: true
     - download: current
-      artifact: 'PSResourceGet'
+      artifact: 'Microsoft.PowerShell.PSResourceGet'
     - template: assembly-module-compliance.yml@ComplianceRepo
       parameters:
         # binskim
-        AnalyzeTarget: '$(Pipeline.Workspace)/PSResourceGet/net472/PSResourceGet.dll'
+        AnalyzeTarget: '$(Pipeline.Workspace)/Microsoft.PowerShell.PSResourceGet/Microsoft.PowerShell.PSResourceGet.dll'
         AnalyzeSymPath: 'SRV*'
         # component-governance
         sourceScanPath: '$(Build.SourcesDirectory)'

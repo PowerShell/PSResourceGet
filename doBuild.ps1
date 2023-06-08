@@ -68,7 +68,7 @@ function DoBuild
 
             # Place build results
             $assemblyNames = @(
-                'PSResourceGet'
+                'Microsoft.PowerShell.PSResourceGet'
             )
 
             $depAssemblyNames = @(

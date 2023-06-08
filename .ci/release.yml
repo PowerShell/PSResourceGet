@@ -20,7 +20,7 @@ jobs:
       downloadPath: '$(Pipeline.Workspace)/nuget'
 
   - powershell: |
-      $package = (Get-ChildItem '$(Pipeline.Workspace)/nuget/PSResourceGet.*.nupkg').FullName
+      $package = (Get-ChildItem '$(Pipeline.Workspace)/nuget/Microsoft.PowerShell.PSResourceGet.*.nupkg').FullName
       $package
       $vstsCommandString = "vso[task.setvariable variable=NugetPkgPath]${package}"
       Write-Host "sending " + $vstsCommandString
