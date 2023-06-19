@@ -28,6 +28,14 @@ jobs:
     displayName: 'Capture PSResourceGet module NuGet package path and set environment variable'
 
   - task: NuGetCommand@2
+    displayName: 'Push PSResourceGet module artifacts to PowerShell ADO feed'
+    inputs:
+      command: push
+      packagesToPush: '$(NugetPkgPath)'
+      nuGetFeedType: external
+      publishFeedCredentials: PSCoreReleasePush
+
+  - task: NuGetCommand@2
     displayName: 'Push PSResourceGet module artifacts to PSGallery feed'
     inputs:
       command: push
