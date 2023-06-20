@@ -1109,13 +1109,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         responseEntries.Add(entry.Clone());
                     }
 
-                    // totalHits = 0;
                     totalHits = entryElement.GetArrayLength();
-                    // if (pkgsDom.RootElement.TryGetProperty("totalHits", out JsonElement totalHitsElement))
-                    // {
-                    //     int.TryParse(totalHitsElement.ToString(), out totalHits);
-                    // }
-
                     entries = responseEntries.ToArray();
                 }
             }
