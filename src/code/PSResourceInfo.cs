@@ -392,7 +392,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     repositorySourceLocation: GetStringProperty(nameof(PSResourceInfo.RepositorySourceLocation), psObjectInfo),
                     tags: Utils.GetStringArray(GetProperty<ArrayList>(nameof(PSResourceInfo.Tags), psObjectInfo)),
                     type: Enum.TryParse(
-                            GetProperty<string>(nameof(PSResourceInfo.Type), psObjectInfo) ?? nameof(ResourceType.Module),
+                            GetProperty<object>(nameof(PSResourceInfo.Type), psObjectInfo).ToString() ?? nameof(ResourceType.Module),
                                 out ResourceType currentReadType)
                                     ? currentReadType : ResourceType.Module,
                     updatedDate: GetProperty<DateTime>(nameof(PSResourceInfo.UpdatedDate), psObjectInfo),
