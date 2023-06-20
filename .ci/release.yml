@@ -1,17 +1,18 @@
 parameters:
-  jobName: release
-  displayName: 'Release PSResourceGet to PSGallery'
+  jobName1: pscorerelease_release
+  jobName2: psgallery_release
+  displayNameJob1: 'Release PSResourceGet to PSCore-Release'
+  displayNameJob2: 'Release PSResourceGet to PSGallery'
 
 jobs:
-- job: ${{ parameters.jobName }}
+- job: ${{ parameters.jobName1 }}
   pool:
     name: 1ES
     demands:
     - ImageOverride -equals PSMMS2019-Secure
-  displayName: ${{ parameters.displayName }}
+  displayName: ${{ parameters.displayNameJob1 }}
 
   steps:
-  
   - task: DownloadPipelineArtifact@2
     displayName: 'Download PSResourceGet module artifacts'
     inputs:
@@ -34,6 +35,29 @@ jobs:
       packagesToPush: '$(NugetPkgPath)'
       nuGetFeedType: external
       publishFeedCredentials: PSCoreReleasePush
+
+- job: ${{ parameters.jobName2 }}
+  pool:
+    name: 1ES
+    demands:
+    - ImageOverride -equals PSMMS2019-Secure
+  displayName: ${{ parameters.displayNameJob2 }}
+
+  steps:
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Download PSResourceGet module artifacts'
+    inputs:
+      artifact: nupkg
+      patterns: '**/*.nupkg'
+      downloadPath: '$(Pipeline.Workspace)/nuget'
+
+  - powershell: |
+      $package = (Get-ChildItem '$(Pipeline.Workspace)/nuget/Microsoft.PowerShell.PSResourceGet.*.nupkg').FullName
+      $package
+      $vstsCommandString = "vso[task.setvariable variable=NugetPkgPath]${package}"
+      Write-Host "sending " + $vstsCommandString
+      Write-Host "##$vstsCommandString"
+    displayName: 'Capture PSResourceGet module NuGet package path and set environment variable'
 
   - task: NuGetCommand@2
     displayName: 'Push PSResourceGet module artifacts to PSGallery feed'
