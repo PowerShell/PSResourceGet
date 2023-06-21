@@ -1117,7 +1117,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         int.TryParse(totalHitsElement.ToString(), out reportedHits);
                     }
 
-                    totalHits = _isMyGetRepo && reportedHits > myGetTotalHitsBuffer ? reportedHits - myGetTotalHitsBuffer : reportedHits; 
+                    totalHits = _isMyGetRepo && reportedHits >= myGetTotalHitsBuffer ? reportedHits - myGetTotalHitsBuffer : reportedHits; 
                     entries = responseEntries.ToArray();
                 }
             }
