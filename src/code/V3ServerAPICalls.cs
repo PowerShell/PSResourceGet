@@ -38,6 +38,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private static readonly string tagsName = "tags";
         private static readonly string catalogEntryProperty = "catalogEntry";
         private static readonly string packageContentProperty = "packageContent";
+        // MyGet.org repository responses from SearchQueryService have a bug where the totalHits property int returned is 1000 + actual number of hits
+        private readonly int myGetTotalHitsBuffer = 1000;
 
         #endregion
 
@@ -1100,7 +1102,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         responseEntries.Add(entry.Clone());
                     }
 
-                    totalHits = entryElement.GetArrayLength();
+                    int reportedHits = 0;
+                    if (pkgsDom.RootElement.TryGetProperty("totalHits", out JsonElement totalHitsElement))
+                    {
+                        int.TryParse(totalHitsElement.ToString(), out reportedHits);
+                    }
+
+                    totalHits = _isMyGetRepo && reportedHits > myGetTotalHitsBuffer ? reportedHits - myGetTotalHitsBuffer : reportedHits; 
                     entries = responseEntries.ToArray();
                 }
             }
