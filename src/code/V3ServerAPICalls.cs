@@ -39,7 +39,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private static readonly string catalogEntryProperty = "catalogEntry";
         private static readonly string packageContentProperty = "packageContent";
         // MyGet.org repository responses from SearchQueryService have a bug where the totalHits property int returned is 1000 + actual number of hits
-        private readonly int myGetTotalHitsBuffer = 1000;
+        private readonly int myGetTotalHitsBuffer = 10000;
 
         #endregion
 
