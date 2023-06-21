@@ -1117,6 +1117,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         int.TryParse(totalHitsElement.ToString(), out reportedHits);
                     }
 
+                    // MyGet.org repository responses from SearchQueryService have a bug where the totalHits property int returned is 1000 + actual number of hits
+                    // so reduce totalHits by 1000 iff MyGet repository
                     totalHits = _isMyGetRepo && reportedHits >= myGetTotalHitsBuffer ? reportedHits - myGetTotalHitsBuffer : reportedHits; 
                     entries = responseEntries.ToArray();
                 }
