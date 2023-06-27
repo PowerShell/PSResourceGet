@@ -286,6 +286,18 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         $res.Trusted | Should -Be False
     }
 
+    It "set repository with new API version and check updated repository" {
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
+        $repo = Get-PSResourceRepository $TestRepoName1
+        $repo.ApiVersion | Should -Be "local"
+
+        Set-PSResourceRepository -Name $TestRepoName1 -ApiVersion "v3"
+        $updatedRepo = Get-PSResourceRepository $TestRepoName1
+        $updatedRepo.ApiVersion | Should -Be "v3"
+        $updatedRepo.Uri.LocalPath | Should -Contain $tmpDir1Path
+        $updatedRepo.Trusted | Should -Be False
+    }
+
     It "throws error if CredentialInfo is passed in with Credential property without SecretManagement module setup" {
         {
             Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
