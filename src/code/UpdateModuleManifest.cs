@@ -267,7 +267,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void EndProcessing()
         {
-             string resolvedManifestPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).First().Path;
+             string resolvedManifestPath = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider).First();
 
             // Test the path of the module manifest to see if the file exists
             if (!File.Exists(resolvedManifestPath) || !resolvedManifestPath.EndsWith(".psd1"))

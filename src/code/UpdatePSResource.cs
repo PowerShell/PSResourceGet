@@ -90,7 +90,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 } 
                 
                 // This will throw if path cannot be resolved
-                _tmpPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
+                _tmpPath = GetResolvedProviderPathFromPSPath(value, out ProviderInfo provider).First();
             }
         }
         private string _tmpPath;

@@ -34,10 +34,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var exMessage = "The script file pathname must end with a .ps1 file extension. Example: C:/Users/john/x/MyScript.ps1";
                 var ex = new ArgumentException(exMessage);
                 var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(InvalidPathError);   
+                ThrowTerminatingError(InvalidPathError);
             }
 
-            var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(Path);
+            var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
             if (resolvedPaths.Count != 1)
             {
                 var exMessage = "Error: Could not resolve provided Path argument into a single path.";
@@ -46,7 +46,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 ThrowTerminatingError(InvalidPathArgumentError);
             }
 
-            var resolvedPath = resolvedPaths[0].Path;
+            var resolvedPath = resolvedPaths[0];
             bool isValidScript = PSScriptFileInfo.TryTestPSScriptFileInfo(
                 scriptFileInfoPath: resolvedPath,
                 parsedScript: out PSScriptFileInfo psScriptFileInfo,

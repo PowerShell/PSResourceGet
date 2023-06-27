@@ -11,7 +11,7 @@
                 "-noprofile",
                 "-noexit",
                 "-c",
-                "Import-Module ${workspaceFolder}/out/PowerShellGet.dll -Verbose"
+                "Import-Module ${workspaceFolder}/out/Microsoft.PowerShell.PSResourceGet.dll -Verbose"
             ],
             "cwd": "${workspaceFolder}",
             "console": "externalTerminal",

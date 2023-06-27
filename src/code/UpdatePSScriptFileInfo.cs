@@ -183,10 +183,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     var exMessage = "File path needs to end with a .ps1 extension. Example: C:/Users/john/x/MyScript.ps1";
                     var ex = new ArgumentException(exMessage);
                     var InvalidOrNonExistantPathError = new ErrorRecord(ex, "InvalidOrNonExistantPath", ErrorCategory.InvalidArgument, null);
-                    ThrowTerminatingError(InvalidOrNonExistantPathError);   
+                    ThrowTerminatingError(InvalidOrNonExistantPathError);
             }
 
-            var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(Path);
+            var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
             if (resolvedPaths.Count != 1)
             {
                 var exMessage = "Error: Could not resolve provided Path argument into a single path.";
@@ -195,7 +195,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 ThrowTerminatingError(InvalidPathArgumentError);
             }
 
-            string resolvedPath = resolvedPaths[0].Path;
+            string resolvedPath = resolvedPaths[0];
 
             if (!File.Exists(resolvedPath))
             {
