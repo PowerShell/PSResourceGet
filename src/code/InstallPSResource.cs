@@ -83,10 +83,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (WildcardPattern.ContainsWildcardCharacters(value)) 
                 { 
                     throw new PSArgumentException("Wildcard characters are not allowed in the temporary path."); 
-                } 
-                
+                }
+
                 // This will throw if path cannot be resolved
-                _tmpPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
+                _tmpPath = GetResolvedProviderPathFromPSPath(value, out ProviderInfo provider).First();
             }
         }
         private string _tmpPath;
@@ -164,7 +164,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string resolvedPath = string.Empty;
                 if (!string.IsNullOrWhiteSpace(value))
                 {
-                    resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
+                    resolvedPath = GetResolvedProviderPathFromPSPath(value, out ProviderInfo provider).First();
                 }
 
                 if (!File.Exists(resolvedPath))
