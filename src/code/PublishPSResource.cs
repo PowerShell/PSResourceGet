@@ -190,7 +190,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!String.IsNullOrEmpty(DestinationPath))
             {
-                string resolvedDestinationPath = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider).First();
+                string resolvedDestinationPath = GetResolvedProviderPathFromPSPath(DestinationPath, out ProviderInfo provider).First();
 
                 if (Directory.Exists(resolvedDestinationPath))
                 {
