@@ -805,6 +805,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = HttpRequestCall(metadataUri, out errRecord);
             if (errRecord != null)
             {
+                if (errRecord.Exception is V3ResourceNotFoundException) {
+                    errRecord = new ErrorRecord(new V3ResourceNotFoundException($"Package '{packageName}' was not found in repository '{Repository.Name}'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                }
+
                 return metadataElement;
             }
 
@@ -848,6 +852,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out errRecord);
             if (errRecord != null)
             {
+                if (errRecord.Exception is V3ResourceNotFoundException)
+                {
+                    errRecord = new ErrorRecord(new V3ResourceNotFoundException($"Package '{packageName}' was not found in repository '{Repository.Name}'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                }
+
                 return Utils.EmptyStrArray;
             }
 
@@ -1178,9 +1187,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             string errMsg = "SendV3RequestAsync(): Error occured while trying to retrieve response: ";
 
+            HttpStatusCode responseStatusCode = HttpStatusCode.OK;
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
+                responseStatusCode = response.StatusCode;
                 response.EnsureSuccessStatusCode();
 
                 var responseStr = await response.Content.ReadAsStringAsync();
@@ -1189,6 +1200,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (HttpRequestException e)
             {
+                if (responseStatusCode.Equals(HttpStatusCode.NotFound)) {
+                    throw new V3ResourceNotFoundException(errMsg + e.Message);
+                }
+
                 throw new HttpRequestException(errMsg + e.Message);
             }
             catch (ArgumentNullException e)
