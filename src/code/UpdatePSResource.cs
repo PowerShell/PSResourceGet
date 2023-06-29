@@ -161,10 +161,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             _findHelper = new FindHelper(
                 cancellationToken: _cancellationTokenSource.Token, 
-                cmdletPassedIn: this,
+                cmdletPasserrRecordn: this,
                 networkCredential: networkCred);
 
-             _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
+             _installHelper = new InstallHelper(cmdletPasserrRecordn: this, networkCredential: networkCred);
         }
 
         protected override void ProcessRecord()
@@ -289,7 +289,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // Get all installed packages selected for updating.
-            GetHelper getHelper = new GetHelper(cmdletPassedIn: this);
+            GetHelper getHelper = new GetHelper(cmdletPasserrRecordn: this);
             var installedPackages = new Dictionary<string, PSResourceInfo>(StringComparer.InvariantCultureIgnoreCase);
 
             // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, not select prerelease only.
