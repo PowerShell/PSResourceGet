@@ -11,7 +11,6 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
-using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 
@@ -629,10 +628,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responseResults: responses).First();
 
-            if (!String.IsNullOrEmpty(currentResult.errorMsg))
+            if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
             {
                 // V2Server API calls will return non-empty response when package is not found but fail at conversion time
-                errRecord = new ErrorRecord(new InvalidOrEmptyResponse($"Package for installation could not be found due to: {currentResult.errorMsg}"), "InstallPackageFailure", ErrorCategory.InvalidData, this);
+                _cmdletPassedIn.WriteError(new ErrorRecord(
+                            new InvalidOrEmptyResponse($"Package '{pkgNameToInstall}' could not be installed", currentResult.exception),
+                            "InstallPackageFailure",
+                            ErrorCategory.InvalidData,
+                            this));
                 return packagesHash;
             }
 
