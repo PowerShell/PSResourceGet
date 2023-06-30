@@ -11,8 +11,6 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
-using System.Runtime.ExceptionServices;
-using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
 
