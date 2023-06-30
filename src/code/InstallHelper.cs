@@ -628,7 +628,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responseResults: responses).First();
 
-            if (currentResult.exception == null)
+            if (currentResult.exception != null)
             {
                 // V2Server API calls will return non-empty response when package is not found but fail at conversion time
                 _cmdletPassedIn.WriteError(new ErrorRecord(
