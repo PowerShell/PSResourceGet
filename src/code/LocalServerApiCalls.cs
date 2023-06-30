@@ -43,9 +43,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// API call: 
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
         /// </summary>
-        public override FindResults FindAll(bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindAll(bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            return FindTagsHelper(tags: Utils.EmptyStrArray, includePrerelease, out edi);
+            return FindTagsHelper(tags: Utils.EmptyStrArray, includePrerelease, out errRecord);
         }
 
         /// <summary>
@@ -54,18 +54,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// API call: 
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
         /// </summary>
-        public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ExceptionDispatchInfo edi)
+        public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ErrorRecord errRecord)
         {
-            return FindTagsHelper(tags, includePrerelease, out edi);
+            return FindTagsHelper(tags, includePrerelease, out errRecord);
         }
 
         /// <summary>
         /// Find method which allows for searching for all packages that have specified Command or DSCResource name.
         /// </summary>
-        public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
+        public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ErrorRecord errRecord)
         {
             string[] cmdsOrDSCs = GetCmdsOrDSCTags(tags: tags, isSearchingForCommands: isSearchingForCommands);
-            return FindTagsHelper(cmdsOrDSCs, includePrerelease, out edi);
+            return FindTagsHelper(cmdsOrDSCs, includePrerelease, out errRecord);
         }
 
         /// <summary>
@@ -77,9 +77,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
-        public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            return FindNameHelper(packageName, Utils.EmptyStrArray, includePrerelease, type, out edi);
+            return FindNameHelper(packageName, Utils.EmptyStrArray, includePrerelease, type, out errRecord);
         }
 
         /// <summary>
@@ -88,9 +88,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Examples: Search "PowerShellGet" -Tag "Provider"
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
-        public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            return FindNameHelper(packageName, tags, includePrerelease, type, out edi);
+            return FindNameHelper(packageName, tags, includePrerelease, type, out errRecord);
         }
 
         /// <summary>
@@ -101,9 +101,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az*'
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
-        public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            return FindNameGlobbingHelper(packageName, Utils.EmptyStrArray, includePrerelease, type, out edi);
+            return FindNameGlobbingHelper(packageName, Utils.EmptyStrArray, includePrerelease, type, out errRecord);
         }
 
         /// <summary>
@@ -112,9 +112,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Examples: Search "PowerShell*" -Tag "Provider"
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
-        public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            return FindNameGlobbingHelper(packageName, tags, includePrerelease, type, out edi);
+            return FindNameGlobbingHelper(packageName, tags, includePrerelease, type, out errRecord);
         }
 
         /// <summary>
@@ -126,13 +126,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ExceptionDispatchInfo edi)
+        public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             FindResults findResponse = new FindResults();
-            edi = null;
+            errRecord = null;
             string actualPkgName = packageName;
 
-            Hashtable pkgVersionsFound = GetMatchingFilesGivenSpecificName(packageName: packageName, includePrerelease: includePrerelease, versionRange: versionRange, actualName: out actualPkgName, edi: out edi);
+            Hashtable pkgVersionsFound = GetMatchingFilesGivenSpecificName(packageName: packageName, includePrerelease: includePrerelease, versionRange: versionRange, actualName: out actualPkgName, errRecord: out errRecord);
 
             List<NuGetVersion> pkgVersionsList = pkgVersionsFound.Keys.Cast<NuGetVersion>().ToList();
             pkgVersionsList.Sort();
@@ -144,8 +144,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 string packagePath = (string) pkgVersionsFound[satisfyingVersion];
 
-                Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: actualPkgName, packagePath: packagePath, requiredTags: Utils.EmptyStrArray, edi: out edi);
-                if (edi != null || pkgMetadata.Count == 0)
+                Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: actualPkgName, packagePath: packagePath, requiredTags: Utils.EmptyStrArray, errRecord: out errRecord);
+                if (errRecord != null || pkgMetadata.Count == 0)
                 {
                     continue;
                 }
@@ -165,9 +165,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Examples: Search "PowerShellGet" "2.2.5"
         /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
         /// </summary>
-        public override FindResults FindVersion(string packageName, string version, ResourceType type, out ExceptionDispatchInfo edi) 
+        public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord) 
         {
-            return FindVersionHelper(packageName, version, Utils.EmptyStrArray, type, out edi);
+            return FindVersionHelper(packageName, version, Utils.EmptyStrArray, type, out errRecord);
         }
 
         /// <summary>
@@ -176,9 +176,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Version: no wildcard support
         /// Examples: Search "PowerShellGet" "2.2.5" -Tag "Provider"
         /// </summary>
-        public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
         {
-            return FindVersionHelper(packageName, version, tags, type, out edi);
+            return FindVersionHelper(packageName, version, tags, type, out errRecord);
         }
 
         /**  INSTALL APIS **/
@@ -190,10 +190,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
         ///                        if prerelease, call into InstallVersion instead. 
         /// </summary>
-        public override Stream InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi)
+        public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
         {
             FileStream fs = null;
-            edi = null;
+            errRecord = null;
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
@@ -220,7 +220,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (String.IsNullOrEmpty(latestVersionPath))
             {
-                edi = ExceptionDispatchInfo.Capture(new LocalResourceEmpty($"Package for name {packageName} was not present in repository"));
+                errRecord = new ErrorRecord(new LocalResourceEmpty($"'{packageName}' is not present in repository"), "InstallNameFailure", ErrorCategory.ResourceUnavailable, this);
             }
             else
             {
@@ -228,7 +228,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (fs == null)
                 {
-                    edi = ExceptionDispatchInfo.Capture(new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"));
+                    errRecord = new ErrorRecord(new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"), "InstallNameFailure", ErrorCategory.ResourceUnavailable, this);
                 }
             }
 
@@ -243,9 +243,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         ///           Install "PowerShellGet" -Version "3.0.0-beta16"
         /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
         /// </summary>    
-        public override Stream InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi)
+        public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
-            edi = null;
+            errRecord = null;
             FileStream fs = null;
 
             // if 4 digits and last is 0, create 3 digit equiv string
@@ -260,7 +260,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string packagePath = Path.Combine(Repository.Uri.AbsolutePath, packageFullName);
             if (!File.Exists(packagePath))
             {
-                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with specified criteria: Name {packageName} and version {version} does not exist in this repository"));
+                errRecord = new ErrorRecord(new LocalResourceNotFoundException($"'{packageName}' version '{version}' does not exist in this repository"), "InstallVersionFailure", ErrorCategory.ResourceUnavailable, this);
                 return fs;
             }
 
@@ -268,7 +268,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (fs == null)
             {
-                edi = ExceptionDispatchInfo.Capture(new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"));
+                errRecord = new ErrorRecord(new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"), "InstallVersionFailure", ErrorCategory.ResourceUnavailable, this);
             }
 
             return fs;
@@ -281,10 +281,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Helper method called by FindName() and FindNameWithTag()
         /// </summary>
-        private FindResults FindNameHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        private FindResults FindNameHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             FindResults findResponse = new FindResults();
-            edi = null;
+            errRecord = null;
 
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
@@ -297,8 +297,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
-                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out edi);
-                    if (edi != null)
+                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out errRecord);
+                    if (errRecord != null)
                     {
                         return findResponse;
                     }
@@ -317,12 +317,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (String.IsNullOrEmpty(latestVersionPath))
             {
                 // means no package was found with this name
-                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with name {packageName} could not be found in this repository."));
+                errRecord = new ErrorRecord(new LocalResourceNotFoundException($"Package with name {packageName} could not be found in this repository."), "FindNameFailure", ErrorCategory.ResourceUnavailable, this);
                 return findResponse;
             }
 
-            Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: actualPkgName, packagePath: latestVersionPath, requiredTags: tags, edi: out edi);
-            if (edi != null)
+            Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: actualPkgName, packagePath: latestVersionPath, requiredTags: tags, errRecord: out errRecord);
+            if (errRecord != null)
             {
                 return findResponse;
             }
@@ -330,7 +330,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // this condition will be true, for FindNameWithTags() when package satisfying that criteria is not met
             if (pkgMetadata.Count == 0)
             {
-                edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException($"Package with name {packageName}, and tags {String.Join(", ", tags)} could not be found."));
+                errRecord = new ErrorRecord(new SpecifiedTagsNotFoundException($"'{packageName}' with tags {String.Join(", ", tags)} could not be found."), "FindNameFailure", ErrorCategory.ResourceUnavailable, this);
             }
 
             findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
@@ -340,11 +340,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Helper method called by FindNameGlobbing() and FindNameGlobbingWithTag()
         /// </summary>
-        private FindResults FindNameGlobbingHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        private FindResults FindNameGlobbingHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             FindResults findResponse = new FindResults();
             List<Hashtable> pkgsFound = new List<Hashtable>();
-            edi = null;
+            errRecord = null;
 
             Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: packageName, includePrerelease: includePrerelease);
 
@@ -354,8 +354,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 Hashtable pkgInfo = pkgVersionsFound[pkgFound] as Hashtable;
                 string pkgPath = pkgInfo["path"] as string;
 
-                Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: pkgFound, packagePath: pkgPath, requiredTags: tags, edi: out edi);
-                if (edi != null || pkgMetadata.Count == 0)
+                Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: pkgFound, packagePath: pkgPath, requiredTags: tags, errRecord: out errRecord);
+                if (errRecord != null || pkgMetadata.Count == 0)
                 {
                     continue;
                 }
@@ -371,14 +371,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Helper method called by FindVersion() and FindVersionWithTag()
         /// </summary>
-        private FindResults FindVersionHelper(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
+        private FindResults FindVersionHelper(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
         {
             FindResults findResponse = new FindResults();
-            edi = null;
+            errRecord = null;
 
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
-                edi = ExceptionDispatchInfo.Capture(new InvalidOperationException($"Version {version} could not be parsed into a valid NuGetVersion"));
+                errRecord = new ErrorRecord(new InvalidOperationException($"Version {version} could not be parsed into a valid NuGetVersion"), "FindVersionFailure", ErrorCategory.InvalidData, this);
                 return findResponse;
             }
 
@@ -390,8 +390,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string packageFullName = Path.GetFileName(path);
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
-                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out edi);
-                    if (edi != null)
+                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out errRecord);
+                    if (errRecord != null)
                     {
                         return findResponse;
                     }
@@ -408,12 +408,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (String.IsNullOrEmpty(pkgPath))
             {
                 // means no package was found with this name, version (and possibly tags).
-                edi = ExceptionDispatchInfo.Capture(new LocalResourceNotFoundException($"Package with Name {packageName}, Version {version} and Tags {String.Join(", ", tags)} could not be found in this repository."));
+                errRecord = new ErrorRecord(new LocalResourceNotFoundException($"Package with Name {packageName}, Version {version} and Tags {String.Join(", ", tags)} could not be found in this repository."), "FindVersionFailure", ErrorCategory.ResourceUnavailable, this);
                 return findResponse;
             }
 
-            Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: actualPkgName, packagePath: pkgPath, requiredTags: tags, edi: out edi);
-            if (edi != null)
+            Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: actualPkgName, packagePath: pkgPath, requiredTags: tags, errRecord: out errRecord);
+            if (errRecord != null)
             {
                 return findResponse;
             }
@@ -421,7 +421,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // this condition will be true, for FindVersionWithTags() when package satisfying that criteria is not met
             if (pkgMetadata.Count == 0)
             {
-                edi = ExceptionDispatchInfo.Capture(new SpecifiedTagsNotFoundException($"Package with name {packageName}, and tags {String.Join(", ", tags)} could not be found."));
+                errRecord = new ErrorRecord(new SpecifiedTagsNotFoundException($"Package with name {packageName}, and tags {String.Join(", ", tags)} could not be found."), "FindVersionFailure", ErrorCategory.InvalidResult, this);
             }
 
             findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
@@ -431,11 +431,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Helper method called by FindTags(), FindAll(), and FindCommandOrDSCResource()
         /// </summary>
-        private FindResults FindTagsHelper(string[] tags, bool includePrerelease, out ExceptionDispatchInfo edi)
+        private FindResults FindTagsHelper(string[] tags, bool includePrerelease, out ErrorRecord errRecord)
         {
             FindResults findResponse = new FindResults();
             List<Hashtable> pkgsFound = new List<Hashtable>();
-            edi = null;
+            errRecord = null;
 
             Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: String.Empty, includePrerelease: includePrerelease);
 
@@ -446,8 +446,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 NuGetVersion pkgVersion = pkgInfo["version"] as NuGetVersion;
                 string pkgPath = pkgInfo["path"] as string;
 
-                Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: pkgFound, packagePath: pkgPath, requiredTags: tags, edi: out edi);
-                if (edi != null || pkgMetadata.Count == 0)
+                Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: pkgFound, packagePath: pkgPath, requiredTags: tags, errRecord: out errRecord);
+                if (errRecord != null || pkgMetadata.Count == 0)
                 {
                     return findResponse;
                 }
@@ -464,10 +464,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Extract metadata from .nupkg package file.
         /// This is called only for packages that are ascertained to be a match for our search criteria.
         /// </summary>
-        private Hashtable GetMetadataFromNupkg(string packageName, string packagePath, string[] requiredTags, out ExceptionDispatchInfo edi)
+        private Hashtable GetMetadataFromNupkg(string packageName, string packagePath, string[] requiredTags, out ErrorRecord errRecord)
         {
             Hashtable pkgMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
-            edi = null;
+            errRecord = null;
 
             // create temp directory where we will copy .nupkg to, extract contents, etc.
             var tempDiscoveryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -499,7 +499,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
                     {
-                        edi = ExceptionDispatchInfo.Capture(readManifestError);
+                        errRecord = new ErrorRecord(readManifestError, "GetMetadataFromNupkgFailure", ErrorCategory.ParserError, this);
                         return pkgMetadata;
                     }
 
@@ -519,7 +519,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     if (!PSScriptFileInfo.TryTestPSScriptFileInfo(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
                     {
-                        edi = ExceptionDispatchInfo.Capture(new InvalidDataException($"PSScriptFile could not be read properly")); // TODO: how to handle multiple? maybe just write a error of our own
+                        errRecord = new ErrorRecord(new InvalidDataException($"PSScriptFile could not be read properly"), "GetMetadataFromNupkgFailure", ErrorCategory.ParserError, this);
                         return pkgMetadata;
                     }
 
@@ -531,8 +531,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else if (File.Exists(nuspecFilePath))
                 {
-                    pkgMetadata = GetHashtableForNuspec(nuspecFilePath, out edi);
-                    if (edi != null)
+                    pkgMetadata = GetHashtableForNuspec(nuspecFilePath, out errRecord);
+                    if (errRecord != null)
                     {
                         return pkgMetadata;
                     }
@@ -544,7 +544,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    edi = ExceptionDispatchInfo.Capture(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"));
+                    errRecord = new ErrorRecord(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"), "GetMetadataFromNupkgFailure", ErrorCategory.InvalidData, this);
                     return pkgMetadata;
                 }
 
@@ -558,7 +558,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-               edi = ExceptionDispatchInfo.Capture(new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"));
+               errRecord = new ErrorRecord(new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"), "GetMetadataFromNupkgFailure", ErrorCategory.InvalidOperation, this);
             }
             finally
             {
@@ -576,13 +576,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// hashtable with those that matches the exact name and prerelease requirements provided.
         /// This helper method is called for FindVersionGlobbing()
         /// </summary>
-        private Hashtable GetMatchingFilesGivenSpecificName(string packageName, bool includePrerelease, VersionRange versionRange, out string actualName, out ExceptionDispatchInfo edi)
+        private Hashtable GetMatchingFilesGivenSpecificName(string packageName, bool includePrerelease, VersionRange versionRange, out string actualName, out ErrorRecord errRecord)
         {
             actualName = packageName;
             // used for FindVersionGlobbing where we know exact non-wildcard name of the package
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
             Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
-            edi = null;
+            errRecord = null;
 
             foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
             {
@@ -590,8 +590,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
-                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, out actualName, edi: out edi);
-                    if (edi != null)
+                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, out actualName, errRecord: out errRecord);
+                    if (errRecord != null)
                     {
                         continue;
                     }
@@ -676,10 +676,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Takes .nupkg package file name (i.e like mypackage.1.0.0.nupkg) and parses out version from it.
         /// </summary>
-        private NuGetVersion GetInfoFromFileName(string packageFullName, string packageName, out string actualName, out ExceptionDispatchInfo edi)
+        private NuGetVersion GetInfoFromFileName(string packageFullName, string packageName, out string actualName, out ErrorRecord errRecord)
         {
             // packageFullName will look like package.1.0.0.nupkg
-            edi = null;
+            errRecord = null;
 
             string[] packageWithoutName = packageFullName.ToLower().Split(new string[]{ $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
             string packageVersionAndExtension = packageWithoutName[0];
@@ -689,7 +689,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string version = packageVersionAndExtension.Substring(0, extensionDot);
             if (!NuGetVersion.TryParse(version, out NuGetVersion nugetVersion))
             {
-                edi = ExceptionDispatchInfo.Capture(new ArgumentException($"Could not parse version {version} from file {packageFullName}"));
+                errRecord = new ErrorRecord(new ArgumentException($"Could not parse version {version} from file {packageFullName}"), "GetInfoFromFileNameFilaure", ErrorCategory.ParserError, this);
                 return null;
             }
 
@@ -699,15 +699,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Method that loads file content into XMLDocument. Used when reading .nuspec file.
         /// </summary>
-        private XmlDocument LoadXmlDocument(string filePath, out ExceptionDispatchInfo edi)
+        private XmlDocument LoadXmlDocument(string filePath, out ErrorRecord errRecord)
         {
-            edi = null;
+            errRecord = null;
             XmlDocument doc = new XmlDocument();
             doc.PreserveWhitespace = true;
             try { doc.Load(filePath); }
             catch (Exception e)
             {
-                edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(e.Message));
+                errRecord = new ErrorRecord(e, "LoadXmlDocumentFailure", ErrorCategory.ReadError, this);
             }
 
             return doc;
@@ -735,12 +735,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Method that reads .nuspec file and parses out metadata information into Hashtable.
         /// </summary>
-        private Hashtable GetHashtableForNuspec(string filePath, out ExceptionDispatchInfo edi)
+        private Hashtable GetHashtableForNuspec(string filePath, out ErrorRecord errRecord)
         {
             Hashtable nuspecHashtable = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
 
-            XmlDocument nuspecXmlDocument = LoadXmlDocument(filePath, out edi);
-            if (edi != null)
+            XmlDocument nuspecXmlDocument = LoadXmlDocument(filePath, out errRecord);
+            if (errRecord != null)
             {
                 return nuspecHashtable;
             }
@@ -767,7 +767,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(e.Message));
+                errRecord = new ErrorRecord(e, "GetHashtableForNuspecFailure", ErrorCategory.ReadError, this);
             }
 
             return nuspecHashtable;        

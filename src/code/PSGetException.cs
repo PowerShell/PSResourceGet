@@ -7,8 +7,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
     public class V3ResourceNotFoundException : Exception
     {
-        public V3ResourceNotFoundException(string message)
-            : base (message)
+        public V3ResourceNotFoundException(string message, Exception innerException = null)
+            : base (message, innerException)
         {
         }
     }

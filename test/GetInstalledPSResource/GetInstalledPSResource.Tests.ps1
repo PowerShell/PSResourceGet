@@ -34,11 +34,13 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
     It "Get specific module resource by name" {
         $pkg = Get-InstalledPSResource -Name $testModuleName
         $pkg.Name | Should -Contain $testModuleName
+        $pkg.Type | Should -Contain "Module"
     }
 
     It "Get specific script resource by name" {
         $pkg = Get-InstalledPSResource -Name $testScriptName
         $pkg.Name | Should -Be $testScriptName
+        $pkg.Type | Should -Contain "Script"
     }
 
     It "Get resource when given Name to <Reason> <Version>" -TestCases @(
