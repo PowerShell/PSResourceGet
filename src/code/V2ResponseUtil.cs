@@ -42,21 +42,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (elemList.Length == 0)
                 {
                     // this indicates we got a non-empty, XML response (as noticed for V2 server) but it's not a response that's meaningful (contains 'properties')
-                    string errorMsg = $"Package does not exist on the server.";
-                    yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
+                    Exception notFoundException = new V2ResourceNotFoundException("Package does not exist on the server");
+
+                    yield return new PSResourceResult(returnedObject: null, exception: notFoundException, isTerminatingError: false);
                 }
 
                 foreach (var element in elemList)
                 {
                     if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
                     {
-                        yield return new PSResourceResult(returnedObject: null, errorMsg: errorMsg, isTerminatingError: false);
+                        Exception parseException = new XmlParsingException(errorMsg);
+
+                        yield return new PSResourceResult(returnedObject: null, exception: parseException, isTerminatingError: false);
                     }
 
                     // Unlisted versions will have a published year as 1900 or earlier.
                     if (!psGetInfo.PublishedDate.HasValue || psGetInfo.PublishedDate.Value.Year > 1900)
                     {
-                        yield return new PSResourceResult(returnedObject: psGetInfo, errorMsg: String.Empty, isTerminatingError: false);
+                        yield return new PSResourceResult(returnedObject: psGetInfo, exception: null, isTerminatingError: false);
                     }
                 }
             }
