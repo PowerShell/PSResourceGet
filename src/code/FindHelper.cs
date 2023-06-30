@@ -237,7 +237,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                 {
-                    if (currentResult != null)
+                    if (currentResult.exception != null)
                     {
                         _cmdletPassedIn.WriteError(new ErrorRecord(
                                     new PackageNotFoundException($"'{tag}' could not be found", currentResult.exception), 
@@ -353,7 +353,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                 {
-                    if (currentResult != null)
+                    if (currentResult.exception != null)
                     {
                         _cmdletPassedIn.WriteError(new ErrorRecord(
                                     new PackageNotFoundException($"Tags '{String.Join(", ", _tag)}' could not be found" , currentResult.exception), 
@@ -394,7 +394,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses))
                         {
-                            if (currentResult != null)
+                            if (currentResult.exception != null)
                             {
                                 _cmdletPassedIn.WriteError(new ErrorRecord(
                                             new PackageNotFoundException($"Package '{pkgName}' could not be found", currentResult.exception), 
