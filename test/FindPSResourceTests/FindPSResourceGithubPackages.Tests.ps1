@@ -35,7 +35,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         $res = Find-PSResource -Name NonExistantModule -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "find resource(s) given wildcard Name" {
@@ -115,7 +115,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         $res = Find-PSResource -Name $testModuleName -Tag $requiredTag -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "find resource that satisfies given Name and Tag property (multiple tags)" {
@@ -133,7 +133,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         $res = Find-PSResource -Name $testModuleName -Tag $requiredTags -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "find all resources that satisfy Name pattern and have specified Tag (single tag)" {
@@ -192,7 +192,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "find resource that satisfies given Name, Version and Tag property (multiple tags)" {
@@ -212,7 +212,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTags -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "should not find resources given Tag property" {
@@ -221,7 +221,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         $res = Find-PSResource -Tag $tagToFind -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindTagFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindTagsFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "should not find resource given CommandName" {
@@ -229,7 +229,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         $res = Find-PSResource -CommandName "command" -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindCommandOrDSCResourceFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindCommandOrDscResourceFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "should not find resource given DscResourceName" {
@@ -237,7 +237,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         $res = Find-PSResource -DscResourceName "dscResource" -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindCommandOrDSCResourceFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindCommandOrDscResourceFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "should not find all resources given Name '*'" {
@@ -245,6 +245,6 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         $res = Find-PSResource -Name "*" -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindAllFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindAllFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 }

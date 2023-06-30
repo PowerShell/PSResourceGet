@@ -228,10 +228,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
 
-                FindResults responses = currentServer.FindCommandOrDscResource(tag, _prerelease, isSearchingForCommands, out ExceptionDispatchInfo edi);
-                if (edi != null)
+                FindResults responses = currentServer.FindCommandOrDscResource(tag, _prerelease, isSearchingForCommands, out ErrorRecord errRecord);
+                if (errRecord != null)
                 {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindCommandOrDSCResourceFail", ErrorCategory.InvalidOperation, this));
+                    _cmdletPassedIn.WriteError(errRecord);
                     continue;
                 }
 
@@ -339,11 +339,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         this));
                 }
 
-                FindResults responses = currentServer.FindTags(_tag, _prerelease, type, out ExceptionDispatchInfo edi);
+                FindResults responses = currentServer.FindTags(_tag, _prerelease, type, out ErrorRecord errRecord);
 
-                if (edi != null)
+                if (errRecord != null)
                 {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindTagFail", ErrorCategory.InvalidOperation, this));
+                    _cmdletPassedIn.WriteError(errRecord);
                     continue;
                 }
 
@@ -367,7 +367,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository)
         {
-            ExceptionDispatchInfo edi = null;
+            ErrorRecord errRecord = null;
             List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
             HashSet<string> pkgsFound = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -378,10 +378,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (pkgName.Trim().Equals("*"))
                     {
                         // Example: Find-PSResource -Name "*"
-                        FindResults responses = currentServer.FindAll(_prerelease, _type, out edi);
-                        if (edi != null)
+                        FindResults responses = currentServer.FindAll(_prerelease, _type, out errRecord);
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindAllFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             continue;
                         }
 
@@ -409,18 +409,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
-                            responses = currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out edi);
+                            responses = currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out errRecord);
                         }
                         else
                         {
-                            responses = currentServer.FindNameGlobbingWithTag(pkgName, _tag, _prerelease, _type, out edi);
+                            responses = currentServer.FindNameGlobbingWithTag(pkgName, _tag, _prerelease, _type, out errRecord);
                             string tagsAsString = String.Join(", ", _tag);
                             tagMsg = $" and Tags {tagsAsString}";
                         }
 
-                        if (edi != null)
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindNameGlobbingFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             continue;
                         }
 
@@ -448,18 +448,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
-                            responses = currentServer.FindName(pkgName, _prerelease, _type, out edi);
+                            responses = currentServer.FindName(pkgName, _prerelease, _type, out errRecord);
                         }
                         else
                         {
-                            responses = currentServer.FindNameWithTag(pkgName, _tag, _prerelease, _type, out edi);
+                            responses = currentServer.FindNameWithTag(pkgName, _tag, _prerelease, _type, out errRecord);
                             string tagsAsString = String.Join(", ", _tag);
                             tagMsg = $" and Tags {tagsAsString}";
                         }
 
-                        if (edi != null)
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindNameFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             continue;
                         }
 
@@ -498,18 +498,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         string tagMsg = String.Empty;
                         if (_tag.Length == 0)
                         {
-                            responses = currentServer.FindVersion(pkgName, _nugetVersion.ToNormalizedString(), _type, out edi);
+                            responses = currentServer.FindVersion(pkgName, _nugetVersion.ToNormalizedString(), _type, out errRecord);
                         }
                         else
                         {
-                            responses = currentServer.FindVersionWithTag(pkgName, _nugetVersion.ToNormalizedString(), _tag, _type, out edi);
+                            responses = currentServer.FindVersionWithTag(pkgName, _nugetVersion.ToNormalizedString(), _tag, _type, out errRecord);
                             string tagsAsString = String.Join(", ", _tag);
                             tagMsg = $" and Tags {tagsAsString}";
                         }
 
-                        if (edi != null)
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindVersionFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             continue;
                         }
 
@@ -545,7 +545,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
-                            responses = currentServer.FindVersionGlobbing(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, out edi);
+                            responses = currentServer.FindVersionGlobbing(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, out errRecord);
                         }
                         else
                         {
@@ -556,9 +556,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        if (edi != null)
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             continue;
                         }
 
@@ -635,10 +635,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (dep.VersionRange == VersionRange.All)
                     {
-                        FindResults responses = currentServer.FindName(dep.Name, _prerelease, _type, out ExceptionDispatchInfo edi);
-                        if (edi != null)
+                        FindResults responses = currentServer.FindName(dep.Name, _prerelease, _type, out ErrorRecord errRecord);
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "HttpFindDepPackagesFindNameFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             yield return null;
                             continue;
                         }
@@ -665,10 +665,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                     else
                     {
-                        FindResults responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ExceptionDispatchInfo edi);
-                        if (edi != null)
+                        FindResults responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ErrorRecord errRecord);
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "HttpFindDepPackagesFindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             yield return null;
                             continue;
                         }

@@ -469,12 +469,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                                         currentResponseUtil: currentResponseUtil,
                                                         tempInstallPath: tempInstallPath,
                                                         packagesHash: new Hashtable(StringComparer.InvariantCultureIgnoreCase),
-                                                        edi: out ExceptionDispatchInfo edi);
+                                                        errRecord: out ErrorRecord errRecord);
 
                     // At this point parent package is installed to temp path.
-                    if (edi != null)
+                    if (errRecord != null)
                     {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "InstallPackageFailure", ErrorCategory.InvalidOperation, this));
+                        _cmdletPassedIn.WriteError(errRecord);
                         continue;
                     }
 
@@ -529,11 +529,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                             currentResponseUtil: currentResponseUtil,
                                             tempInstallPath: tempInstallPath,
                                             packagesHash: packagesHash,
-                                            edi: out ExceptionDispatchInfo installPackageEdi);
+                                            errRecord: out ErrorRecord installPkgErrRecord);
 
-                                if (installPackageEdi != null)
+                                if (installPkgErrRecord != null)
                                 {
-                                    _cmdletPassedIn.WriteError(new ErrorRecord(installPackageEdi.SourceException, "InstallDependencyPackageFailure", ErrorCategory.InvalidOperation, this));
+                                    _cmdletPassedIn.WriteError(installPkgErrRecord);
                                     continue;
                                 }
                             }
@@ -585,19 +585,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ResponseUtil currentResponseUtil,
             string tempInstallPath,
             Hashtable packagesHash,
-            out ExceptionDispatchInfo edi)
+            out ErrorRecord errRecord)
         {
             FindResults responses = null;
-            edi = null;
+            errRecord = null;
 
             switch (searchVersionType)
             {
                 case VersionType.VersionRange:
-                    responses = currentServer.FindVersionGlobbing(pkgNameToInstall, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ExceptionDispatchInfo findVersionGlobbingEdi);
-                    // Server level globbing API will not populate edi for empty response, so must check for empty response and early out
-                    if (findVersionGlobbingEdi != null || responses.IsFindResultsEmpty())
+                    responses = currentServer.FindVersionGlobbing(pkgNameToInstall, versionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ErrorRecord findVersionGlobbingErrRecord);
+                    // Server level globbing API will not populate errRecord for empty response, so must check for empty response and early out
+                    if (findVersionGlobbingErrRecord != null || responses.IsFindResultsEmpty())
                     {
-                        edi = findVersionGlobbingEdi;
+                        errRecord = findVersionGlobbingErrRecord;
                         return packagesHash;
                     }
 
@@ -606,10 +606,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 case VersionType.SpecificVersion:
                     string nugetVersionString = specificVersion.ToNormalizedString(); // 3.0.17-beta
 
-                    responses = currentServer.FindVersion(pkgNameToInstall, nugetVersionString, ResourceType.None, out ExceptionDispatchInfo findVersionEdi);
-                    if (findVersionEdi != null)
+                    responses = currentServer.FindVersion(pkgNameToInstall, nugetVersionString, ResourceType.None, out ErrorRecord findVersionErrRecord);
+                    if (findVersionErrRecord != null)
                     {
-                        edi = findVersionEdi;
+                        errRecord = findVersionErrRecord;
                         return packagesHash;
                     }
 
@@ -617,10 +617,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 default:
                     // VersionType.NoVersion
-                    responses = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ExceptionDispatchInfo findNameEdi);
-                    if (findNameEdi != null)
+                    responses = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ErrorRecord findNameErrRecord);
+                    if (findNameErrRecord != null)
                     {
-                        edi = findNameEdi;
+                        errRecord = findNameErrRecord;
                         return packagesHash;
                     }
 
@@ -632,7 +632,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!String.IsNullOrEmpty(currentResult.errorMsg))
             {
                 // V2Server API calls will return non-empty response when package is not found but fail at conversion time
-                edi = ExceptionDispatchInfo.Capture(new InvalidOrEmptyResponse($"Package for installation could not be found due to: {currentResult.errorMsg}"));
+                errRecord = new ErrorRecord(new InvalidOrEmptyResponse($"Package for installation could not be found due to: {currentResult.errorMsg}"), "InstallPackageFailure", ErrorCategory.InvalidData, this);
                 return packagesHash;
             }
 
@@ -665,31 +665,29 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (searchVersionType == VersionType.NoVersion && !_prerelease)
             {
-                responseStream = currentServer.InstallName(pkgName, _prerelease, out ExceptionDispatchInfo installNameEdi);
-                if (installNameEdi != null)
+                responseStream = currentServer.InstallName(pkgName, _prerelease, out ErrorRecord installNameErrRecord);
+                if (installNameErrRecord != null)
                 {
-                    edi = installNameEdi;
+                    errRecord = installNameErrRecord;
                     return packagesHash;
                 }
             }
             else
             {
-                responseStream = currentServer.InstallVersion(pkgName, pkgVersion, out ExceptionDispatchInfo installVersionEdi);
-                if (installVersionEdi != null)
+                responseStream = currentServer.InstallVersion(pkgName, pkgVersion, out ErrorRecord installVersionErrRecord);
+                if (installVersionErrRecord != null)
                 {
-                    edi = installVersionEdi;
+                    errRecord = installVersionErrRecord;
                     return packagesHash;
                 }
             }
 
             Hashtable updatedPackagesHash;
-            ErrorRecord error;
-            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out error) :
-                TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out error);
+            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :
+                TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord);
 
             if (!installedToTempPathSuccessfully)
             {
-                edi = ExceptionDispatchInfo.Capture(error.Exception);
                 return packagesHash;
             }
 
