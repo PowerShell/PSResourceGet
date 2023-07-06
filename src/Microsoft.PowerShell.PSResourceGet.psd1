@@ -2,19 +2,20 @@
 # Licensed under the MIT License.
 
 @{
-    RootModule        = './Microsoft.PowerShell.PSResourceGet.dll'
-    ModuleVersion     = '0.5.22'
-    CompatiblePSEditions = @('Core', 'Desktop')
-    GUID              = 'e4e0bda1-0703-44a5-b70d-8fe704cd0643'
-    Author            = 'Microsoft Corporation'
-    CompanyName       = 'Microsoft Corporation'
-    Copyright         = '(c) Microsoft Corporation. All rights reserved.'
-    Description       = 'PowerShell module with commands for discovering, installing, updating and publishing the PowerShell artifacts like Modules, Scripts, and DSC Resources.'
-    PowerShellVersion = '5.1'
+    RootModule             = './Microsoft.PowerShell.PSResourceGet.dll'
+    NestedModules          = @('./Microsoft.PowerShell.PSResourceGet.psm1')
+    ModuleVersion          = '0.5.23'
+    CompatiblePSEditions   = @('Core', 'Desktop')
+    GUID                   = 'e4e0bda1-0703-44a5-b70d-8fe704cd0643'
+    Author                 = 'Microsoft Corporation'
+    CompanyName            = 'Microsoft Corporation'
+    Copyright              = '(c) Microsoft Corporation. All rights reserved.'
+    Description            = 'PowerShell module with commands for discovering, installing, updating and publishing the PowerShell artifacts like Modules, Scripts, and DSC Resources.'
+    PowerShellVersion      = '5.1'
     DotNetFrameworkVersion = '2.0'
-    CLRVersion = '4.0.0'
-    FormatsToProcess  = 'PSGet.Format.ps1xml'
-    CmdletsToExport = @(
+    CLRVersion             = '4.0.0'
+    FormatsToProcess       = 'PSGet.Format.ps1xml'
+    CmdletsToExport        = @(
         'Find-PSResource',
         'Get-InstalledPSResource',
         'Get-PSResourceRepository',
@@ -30,22 +31,29 @@
         'Uninstall-PSResource',
         'Unregister-PSResourceRepository',
         'Update-PSModuleManifest',
-        'Update-PSResource')
+        'Update-PSResource'
+    )
+    FunctionsToExport      = @(
+        'Import-PSGetRepository'
+    )
 
-    VariablesToExport = 'PSGetPath'
-    AliasesToExport = @()
-    PrivateData = @{
+    VariablesToExport      = 'PSGetPath'
+    AliasesToExport        = @()
+    PrivateData            = @{
         PSData = @{
-            Prerelease = 'beta22'
-            Tags = @('PackageManagement',
+            Prerelease   = 'beta23'
+            Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
                 'Linux',
                 'Mac',
                 'Windows')
-            ProjectUri = 'https://go.microsoft.com/fwlink/?LinkId=828955'
-            LicenseUri = 'https://go.microsoft.com/fwlink/?LinkId=829061'
+            ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
+            LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 0.5.22-beta23
+- Add Import-PSGetRepository
+
 ## 0.5.22-beta22
 
 ### Breaking Changes
@@ -72,12 +80,12 @@
 - Bug fix for Install-PSResource -NoClobber parameter (#1121)
 - Save-PSResource now searches through all repos when no repo is specified (#1125)
 - Caching for improved performance in Uninstall-PSResource (#1175)
-- Bug fix for parsing package tags from local repository (#1119) 
+- Bug fix for parsing package tags from local repository (#1119)
 
 See change log (CHANGELOG.md) at https://github.com/PowerShell/PSResourceGet
 '@
         }
     }
 
-    HelpInfoUri       = 'https://go.microsoft.com/fwlink/?linkid=2238183'
+    HelpInfoUri            = 'https://go.microsoft.com/fwlink/?linkid=2238183'
 }
