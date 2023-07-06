@@ -515,18 +515,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 
                 response = SendV2RequestAsync(request, _sessionClient).GetAwaiter().GetResult();
             }
+            catch (V3ResourceNotFoundException e)
+            {
+                errRecord = new ErrorRecord(e, "ResourceNotFound", ErrorCategory.InvalidResult, this);
+            }
+            catch (UnauthorizedException e)
+            {
+                errRecord = new ErrorRecord(e, "UnauthorizedRequest", ErrorCategory.InvalidResult, this);
+            }
             catch (HttpRequestException e)
             {
-                errRecord = new ErrorRecord(e, "HttpRequestFallFailure", ErrorCategory.ConnectionError, this);
+                errRecord = new ErrorRecord(e, "HttpRequestCallFailure", ErrorCategory.ConnectionError, this);
             }
-            catch (ArgumentNullException e)
+            catch (Exception e)
             {
-                errRecord = new ErrorRecord(e, "HttpRequestFallFailure", ErrorCategory.ConnectionError, this);
+                errRecord = new ErrorRecord(e, "HttpRequestCallFailure", ErrorCategory.ConnectionError, this);
             }
-            catch (InvalidOperationException e)
-            {
-                errRecord = new ErrorRecord(e, "HttpRequestFallFailure", ErrorCategory.ConnectionError, this);
-            }
+
 
             return response;
         }

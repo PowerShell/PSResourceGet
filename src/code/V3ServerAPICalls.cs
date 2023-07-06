@@ -1138,15 +1138,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 response = SendV3RequestAsync(request, _sessionClient).GetAwaiter().GetResult();
             }
+            catch (V3ResourceNotFoundException e)
+            {
+                errRecord = new ErrorRecord(e, "ResourceNotFound", ErrorCategory.InvalidResult, this);
+            }
+            catch (UnauthorizedException e)
+            {
+                errRecord = new ErrorRecord(e, "UnauthorizedRequest", ErrorCategory.InvalidResult, this);
+            }
             catch (HttpRequestException e)
-            {
-                errRecord = new ErrorRecord(e, "HttpRequestCallFailure", ErrorCategory.InvalidResult, this);
-            }
-            catch (ArgumentNullException e)
-            {
-                errRecord = new ErrorRecord(e, "HttpRequestCallFailure", ErrorCategory.InvalidResult, this);
-            }
-            catch (InvalidOperationException e)
             {
                 errRecord = new ErrorRecord(e, "HttpRequestCallFailure", ErrorCategory.InvalidResult, this);
             }
