@@ -424,7 +424,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 errorRecord = new ErrorRecord(
                     new PSInvalidOperationException(
-                        $"Cannot uninstall '{pkgName}'. The following package(s) take a dependency on this package: '{strUniquePkgNames}'. If you would still like to uninstall, rerun the command with -SkipDependencyCheck."),
+                        $"Cannot uninstall '{pkgName}'. This package depends on the following package(s): '{strUniquePkgNames}'. If you would still like to uninstall, re-run the command with -SkipDependencyCheck."),
+
                     "UninstallPSResourcePackageIsaDependency",
                     ErrorCategory.InvalidOperation,
                     null);
