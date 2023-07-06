@@ -244,7 +244,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         string message = Version == null || Version.Trim().Equals("*") ?
                             string.Format("Cannot uninstall resource '{0}' because it does not exist.", pkgName) :
 
-                            string.Format("Cannot not find verison '{0}' of resource '{1}' because it does not exist.", Version, pkgName);
+                            string.Format("Cannot uninstall version '{0}' of resource '{1}' because it does not exist.", Version, pkgName);
+
 
                         errRecords.Add(new ErrorRecord(
                             new PSInvalidOperationException(message),
