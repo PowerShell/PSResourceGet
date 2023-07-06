@@ -187,7 +187,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string message = Version == null || Version.Trim().Equals("*") ?
                     string.Format("Cannot uninstall resource '{0}' because it does not exist", String.Join(", ", Name)) :
 
-                    string.Format("Cannot find verison '{0}' of resource '{1}' because it does not exist", Version, String.Join(", ", Name));
+                    string.Format("Cannot uninstall verison '{0}' of resource '{1}' because it does not exist", Version, String.Join(", ", Name));
+
 
                 errRecords.Add(new ErrorRecord(
                     new PackageNotFoundException(message),
