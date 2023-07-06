@@ -135,6 +135,10 @@ $testCases =
         $res.Prerelease | Should -Be "alpha"
     }
 
+    It "Get definition for alias 'Get-PSResource'" {
+        (Get-Alias Get-PSResource).Definition | Should -BeExactly 'Get-InstalledPSResource'
+    }
+
      # Windows only
      It "Get resource under CurrentUser scope - Windows only" -Skip:(!(Get-IsWindows)) {
         $pkg = Get-InstalledPSResource -Name $testModuleName -Scope CurrentUser
