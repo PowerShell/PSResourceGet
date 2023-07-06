@@ -14,6 +14,9 @@ using System.Threading.Tasks;
 using System.Collections;
 using System.Runtime.ExceptionServices;
 using System.Management.Automation;
+using System.Numerics;
+using System.Runtime.InteropServices.ComTypes;
+using System.Security.Cryptography;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -1201,7 +1204,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound)) {
                     throw new V3ResourceNotFoundException(e.Message);
                 }
-                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
+                // ADO feed will return a 401 if a package does not exist on the feed, with the following message:
+                // 401 (Unauthorized - No local versions of package 'NonExistentModule'; please provide authentication to access
+                // versions from upstream that have not yet been saved to your feed. (DevOps Activity ID: 5E5CF528-5B3D-481D-95B5-5DDB5476D7EF))
+                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized) && !e.Message.Contains("access versions from upstream that have not yet been saved to your feed"))
                 {
                     throw new UnauthorizedException(e.Message + " Re-run the command with -Credential.");
                 }
