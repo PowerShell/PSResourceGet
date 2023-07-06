@@ -242,7 +242,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (errRecord == null)
                     {
                         string message = Version == null || Version.Trim().Equals("*") ?
-                            string.Format("Cannot not find resource '{0}' because it does not exist.", pkgName) :
+                            string.Format("Cannot uninstall resource '{0}' because it does not exist.", pkgName) :
+
                             string.Format("Cannot not find verison '{0}' of resource '{1}' because it does not exist.", Version, pkgName);
 
                         errRecords.Add(new ErrorRecord(
