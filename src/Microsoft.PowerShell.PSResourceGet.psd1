@@ -33,7 +33,7 @@
         'Update-PSResource')
 
     VariablesToExport = 'PSGetPath'
-    AliasesToExport = @()
+    AliasesToExport = @('Get-PSResource')
     PrivateData = @{
         PSData = @{
             Prerelease = 'beta22'
