@@ -1185,8 +1185,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private static async Task<string> SendV3RequestAsync(HttpRequestMessage message, HttpClient s_client)
         {
-            string errMsg = "SendV3RequestAsync(): Error occured while trying to retrieve response: ";
-
             HttpStatusCode responseStatusCode = HttpStatusCode.OK;
             try
             {
@@ -1201,18 +1199,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (HttpRequestException e)
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound)) {
-                    throw new V3ResourceNotFoundException(errMsg + e.Message);
+                    throw new V3ResourceNotFoundException(e.Message);
+                }
+                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
+                {
+                    throw new UnauthorizedException(e.Message + " Re-run the command with -Credential.");
                 }
 
-                throw new HttpRequestException(errMsg + e.Message);
+                throw new HttpRequestException(e.Message);
             }
             catch (ArgumentNullException e)
             {
-                throw new ArgumentNullException(errMsg + e.Message);
+                throw new ArgumentNullException(e.Message);
             }
             catch (InvalidOperationException e)
             {
-                throw new InvalidOperationException(errMsg + e.Message);
+                throw new InvalidOperationException(e.Message);
             }
         }
 
@@ -1221,25 +1223,36 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private static async Task<HttpContent> SendV3RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
         {
-            string errMsg = "SendV3RequestForContentAsync(): Error occured while trying to retrieve response for content: ";
-
+            //string errMsg = "Error occured while trying to retrieve response for content";
+            HttpStatusCode responseStatusCode = HttpStatusCode.OK;
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
+                responseStatusCode = response.StatusCode;
                 response.EnsureSuccessStatusCode();
+
                 return response.Content;
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException(errMsg + e.Message);
+                if (responseStatusCode.Equals(HttpStatusCode.NotFound))
+                {
+                    throw new V3ResourceNotFoundException(e.Message);
+                }
+                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
+                {
+                    throw new UnauthorizedException(e.Message + " Re-run the command with -Credential.");
+                }
+
+                throw new HttpRequestException(e.Message);
             }
             catch (ArgumentNullException e)
             {
-                throw new ArgumentNullException(errMsg + e.Message);
+                throw new ArgumentNullException(e.Message);
             }
             catch (InvalidOperationException e)
             {
-                throw new InvalidOperationException(errMsg + e.Message);
+                throw new InvalidOperationException(e.Message);
             }
         }
 

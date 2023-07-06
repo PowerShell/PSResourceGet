@@ -896,24 +896,35 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public static async Task<string> SendV2RequestAsync(HttpRequestMessage message, HttpClient s_client)
         {
-            string errMsg = "Error occured while trying to retrieve response: ";
+            HttpStatusCode responseStatusCode = HttpStatusCode.OK;
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
+                responseStatusCode = response.StatusCode;
+
                 response.EnsureSuccessStatusCode();
                 return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException(errMsg + e.Message);
+                if (responseStatusCode.Equals(HttpStatusCode.NotFound))
+                {
+                    throw new V2ResourceNotFoundException(e.Message);
+                }
+                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
+                {
+                    throw new UnauthorizedException(e.Message + " Re-run the command with -Credential.");
+                }
+
+                throw new HttpRequestException(e.Message);
             }
             catch (ArgumentNullException e)
             {
-                throw new ArgumentNullException(errMsg + e.Message);
+                throw new ArgumentNullException(e.Message);
             }
             catch (InvalidOperationException e)
             {
-                throw new InvalidOperationException(errMsg + e.Message);
+                throw new InvalidOperationException(e.Message);
             }
         }
 
@@ -922,24 +933,34 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public static async Task<HttpContent> SendV2RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
         {
-            string errMsg = "Error occured while trying to retrieve response for content: ";
+            HttpStatusCode responseStatusCode = HttpStatusCode.OK;
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
+                responseStatusCode = response.StatusCode;
                 response.EnsureSuccessStatusCode();
                 return response.Content;
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException(errMsg + e.Message);
+                if (responseStatusCode.Equals(HttpStatusCode.NotFound))
+                {
+                    throw new V2ResourceNotFoundException(e.Message);
+                }
+                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
+                {
+                    throw new UnauthorizedException(e.Message + " Re-run the command with -Credential.");
+                }
+
+                throw new HttpRequestException(e.Message);
             }
             catch (ArgumentNullException e)
             {
-                throw new ArgumentNullException(errMsg + e.Message);
+                throw new ArgumentNullException(e.Message);
             }
             catch (InvalidOperationException e)
             {
-                throw new InvalidOperationException(errMsg + e.Message);
+                throw new InvalidOperationException(e.Message);
             }
         }
 
