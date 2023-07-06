@@ -135,10 +135,8 @@ $testCases =
         $res.Prerelease | Should -Be "alpha"
     }
 
-    It "Get resource using alias 'Get-PSResource'" {
-        $pkg = Get-PSResource -Name $testModuleName
-        $pkg.Name | Should -Contain $testModuleName
-        $pkg.Type | Should -Contain "Module"
+    It "Get definition for alias 'Get-PSResource'" {
+        (Get-Alias Get-PSResource).Definition | Should -BeExactly 'Get-InstalledPSResource'
     }
 
      # Windows only
