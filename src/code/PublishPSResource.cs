@@ -879,17 +879,35 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 // Unfortunately there is no response message  are no status codes provided with the exception and no
                 var ex = new ArgumentException(String.Format("Repository '{0}': {1}", repoName, e.Message));
-                if (e.Message.Contains("401"))
+                if (e.Message.Contains("400"))
                 {
-                    if (e.Message.Contains("API"))
+                    if (e.Message.Contains("Api"))
                     {
-                        var message = String.Format("{0} Please try running again with the -ApiKey parameter and specific API key for the repository specified.", e.Message);
+                        // For ADO repository feeds that are public feeds
+                        var message = String.Format("Repository '{0}': Please try running again with the -ApiKey parameter and specific API key for the repository specified. For Azure Devops repository, set this to an arbitrary value, for example '-ApiKey AzureDevOps'", repoName, e.Message);
                         ex = new ArgumentException(message);
-                        var ApiKeyError = new ErrorRecord(ex, "ApiKeyError", ErrorCategory.AuthenticationError, null);
+                        var ApiKeyError = new ErrorRecord(ex, "400ApiKeyError", ErrorCategory.AuthenticationError, null);
                         error = ApiKeyError;
                     }
                     else
                     {
+                        var Error401 = new ErrorRecord(ex, "400Error", ErrorCategory.PermissionDenied, null);
+                        error = Error401;
+                    }
+                }
+                else if (e.Message.Contains("401"))
+                {
+                    if (e.Message.Contains("API"))
+                    {
+                        var message = String.Format("Repository '{0}': {1} Please try running again with the -ApiKey parameter and specific API key for the repository specified.", repoName, e.Message);
+                        ex = new ArgumentException(message);
+                        var ApiKeyError = new ErrorRecord(ex, "401ApiKeyError", ErrorCategory.AuthenticationError, null);
+                        error = ApiKeyError;
+                    }
+                    else
+                    {
+                        var message = String.Format("Repository '{0}': {1} The Credential provided was incorrect.", repoName, e.Message);
+                        ex = new ArgumentException(message);
                         var Error401 = new ErrorRecord(ex, "401Error", ErrorCategory.PermissionDenied, null);
                         error = Error401;
                     }
@@ -912,6 +930,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return success;
             }
+            // catch (NuGet.Protocol.Core.Types.FatalProtocolException e)
+            // {
+            //     //  for ADO private feeds
+            //     if (e.InnerException.Message.Contains("401"))
+            //     {
+            //         var message = String.Format ("FP !! Repository '{0}': {1} The Credential provided was incorrect.", repoName, e.InnerException.Message);
+            //         var ex = new ArgumentException(message);
+            //         var ApiKeyError = new ErrorRecord(ex, "401FatalProtocolError", ErrorCategory.AuthenticationError, null);
+            //         error = ApiKeyError;
+            //     }
+            //     else
+            //     {
+            //         var ex = new ArgumentException(String.Format("FP !! Repository '{0}': {1}", repoName, e.InnerException.Message));
+            //         var ApiKeyError = new ErrorRecord(ex, "ApiKeyProtocolFailError", ErrorCategory.ProtocolError, null);
+            //         error = ApiKeyError;   
+            //     }
+
+            //     return success;
+            // }
             catch (Exception e)
             {
                 WriteVerbose(string.Format("Not able to publish resource to '{0}'", repoUri));
