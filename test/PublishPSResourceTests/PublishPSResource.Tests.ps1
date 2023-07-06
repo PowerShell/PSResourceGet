@@ -396,7 +396,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $moduleName = "Pester"
         $moduleVersion = "5.5.0"
         Save-PSResource -Name $moduleName -Path $tmpRepoPath -Version $moduleVersion -Repository PSGallery -TrustRepository
-        $moduleManifestPath = Join-Path -Path $tmpRepoPath -ChildPath $moduleName -AdditionalChildPath $moduleVersion, "Pester.psd1"
+        $modulePath = Join-Path -Path $tmpRepoPath -ChildPath $moduleName 
+        $moduleVersionPath = Join-Path -Path $modulePath -ChildPath $moduleVersion
+        $moduleManifestPath = Join-path -Path $moduleVersionPath -ChildPath "$moduleName.psd1"
         Publish-PSResource -Path $moduleManifestPath -Repository $testRepository2
         $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$moduleName.$moduleVersion.nupkg"
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
