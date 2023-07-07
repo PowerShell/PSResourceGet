@@ -58,7 +58,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $correctPrivateRepoCred = New-Object pscredential ($env:ADO_USERNAME, $secureString)
 
         $randomString = ([System.Guid]::NewGuid()).ToString()
-        $incorrectRepoCred = New-Object pscredential ($env:ADO_USERNAME, $randomString)
+        $secureString = ConvertTo-SecureString $randomString -AsPlainText -Force
+        $incorrectRepoCred = New-Object pscredential ($env:ADO_USERNAME, $secureString)
 
         # Create module
         $script:tmpModulesPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
