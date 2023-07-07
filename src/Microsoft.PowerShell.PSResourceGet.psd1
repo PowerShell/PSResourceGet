@@ -36,10 +36,9 @@
     FunctionsToExport      = @(
         'Import-PSGetRepository'
     )
-
-    VariablesToExport      = 'PSGetPath'
-    AliasesToExport        = @()
-    PrivateData            = @{
+    VariablesToExport = 'PSGetPath'
+    AliasesToExport = @('Get-PSResource')
+    PrivateData = @{
         PSData = @{
             Prerelease   = 'beta23'
             Tags         = @('PackageManagement',

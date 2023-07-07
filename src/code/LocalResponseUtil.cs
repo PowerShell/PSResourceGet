@@ -33,14 +33,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (!response.ContainsKey(_fileTypeKey))
                 {
-                    yield return new PSResourceResult(returnedObject: null, errorMsg: "Package response did not contain metadata file type key so will be skipped.", isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, new InvalidOrEmptyResponse("Package response did not contain metadata file type key"), isTerminatingError: false);
                     continue;
                 }
 
                 string fileTypeString = response[_fileTypeKey].ToString();
                 if (!Enum.TryParse(fileTypeString, out Utils.MetadataFileType fileType) || _fileTypeKey.Equals(Utils.MetadataFileType.None))
                 {
-                    yield return new PSResourceResult(returnedObject: null, errorMsg: "MetadataFileType key in package metadata could not be parsed successfully.", isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, new XmlParsingException("MetadataFileType key in package metadata could not be parsed successfully"), isTerminatingError: false);
                 }
 
                 response.Remove(_fileTypeKey);
@@ -55,10 +55,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             out string psd1ErrorMsg,
                             repository: Repository))
                         {
-                            yield return new PSResourceResult(returnedObject: null, errorMsg: psd1ErrorMsg, isTerminatingError: false);
+                            yield return new PSResourceResult(returnedObject: null, new ConvertToPSResourceException(psd1ErrorMsg), isTerminatingError: false);
                         }
 
-                        pkgInfo = new PSResourceResult(returnedObject: pkgWithPsd1, errorMsg: psd1ErrorMsg, isTerminatingError: false);
+                        pkgInfo = new PSResourceResult(returnedObject: pkgWithPsd1, new ConvertToPSResourceException(psd1ErrorMsg), isTerminatingError: false);
                         break;
 
                     case Utils.MetadataFileType.ScriptFile:
@@ -68,10 +68,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             out string ps1ErrorMsg,
                             repository: Repository))
                         {
-                            yield return new PSResourceResult(returnedObject: null, errorMsg: ps1ErrorMsg, isTerminatingError: false);
+                            yield return new PSResourceResult(returnedObject: null, new ConvertToPSResourceException(ps1ErrorMsg), isTerminatingError: false);
                         }
 
-                        pkgInfo = new PSResourceResult(returnedObject: pkgWithPs1, errorMsg: ps1ErrorMsg, isTerminatingError: false);
+                        pkgInfo = new PSResourceResult(returnedObject: pkgWithPs1, new ConvertToPSResourceException(ps1ErrorMsg), isTerminatingError: false);
                         break;
 
                     case Utils.MetadataFileType.Nuspec:
@@ -81,10 +81,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             out string nuspecErrorMsg,
                             repository: Repository))
                         {
-                            yield return new PSResourceResult(returnedObject: null, errorMsg: nuspecErrorMsg, isTerminatingError: false);
+                            yield return new PSResourceResult(returnedObject: null, new ConvertToPSResourceException(nuspecErrorMsg), isTerminatingError: false);
                         }
 
-                        pkgInfo = new PSResourceResult(returnedObject: pkgWithNuspec, errorMsg: nuspecErrorMsg, isTerminatingError: false);
+                        pkgInfo = new PSResourceResult(returnedObject: pkgWithNuspec, new ConvertToPSResourceException(nuspecErrorMsg), isTerminatingError: false);
                         break;
                 }
 
