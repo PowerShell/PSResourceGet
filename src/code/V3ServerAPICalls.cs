@@ -1168,7 +1168,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             errRecord = null;
             HttpContent content = null;
-
             try
             {
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
@@ -1202,7 +1201,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (HttpRequestException e)
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound)) {
-                    throw new V3ResourceNotFoundException(e.Message);
+                    throw new V3ResourceNotFoundException(e.Message + $" Request sent: '{message}'");
                 }
                 // ADO feed will return a 401 if a package does not exist on the feed, with the following message:
                 // 401 (Unauthorized - No local versions of package 'NonExistentModule'; please provide authentication to access
@@ -1212,15 +1211,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     throw new UnauthorizedException(e.Message + " Re-run the command with -Credential.");
                 }
 
-                throw new HttpRequestException(e.Message);
+                throw new HttpRequestException(e.Message + $" Request sent: '{message}'");
             }
             catch (ArgumentNullException e)
             {
-                throw new ArgumentNullException(e.Message);
+                throw new ArgumentNullException(e.Message + $" Request sent: '{message}'");
             }
             catch (InvalidOperationException e)
             {
-                throw new InvalidOperationException(e.Message);
+                throw new InvalidOperationException(e.Message + $" Request sent: '{message}'");
             }
         }
 
@@ -1243,22 +1242,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound))
                 {
-                    throw new V3ResourceNotFoundException(e.Message);
+                    throw new V3ResourceNotFoundException(e.Message + $" Request sent: '{message}'");
                 }
                 if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
                 {
                     throw new UnauthorizedException(e.Message + " Re-run the command with -Credential.");
                 }
 
-                throw new HttpRequestException(e.Message);
+                throw new HttpRequestException(e.Message + $" Request sent: '{message}'");
             }
             catch (ArgumentNullException e)
             {
-                throw new ArgumentNullException(e.Message);
+                throw new ArgumentNullException(e.Message + $" Request sent: '{message}'");
             }
             catch (InvalidOperationException e)
             {
-                throw new InvalidOperationException(e.Message);
+                throw new InvalidOperationException(e.Message + $" Request sent: '{message}'");
             }
         }
 
