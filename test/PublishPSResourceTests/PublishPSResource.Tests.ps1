@@ -534,4 +534,12 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         {Publish-PSResource -Path $incorrectdepmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
+
+    It "Publish a module with using an invalid file path (path to .psm1), should throw" {
+        $fileName = "$script:PublishModuleName.psm1"
+        $psm1Path = Join-Path -Path $script:PublishModuleBase -ChildPath $fileName
+        $null = New-Item -Path $psm1Path -ItemType File -Force
+
+        {Publish-PSResource -Path $psm1Path -Repository $testRepository2 -ErrorAction Stop} | Should -Throw -ErrorId "InvalidPublishPath,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+    }
 }
