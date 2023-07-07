@@ -109,7 +109,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ADOPrivateRepoName -Credential $incorrectRepoCred -ErrorAction SilentlyContinue
 
         Write-Verbose -Verbose $Error[0].Exception.Message
-        $Error[0].FullyQualifiedErrorId | Should -be "401Error,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        $Error[0].FullyQualifiedErrorId | Should -be "401FatalProtocolError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
     It "Should not publish module to ADO repository feed (private) when ApiKey is not provided" {

@@ -883,7 +883,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     if (e.Message.Contains("Api"))
                     {
-                        // For ADO repository feeds that are public feeds
+                        // For ADO repositories, public and private, when ApiKey is not provided.
                         var message = String.Format("Repository '{0}': Please try running again with the -ApiKey parameter and specific API key for the repository specified. For Azure Devops repository, set this to an arbitrary value, for example '-ApiKey AzureDevOps'", repoName, e.Message);
                         ex = new ArgumentException(message);
                         var ApiKeyError = new ErrorRecord(ex, "400ApiKeyError", ErrorCategory.AuthenticationError, null);
@@ -899,6 +899,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     if (e.Message.Contains("API"))
                     {
+                        // For PSGallery when ApiKey is not provided.
                         var message = String.Format("Repository '{0}': {1} Please try running again with the -ApiKey parameter and specific API key for the repository specified.", repoName, e.Message);
                         ex = new ArgumentException(message);
                         var ApiKeyError = new ErrorRecord(ex, "401ApiKeyError", ErrorCategory.AuthenticationError, null);
@@ -906,6 +907,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                     else
                     {
+                        // For ADO repository feeds that are public feeds, when the credentials are incorrect.
                         var message = String.Format("Repository '{0}': {1} The Credential provided was incorrect.", repoName, e.Message);
                         ex = new ArgumentException(message);
                         var Error401 = new ErrorRecord(ex, "401Error", ErrorCategory.PermissionDenied, null);
@@ -932,7 +934,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (NuGet.Protocol.Core.Types.FatalProtocolException e)
             {
-                //  for ADO private feeds
+                //  for ADO repository feeds that are private feeds the error thrown is different and the 401 is in the inner exception message
                 if (e.InnerException.Message.Contains("401"))
                 {
                     var message = String.Format ("Repository '{0}': {1} The Credential provided was incorrect.", repoName, e.InnerException.Message);
@@ -943,7 +945,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 else
                 {
                     var ex = new ArgumentException(String.Format("Repository '{0}': {1}", repoName, e.InnerException.Message));
-                    var ApiKeyError = new ErrorRecord(ex, "ApiKeyProtocolFailError", ErrorCategory.ProtocolError, null);
+                    var ApiKeyError = new ErrorRecord(ex, "ProtocolFailError", ErrorCategory.ProtocolError, null);
                     error = ApiKeyError;   
                 }
 
