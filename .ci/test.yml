@@ -64,6 +64,7 @@ jobs:
       MAPPED_GITHUB_PAT: $(github_pat)
       MAPPED_ADO_PUBLIC_PAT: $(ado_public_pat)
       MAPPED_ADO_PRIVATE_PAT: $(ado_private_pat)
+      MAPPED_ADO_PRIVATE_REPO_URL: $(ado_private_repo_url)
     displayName: Execute functional tests
     workingDirectory: ${{ parameters.buildDirectory }}
     errorActionPreference: continue

@@ -51,6 +51,10 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $ADOPublicRepoUri = "https://pkgs.dev.azure.com/powershell/PowerShell/_packaging/powershell-public-test/nuget/v3/index.json"
         Register-PSResourceRepository -Name $ADOPublicRepoName -Uri $ADOPublicRepoUri
 
+        $ADOPrivateRepoName = "PSGetTestFeedWithPrivateAccess"
+        $ADOPrivateRepoUri = $env:MAPPED_ADO_PRIVATE_REPO_URL
+        Register-PSResourceRepository -Name $ADOPrivateRepoName -Uri $ADOPrivateRepoUri
+
         $secureString = ConvertTo-SecureString $env:MAPPED_ADO_PUBLIC_PAT -AsPlainText -Force
         $correctPublicRepoCred = New-Object pscredential ($env:ADO_USERNAME, $secureString)
 
