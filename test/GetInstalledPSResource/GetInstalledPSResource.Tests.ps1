@@ -140,6 +140,10 @@ $testCases =
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstalledPackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetInstalledPSResourceCommand"
     }
 
+    It "Get definition for alias 'Get-PSResource'" {
+        (Get-Alias Get-PSResource).Definition | Should -BeExactly 'Get-InstalledPSResource'
+    }
+
      # Windows only
      It "Get resource under CurrentUser scope - Windows only" -Skip:(!(Get-IsWindows)) {
         $pkg = Get-InstalledPSResource -Name $testModuleName -Scope CurrentUser

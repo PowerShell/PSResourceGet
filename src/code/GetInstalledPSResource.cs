@@ -15,6 +15,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// Returns a single resource or multiple resource.
     /// </summary>
     [Cmdlet(VerbsCommon.Get, "InstalledPSResource")]
+    [Alias("Get-PSResource")]
     [OutputType(typeof(PSResourceInfo))]
     public sealed class GetInstalledPSResourceCommand : PSCmdlet
     {
