@@ -5,6 +5,7 @@ using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
@@ -139,13 +140,55 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // SelectPrereleaseOnly is false because we want both stable and prerelease versions all the time..
             GetHelper getHelper = new GetHelper(this);
+            List<string> pkgsFound = new List<string>();
             foreach (PSResourceInfo pkg in getHelper.GetPackagesFromPath(
                 name: namesToSearch,
                 versionRange: _versionRange,
                 pathsToSearch: _pathsToSearch,
                 selectPrereleaseOnly: false))
             {
+                pkgsFound.Add(pkg.Name);
                 WriteObject(pkg);
+            }
+
+            List<string> pkgsNotFound = new List<string>();
+            foreach (string name in namesToSearch)
+            {
+                if (!pkgsFound.Contains(name, StringComparer.OrdinalIgnoreCase)) 
+                {
+                    if (name.Contains('*'))
+                    {
+                        WildcardPattern nameWildCardPattern = new WildcardPattern(name, WildcardOptions.IgnoreCase);
+
+                        bool foundWildcardMatch = false;
+                        foreach (string pkgFound in pkgsFound)
+                        {
+                            if (nameWildCardPattern.IsMatch(pkgFound))
+                            {
+                                foundWildcardMatch = true;
+                                break;
+                            }
+                        }
+
+                        if (!foundWildcardMatch)
+                        {
+                            pkgsNotFound.Add(name);
+                        }
+                    }
+                    else
+                    {
+                        pkgsNotFound.Add(name);
+                    }
+                }
+            }
+
+            if (pkgsNotFound.Count > 0)
+            {
+                WriteError(new ErrorRecord(
+                    new PackageNotFoundException($"No match was found for package '{string.Join(", ", pkgsNotFound)}'."),
+                    "InstalledPackageNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
         }
 

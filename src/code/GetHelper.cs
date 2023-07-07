@@ -8,8 +8,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Management.Automation;
 
-using Dbg = System.Diagnostics.Debug;
-
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
@@ -133,8 +131,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         // Filter by user provided version
         public IEnumerable<String> FilterPkgPathsByVersion(VersionRange versionRange, List<string> dirsToSearch, bool selectPrereleaseOnly)
         {
-            Dbg.Assert(versionRange != null, "Version Range cannot be null");
-
             // if no version is specified, just get the latest version
             foreach (string pkgPath in dirsToSearch)
             {
