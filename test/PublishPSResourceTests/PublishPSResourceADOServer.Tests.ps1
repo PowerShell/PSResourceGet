@@ -88,7 +88,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ADOPublicRepoName -Credential $incorrectRepoCred -ErrorAction SilentlyContinue
 
-        Write-Verbose -Verbose $Error[0].Exception.Message
         $Error[0].FullyQualifiedErrorId | Should -be "401Error,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
@@ -98,7 +97,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ADOPublicRepoName -Credential $correctPublicRepoCred -ErrorAction SilentlyContinue
 
-        Write-Verbose -Verbose $Error[0].Exception.Message
         $Error[0].FullyQualifiedErrorId | Should -be "400ApiKeyError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
@@ -108,7 +106,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ADOPrivateRepoName -Credential $incorrectRepoCred -ErrorAction SilentlyContinue
 
-        Write-Verbose -Verbose $Error[0].Exception.Message
         $Error[0].FullyQualifiedErrorId | Should -be "401FatalProtocolError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
@@ -118,7 +115,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ADOPrivateRepoName -Credential $correctPrivateRepoCred -ErrorAction SilentlyContinue
 
-        Write-Verbose -Verbose $Error[0].Exception.Message
         $Error[0].FullyQualifiedErrorId | Should -be "400ApiKeyError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 }
