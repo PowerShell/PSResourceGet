@@ -930,25 +930,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return success;
             }
-            // catch (NuGet.Protocol.Core.Types.FatalProtocolException e)
-            // {
-            //     //  for ADO private feeds
-            //     if (e.InnerException.Message.Contains("401"))
-            //     {
-            //         var message = String.Format ("FP !! Repository '{0}': {1} The Credential provided was incorrect.", repoName, e.InnerException.Message);
-            //         var ex = new ArgumentException(message);
-            //         var ApiKeyError = new ErrorRecord(ex, "401FatalProtocolError", ErrorCategory.AuthenticationError, null);
-            //         error = ApiKeyError;
-            //     }
-            //     else
-            //     {
-            //         var ex = new ArgumentException(String.Format("FP !! Repository '{0}': {1}", repoName, e.InnerException.Message));
-            //         var ApiKeyError = new ErrorRecord(ex, "ApiKeyProtocolFailError", ErrorCategory.ProtocolError, null);
-            //         error = ApiKeyError;   
-            //     }
+            catch (NuGet.Protocol.Core.Types.FatalProtocolException e)
+            {
+                //  for ADO private feeds
+                if (e.InnerException.Message.Contains("401"))
+                {
+                    var message = String.Format ("Repository '{0}': {1} The Credential provided was incorrect.", repoName, e.InnerException.Message);
+                    var ex = new ArgumentException(message);
+                    var ApiKeyError = new ErrorRecord(ex, "401FatalProtocolError", ErrorCategory.AuthenticationError, null);
+                    error = ApiKeyError;
+                }
+                else
+                {
+                    var ex = new ArgumentException(String.Format("Repository '{0}': {1}", repoName, e.InnerException.Message));
+                    var ApiKeyError = new ErrorRecord(ex, "ApiKeyProtocolFailError", ErrorCategory.ProtocolError, null);
+                    error = ApiKeyError;   
+                }
 
-            //     return success;
-            // }
+                return success;
+            }
             catch (Exception e)
             {
                 WriteVerbose(string.Format("Not able to publish resource to '{0}'", repoUri));
