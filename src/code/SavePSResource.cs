@@ -103,7 +103,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 // This will throw if path cannot be resolved
-                _path = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().Path;
+                _path = SessionState.Path.GetResolvedPSPathFromPSPath(value).First().ProviderPath;
             }
         }
         private string _path;
