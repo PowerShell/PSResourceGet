@@ -198,7 +198,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
 
@@ -257,7 +257,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             
             string packageFullName = $"{packageName.ToLower()}.{version}.nupkg";
-            string packagePath = Path.Combine(Repository.Uri.AbsolutePath, packageFullName);
+            string packagePath = Path.Combine(Repository.Uri.LocalPath, packageFullName);
             if (!File.Exists(packagePath))
             {
                 errRecord = new ErrorRecord(new LocalResourceNotFoundException($"'{packageName}' version '{version}' does not exist in this repository"), "InstallVersionFailure", ErrorCategory.ResourceUnavailable, this);
@@ -291,7 +291,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             String latestVersionPath = String.Empty;
             string actualPkgName = packageName;
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
 
@@ -385,7 +385,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
             string pkgPath = String.Empty;
             string actualPkgName = String.Empty;
-            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
@@ -399,7 +399,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (nugetVersion == requiredVersion)
                     {
                         string pkgFullName = $"{actualPkgName}.{nugetVersion.ToString()}.nupkg";           
-                        pkgPath = Path.Combine(Repository.Uri.AbsolutePath, pkgFullName);
+                        pkgPath = Path.Combine(Repository.Uri.LocalPath, pkgFullName);
                         break;
                     }
                 }
@@ -584,7 +584,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
             errRecord = null;
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
 
@@ -624,7 +624,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Regex rx = new Regex(@"\.\d+\.", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
                 MatchCollection matches = rx.Matches(packageFullName);
