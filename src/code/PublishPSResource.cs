@@ -145,7 +145,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-                resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).First().Path;
+                resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).First().ProviderPath;
             }
             catch (MethodInvocationException)
             {
@@ -190,7 +190,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!String.IsNullOrEmpty(DestinationPath))
             {
-                string resolvedDestinationPath = SessionState.Path.GetResolvedPSPathFromPSPath(DestinationPath).First().Path;
+                string resolvedDestinationPath = SessionState.Path.GetResolvedPSPathFromPSPath(DestinationPath).First().ProviderPath;
 
                 if (Directory.Exists(resolvedDestinationPath))
                 {
@@ -277,6 +277,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
+				// The Test-ModuleManifest currently cannot process UNC paths. Disabling verification for now.
+				if ((new Uri(pathToModuleManifestToPublish)).IsUnc)
+					SkipModuleManifestValidate = true;
                 // Validate that the module manifest has correct data
                 if (! SkipModuleManifestValidate &&
                     ! Utils.ValidateModuleManifest(pathToModuleManifestToPublish, out string errorMsg))
