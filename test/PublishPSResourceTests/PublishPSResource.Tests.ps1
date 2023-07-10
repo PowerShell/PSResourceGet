@@ -392,6 +392,18 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         (Get-ChildItem $script:destinationPath).FullName | Should -Be $expectedPath
     }
 
+    It "Publish a module with -Path -Repository and -DestinationPath" {
+        $moduleName = "Pester"
+        $moduleVersion = "5.5.0"
+        Save-PSResource -Name $moduleName -Path $tmpRepoPath -Version $moduleVersion -Repository PSGallery -TrustRepository
+        $modulePath = Join-Path -Path $tmpRepoPath -ChildPath $moduleName 
+        $moduleVersionPath = Join-Path -Path $modulePath -ChildPath $moduleVersion
+        $moduleManifestPath = Join-path -Path $moduleVersionPath -ChildPath "$moduleName.psd1"
+        Publish-PSResource -Path $moduleManifestPath -Repository $testRepository2
+        $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$moduleName.$moduleVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
     It "Publish a module and clean up properly when file in module is readonly" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
