@@ -236,6 +236,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 
                 SetNetworkCredential(currentRepository);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                if (currentServer == null)
+                {
+                    // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                    new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
+                    "RepositoryApiVersionUnknown",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
+                    continue;
+                }
+
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
@@ -344,6 +356,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 SetNetworkCredential(currentRepository);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                if (currentServer == null)
+                {
+                    // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                    new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
+                    "RepositoryApiVersionUnknown",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
+                    continue;
+                }
+
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
 
                 if (_type != ResourceType.None && repositoriesToSearch[i].Name != "PSGallery")

@@ -18,7 +18,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             unknown,
             v2,
             v3,
-            local
+            local,
+            nugetServer
         }
 
         #endregion
