@@ -1112,6 +1112,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         int.TryParse(totalHitsElement.ToString(), out totalHits);
                     }
+
+                    entries = responseEntries.ToArray();
                 }
             }
             catch (Exception e)
