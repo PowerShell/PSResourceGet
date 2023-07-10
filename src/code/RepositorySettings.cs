@@ -823,7 +823,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             else if (repoUri.AbsoluteUri.Contains("/nuget"))
             {
                 // Scenario: ASP.Net application feed created with NuGet.Server to host packages
-                return PSRepositoryInfo.APIVersion.v2;
+                return PSRepositoryInfo.APIVersion.nugetServer;
             }
             else
             {
