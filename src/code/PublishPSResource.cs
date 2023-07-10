@@ -167,7 +167,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 ThrowTerminatingError(
                     new ErrorRecord(
                         new ArgumentException(
-                            "The path to the resource to publish is not in the correct format or does not exist. Please provide the path of the root module or the path to the .psd1."),
+                            "The path to the resource to publish is not in the correct format or does not exist. Please provide the path of the root module (i.e. './<ModuleToPublish>/') or the path to the .psd1 (i.e. './<ModuleToPublish>/<ModuleToPublish>.psd1')."),
                             "InvalidPublishPath",
                             ErrorCategory.InvalidArgument,
                             this));
@@ -191,7 +191,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 ThrowTerminatingError(
                     new ErrorRecord(
                         new ArgumentException(
-                            $"The publish path provided, '{resolvedPath}', is not a valid. Please provide a path to the root module or path to the .psd1."),
+                            $"The publish path provided, '{resolvedPath}', is not a valid. Please provide a path to the root module (i.e. './<ModuleToPublish>/') or path to the .psd1 (i.e. './<ModuleToPublish>/<ModuleToPublish>.psd1')."),
                             "InvalidPublishPath",
                             ErrorCategory.InvalidArgument,
                             this));
