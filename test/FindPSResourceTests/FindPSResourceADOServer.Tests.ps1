@@ -17,12 +17,12 @@ Describe 'Test HTTP Find-PSResource for ADO Server Protocol' -tags 'CI' {
     AfterAll {
         Get-RevertPSResourceRepositoryFile
     }
-
+# adding comment
     It "find resource given specific Name, Version null" {
         # FindName()
         $res = Find-PSResource -Name $testModuleName -Repository $ADORepoName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0"
+        $res.Version | Should -Be "5.0.0.0"
     }
 
     It "should not find resource given nonexistant Name" {
