@@ -44,16 +44,16 @@ Describe 'Test HTTP Find-PSResource for ADO Server Protocol' -tags 'CI' {
         $res | Should -BeNullOrEmpty
     }
 
-    $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0");                              Reason="validate version, exact match"},
-                  @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0");                              Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, exact range inclusive"},
-                  @{Version="(1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("3.0.0");                              Reason="validate version, exact range exclusive"},
-                  @{Version="(1.0.0.0,)";          ExpectedVersions=@("3.0.0", "5.0.0");                     Reason="validate version, minimum version exclusive"},
-                  @{Version="[1.0.0.0,)";          ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, minimum version inclusive"},
-                  @{Version="(,3.0.0.0)";          ExpectedVersions=@("1.0.0");                              Reason="validate version, maximum version exclusive"},
-                  @{Version="(,3.0.0.0]";          ExpectedVersions=@("1.0.0", "3.0.0");                     Reason="validate version, maximum version inclusive"},
-                  @{Version="[1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("1.0.0", "3.0.0");                     Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("3.0.0", "5.0.0");                     Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0.0");                              Reason="validate version, exact match"},
+                  @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0.0");                              Reason="validate version, exact match without bracket syntax"},
+                  @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0");            Reason="validate version, exact range inclusive"},
+                  @{Version="(1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("3.0.0.0");                              Reason="validate version, exact range exclusive"},
+                  @{Version="(1.0.0.0,)";          ExpectedVersions=@("3.0.0.0", "5.0.0.0");                     Reason="validate version, minimum version exclusive"},
+                  @{Version="[1.0.0.0,)";          ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0");            Reason="validate version, minimum version inclusive"},
+                  @{Version="(,3.0.0.0)";          ExpectedVersions=@("1.0.0.0");                              Reason="validate version, maximum version exclusive"},
+                  @{Version="(,3.0.0.0]";          ExpectedVersions=@("1.0.0.0", "3.0.0.0");                     Reason="validate version, maximum version inclusive"},
+                  @{Version="[1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("1.0.0.0", "3.0.0.0");                     Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+                  @{Version="(1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("3.0.0.0", "5.0.0.0");                     Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
 
     It "find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
         # FindVersionGlobbing()
@@ -81,7 +81,7 @@ Describe 'Test HTTP Find-PSResource for ADO Server Protocol' -tags 'CI' {
         # FindName()
         # test_local_mod resource's latest version is a prerelease version, before that it has a non-prerelease version
         $res = Find-PSResource -Name $testModuleName -Repository $ADORepoName
-        $res.Version | Should -Be "5.0.0"
+        $res.Version | Should -Be "5.0.0.0"
 
         $resPrerelease = Find-PSResource -Name $testModuleName -Prerelease -Repository $ADORepoName
         $resPrerelease.Version | Should -Be "5.2.5"
@@ -145,7 +145,7 @@ Describe 'Test HTTP Find-PSResource for ADO Server Protocol' -tags 'CI' {
         $requiredTag = "test"
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $ADORepoName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0"
+        $res.Version | Should -Be "5.0.0.0"
         $res.Tags | Should -Contain $requiredTag
     }
 
@@ -163,7 +163,7 @@ Describe 'Test HTTP Find-PSResource for ADO Server Protocol' -tags 'CI' {
         $requiredTags = @("test", "Tag2")
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTags -Repository $ADORepoName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0"
+        $res.Version | Should -Be "5.0.0.0"
         $res.Tags | Should -Contain $requiredTags[0]
         $res.Tags | Should -Contain $requiredTags[1]
 
