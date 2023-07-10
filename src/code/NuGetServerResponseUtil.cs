@@ -64,7 +64,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region V2 Specific Methods
+        #region NuGet.Server Specific Methods
 
         public XmlNode[] ConvertResponseToXML(string httpResponse) {
 
