@@ -417,6 +417,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az*" -Tag "Storage"
                         string tagMsg = String.Empty;
                         FindResults responses = null;
+                        string tagsAsString = string.Empty;
                         if (_tag.Length == 0)
                         {
                             responses = currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out errRecord);
@@ -424,7 +425,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         else
                         {
                             responses = currentServer.FindNameGlobbingWithTag(pkgName, _tag, _prerelease, _type, out errRecord);
-                            string tagsAsString = String.Join(", ", _tag);
+                            tagsAsString = String.Join(", ", _tag);
                             tagMsg = $" and Tags {tagsAsString}";
                         }
 
@@ -439,8 +440,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
                                 // write warning?
+                                string message = _tag.Length == 0 ? $"Package '{pkgName}' could not be found." : $"Package '{pkgName}' with tags '{tagsAsString}' could not be found.";
+
                                 _cmdletPassedIn.WriteError(new ErrorRecord(
-                                            new PackageNotFoundException($"Package '{pkgName}' with tags '{tagMsg}' could not be found", currentResult.exception), 
+                                            new PackageNotFoundException(message, currentResult.exception), 
                                             "FindNameGlobbingConvertToPSResourceFailure", 
                                             ErrorCategory.InvalidResult, 
                                             this));
@@ -460,6 +463,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az" -Tag "Storage"
                         string tagMsg = String.Empty;
                         FindResults responses = null;
+                        string tagsAsString = string.Empty;
                         if (_tag.Length == 0)
                         {
                             responses = currentServer.FindName(pkgName, _prerelease, _type, out errRecord);
@@ -467,7 +471,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         else
                         {
                             responses = currentServer.FindNameWithTag(pkgName, _tag, _prerelease, _type, out errRecord);
-                            string tagsAsString = String.Join(", ", _tag);
+                            tagsAsString = String.Join(", ", _tag);
                             tagMsg = $" and Tags {tagsAsString}";
                         }
 
@@ -481,8 +485,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
+                            string message = _tag.Length == 0 ? $"Package '{pkgName}' could not be found." : $"Package '{pkgName}' with tags '{tagsAsString}' could not be found.";
+
                             _cmdletPassedIn.WriteError(new ErrorRecord(
-                                        new PackageNotFoundException($"Package '{pkgName}' with tags '{tagMsg}' could not be found", currentResult.exception), 
+                                        new PackageNotFoundException(message, currentResult.exception), 
                                         "FindNameConvertToPSResourceFailure", 
                                         ErrorCategory.InvalidResult, 
                                         this));

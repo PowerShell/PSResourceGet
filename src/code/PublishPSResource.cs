@@ -552,7 +552,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         if (psData.ContainsKey("prerelease") && psData["prerelease"] is string preReleaseVersion)
                         {
-                            version = string.Format(@"{0}-{1}", version, preReleaseVersion);
+                            if (!string.IsNullOrEmpty(preReleaseVersion))
+                            {
+                                version = string.Format(@"{0}-{1}", version, preReleaseVersion);
+                            }
                         }
 
                         if (psData.ContainsKey("licenseuri") && psData["licenseuri"] is string licenseUri)
