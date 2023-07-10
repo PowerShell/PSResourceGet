@@ -587,7 +587,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
 
                         // defaults to false
-                        // boolean value needs to be a lowercase string for it to be correctly parsed
+                        // Value for requireAcceptLicense key needs to be a lowercase string representation of the boolean for it to be correctly parsed from psData file.
+
                         string requireLicenseAcceptance = psData.ContainsKey("requirelicenseacceptance") ? psData["requirelicenseacceptance"].ToString().ToLower() : "false";
 
                         metadataElementsDictionary.Add("requireLicenseAcceptance", requireLicenseAcceptance);
