@@ -17,9 +17,13 @@ function DoBuild
     $BuildSrcPath = "bin/${BuildConfiguration}/${BuildFramework}/publish"
     Write-Verbose -Verbose -Message "Module build source path: '$BuildSrcPath'"
 
-    # Copy module script files
+    # Copy module .psd1 file
     Write-Verbose -Verbose "Copy-Item ${SrcPath}/${ModuleName}.psd1 to $BuildOutPath"
     Copy-Item -Path "${SrcPath}/${ModuleName}.psd1" -Dest "$BuildOutPath" -Force
+
+    # Copy module .psm1 file
+    Write-Verbose -Verbose "Copy-Item ${SrcPath}/${ModuleName}.psm1 to $BuildOutPath"
+    Copy-Item -Path "${SrcPath}/${ModuleName}.psm1" -Dest "$BuildOutPath" -Force
 
     #Copy module format ps1xml file
     Write-Verbose -Verbose -Message "Copy-Item ${SrcPath}/${FormatFileName}.ps1xml to $BuildOutPath"
