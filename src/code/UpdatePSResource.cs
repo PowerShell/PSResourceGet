@@ -185,7 +185,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return;
             }
 
-            var namesToUpdate = ProcessPackageNames(Name, versionRange, nugetVersion, versionType);
+            var namesToUpdate = ProcessPackageNames(Name, versionRange, nugetVersion, versionType, out bool latestInstalledIsPrerelease);
 
             if (namesToUpdate.Length == 0)
             {
@@ -204,7 +204,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 nugetVersion: nugetVersion,
                 versionType: versionType,
                 versionString: Version,
-                prerelease: Prerelease,
+                prerelease: latestInstalledIsPrerelease,
                 repository: Repository,
                 acceptLicense: AcceptLicense,
                 quiet: Quiet,
@@ -259,8 +259,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string[] namesToProcess,
             VersionRange versionRange,
             NuGetVersion nuGetVersion,
-            VersionType versionType)
+            VersionType versionType,
+            out bool latestInstalledIsPrerelease)
         {
+            latestInstalledIsPrerelease = false;
+
             namesToProcess = Utils.ProcessNameWildcards(
                 pkgNames: namesToProcess,
                 removeWildcardEntries:false, 
@@ -318,6 +321,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return Utils.EmptyStrArray;
             }
 
+            // if the latest installed version is a prerelease version, automatically include prerelease versions when updating.
+            if (installedPackages.First().Value.IsPrerelease)
+            {
+                latestInstalledIsPrerelease = true;
+            }
+
             // Find all packages selected for updating in provided repositories.
             var repositoryPackages = new Dictionary<string, PSResourceInfo>(StringComparer.InvariantCultureIgnoreCase);
             foreach (var foundResource in _findHelper.FindByResourceName(
@@ -327,7 +336,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 nugetVersion: nuGetVersion,
                 versionType: versionType,
                 version: Version,
-                prerelease: Prerelease,
+                prerelease: latestInstalledIsPrerelease,
                 tag: null,
                 repository: Repository,
                 includeDependencies: !SkipDependencyCheck))
