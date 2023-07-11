@@ -366,7 +366,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery -ErrorAction SilentlyContinue
 
-        #TODO: fix
         $Error[0].FullyQualifiedErrorId | Should -be "401ApiKeyError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
