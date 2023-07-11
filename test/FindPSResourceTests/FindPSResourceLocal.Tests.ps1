@@ -210,7 +210,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
     }
 
     It "find scripts given -Type parameter" {
-        Get-ScriptResourcePublishedToLocalRepoTestDrive
+        Get-ScriptResourcePublishedToLocalRepoTestDrive "testScriptName" $localRepo "1.0.0"
 
         $res = Find-PSResource -Type Script -Repository $localRepo
         $res | Should -Not -BeNullOrEmpty
@@ -221,7 +221,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
     }
     
     It "find modules given -Type parameter" {
-        Get-ScriptResourcePublishedToLocalRepoTestDrive
+        Get-ScriptResourcePublishedToLocalRepoTestDrive "testScriptName" $localRepo "1.0.0"
 
         $res = Find-PSResource -Type Module -Repository $localRepo
         $res | Should -Not -BeNullOrEmpty
