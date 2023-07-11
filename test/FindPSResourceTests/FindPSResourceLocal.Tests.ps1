@@ -214,10 +214,8 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
         $res = Find-PSResource -Type Script -Repository $localRepo
         $res | Should -Not -BeNullOrEmpty
-        $res.Count | Should -BeGreaterOrEqual 1
-        foreach ($script in $res) {
-            $item.Type | Should -Be "Script"
-        }
+        $res.Count | Should -Be 1
+        $res.Type | Should -Be "Script"
     }
     
     It "find modules given -Type parameter" {
@@ -226,8 +224,8 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res = Find-PSResource -Type Module -Repository $localRepo
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterOrEqual 1
-        foreach ($script in $res) {
-            $item.Type | Should -Be "Module"
+        foreach ($module in $res) {
+            $module.Type | Should -Be "Module"
         }
     }
 

@@ -351,7 +351,7 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
 
     $scriptMetadata = Create-PSScriptMetadata @params
     Set-Content -Path $scriptFilePath -Value $scriptMetadata
-    Publish-PSResource -Path $scriptFilePath -Repository $scriptRepoName -Verbose
+    Publish-PSResource -Path $scriptFilePath -Repository $scriptRepoName
 }
 
 function Get-CommandResourcePublishedToLocalRepoTestDrive
