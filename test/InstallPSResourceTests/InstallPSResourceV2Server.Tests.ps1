@@ -556,6 +556,14 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'ManualValidati
         $pkg.Path.Contains("/usr/") | Should -Be $true
     }
 
+    # Unix test for installing scripts
+    It "Install script resource - Unix only" -Skip:(Get-IsWindows) {
+        # previously installing pester on Unix was throwing an error due to how the environment PATH variable was being gotten.
+        Install-PSResource -Name "Pester" -Repository $PSGalleryName -Reinstall
+        $res = PowerShellGet\Get-InstalledPSResource "Pester"
+        $res.Name | Should -Be "Pester"
+    }
+
     # This needs to be manually tested due to prompt
     It "Install resource that requires accept license without -AcceptLicense flag" {
         Install-PSResource -Name $testModuleName2 -Repository $TestGalleryName
