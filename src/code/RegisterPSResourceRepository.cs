@@ -128,7 +128,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     try
                     {
-                        items.Add(RepositorySettings.AddRepository(Name, _uri, Priority, Trusted, CredentialInfo, Force, this, out string errorMsg));
+                        items.Add(RepositorySettings.AddRepository(Name, _uri, Priority, Trusted, null, CredentialInfo, Force, this, out string errorMsg));
 
                         if (!string.IsNullOrEmpty(errorMsg))
                         {
@@ -203,6 +203,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 psGalleryUri, 
                 repoPriority, 
                 repoTrusted, 
+                apiVersion: null,
                 repoCredentialInfo: null, 
                 Force, 
                 this, 
@@ -325,6 +326,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     repoUri,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
                     repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : DefaultTrusted,
+                    apiVersion: null,
                     repoCredentialInfo,
                     Force,
                     this,
