@@ -25,6 +25,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool _isNuGetRepo { get; set; }
         private bool _isJFrogRepo { get; set; }
         private bool _isGHPkgsRepo { get; set; }
+        private bool _isMyGetRepo { get; set; }
         public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         private static readonly string nugetRepoUri = "https://api.nuget.org/v3/index.json";
@@ -38,6 +39,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private static readonly string tagsName = "tags";
         private static readonly string catalogEntryProperty = "catalogEntry";
         private static readonly string packageContentProperty = "packageContent";
+        // MyGet.org repository responses from SearchQueryService have a peculiarity where the totalHits property int returned is 10,000 + actual number of hits.
+        // This is intentional on their end and "is to preserve the uninterupted pagination of NuGet within Visual Studio 2015".
+        private readonly int myGetTotalHitsBuffer = 10000;
 
         #endregion
 
@@ -58,6 +62,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _isNuGetRepo = String.Equals(Repository.Uri.AbsoluteUri, nugetRepoUri, StringComparison.InvariantCultureIgnoreCase);
             _isJFrogRepo = Repository.Uri.AbsoluteUri.ToLower().Contains("jfrog.io");
             _isGHPkgsRepo = Repository.Uri.AbsoluteUri.ToLower().Contains("pkg.github.com");
+            _isMyGetRepo = Repository.Uri.AbsoluteUri.ToLower().Contains("myget.org");
         }
 
         #endregion
@@ -134,7 +139,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            if (_isNuGetRepo || _isJFrogRepo || _isGHPkgsRepo)
+            if (_isNuGetRepo || _isJFrogRepo || _isGHPkgsRepo || _isMyGetRepo)
             {
                 return FindNameGlobbingFromNuGetRepo(packageName, tags: Utils.EmptyStrArray, includePrerelease, out errRecord);
             }
@@ -153,7 +158,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            if (_isNuGetRepo || _isJFrogRepo || _isGHPkgsRepo)
+            if (_isNuGetRepo || _isJFrogRepo || _isGHPkgsRepo || _isMyGetRepo)
             {
                 return FindNameGlobbingFromNuGetRepo(packageName, tags, includePrerelease, out errRecord);
             }
@@ -1107,12 +1112,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         responseEntries.Add(entry.Clone());
                     }
 
-                    totalHits = 0;
+                    int reportedHits = 0;
                     if (pkgsDom.RootElement.TryGetProperty("totalHits", out JsonElement totalHitsElement))
                     {
-                        int.TryParse(totalHitsElement.ToString(), out totalHits);
+                        int.TryParse(totalHitsElement.ToString(), out reportedHits);
                     }
 
+                    // MyGet.org repository responses from SearchQueryService have a bug where the totalHits property int returned is 1000 + actual number of hits
+                    // so reduce totalHits by 1000 iff MyGet repository
+                    totalHits = _isMyGetRepo && reportedHits >= myGetTotalHitsBuffer ? reportedHits - myGetTotalHitsBuffer : reportedHits; 
                     entries = responseEntries.ToArray();
                 }
             }
