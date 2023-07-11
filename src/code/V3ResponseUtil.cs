@@ -55,10 +55,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(responseConversionError))
                 {
-                    yield return new PSResourceResult(returnedObject: null, errorMsg: responseConversionError, isTerminatingError: false);
+                    yield return new PSResourceResult(returnedObject: null, new ConvertToPSResourceException(responseConversionError), isTerminatingError: false);
                 }
 
-                yield return new PSResourceResult(returnedObject: pkg, errorMsg: String.Empty, isTerminatingError: false);
+                yield return new PSResourceResult(returnedObject: pkg, exception: null, isTerminatingError: false);
             }
         }
 

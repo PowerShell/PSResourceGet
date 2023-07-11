@@ -34,11 +34,13 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
     It "Get specific module resource by name" {
         $pkg = Get-InstalledPSResource -Name $testModuleName
         $pkg.Name | Should -Contain $testModuleName
+        $pkg.Type | Should -Contain "Module"
     }
 
     It "Get specific script resource by name" {
         $pkg = Get-InstalledPSResource -Name $testScriptName
         $pkg.Name | Should -Be $testScriptName
+        $pkg.Type | Should -Contain "Script"
     }
 
     It "Get resource when given Name to <Reason> <Version>" -TestCases @(
@@ -115,7 +117,7 @@ $testCases =
 
     It "Get prerelease version module when version with correct prerelease label is specified" {
         Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName -TrustRepository
-        $res = Get-InstalledPSResource -Name $testModuleName -Version "5.2.5"
+        $res = Get-InstalledPSResource -Name $testModuleName -Version "5.2.5" -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $res = Get-InstalledPSResource -Name $testModuleName -Version "5.2.5-alpha001"
         $res.Name | Should -Be $testModuleName
@@ -125,12 +127,21 @@ $testCases =
 
     It "Get prerelease version script when version with correct prerelease label is specified" {
         Install-PSResource -Name $testScriptName -Version "3.0.0-alpha" -Repository $PSGalleryName -TrustRepository
-        $res = Get-InstalledPSResource -Name $testScriptName -Version "3.0.0"
+        $res = Get-InstalledPSResource -Name $testScriptName -Version "3.0.0" -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $res = Get-InstalledPSResource -Name $testScriptName -Version "3.0.0-alpha"
         $res.Name | Should -Be $testScriptName
         $res.Version | Should -Be "3.0.0"
         $res.Prerelease | Should -Be "alpha"
+    }
+
+    It "Throw package not found error when searching for module that does not exist" {
+        Get-InstalledPSResource -Name "DoesNotExist" -ErrorVariable err -ErrorAction SilentlyContinue
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstalledPackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetInstalledPSResourceCommand"
+    }
+
+    It "Get definition for alias 'Get-PSResource'" {
+        (Get-Alias Get-PSResource).Definition | Should -BeExactly 'Get-InstalledPSResource'
     }
 
      # Windows only

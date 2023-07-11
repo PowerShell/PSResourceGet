@@ -226,7 +226,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $dependencyVersion = "2.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = '1.4.4' })
 
-        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "FindVersionFail,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "FindVersionFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
 
@@ -392,6 +392,18 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         (Get-ChildItem $script:destinationPath).FullName | Should -Be $expectedPath
     }
 
+    It "Publish a module with -Path -Repository and -DestinationPath" {
+        $moduleName = "Pester"
+        $moduleVersion = "5.5.0"
+        Save-PSResource -Name $moduleName -Path $tmpRepoPath -Version $moduleVersion -Repository PSGallery -TrustRepository
+        $modulePath = Join-Path -Path $tmpRepoPath -ChildPath $moduleName 
+        $moduleVersionPath = Join-Path -Path $modulePath -ChildPath $moduleVersion
+        $moduleManifestPath = Join-path -Path $moduleVersionPath -ChildPath "$moduleName.psd1"
+        Publish-PSResource -Path $moduleManifestPath -Repository $testRepository2
+        $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$moduleName.$moduleVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
     It "Publish a module and clean up properly when file in module is readonly" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
@@ -533,5 +545,13 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $incorrectdepmoduleversion = Join-Path -Path $script:testModulesFolderPath -ChildPath $moduleName
 
         {Publish-PSResource -Path $incorrectdepmoduleversion -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+    }
+
+    It "Publish a module with using an invalid file path (path to .psm1), should throw" {
+        $fileName = "$script:PublishModuleName.psm1"
+        $psm1Path = Join-Path -Path $script:PublishModuleBase -ChildPath $fileName
+        $null = New-Item -Path $psm1Path -ItemType File -Force
+
+        {Publish-PSResource -Path $psm1Path -Repository $testRepository2 -ErrorAction Stop} | Should -Throw -ErrorId "InvalidPublishPath,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 }

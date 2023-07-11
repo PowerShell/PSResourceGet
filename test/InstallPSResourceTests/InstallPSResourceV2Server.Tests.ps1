@@ -496,7 +496,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     It "Install module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
         Install-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
     }
 
     # # Install 1.4.4.1 (with incorrect catalog file)
@@ -523,7 +523,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $err.Count | Should -HaveCount 1
         write-Host $err
         write-Host $err[0]
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
     }
 }
 

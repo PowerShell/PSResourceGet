@@ -88,10 +88,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 foreach (string error in errorMsgs)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new PSInvalidOperationException(error),
-                        "ErrorFilteringNamesForUnsupportedWildcards",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                                new PSInvalidOperationException(error),
+                                "ErrorFilteringNamesForUnsupportedWildcards",
+                                ErrorCategory.InvalidArgument,
+                                this));
                 }
             }
 
@@ -103,28 +103,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (repositoriesToSearch != null && repositoriesToSearch.Count == 0)
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
-                        "RepositoryNameIsNotResolved",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                                new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
+                                "RepositoryNameIsNotResolved",
+                                ErrorCategory.InvalidArgument,
+                                this));
                 }
 
                 foreach (string error in errorList)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new PSInvalidOperationException(error),
-                        "ErrorGettingSpecifiedRepo",
-                        ErrorCategory.InvalidOperation,
-                        this));
+                                new PSInvalidOperationException(error),
+                                "ErrorRetrievingSpecifiedRepository",
+                                ErrorCategory.InvalidOperation,
+                                this));
                 }
             }
             catch (Exception e)
             {
                 _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                    new PSInvalidOperationException(e.Message),
-                    "ErrorLoadingRepositoryStoreFile",
-                    ErrorCategory.InvalidArgument,
-                    this));
+                            new PSInvalidOperationException(e.Message),
+                            "ErrorLoadingRepositoryStoreFile",
+                            ErrorCategory.InvalidArgument,
+                            this));
 
                 yield break;
             }
@@ -168,19 +168,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (string.Equals(repository[0], "*"))
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new PSArgumentException ("-Repository parameter does not support entry '*' with -CommandName and -DSCResourceName parameters."),
-                        "RepositoryDoesNotSupportWildcardEntryWithCmdOrDSCName",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                                new PSArgumentException ("-Repository parameter does not support entry '*' with -CommandName and -DSCResourceName parameters."),
+                                "RepositoryDoesNotSupportWildcardEntryWithCmdOrDSCName",
+                                ErrorCategory.InvalidArgument,
+                                this));
                 }
 
                 foreach (string error in errorMsgs)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new PSInvalidOperationException(error),
-                        "ErrorFilteringNamesForUnsupportedWildcards",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                                new PSInvalidOperationException(error),
+                                "ErrorFilteringNamesForUnsupportedWildcards",
+                                ErrorCategory.InvalidArgument,
+                                this));
                 }
             }
 
@@ -192,28 +192,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (repositoriesToSearch != null && repositoriesToSearch.Count == 0)
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
-                        "RepositoryNameIsNotResolved",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                                new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
+                                "RepositoryNameIsNotResolved",
+                                ErrorCategory.InvalidArgument,
+                                this));
                 }
 
                 foreach (string error in errorList)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new PSInvalidOperationException(error),
-                        "ErrorGettingSpecifiedRepo",
-                        ErrorCategory.InvalidOperation,
-                        this));
+                                new PSInvalidOperationException(error),
+                                "ErrorRetrievingSpecifiedRepository",
+                                ErrorCategory.InvalidOperation,
+                                this));
                 }
             }
             catch (Exception e)
             {
                 _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                    new PSInvalidOperationException(e.Message),
-                    "ErrorLoadingRepositoryStoreFile",
-                    ErrorCategory.InvalidArgument,
-                    this));
+                            new PSInvalidOperationException(e.Message),
+                            "ErrorLoadingRepositoryStoreFile",
+                            ErrorCategory.InvalidArgument,
+                            this));
 
                 yield break;
             }
@@ -228,18 +228,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
 
-                FindResults responses = currentServer.FindCommandOrDscResource(tag, _prerelease, isSearchingForCommands, out ExceptionDispatchInfo edi);
-                if (edi != null)
+                FindResults responses = currentServer.FindCommandOrDscResource(tag, _prerelease, isSearchingForCommands, out ErrorRecord errRecord);
+                if (errRecord != null)
                 {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindCommandOrDSCResourceFail", ErrorCategory.InvalidOperation, this));
+                    _cmdletPassedIn.WriteError(errRecord);
                     continue;
                 }
 
                 foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                 {
-                    if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                    if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                     {
-                        _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindCmdOrDSCResponseConversionFail", ErrorCategory.NotSpecified, this));
+                        _cmdletPassedIn.WriteError(new ErrorRecord(
+                                    new PackageNotFoundException($"'{tag}' could not be found", currentResult.exception), 
+                                    "FindCmdOrDscToPSResourceObjFailure", 
+                                    ErrorCategory.NotSpecified, 
+                                    this));
                         continue;
                     }
 
@@ -273,19 +277,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (string.Equals(repository[0], "*"))
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new PSArgumentException ("-Repository parameter does not support entry '*' with -Tag parameter."),
-                        "RepositoryDoesNotSupportWildcardEntryWithTag",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                                new PSArgumentException ("-Repository parameter does not support entry '*' with -Tag parameter."),
+                                "RepositoryDoesNotSupportWildcardEntryWithTag",
+                                ErrorCategory.InvalidArgument,
+                                this));
                 }
 
                 foreach (string error in errorMsgs)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new PSInvalidOperationException(error),
-                        "ErrorFilteringNamesForUnsupportedWildcards",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                                new PSInvalidOperationException(error),
+                                "ErrorFilteringNamesForUnsupportedWildcards",
+                                ErrorCategory.InvalidArgument,
+                                this));
                 }
             }
 
@@ -297,28 +301,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (repositoriesToSearch != null && repositoriesToSearch.Count == 0)
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
-                        "RepositoryNameIsNotResolved",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                                new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
+                                "RepositoryNameIsNotResolved",
+                                ErrorCategory.InvalidArgument,
+                                this));
                 }
 
                 foreach (string error in errorList)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new PSInvalidOperationException(error),
-                        "ErrorGettingSpecifiedRepo",
-                        ErrorCategory.InvalidOperation,
-                        this));
+                                new PSInvalidOperationException(error),
+                                "ErrorRetrievingSpecifiedRepository",
+                                ErrorCategory.InvalidOperation,
+                                this));
                 }
             }
             catch (Exception e)
             {
                 _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                    new PSInvalidOperationException(e.Message),
-                    "ErrorLoadingRepositoryStoreFile",
-                    ErrorCategory.InvalidArgument,
-                    this));
+                            new PSInvalidOperationException(e.Message),
+                            "ErrorLoadingRepositoryStoreFile",
+                            ErrorCategory.InvalidArgument,
+                            this));
 
                 yield break;
             }
@@ -333,26 +337,29 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (_type != ResourceType.None && repositoriesToSearch[i].Name != "PSGallery")
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new PSInvalidOperationException("-Type parameter is only supported with the PowerShellGallery."),
-                        "ErrorUsingTypeParameter",
-                        ErrorCategory.InvalidOperation,
-                        this));
+                                new PSInvalidOperationException("-Type parameter is only supported with the PowerShellGallery."),
+                                "ErrorUsingTypeParameter",
+                                ErrorCategory.InvalidOperation,
+                                this));
                 }
 
-                FindResults responses = currentServer.FindTags(_tag, _prerelease, type, out ExceptionDispatchInfo edi);
+                FindResults responses = currentServer.FindTags(_tag, _prerelease, type, out ErrorRecord errRecord);
 
-                if (edi != null)
+                if (errRecord != null)
                 {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindTagFail", ErrorCategory.InvalidOperation, this));
+                    _cmdletPassedIn.WriteError(errRecord);
                     continue;
                 }
 
                 foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                 {
-                    if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                    if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                     {
-                        string errMsg = $"Tags: {String.Join(", ", _tag)} could not be found due to: {currentResult.errorMsg}";
-                        _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errMsg), "FindTagResponseConversionFail", ErrorCategory.NotSpecified, this));
+                        _cmdletPassedIn.WriteError(new ErrorRecord(
+                                    new PackageNotFoundException($"Tags '{String.Join(", ", _tag)}' could not be found" , currentResult.exception), 
+                                    "FindTagConvertToPSResourceFailure", 
+                                    ErrorCategory.InvalidResult, 
+                                    this));
                         continue;
                     }
 
@@ -367,7 +374,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository)
         {
-            ExceptionDispatchInfo edi = null;
+            ErrorRecord errRecord = null;
             List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
             HashSet<string> pkgsFound = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -378,19 +385,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (pkgName.Trim().Equals("*"))
                     {
                         // Example: Find-PSResource -Name "*"
-                        FindResults responses = currentServer.FindAll(_prerelease, _type, out edi);
-                        if (edi != null)
+                        FindResults responses = currentServer.FindAll(_prerelease, _type, out errRecord);
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindAllFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             continue;
                         }
 
                         foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses))
                         {
-                            if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                            if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
-                                string errMsg = $"Package with search criteria: Name {pkgName} could not be found due to: {currentResult.errorMsg}.";
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errMsg), "FindAllResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                _cmdletPassedIn.WriteError(new ErrorRecord(
+                                            new PackageNotFoundException($"Package '{pkgName}' could not be found", currentResult.exception), 
+                                            "FindAllConvertToPSResourceFailure", 
+                                            ErrorCategory.InvalidResult, 
+                                            this));
                                 continue;
                             }
 
@@ -407,29 +417,36 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az*" -Tag "Storage"
                         string tagMsg = String.Empty;
                         FindResults responses = null;
+                        string tagsAsString = string.Empty;
                         if (_tag.Length == 0)
                         {
-                            responses = currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out edi);
+                            responses = currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out errRecord);
                         }
                         else
                         {
-                            responses = currentServer.FindNameGlobbingWithTag(pkgName, _tag, _prerelease, _type, out edi);
-                            string tagsAsString = String.Join(", ", _tag);
+                            responses = currentServer.FindNameGlobbingWithTag(pkgName, _tag, _prerelease, _type, out errRecord);
+                            tagsAsString = String.Join(", ", _tag);
                             tagMsg = $" and Tags {tagsAsString}";
                         }
 
-                        if (edi != null)
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindNameGlobbingFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             continue;
                         }
 
                         foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                         {
-                            if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                            if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
-                                string errMsg = $"Package with search criteria: Name {pkgName}{tagMsg} could not be found due to: {currentResult.errorMsg} originating at method: FindNameGlobbingResponseConversionFail().";
-                                _cmdletPassedIn.WriteWarning(errMsg);
+                                // write warning?
+                                string message = _tag.Length == 0 ? $"Package '{pkgName}' could not be found." : $"Package '{pkgName}' with tags '{tagsAsString}' could not be found.";
+
+                                _cmdletPassedIn.WriteError(new ErrorRecord(
+                                            new PackageNotFoundException(message, currentResult.exception), 
+                                            "FindNameGlobbingConvertToPSResourceFailure", 
+                                            ErrorCategory.InvalidResult, 
+                                            this));
                                 continue;
                             }
 
@@ -446,29 +463,35 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az" -Tag "Storage"
                         string tagMsg = String.Empty;
                         FindResults responses = null;
+                        string tagsAsString = string.Empty;
                         if (_tag.Length == 0)
                         {
-                            responses = currentServer.FindName(pkgName, _prerelease, _type, out edi);
+                            responses = currentServer.FindName(pkgName, _prerelease, _type, out errRecord);
                         }
                         else
                         {
-                            responses = currentServer.FindNameWithTag(pkgName, _tag, _prerelease, _type, out edi);
-                            string tagsAsString = String.Join(", ", _tag);
+                            responses = currentServer.FindNameWithTag(pkgName, _tag, _prerelease, _type, out errRecord);
+                            tagsAsString = String.Join(", ", _tag);
                             tagMsg = $" and Tags {tagsAsString}";
                         }
 
-                        if (edi != null)
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindNameFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             continue;
                         }
 
                         PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).First();
                         
-                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                        if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
-                            string errMsg = $"Package with search criteria: Name {pkgName}{tagMsg} could not be found due to: {currentResult.errorMsg}.";
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errMsg), "FindNameResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            string message = _tag.Length == 0 ? $"Package '{pkgName}' could not be found." : $"Package '{pkgName}' with tags '{tagsAsString}' could not be found.";
+
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                        new PackageNotFoundException(message, currentResult.exception), 
+                                        "FindNameConvertToPSResourceFailure", 
+                                        ErrorCategory.InvalidResult, 
+                                        this));
                             continue;
                         }
 
@@ -498,27 +521,30 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         string tagMsg = String.Empty;
                         if (_tag.Length == 0)
                         {
-                            responses = currentServer.FindVersion(pkgName, _nugetVersion.ToNormalizedString(), _type, out edi);
+                            responses = currentServer.FindVersion(pkgName, _nugetVersion.ToNormalizedString(), _type, out errRecord);
                         }
                         else
                         {
-                            responses = currentServer.FindVersionWithTag(pkgName, _nugetVersion.ToNormalizedString(), _tag, _type, out edi);
+                            responses = currentServer.FindVersionWithTag(pkgName, _nugetVersion.ToNormalizedString(), _tag, _type, out errRecord);
                             string tagsAsString = String.Join(", ", _tag);
                             tagMsg = $" and Tags {tagsAsString}";
                         }
 
-                        if (edi != null)
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindVersionFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             continue;
                         }
 
                         PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).First();
                         
-                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                        if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
-                            string errMsg = $"Package with search criteria: Name {pkgName}, Version {_version} {tagMsg} could not be found due to: {currentResult.errorMsg}.";
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(errMsg), "FindVersionResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                        new PackageNotFoundException($"Package '{pkgName}' with version '{_version}', and tags '{tagMsg}' could not be found", currentResult.exception), 
+                                        "FindNameConvertToPSResourceFailure", 
+                                        ErrorCategory.NotSpecified, 
+                                        this));
                             continue;
                         }
 
@@ -545,7 +571,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
-                            responses = currentServer.FindVersionGlobbing(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, out edi);
+                            responses = currentServer.FindVersionGlobbing(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, out errRecord);
                         }
                         else
                         {
@@ -556,18 +582,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        if (edi != null)
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "FindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             continue;
                         }
 
                         foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                         {
-                            if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                            if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
-                                string errMsg = $"Package with search criteria: Name {pkgName} and Version {_version} could not be found due to: {currentResult.errorMsg} originating at method FindVersionGlobbingResponseConversionFail().";
-                                _cmdletPassedIn.WriteWarning(errMsg);
+                                // write warning?
+                                _cmdletPassedIn.WriteError(new ErrorRecord(
+                                            new PackageNotFoundException($"Package '{pkgName}' with version '{_version}' could not be found", currentResult.exception), 
+                                            "FindNameConvertToPSResourceFailure", 
+                                            ErrorCategory.InvalidResult, 
+                                            this));
                                 continue;
                             }
 
@@ -635,19 +665,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (dep.VersionRange == VersionRange.All)
                     {
-                        FindResults responses = currentServer.FindName(dep.Name, _prerelease, _type, out ExceptionDispatchInfo edi);
-                        if (edi != null)
+                        FindResults responses = currentServer.FindName(dep.Name, _prerelease, _type, out ErrorRecord errRecord);
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "HttpFindDepPackagesFindNameFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             yield return null;
                             continue;
                         }
 
                         PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).First();
 
-                        if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                        if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindNameForDepResponseConversionFail", ErrorCategory.NotSpecified, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                        new PackageNotFoundException($"Dependency package '{dep.Name}' could not be found in repository '{repository.Name}'", currentResult.exception), 
+                                        "DependencyPackageNotFound", 
+                                        ErrorCategory.ObjectNotFound, 
+                                        this));
                             yield return null;
                             continue;
                         }
@@ -665,26 +699,35 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                     else
                     {
-                        FindResults responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ExceptionDispatchInfo edi);
-                        if (edi != null)
+                        FindResults responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ErrorRecord errRecord);
+                        if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(edi.SourceException, "HttpFindDepPackagesFindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(errRecord);
                             yield return null;
                             continue;
                         }
 
                         if (responses.IsFindResultsEmpty())
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(new InvalidOrEmptyResponse($"Dependency package with Name {dep.Name} and VersionRange {dep.VersionRange} could not be found in this repository."), "HttpFindDepPackagesFindVersionGlobbingFail", ErrorCategory.InvalidOperation, this));
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                        new InvalidOrEmptyResponse($"Dependency package with Name {dep.Name} and VersionRange {dep.VersionRange} could not be found"), 
+                                        "FindDepPackagesFindVersionGlobbingFailure", 
+                                        ErrorCategory.InvalidResult, 
+                                        this));
                             yield return null;
                             continue;
                         }
 
                         foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                         {
-                            if (!String.IsNullOrEmpty(currentResult.errorMsg))
+                            if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(new PSInvalidOperationException(currentResult.errorMsg), "FindVersionGlobbingForDepResponseConversionFail", ErrorCategory.NotSpecified, this));
+                                 _cmdletPassedIn.WriteError(new ErrorRecord(
+                                            new PackageNotFoundException($"Dependency package '{dep.Name}' with version range '{dep.VersionRange}' could not be found", currentResult.exception), 
+                                            "DependencyPackageNotFound", 
+                                            ErrorCategory.ObjectNotFound, 
+                                            this));
+                                
                                 yield return null;
                                 continue;
                             }
