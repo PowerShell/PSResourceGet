@@ -380,12 +380,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Installs specific package.
         /// Name: no wildcard support.
         /// Examples: Install "PowerShellGet"
-        /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
+        /// Implementation Note:   {repoUri}/Packages(Id='test_local_mod')/Download
         ///                        if prerelease, call into InstallVersion instead. 
         /// </summary>
         public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
         {
-            var requestUrlV2 = $"{Repository.Uri}/package/{packageName}";
+            var requestUrlV2 = $"{Repository.Uri}/Packages/(Id='{packageName}')/Download";
 
             var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
             var responseStream = response.ReadAsStreamAsync().Result;
@@ -398,11 +398,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Version: no wildcard support.
         /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
         ///           Install "PowerShellGet" -Version "3.0.0-beta16"
-        /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
+        /// API Call: {repoUri}/Packages(Id='Castle.Core',Version='5.1.1')/Download
         /// </summary>    
         public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
-            var requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
+            var requestUrlV2 = $"{Repository.Uri}/Packages(Id='{packageName}',Version='{version}')/Download";
 
             var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
             var responseStream = response.ReadAsStreamAsync().Result;

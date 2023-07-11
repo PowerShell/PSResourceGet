@@ -768,7 +768,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 continue;
                             }
 
+                            // gets the latest package within version range
                             depPkg = currentResult.returnedObject;
+                        }
+
+                        if (depPkg == null)
+                        {
+                            // if that is null, i.e the package was not found, then we should continue
+                            continue;
                         }
 
                         string pkgHashKey = String.Format("{0}{1}", depPkg.Name, depPkg.Version.ToString());
