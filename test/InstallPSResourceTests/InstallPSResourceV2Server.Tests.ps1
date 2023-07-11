@@ -530,7 +530,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     It "Install script resource - Unix only" -Skip:(Get-IsWindows) {
         # previously installing pester on Unix was throwing an error due to how the environment PATH variable was being gotten.
         Install-PSResource -Name "Pester" -Repository $PSGalleryName -Reinstall -TrustRepository
-        $res = PowerShellGet\Get-InstalledPSResource "Pester"
+        $res = Get-InstalledPSResource "Pester"
         $res.Name | Should -Be "Pester"
     }
 }
