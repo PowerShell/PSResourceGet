@@ -480,6 +480,20 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
     }
 
+    It "Publish a module when the .psd1 version and the path version are different" {
+        $incorrectVersion = "15.2.4"
+        $correctVersion = "1.0.0"
+        $versionBase = (Join-Path -Path $script:PublishModuleBase  -ChildPath $incorrectVersion)
+        New-Item -Path $versionBase -ItemType Directory
+        $modManifestPath = (Join-Path -Path $versionBase -ChildPath "$script:PublishModuleName.psd1")
+        New-ModuleManifest -Path $modManifestPath -ModuleVersion $correctVersion -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $modManifestPath -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$correctVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
     It "publish a script locally"{
         $scriptName = "PSGetTestScript"
         $scriptVersion = "1.0.0"
