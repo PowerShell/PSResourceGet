@@ -13,6 +13,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
     BeforeAll {
         $localRepo = "psgettestlocal"
+        $localUNCRepo = "psgettestlocal3"
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
         $testModuleClobber = "testModuleClobber"
@@ -45,6 +46,13 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
     It "Install resource given Name parameter" {
         Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository
+        $res = Get-InstalledPSResource -Name $testModuleName
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.0.0"
+    }
+
+	It "Install resource given Name parameter from UNC repository" {
+        Install-PSResource -Name $testModuleName -Repository $localUNCRepo -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleName
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0"
