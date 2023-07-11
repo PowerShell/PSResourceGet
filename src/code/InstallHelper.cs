@@ -626,7 +626,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
             }
 
-            PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responseResults: responses).First();
+            PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responseResults: responses).FirstOrDefault();
 
             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
             {
