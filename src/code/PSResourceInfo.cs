@@ -507,7 +507,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
                     else if (key.Equals("Tags"))
                     {
-                        metadata[key] = value.Split(new char[]{' '});
+                        metadata[key] = value.Split(new char[]{' '}, StringSplitOptions.RemoveEmptyEntries);
                     }
                     else if (key.Equals("Published"))
                     {

@@ -134,6 +134,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 SetNetworkCredential(currentRepository);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                if (currentServer == null)
+                {
+                    // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                    new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
+                    "RepositoryApiVersionUnknown",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
+                    continue;
+                }
+
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
@@ -224,6 +236,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 
                 SetNetworkCredential(currentRepository);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                if (currentServer == null)
+                {
+                    // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                    new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
+                    "RepositoryApiVersionUnknown",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
+                    continue;
+                }
+
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
@@ -332,6 +356,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 SetNetworkCredential(currentRepository);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                if (currentServer == null)
+                {
+                    // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                    new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
+                    "RepositoryApiVersionUnknown",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
+                    continue;
+                }
+
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
 
                 if (_type != ResourceType.None && repositoriesToSearch[i].Name != "PSGallery")
@@ -417,6 +453,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az*" -Tag "Storage"
                         string tagMsg = String.Empty;
                         FindResults responses = null;
+                        string tagsAsString = string.Empty;
                         if (_tag.Length == 0)
                         {
                             responses = currentServer.FindNameGlobbing(pkgName, _prerelease, _type, out errRecord);
@@ -424,7 +461,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         else
                         {
                             responses = currentServer.FindNameGlobbingWithTag(pkgName, _tag, _prerelease, _type, out errRecord);
-                            string tagsAsString = String.Join(", ", _tag);
+                            tagsAsString = String.Join(", ", _tag);
                             tagMsg = $" and Tags {tagsAsString}";
                         }
 
@@ -439,8 +476,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
                                 // write warning?
+                                string message = _tag.Length == 0 ? $"Package '{pkgName}' could not be found." : $"Package '{pkgName}' with tags '{tagsAsString}' could not be found.";
+
                                 _cmdletPassedIn.WriteError(new ErrorRecord(
-                                            new PackageNotFoundException($"Package '{pkgName}' with tags '{tagMsg}' could not be found", currentResult.exception), 
+                                            new PackageNotFoundException(message, currentResult.exception), 
                                             "FindNameGlobbingConvertToPSResourceFailure", 
                                             ErrorCategory.InvalidResult, 
                                             this));
@@ -460,6 +499,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az" -Tag "Storage"
                         string tagMsg = String.Empty;
                         FindResults responses = null;
+                        string tagsAsString = string.Empty;
                         if (_tag.Length == 0)
                         {
                             responses = currentServer.FindName(pkgName, _prerelease, _type, out errRecord);
@@ -467,7 +507,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         else
                         {
                             responses = currentServer.FindNameWithTag(pkgName, _tag, _prerelease, _type, out errRecord);
-                            string tagsAsString = String.Join(", ", _tag);
+                            tagsAsString = String.Join(", ", _tag);
                             tagMsg = $" and Tags {tagsAsString}";
                         }
 
@@ -481,8 +521,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
+                            string message = _tag.Length == 0 ? $"Package '{pkgName}' could not be found." : $"Package '{pkgName}' with tags '{tagsAsString}' could not be found.";
+
                             _cmdletPassedIn.WriteError(new ErrorRecord(
-                                        new PackageNotFoundException($"Package '{pkgName}' with tags '{tagMsg}' could not be found", currentResult.exception), 
+                                        new PackageNotFoundException(message, currentResult.exception), 
                                         "FindNameConvertToPSResourceFailure", 
                                         ErrorCategory.InvalidResult, 
                                         this));

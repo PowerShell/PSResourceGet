@@ -25,6 +25,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 case PSRepositoryInfo.APIVersion.local:
                     currentResponseUtil = new LocalResponseUtil(repository);
                     break;
+
+                case PSRepositoryInfo.APIVersion.nugetServer:
+                    currentResponseUtil = new NuGetServerResponseUtil(repository);
+                    break;
+
+                case PSRepositoryInfo.APIVersion.unknown:
+                    break;
             }
 
             return currentResponseUtil;

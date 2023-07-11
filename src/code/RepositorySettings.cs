@@ -74,7 +74,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
-        public static PSRepositoryInfo AddRepository(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo, bool force, PSCmdlet cmdletPassedIn, out string errorMsg)
+        public static PSRepositoryInfo AddRepository(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSRepositoryInfo.APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, bool force, PSCmdlet cmdletPassedIn, out string errorMsg)
         {
             errorMsg = String.Empty;
             if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase))
@@ -83,11 +83,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return null;
             }
 
-            return AddToRepositoryStore(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, force, cmdletPassedIn, out errorMsg);
+            return AddToRepositoryStore(repoName, repoUri, repoPriority, repoTrusted, apiVersion, repoCredentialInfo, force, cmdletPassedIn, out errorMsg);
         }
 
 
-        public static PSRepositoryInfo AddToRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo, bool force, PSCmdlet cmdletPassedIn, out string errorMsg)
+        public static PSRepositoryInfo AddToRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSRepositoryInfo.APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, bool force, PSCmdlet cmdletPassedIn, out string errorMsg)
         {
             errorMsg = string.Empty;
             // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
@@ -103,7 +103,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return null;
             }
 
-            PSRepositoryInfo.APIVersion apiVersion = GetRepoAPIVersion(repoUri);
+            PSRepositoryInfo.APIVersion resolvedAPIVersion = apiVersion ?? GetRepoAPIVersion(repoUri);
 
             if (repoCredentialInfo != null)
             {
@@ -138,13 +138,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return null;
             }
 
-            var repo = RepositorySettings.Add(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, apiVersion, force);
+            var repo = RepositorySettings.Add(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, resolvedAPIVersion, force);
 
             return repo;
         }
 
 
-        public static PSRepositoryInfo UpdateRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, bool isSet, int defaultPriority, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string errorMsg)
+        public static PSRepositoryInfo UpdateRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, bool isSet, int defaultPriority, PSRepositoryInfo.APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string errorMsg)
         {
             errorMsg = string.Empty;
             if (repoUri != null && !(repoUri.Scheme == System.Uri.UriSchemeHttp || repoUri.Scheme == System.Uri.UriSchemeHttps || repoUri.Scheme == System.Uri.UriSchemeFtp || repoUri.Scheme == System.Uri.UriSchemeFile))
@@ -202,11 +202,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
             }
 
-            // determine if either 1 of 4 values are attempting to be set: Uri, Priority, Trusted, CredentialInfo.
+            // determine if either 1 of 5 values are attempting to be set: Uri, Priority, Trusted, APIVerison, CredentialInfo.
             // if none are (i.e only Name parameter was provided, write error)
-            if (repoUri == null && repoPriority == defaultPriority && _trustedNullable == null && repoCredentialInfo == null)
+            if (repoUri == null && repoPriority == defaultPriority && _trustedNullable == null && repoCredentialInfo == null && (apiVersion == PSRepositoryInfo.APIVersion.unknown || apiVersion == null))
             {
-                errorMsg = "Must set Uri, Priority, Trusted or CredentialInfo parameter";
+                errorMsg = "Must set Uri, Priority, Trusted, ApiVersion, or CredentialInfo parameter";
                 return null;
             }
 
@@ -220,7 +220,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return null;
             }
 
-            return Update(repoName, repoUri, repoPriority, _trustedNullable, repoCredentialInfo, cmdletPassedIn, out errorMsg);
+            return Update(repoName, repoUri, repoPriority, _trustedNullable, apiVersion, repoCredentialInfo, cmdletPassedIn, out errorMsg);
         }
 
         /// <summary>
@@ -291,7 +291,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// Updates a repository name, Uri, priority, installation policy, or credential information
         /// Returns:  void
         /// </summary>
-        public static PSRepositoryInfo Update(string repoName, Uri repoUri, int repoPriority, bool? repoTrusted, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string errorMsg)
+        public static PSRepositoryInfo Update(string repoName, Uri repoUri, int repoPriority, bool? repoTrusted, PSRepositoryInfo.APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string errorMsg)
         {
             errorMsg = string.Empty;
             PSRepositoryInfo updatedRepo;
@@ -304,7 +304,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     bool repoIsTrusted = !(repoTrusted == null || repoTrusted == false);
                     repoPriority = repoPriority < 0 ? DefaultPriority : repoPriority;
-                    return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, repoCredentialInfo, force:true, cmdletPassedIn, out errorMsg);
+                    return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, apiVersion, repoCredentialInfo, force:true, cmdletPassedIn, out errorMsg);
                 }
 
                 // Check that repository node we are attempting to update has all required attributes: Name, Url (or Uri), Priority, Trusted.
@@ -345,7 +345,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 // determine if existing repository node (which we wish to update) had Url or Uri attribute
                 Uri thisUrl = null;
-                PSRepositoryInfo.APIVersion apiVersion = (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value);
                 if (repoUri != null) 
                 {
                     if (!Uri.TryCreate(repoUri.AbsoluteUri, UriKind.Absolute, out thisUrl))
@@ -362,7 +361,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         node.Attribute("Uri").Value = thisUrl.AbsoluteUri;
                     }
 
-                    apiVersion = GetRepoAPIVersion(repoUri);
+                    if (apiVersion == null)
+                    {
+                        apiVersion = GetRepoAPIVersion(repoUri);
+                    }
                 }
                 else 
                 {
@@ -419,6 +421,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
                 }
 
+                // Update APIVersion if necessary
+                PSRepositoryInfo.APIVersion resolvedAPIVersion = PSRepositoryInfo.APIVersion.unknown;
+                if (apiVersion != null)
+                {
+                    resolvedAPIVersion = (PSRepositoryInfo.APIVersion)apiVersion;
+                    node.Attribute("APIVersion").Value = resolvedAPIVersion.ToString();
+                }
+                else
+                {
+                    resolvedAPIVersion = (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value);
+                }
+
+
                 // Create CredentialInfo based on new values or whether it was empty to begin with
                 PSCredentialInfo thisCredentialInfo = null;
                 if (node.Attribute(PSCredentialInfo.VaultNameAttribute)?.Value != null &&
@@ -434,7 +449,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     Int32.Parse(node.Attribute("Priority").Value),
                     Boolean.Parse(node.Attribute("Trusted").Value),
                     thisCredentialInfo,
-                    apiVersion);
+                    resolvedAPIVersion);
 
                 // Close the file
                 root.Save(FullRepositoryPath);
@@ -807,15 +822,23 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             if (repoUri.AbsoluteUri.EndsWith("api/v2", StringComparison.OrdinalIgnoreCase))
             {
+                // Scenario: V2 server protocol repositories (i.e PSGallery)
                 return PSRepositoryInfo.APIVersion.v2;
             }
             else if (repoUri.AbsoluteUri.EndsWith("/index.json", StringComparison.OrdinalIgnoreCase))
             {
+                // Scenario: V3 server protocol repositories (i.e NuGet.org, Azure Artifacts (ADO), Artifactory, Github Packages, MyGet.org)
                 return PSRepositoryInfo.APIVersion.v3;
             }
             else if (repoUri.Scheme.Equals(Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase))
             {
+                // Scenario: local repositories
                 return PSRepositoryInfo.APIVersion.local;
+            }
+            else if (repoUri.AbsoluteUri.Contains("/nuget"))
+            {
+                // Scenario: ASP.Net application feed created with NuGet.Server to host packages
+                return PSRepositoryInfo.APIVersion.nugetServer;
             }
             else
             {

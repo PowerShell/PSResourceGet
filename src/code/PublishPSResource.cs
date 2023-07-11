@@ -145,7 +145,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-                resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).First().ProviderPath;
+                resolvedPath = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider).First();
             }
             catch (MethodInvocationException)
             {
@@ -167,8 +167,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 ThrowTerminatingError(
                     new ErrorRecord(
                         new ArgumentException(
-                            "The path to the resource to publish is not in the correct format, point to a path or file of the module or script to publish."),
-                            "InvalidSourcePath",
+                            "The path to the resource to publish is not in the correct format or does not exist. Please provide the path of the root module (i.e. './<ModuleToPublish>/') or the path to the .psd1 (i.e. './<ModuleToPublish>/<ModuleToPublish>.psd1')."),
+                            "InvalidPublishPath",
                             ErrorCategory.InvalidArgument,
                             this));
             }
@@ -187,10 +187,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 pathToScriptFileToPublish = resolvedPath;
                 resourceType = ResourceType.Script;
             }
+            else {
+                ThrowTerminatingError(
+                    new ErrorRecord(
+                        new ArgumentException(
+                            $"The publish path provided, '{resolvedPath}', is not a valid. Please provide a path to the root module (i.e. './<ModuleToPublish>/') or path to the .psd1 (i.e. './<ModuleToPublish>/<ModuleToPublish>.psd1')."),
+                            "InvalidPublishPath",
+                            ErrorCategory.InvalidArgument,
+                            this));
+            }
 
             if (!String.IsNullOrEmpty(DestinationPath))
             {
-                string resolvedDestinationPath = SessionState.Path.GetResolvedPSPathFromPSPath(DestinationPath).First().ProviderPath;
+                string resolvedDestinationPath = GetResolvedProviderPathFromPSPath(DestinationPath, out ProviderInfo provider).First();
 
                 if (Directory.Exists(resolvedDestinationPath))
                 {
@@ -546,7 +555,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         if (psData.ContainsKey("prerelease") && psData["prerelease"] is string preReleaseVersion)
                         {
-                            version = string.Format(@"{0}-{1}", version, preReleaseVersion);
+                            if (!string.IsNullOrEmpty(preReleaseVersion))
+                            {
+                                version = string.Format(@"{0}-{1}", version, preReleaseVersion);
+                            }
                         }
 
                         if (psData.ContainsKey("licenseuri") && psData["licenseuri"] is string licenseUri)
@@ -578,7 +590,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
 
                         // defaults to false
-                        string requireLicenseAcceptance = psData.ContainsKey("requirelicenseacceptance") ? psData["requirelicenseacceptance"].ToString() : "false";
+                        // Value for requireAcceptLicense key needs to be a lowercase string representation of the boolean for it to be correctly parsed from psData file.
+
+                        string requireLicenseAcceptance = psData.ContainsKey("requirelicenseacceptance") ? psData["requirelicenseacceptance"].ToString().ToLower() : "false";
 
                         metadataElementsDictionary.Add("requireLicenseAcceptance", requireLicenseAcceptance);
 
