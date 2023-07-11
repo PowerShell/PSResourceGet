@@ -322,7 +322,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // if the latest installed version is a prerelease version, automatically include prerelease versions when updating.
-            if (!string.IsNullOrWhiteSpace(installedPackages.First().Value.Prerelease))
+            if (installedPackages.First().Value.IsPrerelease)
             {
                 latestInstalledIsPrerelease = true;
             }
