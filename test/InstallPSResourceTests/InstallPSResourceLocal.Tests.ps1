@@ -255,4 +255,15 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $res.Name | Should -Contain $testModuleName
         $res.Version | Should -Be "1.0.0"
     }
+
+    It "Not install resource that lists dependency packages but those cannot be found" {
+        Save-PSResource -Name "test_script" -Repository "PSGallery" -Path $localRepo
+        $res = Install-PSResource -Name "test_script" -Repository $localRepo -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        for ($i = 0; $i -lt $err.Count; $i++) {
+            $err[$i].FullyQualifiedErrorId | Should -Not -Be "System.NullReferenceException,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+            $err[$i].FullyQualifiedErrorId | Should -BeExactly "DependencyPackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+        }
+    }
 }
