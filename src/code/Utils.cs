@@ -397,6 +397,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 // This is needed for a relative path Uri string. Does not throw error for an absolute path.
                 var filePath = cmdletPassedIn.GetResolvedProviderPathFromPSPath(uriString, out ProviderInfo provider).First();
+ 
                 if (Uri.TryCreate(filePath, UriKind.Absolute, out uriResult))
                 {
                     return true;

@@ -9,6 +9,7 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
 
     BeforeAll {
         $localRepo = "psgettestlocal"
+		$localUNCRepo = "psgettestlocal3"
         $moduleName = "test_local_mod"
         $moduleName2 = "test_local_mod2"
         $moduleName3 = "testModule99"
@@ -22,7 +23,8 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
 
 
         $SaveDir = Join-Path $TestDrive 'SavedResources'
-        New-Item -Item Directory $SaveDir -Force
+        $saveItem = New-Item -Item Directory $SaveDir -Force
+		$SaveDirUNC = $saveItem.FullName -Replace '^(.):', '\\localhost\$1$'
     }
 
     AfterEach {
@@ -37,6 +39,27 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
     It "Save specific module resource by name" {
         Save-PSResource -Name $moduleName -Repository $localRepo -Path $SaveDir -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
+        $pkgDir | Should -Not -BeNullOrEmpty
+        (Get-ChildItem $pkgDir.FullName) | Should -HaveCount 1
+    }
+
+	It "Save specific module resource by name from UNC repository" {
+        Save-PSResource -Name $moduleName -Repository $localUNCRepo -Path $SaveDir -TrustRepository
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
+        $pkgDir | Should -Not -BeNullOrEmpty
+        (Get-ChildItem $pkgDir.FullName) | Should -HaveCount 1
+    }
+
+	It "Save specific module resource by name to a UNC path" {
+        Save-PSResource -Name $moduleName -Repository $localRepo -Path $SaveDirUNC -TrustRepository
+        $pkgDir = Get-ChildItem -Path $SaveDirUNC | Where-Object Name -eq $moduleName
+        $pkgDir | Should -Not -BeNullOrEmpty
+        (Get-ChildItem $pkgDir.FullName) | Should -HaveCount 1
+    }
+
+	It "Save specific module resource by name from UNC repository to a UNC path" {
+        Save-PSResource -Name $moduleName -Repository $localUNCRepo -Path $SaveDirUNC -TrustRepository
+        $pkgDir = Get-ChildItem -Path $SaveDirUNC | Where-Object Name -eq $moduleName
         $pkgDir | Should -Not -BeNullOrEmpty
         (Get-ChildItem $pkgDir.FullName) | Should -HaveCount 1
     }

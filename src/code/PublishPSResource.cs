@@ -286,6 +286,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
+				// The Test-ModuleManifest currently cannot process UNC paths. Disabling verification for now.
+				if ((new Uri(pathToModuleManifestToPublish)).IsUnc)
+					SkipModuleManifestValidate = true;
                 // Validate that the module manifest has correct data
                 if (! SkipModuleManifestValidate &&
                     ! Utils.ValidateModuleManifest(pathToModuleManifestToPublish, out string errorMsg))
