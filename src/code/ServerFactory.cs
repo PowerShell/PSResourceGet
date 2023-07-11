@@ -26,6 +26,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 case PSRepositoryInfo.APIVersion.local:
                     currentServer = new LocalServerAPICalls(repository, networkCredential);
                     break;
+
+                case PSRepositoryInfo.APIVersion.nugetServer:
+                    currentServer = new NuGetServerAPICalls(repository, networkCredential);
+                    break;
+
+                case PSRepositoryInfo.APIVersion.unknown:
+                    break;
             }
 
             return currentServer;

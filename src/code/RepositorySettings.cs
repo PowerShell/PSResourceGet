@@ -807,15 +807,23 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             if (repoUri.AbsoluteUri.EndsWith("api/v2", StringComparison.OrdinalIgnoreCase))
             {
+                // Scenario: V2 server protocol repositories (i.e PSGallery)
                 return PSRepositoryInfo.APIVersion.v2;
             }
             else if (repoUri.AbsoluteUri.EndsWith("/index.json", StringComparison.OrdinalIgnoreCase))
             {
+                // Scenario: V3 server protocol repositories (i.e NuGet.org, Azure Artifacts (ADO), Artifactory, Github Packages, MyGet.org)
                 return PSRepositoryInfo.APIVersion.v3;
             }
             else if (repoUri.Scheme.Equals(Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase))
             {
+                // Scenario: local repositories
                 return PSRepositoryInfo.APIVersion.local;
+            }
+            else if (repoUri.AbsoluteUri.Contains("/nuget"))
+            {
+                // Scenario: ASP.Net application feed created with NuGet.Server to host packages
+                return PSRepositoryInfo.APIVersion.nugetServer;
             }
             else
             {
