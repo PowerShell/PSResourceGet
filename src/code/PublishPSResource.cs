@@ -145,7 +145,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-                resolvedPath = SessionState.Path.GetResolvedPSPathFromPSPath(Path).First().Path;
+                resolvedPath = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider).First();
             }
             catch (MethodInvocationException)
             {
@@ -199,7 +199,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!String.IsNullOrEmpty(DestinationPath))
             {
-                string resolvedDestinationPath = SessionState.Path.GetResolvedPSPathFromPSPath(DestinationPath).First().Path;
+                string resolvedDestinationPath = GetResolvedProviderPathFromPSPath(DestinationPath, out ProviderInfo provider).First();
 
                 if (Directory.Exists(resolvedDestinationPath))
                 {
