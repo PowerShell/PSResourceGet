@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 
@@ -1018,10 +1019,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (!_savePkg && isScript)
                     {
                         string installPathwithBackSlash = installPath + "\\";
-                        string envPATHVarValue = Environment.GetEnvironmentVariable("PATH",
+                        string envPATHVarValue = String.Empty;
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                        {
+                            envPATHVarValue = Environment.GetEnvironmentVariable("PATH",
                             scope == ScopeType.CurrentUser ? EnvironmentVariableTarget.User : EnvironmentVariableTarget.Machine);
+                        }
+                        else
+                        {
+                            // .NET on Unix-based systems does not support per-user and per-machine environment variables, only EnvironmentVariableTarget.Process successfully store an environment variable to the process environment block.
+                            envPATHVarValue = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Process);
+                        }
 
-                        if (!envPATHVarValue.Contains(installPath) && !envPATHVarValue.Contains(installPathwithBackSlash))
+                        if (!String.IsNullOrEmpty(envPATHVarValue) && !envPATHVarValue.Contains(installPath) && !envPATHVarValue.Contains(installPathwithBackSlash))
                         {
                             _cmdletPassedIn.WriteWarning(String.Format(ScriptPATHWarning, scope, installPath));
                         }
