@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Net;
 using System.Runtime.ExceptionServices;
+using System.Management.Automation;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -22,7 +23,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override PSRepositoryInfo Repository { get; set; }
         private HttpClient _sessionClient { get; set; }
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
-        public FindResponseType nugetServerFindResponseType = FindResponseType.ResponseString;
+        public FindResponseType v2FindResponseType = FindResponseType.ResponseString;
 
         #endregion
 
@@ -45,95 +46,100 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
-        /// Examples: Search -Repository MyNuGetServerFeed
+        /// Examples: Search -Repository MyNuGetServer
         /// API call: 
-        /// - No prerelease: {{repoUri}/api/v2/Search()?$filter=IsLatestVersion
+        /// - No prerelease: {repoUri}/api/v2/Search()?$filter=IsLatestVersion
         /// </summary>
-        public override FindResults FindAll(bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindAll(bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            edi = null;
+            errRecord = null;
             List<string> responses = new List<string>();
 
             int skip = 0;
-            string initialResponse = FindAllFromEndPoint(includePrerelease, skip, out edi);
-            if (edi != null)
+            string initialResponse = FindAllFromEndPoint(includePrerelease, skip, out errRecord);
+            if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
+
             responses.Add(initialResponse);
-            int initalCount = GetCountFromResponse(initialResponse, out edi);
-            if (edi != null)
+            int initalCount = GetCountFromResponse(initialResponse, out errRecord);
+            if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
+
             int count = initalCount / 6000;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
                 skip += 6000;
-                var tmpResponse = FindAllFromEndPoint(includePrerelease, skip, out edi);
-                if (edi != null)
+                var tmpResponse = FindAllFromEndPoint(includePrerelease, skip, out errRecord);
+                if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
+
                 responses.Add(tmpResponse);
                 count--;
             }
 
-            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
         /// <summary>
         /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
-        /// Examples: Search -Tag "JSON" -Repository MyNuGetServerFeed
+        /// Examples: Search -Tag "JSON" -Repository PSGallery
         /// API call: 
-        /// - Include prerelease: {repoUri}api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
+        /// - Include prerelease: {repoUri}/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
         /// </summary>
-        public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ErrorRecord errRecord)
         {
-            edi = null;
+            errRecord = null;
             List<string> responses = new List<string>();
 
             int skip = 0;
-            string initialResponse = FindTagFromEndpoint(tags, includePrerelease, skip, out edi);
-            if (edi != null)
+            string initialResponse = FindTagFromEndpoint(tags, includePrerelease, skip, out errRecord);
+            if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
+
             responses.Add(initialResponse);
-            int initalCount = GetCountFromResponse(initialResponse, out edi);
-            if (edi != null)
+            int initalCount = GetCountFromResponse(initialResponse, out errRecord);
+            if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
+
             int count = initalCount / 100;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
                 // skip 100
                 skip += 100;
-                var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, skip, out edi);
-                if (edi != null)
+                var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, skip, out errRecord);
+                if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
+
                 responses.Add(tmpResponse);
                 count--;
             }
 
-            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
         /// <summary>
         /// Find method which allows for searching for all packages that have specified Command or DSCResource name.
-        /// Not supported for NuGet.Server based repository.
         /// </summary>
-        public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ExceptionDispatchInfo edi)
+        public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ErrorRecord errRecord)
         {
-            string errMsg = $"Find by CommandName or DSCResource is not supported for the NuGet.Server application hosted feed repository '{Repository.Name}'";
-            edi = ExceptionDispatchInfo.Capture(new InvalidOperationException(errMsg));
+            string errMsg = $"Find by CommandName or DSCResource is not supported for the V3 server repository {Repository.Name}";
+            errRecord = new ErrorRecord(new InvalidOperationException(errMsg), "FindCommandOrDscResourceFailure", ErrorCategory.InvalidOperation, this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
         /// <summary>
@@ -145,19 +151,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// - Include prerelease: {repoUri}/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
-        public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             // Make sure to include quotations around the package name
             var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
 
             // This should return the latest stable version or the latest prerelease version (respectively)
-            // {repoUri}/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
+            // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             string idFilterPart = $" and Id eq '{packageName}'";
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{idFilterPart}";
 
-            string response = HttpRequestCall(requestUrlV2, out edi);  
-            return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+            string response = HttpRequestCall(requestUrlV2, out errRecord);  
+            return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
         /// <summary>
@@ -166,13 +172,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Examples: Search "PowerShellGet" -Tag "Provider"
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
-        public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             // Make sure to include quotations around the package name
             var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
 
             // This should return the latest stable version or the latest prerelease version (respectively)
-            // {repoUri}/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
+            // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             string idFilterPart = $" and Id eq '{packageName}'";
             string tagFilterPart = String.Empty;
@@ -183,8 +189,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{idFilterPart}{tagFilterPart}";
 
-            string response = HttpRequestCall(requestUrlV2, out edi);
-            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+            string response = HttpRequestCall(requestUrlV2, out errRecord);
+            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
         /// <summary>
@@ -195,41 +201,42 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// - No prerelease: {repoUri}/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az*'
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
-        public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             List<string> responses = new List<string>();
             int skip = 0;
 
-            var initialResponse = FindNameGlobbing(packageName, includePrerelease, skip, out edi);
-            if (edi != null)
+            var initialResponse = FindNameGlobbing(packageName, includePrerelease, skip, out errRecord);
+            if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
             responses.Add(initialResponse);
 
             // check count (regex)  425 ==> count/100  ~~>  4 calls 
-            int initalCount = GetCountFromResponse(initialResponse, out edi);  // count = 4
-            if (edi != null)
+            int initalCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
+            if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
+
             int count = initalCount / 100;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
                 // skip 100
                 skip += 100;
-                var tmpResponse = FindNameGlobbing(packageName, includePrerelease, skip, out edi);
-                if (edi != null)
+                var tmpResponse = FindNameGlobbing(packageName, includePrerelease, skip, out errRecord);
+                if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
                 responses.Add(tmpResponse);
                 count--;
             }
 
-            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
         /// <summary>
@@ -238,41 +245,42 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Examples: Search "PowerShell*" -Tag "Provider"
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
-        public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             List<string> responses = new List<string>();
             int skip = 0;
 
-            var initialResponse = FindNameGlobbingWithTag(packageName, tags, includePrerelease, skip, out edi);
-            if (edi != null)
+            var initialResponse = FindNameGlobbingWithTag(packageName, tags, includePrerelease, skip, out errRecord);
+            if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
             responses.Add(initialResponse);
 
             // check count (regex)  425 ==> count/100  ~~>  4 calls 
-            int initalCount = GetCountFromResponse(initialResponse, out edi);  // count = 4
-            if (edi != null)
+            int initalCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
+            if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
+
             int count = initalCount / 100;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
                 // skip 100
                 skip += 100;
-                var tmpResponse = FindNameGlobbingWithTag(packageName, tags, includePrerelease, skip, out edi);
-                if (edi != null)
+                var tmpResponse = FindNameGlobbingWithTag(packageName, tags, includePrerelease, skip, out errRecord);
+                if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
                 responses.Add(tmpResponse);
                 count--;
             }
 
-            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
         /// <summary>
@@ -281,45 +289,48 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Version: supports wildcards
         /// Examples: Search "PowerShellGet" "[3.0.0.0, 5.0.0.0]"
         ///           Search "PowerShellGet" "3.*"
-        /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
+        /// API Call: {repoUri}/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
-        public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ExceptionDispatchInfo edi)
+        public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             List<string> responses = new List<string>();
             int skip = 0;
 
-            var initialResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, skip, getOnlyLatest, out edi);
-            if (edi != null)
+            var initialResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, skip, getOnlyLatest, out errRecord);
+            if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
+
             responses.Add(initialResponse);
 
             if (!getOnlyLatest)
             {
-                int initalCount = GetCountFromResponse(initialResponse, out edi);
-                if (edi != null)
+                int initalCount = GetCountFromResponse(initialResponse, out errRecord);
+                if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
+
                 int count = initalCount / 100;
 
                 while (count > 0)
                 {
                     // skip 100
                     skip += 100;
-                    var tmpResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, skip, getOnlyLatest, out edi);
-                    if (edi != null)
+                    var tmpResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, skip, getOnlyLatest, out errRecord);
+                    if (errRecord != null)
                     {
-                        return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+                        return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                     }
+
                     responses.Add(tmpResponse);
                     count--;
                 }
             }
 
-            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
         /// <summary>
@@ -329,7 +340,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Examples: Search "PowerShellGet" "2.2.5"
         /// API call: {repoUri}/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
         /// </summary>
-        public override FindResults FindVersion(string packageName, string version, ResourceType type, out ExceptionDispatchInfo edi) 
+        public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord) 
         {
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true 
             // Quotations around package name and version do not matter, same metadata gets returned.
@@ -337,8 +348,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string idFilterPart = $" and Id eq '{packageName}'";
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{idFilterPart}";
             
-            string response = HttpRequestCall(requestUrlV2, out edi);  
-            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+            string response = HttpRequestCall(requestUrlV2, out errRecord);  
+            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
         /// <summary>
@@ -347,7 +358,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Version: no wildcard support
         /// Examples: Search "PowerShellGet" "2.2.5" -Tag "Provider"
         /// </summary>
-        public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ExceptionDispatchInfo edi)
+        public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
         {
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             string idFilterPart = $" and Id eq '{packageName}'";
@@ -359,8 +370,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{idFilterPart}{tagFilterPart}";
             
-            string response = HttpRequestCall(requestUrlV2, out edi);
-            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: nugetServerFindResponseType);
+            string response = HttpRequestCall(requestUrlV2, out errRecord);
+            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
         /**  INSTALL APIS **/
@@ -372,11 +383,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
         ///                        if prerelease, call into InstallVersion instead. 
         /// </summary>
-        public override Stream InstallName(string packageName, bool includePrerelease, out ExceptionDispatchInfo edi)
+        public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
         {
             var requestUrlV2 = $"{Repository.Uri}/package/{packageName}";
 
-            var response = HttpRequestCallForContent(requestUrlV2, out edi);
+            var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
             var responseStream = response.ReadAsStreamAsync().Result;
             return responseStream;
         }
@@ -389,11 +400,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         ///           Install "PowerShellGet" -Version "3.0.0-beta16"
         /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
         /// </summary>    
-        public override Stream InstallVersion(string packageName, string version, out ExceptionDispatchInfo edi)
+        public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
             var requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
 
-            var response = HttpRequestCallForContent(requestUrlV2, out edi);
+            var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
             var responseStream = response.ReadAsStreamAsync().Result;
             return responseStream;
         }
@@ -401,9 +412,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Helper method that makes the HTTP request for the V2 server protocol url passed in for find APIs.
         /// </summary>
-        private string HttpRequestCall(string requestUrlV2, out ExceptionDispatchInfo edi)
+        private string HttpRequestCall(string requestUrlV2, out ErrorRecord errRecord)
         {
-            edi = null;
+            errRecord = null;
             string response = string.Empty;
 
             try
@@ -414,15 +425,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (HttpRequestException e)
             {
-                edi = ExceptionDispatchInfo.Capture(e);
+                errRecord = new ErrorRecord(e, "HttpRequestFallFailure", ErrorCategory.ConnectionError, this);
             }
             catch (ArgumentNullException e)
             {
-                edi = ExceptionDispatchInfo.Capture(e);
+                errRecord = new ErrorRecord(e, "HttpRequestFallFailure", ErrorCategory.ConnectionError, this);
             }
             catch (InvalidOperationException e)
             {
-                edi = ExceptionDispatchInfo.Capture(e);
+                errRecord = new ErrorRecord(e, "HttpRequestFallFailure", ErrorCategory.ConnectionError, this);
             }
 
             return response;
@@ -431,9 +442,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Helper method that makes the HTTP request for the V2 server protocol url passed in for install APIs.
         /// </summary>
-        private HttpContent HttpRequestCallForContent(string requestUrlV2, out ExceptionDispatchInfo edi) 
+        private HttpContent HttpRequestCallForContent(string requestUrlV2, out ErrorRecord errRecord) 
         {
-            edi = null;
+            errRecord = null;
             HttpContent content = null;
 
             try
@@ -444,15 +455,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (HttpRequestException e)
             {
-                edi = ExceptionDispatchInfo.Capture(e);
+                errRecord = new ErrorRecord(e, "HttpRequestFailure", ErrorCategory.ConnectionError , this);
             }
             catch (ArgumentNullException e)
             {
-                edi = ExceptionDispatchInfo.Capture(e);
+                errRecord = new ErrorRecord(e, "HttpRequestFailure", ErrorCategory.InvalidData, this);
             }
             catch (InvalidOperationException e)
             {
-                edi = ExceptionDispatchInfo.Capture(e);
+                errRecord = new ErrorRecord(e, "HttpRequestFailure", ErrorCategory.InvalidOperation, this);
             }
 
             return content;
@@ -465,20 +476,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Helper method for string[] FindAll(string, PSRepositoryInfo, bool, bool, ResourceType, out string)
         /// </summary>
-        private string FindAllFromEndPoint(bool includePrerelease, int skip, out ExceptionDispatchInfo edi)
+        private string FindAllFromEndPoint(bool includePrerelease, int skip, out ErrorRecord errRecord)
         {
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
             var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
 
             var requestUrlV2 = $"{Repository.Uri}/Search()?$filter={prereleaseFilter}{paginationParam}";
 
-            return HttpRequestCall(requestUrlV2, out edi);
+            return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
         /// <summary>
         /// Helper method for string[] FindTag(string, PSRepositoryInfo, bool, bool, ResourceType, out string)
         /// </summary>
-        private string FindTagFromEndpoint(string[] tags, bool includePrerelease, int skip, out ExceptionDispatchInfo edi)
+        private string FindTagFromEndpoint(string[] tags, bool includePrerelease, int skip, out ErrorRecord errRecord)
         {
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
             var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
@@ -491,13 +502,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var requestUrlV2 = $"{Repository.Uri}/Search()?{prereleaseFilter}{tagFilterPart}{paginationParam}";
 
-            return HttpRequestCall(requestUrlV2: requestUrlV2, out edi);  
+            return HttpRequestCall(requestUrlV2: requestUrlV2, out errRecord);  
         }
 
         /// <summary>
         /// Helper method for string[] FindNameGlobbing()
         /// </summary>
-        private string FindNameGlobbing(string packageName, bool includePrerelease, int skip, out ExceptionDispatchInfo edi)
+        private string FindNameGlobbing(string packageName, bool includePrerelease, int skip, out ErrorRecord errRecord)
         {
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
@@ -510,7 +521,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (names.Length == 0)
             {
-                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name '*' for V2 server protocol repositories is not supported"));
+                errRecord = new ErrorRecord(new ArgumentException("-Name '*' for V2 server protocol repositories is not supported"), "FindNameGlobbingFailure", ErrorCategory.InvalidArgument, this); 
+
                 return string.Empty;
             }
             if (names.Length == 1)
@@ -541,19 +553,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else 
             {
-                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."));
+                errRecord = new ErrorRecord(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."), "FindNameGlobbingFailure", ErrorCategory.InvalidArgument, this);
                 return string.Empty;
             }
 
             var requestUrlV2 = $"{Repository.Uri}/Search()?$filter={nameFilter} and {prerelease}{extraParam}";
             
-            return HttpRequestCall(requestUrlV2, out edi);  
+            return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 
         /// <summary>
         /// Helper method for string[] FindNameGlobbingWithTag()
         /// </summary>
-        private string FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, int skip, out ExceptionDispatchInfo edi)
+        private string FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, int skip, out ErrorRecord errRecord)
         {
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
@@ -566,7 +578,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (names.Length == 0)
             {
-                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name '*' for V2 server protocol repositories is not supported"));
+                errRecord = new ErrorRecord(new ArgumentException("-Name '*' for V2 server protocol repositories is not supported"), "FindNameGlobbingFailure", ErrorCategory.InvalidArgument, this);
+
                 return string.Empty;
             }
             if (names.Length == 1)
@@ -597,7 +610,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else 
             {
-                edi = ExceptionDispatchInfo.Capture(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."));
+                errRecord = new ErrorRecord(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."), "FindNameGlobbing", ErrorCategory.InvalidArgument, this);
+
                 return string.Empty;
             }
 
@@ -609,13 +623,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var requestUrlV2 = $"{Repository.Uri}/Search()?$filter={nameFilter}{tagFilterPart} and {prerelease}{extraParam}";
             
-            return HttpRequestCall(requestUrlV2, out edi);  
+            return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 
         /// <summary>
         /// Helper method for string[] FindVersionGlobbing()
         /// </summary>
-        private string FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, int skip, bool getOnlyLatest, out ExceptionDispatchInfo edi)
+        private string FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, int skip, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true 
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
@@ -680,7 +694,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             string idFilterPart = $"{joiningOperator}Id eq '{packageName}'";
             filterQuery += idFilterPart;
-            // filterQuery += type == ResourceType.Script ? $"{andOperator}substringof('PS{type.ToString()}', Tags) eq true" : String.Empty;
 
             if (!String.IsNullOrEmpty(versionFilterParts))
             {
@@ -697,16 +710,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
 
-            return HttpRequestCall(requestUrlV2, out edi);  
+            return HttpRequestCall(requestUrlV2, out errRecord);  
         }
 
         /// <summary>
         /// Helper method that makes gets 'count' property from http response string.
         /// The count property is used to determine the number of total results found (for pagination).
         /// </summary>
-        public int GetCountFromResponse(string httpResponse, out ExceptionDispatchInfo edi)
+        public int GetCountFromResponse(string httpResponse, out ErrorRecord errRecord)
         {
-            edi = null;
+            errRecord = null;
             int count = 0;
 
             //Create the XmlDocument.
@@ -718,9 +731,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (XmlException e)
             {
-                edi = ExceptionDispatchInfo.Capture(e);
+                errRecord = new ErrorRecord(e, "GetCountFromResponse", ErrorCategory.InvalidData, this);
             }
-            if (edi != null)
+            if (errRecord != null)
             {
                 return count;
             }
