@@ -257,7 +257,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Not install resource that lists dependency packages but those cannot be found" {
-        $localRepoUri = (Get-PSResourceRepository $localRepo).Uri.LocalPath
+        $localRepoUri = Join-Path -Path $TestDrive -ChildPath "testdir"
         Save-PSResource -Name "test_script" -Repository "PSGallery" -Path $localRepoUri
         $res = Install-PSResource -Name "test_script" -Repository $localRepo -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
