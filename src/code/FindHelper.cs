@@ -797,7 +797,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         if (depPkg == null)
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
-                                            new PackageNotFoundException($"Dependency package '{dep.Name}' with version range '{dep.VersionRange}' could not be found", currentResult.exception), 
+                                            new PackageNotFoundException($"Dependency package '{dep.Name}' with version range '{dep.VersionRange}' could not be found"), 
                                             "DependencyPackageNotFound", 
                                             ErrorCategory.ObjectNotFound, 
                                             this));
