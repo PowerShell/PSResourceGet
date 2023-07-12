@@ -372,6 +372,12 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res.Count | Should -Be 1
         $res.Repository | Should -Be $PSGalleryName
     }
+
+    It "find all resources within a version range, including prereleases" {
+        $res = Find-PSResource -Name "PSReadLine" -Version "(2.0,2.1)" -Prerelease -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -Be 7 
+    }
 }
 
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidationOnly' {
