@@ -525,6 +525,14 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         write-Host $err[0]
         $err[0].FullyQualifiedErrorId | Should -BeExactly "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
     }
+
+    # Unix test for installing scripts
+    It "Install script resource - Unix only" -Skip:(Get-IsWindows) {
+        # previously installing pester on Unix was throwing an error due to how the environment PATH variable was being gotten.
+        Install-PSResource -Name "Pester" -Repository $PSGalleryName -Reinstall -TrustRepository
+        $res = Get-InstalledPSResource "Pester"
+        $res.Name | Should -Be "Pester"
+    }
 }
 
 Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'ManualValidationOnly' {
