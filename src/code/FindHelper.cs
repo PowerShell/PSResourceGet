@@ -711,7 +711,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     PSResourceInfo depPkg = null;
 
-                    if (dep.VersionRange == VersionRange.All)
+                    if (dep.VersionRange.Equals(VersionRange.All))
                     {
                         FindResults responses = currentServer.FindName(dep.Name, _prerelease, _type, out ErrorRecord errRecord);
                         if (errRecord != null)
