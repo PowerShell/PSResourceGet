@@ -141,7 +141,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
     It "Install a module with a dependency" {
         Uninstall-PSResource -Name "TestModuleWithDependency*" -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
-        Install-PSResource -Name "TestModuleWithDependencyC" -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository 
+        Install-PSResource -Name "TestModuleWithDependencyC" -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository 
 
         $pkg = Get-InstalledPSResource "TestModuleWithDependencyC"
         $pkg.Name | Should -Be "TestModuleWithDependencyC"
