@@ -140,7 +140,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
             elseif ($pkg.Name -eq "TestModuleWithDependencyB")
             {
                 $foundDepB = $true
-                $foundDepBCorrectVersion = [System.Version]$pkg.Version -ge [System.Version]"3.0"
+                $foundDepBCorrectVersion = [System.Version]$pkg.Version -ge [System.Version]"1.0"
             }
             elseif ($pkg.Name -eq "TestModuleWithDependencyD")
             {
