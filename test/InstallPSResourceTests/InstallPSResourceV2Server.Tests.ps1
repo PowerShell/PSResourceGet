@@ -153,7 +153,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
         $pkg = Get-InstalledPSResource "TestModuleWithDependencyD"
         $pkg.Name | Should -Be "TestModuleWithDependencyD"
-        $pkg.Version | Should -Be "1.0"
+        $pkg.Version | Should -Be "2.0"
     }
 
     It "Install a module with a dependency and skip installing the dependency" {
