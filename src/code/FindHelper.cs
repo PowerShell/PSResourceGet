@@ -637,11 +637,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 continue;
                             }
 
+                            // Check to see if version falls within version range 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
-                            parentPkgs.Add(foundPkg);
-                            _pkgsLeftToFind.Remove(foundPkg.Name);
-                            pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
-                            yield return foundPkg;
+                            string versionStr = $"{foundPkg.Version}";
+                            if (foundPkg.IsPrerelease)
+                            {
+                                versionStr += $"-{foundPkg.Prerelease}";
+                            }
+
+                            if (NuGetVersion.TryParse(versionStr, out NuGetVersion version)
+                                   && _versionRange.Satisfies(version))
+                            {
+                                parentPkgs.Add(foundPkg);
+                                _pkgsLeftToFind.Remove(foundPkg.Name);
+                                pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
+
+                                yield return foundPkg;
+                            }
                         }
                     }
                 }
@@ -768,9 +780,31 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 continue;
                             }
 
-                            depPkg = currentResult.returnedObject;
+                            // Check to see if version falls within version range 
+                            PSResourceInfo foundDep = currentResult.returnedObject;
+                            string depVersionStr = $"{foundDep.Version}";
+                            if (foundDep.IsPrerelease) {
+                                depVersionStr += $"-{foundDep.Prerelease}";
+                            }
+                            
+                            if (NuGetVersion.TryParse(depVersionStr, out NuGetVersion depVersion)
+                                   && dep.VersionRange.Satisfies(depVersion))
+                            {
+                                depPkg = foundDep;
+                            }
                         }
 
+                        if (depPkg == null)
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                            new PackageNotFoundException($"Dependency package '{dep.Name}' with version range '{dep.VersionRange}' could not be found", currentResult.exception), 
+                                            "DependencyPackageNotFound", 
+                                            ErrorCategory.ObjectNotFound, 
+                                            this));
+                                
+                            yield return null;
+                        }
+                        
                         string pkgHashKey = String.Format("{0}{1}", depPkg.Name, depPkg.Version.ToString());
 
                         if (!foundPkgs.Contains(pkgHashKey))

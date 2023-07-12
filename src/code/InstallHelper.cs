@@ -639,7 +639,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return packagesHash;
             }
 
+            // Check to see if version falls within version range 
             PSResourceInfo pkgToInstall = currentResult.returnedObject;
+            if (searchVersionType == VersionType.VersionRange)
+            {
+                string versionStr = $"{pkgToInstall.Version}";
+                if (pkgToInstall.IsPrerelease)
+                {
+                    versionStr += $"-{pkgToInstall.Prerelease}";
+                }
+
+                // Early out if version does 
+                if (!NuGetVersion.TryParse(versionStr, out NuGetVersion version)
+                        || !_versionRange.Satisfies(version))
+                {
+                    return packagesHash;
+                }
+            }
+
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
             pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
 

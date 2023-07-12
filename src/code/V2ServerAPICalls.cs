@@ -797,7 +797,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (versionRange.MaxVersion != null)
             {
                 string operation = versionRange.IsMaxInclusive ? "le" : "lt";
-                maxPart = String.Format(format, operation, $"'{versionRange.MaxVersion.ToNormalizedString()}'");
+                string maxString = $"{versionRange.MaxVersion.Major}.{versionRange.MaxVersion.Minor + 1}";
+                if (NuGetVersion.TryParse(maxString, out NuGetVersion maxVersion))
+                {
+                    maxPart = String.Format(format, operation, $"'{maxVersion.ToNormalizedString()}'");
+                }
+                else { 
+                    maxPart = String.Format(format, operation, $"'{versionRange.MaxVersion.ToNormalizedString()}'");
+                }
             }
 
             string versionFilterParts = String.Empty;
