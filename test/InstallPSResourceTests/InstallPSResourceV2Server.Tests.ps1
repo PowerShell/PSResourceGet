@@ -145,7 +145,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
         $pkg = Get-InstalledPSResource "TestModuleWithDependencyC"
         $pkg.Name | Should -Be "TestModuleWithDependencyC"
-        $pkg.Version | Should -Be "1.0"
+        $pkg.Version | Should -Be "5.0"
 
         $pkg = Get-InstalledPSResource "TestModuleWithDependencyB"
         $pkg.Name | Should -Be "TestModuleWithDependencyB"
