@@ -901,7 +901,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     { "NormalizedVersion", nugetVersion.ToNormalizedString() }
                 };
 
-                ModuleSpecification[] requiredModules = pkgMetadata["RequiredModules"] as ModuleSpecification[];
+                ModuleSpecification[] requiredModules = pkgMetadata.ContainsKey("RequiredModules") ? pkgMetadata["RequiredModules"] as ModuleSpecification[] : new ModuleSpecification[]{};
 
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: additionalMetadataHashtable,
