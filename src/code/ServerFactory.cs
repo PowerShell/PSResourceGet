@@ -14,7 +14,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             using (System.Management.Automation.PowerShell ps = System.Management.Automation.PowerShell.Create(RunspaceMode.CurrentRunspace))
             {
-                _psVersion = ps.AddCommand("Get-Variable").AddParameter("Name", "PSVersionTable").Invoke()[0].Members["PSVersion"].Value.ToString();
+                _psVersion = ps.AddScript("$PSVersionTable.PSVersion.ToString()").Invoke<string>()[0];
             }
 
             _psResourceGetVersion = typeof(UserAgentInfo).Assembly.GetName().Version.ToString();
