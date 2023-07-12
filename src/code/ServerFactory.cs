@@ -25,7 +25,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private static string _psResourceGetVersion;
         private static string _distributionChannel;
 
-        internal static string UserAgentString => $"PSResourceGet/{_psResourceGetVersion} PowerShell/{_psVersion} ({_distributionChannel})";
+        internal static string UserAgentString => $"PSResourceGet/{_psResourceGetVersion} PowerShell/{_psVersion} DistributionChannel/{_distributionChannel}";
     }
 
     internal class ServerFactory
