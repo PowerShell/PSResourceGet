@@ -2,25 +2,48 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using System.Management.Automation;
+using System.Management.Automation.Runspaces;
 using System.Net;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
+    internal static class UserAgentInfo
+    {
+        static UserAgentInfo()
+        {
+            using (System.Management.Automation.PowerShell ps = System.Management.Automation.PowerShell.Create(RunspaceMode.CurrentRunspace))
+            {
+                _psVersion = ps.AddCommand("Get-Variable").AddParameter("Name", "PSVersionTable").Invoke()[0].Members["PSVersion"].Value.ToString();
+            }
+
+            _psResourceGetVersion = typeof(UserAgentInfo).Assembly.GetName().Version.ToString();
+            _distributionChannel = System.Environment.GetEnvironmentVariable("POWERSHELL_DISTRIBUTION_CHANNEL") ?? "unknown";
+        }
+
+        private static string _psVersion;
+        private static string _psResourceGetVersion;
+        private static string _distributionChannel;
+
+        internal static string UserAgentString => $"PSResourceGet/{_psResourceGetVersion} PowerShell/{_psVersion} ({_distributionChannel})";
+    }
+
     internal class ServerFactory
     {
         public static ServerApiCall GetServer(PSRepositoryInfo repository, NetworkCredential networkCredential)
         {
             PSRepositoryInfo.APIVersion repoApiVersion = repository.ApiVersion;
             ServerApiCall currentServer = null;
+            string userAgentString = UserAgentInfo.UserAgentString;
 
             switch (repoApiVersion)
             {
                 case PSRepositoryInfo.APIVersion.v2:
-                    currentServer = new V2ServerAPICalls(repository, networkCredential);
+                    currentServer = new V2ServerAPICalls(repository, networkCredential, userAgentString);
                     break;
 
                 case PSRepositoryInfo.APIVersion.v3:
-                    currentServer = new V3ServerAPICalls(repository, networkCredential);
+                    currentServer = new V3ServerAPICalls(repository, networkCredential, userAgentString);
                     break;
 
                 case PSRepositoryInfo.APIVersion.local:
@@ -28,7 +51,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case PSRepositoryInfo.APIVersion.nugetServer:
-                    currentServer = new NuGetServerAPICalls(repository, networkCredential);
+                    currentServer = new NuGetServerAPICalls(repository, networkCredential, userAgentString);
                     break;
 
                 case PSRepositoryInfo.APIVersion.unknown:
