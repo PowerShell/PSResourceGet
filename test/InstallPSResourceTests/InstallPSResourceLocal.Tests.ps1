@@ -246,7 +246,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
     It "Install module using -WhatIf, should not install the module" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository -WhatIf
-        $res = Get-InstalledPSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -257,7 +257,8 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Not install resource that lists dependency packages but those cannot be found" {
-        Save-PSResource -Name "test_script" -Repository "PSGallery" -Path $localRepo
+        $localRepoUri = (Get-PSResourceRepository $localRepo).Uri.LocalPath
+        Save-PSResource -Name "test_script" -Repository "PSGallery" -Path $localRepoUri
         $res = Install-PSResource -Name "test_script" -Repository $localRepo -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
