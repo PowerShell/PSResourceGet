@@ -369,6 +369,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
+                SetNetworkCredential(repository);
+
                 // Check if dependencies already exist within the repo if:
                 // 1) the resource to publish has dependencies and
                 // 2) the -SkipDependenciesCheck flag is not passed in
@@ -865,7 +867,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var success = false;
 
             var sourceProvider = new PackageSourceProvider(settings);
-            if (Credential != null)
+            if (Credential != null || _networkCredential != null)
             {
                  InjectCredentialsToSettings(settings, sourceProvider, publishLocation);
             }
@@ -988,7 +990,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void InjectCredentialsToSettings(ISettings settings, IPackageSourceProvider sourceProvider, string source)
         {
-          if (Credential == null)
+          if (Credential == null && _networkCredential == null)
           {
                return;
           }
@@ -1003,7 +1005,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
            }
 
 
-          var networkCred = Credential.GetNetworkCredential();
+          var networkCred = Credential == null ? _networkCredential : Credential.GetNetworkCredential();
           string key;
           
           if (packageSource == null)
@@ -1029,6 +1031,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
               String.Empty));
         }
 
+        private void SetNetworkCredential(PSRepositoryInfo repository)
+        {
+            // Explicitly passed in Credential takes precedence over repository CredentialInfo.
+            if (_networkCredential == null && repository.CredentialInfo != null)
+            {
+                PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+                    repository.Name,
+                    repository.CredentialInfo,
+                    this);
+
+                _networkCredential = new NetworkCredential(repoCredential.UserName, repoCredential.Password);
+
+                WriteVerbose("credential successfully read from vault and set for repository: " + repository.Name);
+            }
+        }
+    
     #endregion
   }
 }
