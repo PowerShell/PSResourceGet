@@ -217,6 +217,26 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res.Tags | Should -Contain $requiredTags[1]
     }
 
+    It "find scripts given -Type parameter" {
+        Get-ScriptResourcePublishedToLocalRepoTestDrive "testScriptName" $localRepo "1.0.0"
+
+        $res = Find-PSResource -Type Script -Repository $localRepo
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -Be 1
+        $res.Type | Should -Be "Script"
+    }
+    
+    It "find modules given -Type parameter" {
+        Get-ScriptResourcePublishedToLocalRepoTestDrive "testScriptName" $localRepo "1.0.0"
+
+        $res = Find-PSResource -Type Module -Repository $localRepo
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterOrEqual 1
+        foreach ($module in $res) {
+            $module.Type | Should -Be "Module"
+        }
+    }
+
     It "find resource given CommandName" -Pending {
         $res = Find-PSResource -CommandName $commandName -Repository $localRepo
         $res | Should -Not -BeNullOrEmpty
