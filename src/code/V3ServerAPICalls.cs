@@ -14,6 +14,9 @@ using System.Threading.Tasks;
 using System.Collections;
 using System.Runtime.ExceptionServices;
 using System.Management.Automation;
+using System.Numerics;
+using System.Runtime.InteropServices.ComTypes;
+using System.Security.Cryptography;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -1147,15 +1150,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 response = SendV3RequestAsync(request, _sessionClient).GetAwaiter().GetResult();
             }
+            catch (V3ResourceNotFoundException e)
+            {
+                errRecord = new ErrorRecord(e, "ResourceNotFound", ErrorCategory.InvalidResult, this);
+            }
+            catch (UnauthorizedException e)
+            {
+                errRecord = new ErrorRecord(e, "UnauthorizedRequest", ErrorCategory.InvalidResult, this);
+            }
             catch (HttpRequestException e)
-            {
-                errRecord = new ErrorRecord(e, "HttpRequestCallFailure", ErrorCategory.InvalidResult, this);
-            }
-            catch (ArgumentNullException e)
-            {
-                errRecord = new ErrorRecord(e, "HttpRequestCallFailure", ErrorCategory.InvalidResult, this);
-            }
-            catch (InvalidOperationException e)
             {
                 errRecord = new ErrorRecord(e, "HttpRequestCallFailure", ErrorCategory.InvalidResult, this);
             }
@@ -1174,7 +1177,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             errRecord = null;
             HttpContent content = null;
-
             try
             {
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
@@ -1194,8 +1196,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private static async Task<string> SendV3RequestAsync(HttpRequestMessage message, HttpClient s_client)
         {
-            string errMsg = "SendV3RequestAsync(): Error occured while trying to retrieve response: ";
-
             HttpStatusCode responseStatusCode = HttpStatusCode.OK;
             try
             {
@@ -1210,18 +1210,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (HttpRequestException e)
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound)) {
-                    throw new V3ResourceNotFoundException(errMsg + e.Message);
+                    throw new V3ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                }
+                // ADO feed will return a 401 if a package does not exist on the feed, with the following message:
+                // 401 (Unauthorized - No local versions of package 'NonExistentModule'; please provide authentication to access
+                // versions from upstream that have not yet been saved to your feed. (DevOps Activity ID: 5E5CF528-5B3D-481D-95B5-5DDB5476D7EF))
+                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized) && !e.Message.Contains("access versions from upstream that have not yet been saved to your feed"))
+                {
+                    throw new UnauthorizedException(Utils.FormatCredentialRequestExceptions(e));
                 }
 
-                throw new HttpRequestException(errMsg + e.Message);
+                throw new HttpRequestException(Utils.FormatRequestsExceptions(e, message));
             }
             catch (ArgumentNullException e)
             {
-                throw new ArgumentNullException(errMsg + e.Message);
+                throw new ArgumentNullException(Utils.FormatRequestsExceptions(e, message));
             }
             catch (InvalidOperationException e)
             {
-                throw new InvalidOperationException(errMsg + e.Message);
+                throw new InvalidOperationException(Utils.FormatRequestsExceptions(e, message));
             }
         }
 
@@ -1230,25 +1237,35 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private static async Task<HttpContent> SendV3RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
         {
-            string errMsg = "SendV3RequestForContentAsync(): Error occured while trying to retrieve response for content: ";
-
+            HttpStatusCode responseStatusCode = HttpStatusCode.OK;
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
+                responseStatusCode = response.StatusCode;
                 response.EnsureSuccessStatusCode();
+
                 return response.Content;
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException(errMsg + e.Message);
+                if (responseStatusCode.Equals(HttpStatusCode.NotFound))
+                {
+                    throw new V3ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                }
+                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
+                {
+                    throw new UnauthorizedException(Utils.FormatCredentialRequestExceptions(e));
+                }
+
+                throw new HttpRequestException(Utils.FormatRequestsExceptions(e, message));
             }
             catch (ArgumentNullException e)
             {
-                throw new ArgumentNullException(errMsg + e.Message);
+                throw new ArgumentNullException(Utils.FormatRequestsExceptions(e, message));
             }
             catch (InvalidOperationException e)
             {
-                throw new InvalidOperationException(errMsg + e.Message);
+                throw new InvalidOperationException(Utils.FormatRequestsExceptions(e, message));
             }
         }
 
