@@ -1228,7 +1228,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private static async Task<HttpContent> SendV3RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
         {
-            //string errMsg = "Error occured while trying to retrieve response for content";
             HttpStatusCode responseStatusCode = HttpStatusCode.OK;
             try
             {
