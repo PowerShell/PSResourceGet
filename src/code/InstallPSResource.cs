@@ -18,7 +18,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// The Install-PSResource cmdlet installs a resource.
     /// It returns nothing.
     /// </summary>
-    [Cmdlet(VerbsLifecycle.Install, "PSResource", DefaultParameterSetName = "NameParameterSet", SupportsShouldProcess = true)]
+    [Cmdlet(VerbsLifecycle.Install, 
+        "PSResource", 
+        DefaultParameterSetName = "NameParameterSet", 
+        SupportsShouldProcess = true)]
+    [Alias("inps")]
     public sealed
     class InstallPSResource : PSCmdlet
     {

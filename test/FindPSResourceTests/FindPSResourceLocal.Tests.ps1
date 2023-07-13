@@ -234,4 +234,8 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
             $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
         }
     }
+
+    It "Get definition for alias 'fips'" {
+        (Get-Alias fips).Definition | Should -BeExactly 'Find-PSResource'
+    }
 }

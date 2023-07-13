@@ -290,4 +290,8 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         $res.Name | Should -Contain $moduleName
         $res.Version | Should -Be "5.0.0"
     }
+
+    It "Get definition for alias 'upps'" {
+        (Get-Alias upps).Definition | Should -BeExactly 'Update-PSResource'
+    }
 }

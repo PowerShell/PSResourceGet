@@ -23,7 +23,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// <summary>
     /// Publishes a module, script, or nupkg to a designated repository.
     /// </summary>
-    [Cmdlet(VerbsData.Publish, "PSResource", SupportsShouldProcess = true)]
+    [Cmdlet(VerbsData.Publish, 
+        "PSResource", 
+        SupportsShouldProcess = true)]
+    [Alias("pups")]
     public sealed class PublishPSResource : PSCmdlet
     {
         #region Parameters

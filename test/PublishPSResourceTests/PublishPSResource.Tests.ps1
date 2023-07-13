@@ -615,4 +615,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         {Publish-PSResource -Path $psm1Path -Repository $testRepository2 -ErrorAction Stop} | Should -Throw -ErrorId "InvalidPublishPath,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
+
+    It "Get definition for alias 'pups'" {
+        (Get-Alias pups).Definition | Should -BeExactly 'Publish-PSResource'
+    }
 }
