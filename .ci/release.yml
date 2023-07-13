@@ -37,6 +37,7 @@ jobs:
       publishFeedCredentials: PSCoreReleasePush
 
 - job: ${{ parameters.jobName2 }}
+  dependsOn: ${{ parameters.jobName1 }}
   pool:
     name: 1ES
     demands:
