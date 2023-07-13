@@ -73,4 +73,11 @@ Describe "Test Test-PSScriptFileInfo" -tags 'CI' {
 
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $true        
     }
+
+    It "determine script file with varying case sensitivity for Script Metadata or Help Comment keys is valid" {
+        $scriptName = "VaryingCaseSensisityKeysScript.ps1"
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
 }

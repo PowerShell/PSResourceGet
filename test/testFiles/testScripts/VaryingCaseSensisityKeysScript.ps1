@@ -1,0 +1,43 @@
+
+<#PSScriptInfo
+
+.VERSION 1.0
+
+.GUID 3951be04-bd06-4337-8dc3-a620bf539fbd
+
+.author annavied
+
+.COMPANYNAME
+
+.COPYrIGHT
+
+.TAGS
+
+.LICENSEURI
+
+.PROJECTURI
+
+.ICONURI
+
+.EXTERNALMODULEDEPENDENCIES 
+
+.REQUIREDSCRIPTS
+
+.EXTERNALSCRIPTDEPENDENCIES
+
+.RELEASENOTES
+
+
+.PRIVATEDATA
+
+#>
+
+<# 
+
+.DEScrIPTION 
+ this is a test for a script that will be published remotely 
+
+#> 
+Param()
+
+

@@ -249,7 +249,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             errors = Array.Empty<ErrorRecord>();
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
 
-            Hashtable parsedHelpMetadata = new Hashtable();
+            Hashtable parsedHelpMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
             char[] spaceDelimeter = new char[]{' '};
             string keyName = "";
             string value = "";
