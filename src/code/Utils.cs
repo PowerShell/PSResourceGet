@@ -14,6 +14,7 @@ using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
 using Microsoft.PowerShell.Commands;
 using Microsoft.PowerShell.PSResourceGet.Cmdlets;
+using System.Net.Http;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -187,6 +188,28 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             errorMsgs = errorMsgsList.ToArray();
             return namesWithSupportedWildcards.ToArray();
+        }
+
+        public static string FormatRequestsExceptions(Exception exception, HttpRequestMessage request)
+        {
+            string exMsg = $"'{exception.Message}' Request sent: '{request.RequestUri.AbsoluteUri}'";
+            if (exception.InnerException != null && !string.IsNullOrEmpty(exception.InnerException.Message))
+            {
+                exMsg += $" Inner exception: '{exception.InnerException.Message}'";
+            }
+
+            return exMsg;
+        }
+
+        public static string FormatCredentialRequestExceptions(Exception exception)
+        {
+            string exMsg = $"'{exception.Message}' Re-run the command with -Credential.";
+            if (exception.InnerException != null && !string.IsNullOrEmpty(exception.InnerException.Message))
+            {
+                exMsg += $" Inner exception: '{exception.InnerException.Message}'";
+            }
+
+            return exMsg;
         }
 
         #endregion
