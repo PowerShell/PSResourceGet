@@ -790,11 +790,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, depPrerelease, null, repository, false);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
-                    var message = String.Format("Dependency '{0}' was not found in repository '{1}'.  Make sure the dependency is published to the repository before publishing this module.", dependency, repositoryName);
-                    var ex = new ArgumentException(message);
-                    var dependencyNotFound = new ErrorRecord(ex, "DependencyNotFound", ErrorCategory.ObjectNotFound, null);
+                   WriteError(new ErrorRecord(
+                       new ArgumentException($"Dependency '{depName.First()}' was not found in repository '{repositoryName}'.  Make sure the dependency is published to the repository before publishing this module."),
+                       "DependencyNotFound",
+                       ErrorCategory.ObjectNotFound,
+                       this));
 
-                    WriteError(dependencyNotFound);
                     return false;
                 }
             }
