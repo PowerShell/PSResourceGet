@@ -187,6 +187,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (string.IsNullOrEmpty(_path))
             {
                 _path = GetResolvedProviderPathFromPSPath(SessionState.Path.CurrentFileSystemLocation.Path, out ProviderInfo provider).First();
+                WriteVerbose($"No path was provided. Using the current working directory '{_path}.'");
             }
 
             _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
