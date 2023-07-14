@@ -34,9 +34,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         #endregion
-        
+
         #region Methods
-        // High level design: Find-PSResource >>> IFindPSResource (loops, version checks, etc.) >>> IServerAPICalls (call to repository endpoint/url)    
+        // High level design: Find-PSResource >>> IFindPSResource (loops, version checks, etc.) >>> IServerAPICalls (call to repository endpoint/url)
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
@@ -113,7 +113,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Name: no wildcard support.
         /// Examples: Install "PowerShellGet"
         /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
-        ///                        if prerelease, the calling method should first call IFindPSResource.FindName(), 
+        ///                        if prerelease, the calling method should first call IFindPSResource.FindName(),
         ///                             then find the exact version to install, then call into install version
         /// </summary>
         public abstract Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord);
@@ -125,10 +125,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Version: no wildcard support.
         /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
         ///           Install "PowerShellGet" -Version "3.0.0-beta16"
-        /// </summary>    
+        /// </summary>
         public abstract Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord);
 
         #endregion
-    
+
     }
 }

@@ -67,6 +67,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         {
             New-Item -Path $script:PublishModuleBase -ItemType Directory -Force
         }
+		$script:PublishModuleBaseUNC = $script:PublishModuleBase -Replace '^(.):', '\\localhost\$1$'
 
         #Create dependency module
         $script:DependencyModuleName = "PackageManagement"
@@ -91,10 +92,10 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $script:testFilesFolderPath = Join-Path $testDir -ChildPath "testFiles"
 
         # Path to specifically to that invalid test modules folder
-        $script:testModulesFolderPath = Join-Path $testFilesFolderPath -ChildPath "testModules"
+        $script:testModulesFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testModules"
 
         # Path to specifically to that invalid test scripts folder
-        $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
+        $script:testScriptsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testScripts"
 
         # Create test module with missing required module
         CreateTestModule -Path $TestDrive -ModuleName 'ModuleWithMissingRequiredModule'
@@ -148,6 +149,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
 
+	#region Local Source Path
     It "Publish a module with -Path and -Repository" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
@@ -203,6 +205,65 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
     }
+	#endregion Local Source Path
+
+	#region UNC Source Path
+    It "Publish a module with -Path and -Repository, with the path pointing to a network share" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBaseUNC -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $script:PublishModuleBaseUNC -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
+    It "Publish a module with -Path pointing to a module directory (parent directory has same name) on a network share" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBaseUNC -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $script:PublishModuleBaseUNC -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
+    It "Publish a module with -Path pointing to a module directory (parent directory has different name) on a network share" {
+        $version = "1.0.0"
+        $newModuleRoot = Join-Path -Path $script:PublishModuleBaseUNC -ChildPath "NewTestParentDirectory"
+        New-Item -Path $newModuleRoot -ItemType Directory
+        New-ModuleManifest -Path (Join-Path -Path $newModuleRoot -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $newModuleRoot -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
+    It "Publish a module with -Path pointing to a .psd1 (parent directory has same name) on a network share" {
+        $version = "1.0.0"
+        $manifestPath = Join-Path -Path $script:PublishModuleBaseUNC -ChildPath "$script:PublishModuleName.psd1"
+        New-ModuleManifest -Path $manifestPath -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $manifestPath -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
+    It "Publish a module with -Path pointing to a .psd1 (parent directory has different name) on a network share" {
+        $version = "1.0.0"
+        $newModuleRoot = Join-Path -Path $script:PublishModuleBaseUNC -ChildPath "NewTestParentDirectory"
+        New-Item -Path $newModuleRoot -ItemType Directory
+        $manifestPath = Join-Path -Path $newModuleRoot -ChildPath "$script:PublishModuleName.psd1"
+        New-ModuleManifest -Path $manifestPath -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $manifestPath -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+	#endregion UNC Source Path
 
     It "Publish a module with dependencies" {
         # Create dependency module
@@ -366,7 +427,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery -ErrorAction SilentlyContinue
 
-        $Error[0].FullyQualifiedErrorId | Should -be "APIKeyError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        $Error[0].FullyQualifiedErrorId | Should -be "401ApiKeyError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
     It "Publish a module to PSGallery using incorrect API key, should throw" {

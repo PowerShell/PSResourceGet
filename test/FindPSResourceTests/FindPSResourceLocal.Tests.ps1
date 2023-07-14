@@ -11,6 +11,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
     BeforeAll{
         $localRepo = "psgettestlocal"
+        $localUNCRepo = 'psgettestlocal3'
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
         $commandName = "cmd1"
@@ -39,6 +40,13 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
     It "find resource given specific Name, Version null (module)" {
         # FindName()
         $res = Find-PSResource -Name $testModuleName -Repository $localRepo
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.0.0"
+    }
+
+    It "find resource given specific Name, Version null (module) from a UNC-based local repository" {
+        # FindName()
+        $res = Find-PSResource -Name $testModuleName -Repository $localUNCRepo
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0"
     }
@@ -207,6 +215,26 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
         $res.Tags | Should -Contain $requiredTags[0]
         $res.Tags | Should -Contain $requiredTags[1]
+    }
+
+    It "find scripts given -Type parameter" {
+        Get-ScriptResourcePublishedToLocalRepoTestDrive "testScriptName" $localRepo "1.0.0"
+
+        $res = Find-PSResource -Type Script -Repository $localRepo
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -Be 1
+        $res.Type | Should -Be "Script"
+    }
+    
+    It "find modules given -Type parameter" {
+        Get-ScriptResourcePublishedToLocalRepoTestDrive "testScriptName" $localRepo "1.0.0"
+
+        $res = Find-PSResource -Type Module -Repository $localRepo
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterOrEqual 1
+        foreach ($module in $res) {
+            $module.Type | Should -Be "Module"
+        }
     }
 
     It "find resource given CommandName" -Pending {

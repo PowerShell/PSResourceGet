@@ -35,12 +35,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region Overriden Methods 
+        #region Overriden Methods
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
         /// Examples: Search -Repository PSGallery
-        /// API call: 
+        /// API call:
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
         /// </summary>
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
@@ -51,7 +51,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
         /// Examples: Search -Tag "JSON" -Repository PSGallery
-        /// API call: 
+        /// API call:
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
         /// </summary>
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ErrorRecord errRecord)
@@ -72,7 +72,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Find method which allows for searching for single name and returns latest version.
         /// Name: no wildcard support
         /// Examples: Search "PowerShellGet"
-        /// API call: 
+        /// API call:
         /// - No prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
@@ -97,7 +97,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Find method which allows for searching for single name with wildcards and returns latest version.
         /// Name: supports wildcards
         /// Examples: Search "PowerShell*"
-        /// API call: 
+        /// API call:
         /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az*'
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
@@ -165,7 +165,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Examples: Search "PowerShellGet" "2.2.5"
         /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
         /// </summary>
-        public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord) 
+        public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord)
         {
             return FindVersionHelper(packageName, version, Utils.EmptyStrArray, type, out errRecord);
         }
@@ -188,7 +188,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Name: no wildcard support.
         /// Examples: Install "PowerShellGet"
         /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
-        ///                        if prerelease, call into InstallVersion instead. 
+        ///                        if prerelease, call into InstallVersion instead.
         /// </summary>
         public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
         {
@@ -198,7 +198,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
 
@@ -242,7 +242,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
         ///           Install "PowerShellGet" -Version "3.0.0-beta16"
         /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
-        /// </summary>    
+        /// </summary>
         public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
             errRecord = null;
@@ -255,9 +255,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 version = pkgVersion.ToNormalizedString();
             }
-            
+
             string packageFullName = $"{packageName.ToLower()}.{version}.nupkg";
-            string packagePath = Path.Combine(Repository.Uri.AbsolutePath, packageFullName);
+            string packagePath = Path.Combine(Repository.Uri.LocalPath, packageFullName);
             if (!File.Exists(packagePath))
             {
                 errRecord = new ErrorRecord(new LocalResourceNotFoundException($"'{packageName}' version '{version}' does not exist in this repository"), "InstallVersionFailure", ErrorCategory.ResourceUnavailable, this);
@@ -291,7 +291,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             String latestVersionPath = String.Empty;
             string actualPkgName = packageName;
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
 
@@ -367,7 +367,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             return findResponse;
         }
-        
+
         /// <summary>
         /// Helper method called by FindVersion() and FindVersionWithTag()
         /// </summary>
@@ -385,7 +385,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
             string pkgPath = String.Empty;
             string actualPkgName = String.Empty;
-            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
@@ -398,8 +398,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (nugetVersion == requiredVersion)
                     {
-                        string pkgFullName = $"{actualPkgName}.{nugetVersion.ToString()}.nupkg";           
-                        pkgPath = Path.Combine(Repository.Uri.AbsolutePath, pkgFullName);
+                        string pkgFullName = $"{actualPkgName}.{nugetVersion.ToString()}.nupkg";
+                        pkgPath = Path.Combine(Repository.Uri.LocalPath, pkgFullName);
                         break;
                     }
                 }
@@ -584,7 +584,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
             errRecord = null;
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
 
@@ -624,7 +624,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Regex rx = new Regex(@"\.\d+\.", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.AbsolutePath))
+            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
                 MatchCollection matches = rx.Matches(packageFullName);
@@ -728,7 +728,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
                 }
             }
-            
+
             return isTagMatch;
         }
 
@@ -761,7 +761,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         {
                             nuspecHashtable.Add(key, value);
                         }
-                    }  
+                    }
 
                 }
             }
@@ -770,7 +770,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 errRecord = new ErrorRecord(e, "GetHashtableForNuspecFailure", ErrorCategory.ReadError, this);
             }
 
-            return nuspecHashtable;        
+            return nuspecHashtable;
         }
 
         /// <summary>

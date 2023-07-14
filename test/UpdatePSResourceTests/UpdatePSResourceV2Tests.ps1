@@ -172,6 +172,24 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $isPkgUpdated | Should -Be $true
     }
 
+    It "Update prerelease version to a higher prerelease version not using -Prerelease parameter" {
+        Install-PSResource -Name $testModuleName3 -Version "0.0.99-beta1" -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name $testModuleName3 -Repository $PSGalleryName -TrustRepository
+        $res = Get-InstalledPSResource -Name $testModuleName3
+        $res | Should -Not -BeNullOrEmpty
+        $isPkgUpdated = $false
+        foreach ($pkg in $res)
+        {
+            if ([System.Version]$pkg.Version -ge [System.Version]"1.0.0")
+            {
+                $pkg.Prerelease | Should -Be "beta2"
+                $isPkgUpdated = $true
+            }
+        }
+
+        $isPkgUpdated | Should -Be $true
+    }
+
     # Windows only
     It "update resource under CurrentUser scope" -skip:(!($IsWindows -and (Test-IsAdmin))) {
         # TODO: perhaps also install TestModule with the highest version (the one above 1.2.0.0) to the AllUsers path too

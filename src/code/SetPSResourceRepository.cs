@@ -83,6 +83,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public int Priority { get; set; } = DefaultPriority;
 
         /// <summary>
+        /// Specifies the Api version of the repository to be set.
+        /// </sumamry>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        public PSRepositoryInfo.APIVersion ApiVersion { get; set; }
+
+        /// <summary>
         /// Specifies vault and secret names as PSCredentialInfo for the repository.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
@@ -127,6 +133,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             Trusted, 
                             isSet,
                             DefaultPriority,
+                            ApiVersion,
                             CredentialInfo,
                             this,
                             out string errorMsg));
@@ -257,6 +264,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     repoTrusted,
                     isSet,
                     DefaultPriority,
+                    ApiVersion,
                     repoCredentialInfo,
                     this,
                     out string errorMsg);

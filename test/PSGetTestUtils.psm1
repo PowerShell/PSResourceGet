@@ -248,7 +248,29 @@ function Register-LocalRepos {
         Trusted = $false
     }
     Register-PSResourceRepository @localRepoParams2
-    Write-Verbose("registered psgettestlocal, psgettestlocal2")
+
+	# Both actually point to the same paths as the purely localpath repository, simplifying logistics
+	$repoUriAddress3 = Join-Path -Path $TestDrive -ChildPath "testdir"
+    $path3 = Get-Item $repoUriAddress3
+    $localRepoParams = @{
+        Name = "psgettestlocal3"
+        Uri = $path3.FullName -Replace '^(.):', '\\localhost\$1$'
+        Priority = 60
+        Trusted = $false
+    }
+    Register-PSResourceRepository @localRepoParams
+
+    $repoUriAddress4 = Join-Path -Path $TestDrive -ChildPath "testdir2"
+    $path4 = Get-Item $repoUriAddress4
+    $localRepoParams2 = @{
+        Name = "psgettestlocal4"
+        Uri = $path4.FullName -Replace '^(.):', '\\localhost\$1$'
+        Priority = 70
+        Trusted = $false
+    }
+    Register-PSResourceRepository @localRepoParams2
+
+    Write-Verbose "registered psgettestlocal, psgettestlocal2, psgettestlocal3, psgettestlocal4"
 }
 
 function Register-PSGallery {
@@ -269,6 +291,12 @@ function Unregister-LocalRepos {
     }
     if(Get-PSResourceRepository -Name "psgettestlocal2"){
         Unregister-PSResourceRepository -Name "psgettestlocal2"
+    }
+	if(Get-PSResourceRepository -Name "psgettestlocal3"){
+        Unregister-PSResourceRepository -Name "psgettestlocal3"
+    }
+    if(Get-PSResourceRepository -Name "psgettestlocal4"){
+        Unregister-PSResourceRepository -Name "psgettestlocal4"
     }
 }
 function Get-TestDriveSetUp
@@ -351,7 +379,7 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
 
     $scriptMetadata = Create-PSScriptMetadata @params
     Set-Content -Path $scriptFilePath -Value $scriptMetadata
-    Publish-PSResource -Path $scriptFilePath -Repository $scriptRepoName -Verbose
+    Publish-PSResource -Path $scriptFilePath -Repository $scriptRepoName
 }
 
 function Get-CommandResourcePublishedToLocalRepoTestDrive
@@ -528,29 +556,6 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
 
-function Register-LocalRepos {
-    $repoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
-    $null = New-Item $repoUriAddress -ItemType Directory -Force
-    $localRepoParams = @{
-        Name = "psgettestlocal"
-        Uri = $repoUriAddress
-        Priority = 40
-        Trusted = $false
-    }
-
-    Register-PSResourceRepository @localRepoParams
-
-    $repoUriAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
-    $null = New-Item $repoUriAddress2 -ItemType Directory -Force
-    $localRepoParams2 = @{
-        Name = "psgettestlocal2"
-        Uri = $repoUriAddress2
-        Priority = 50
-        Trusted = $false
-    }
-
-    Register-PSResourceRepository @localRepoParams2
-}
 function RemoveItem
 {
     Param(

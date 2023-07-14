@@ -82,7 +82,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 WriteVerbose(string.Format("Provided path is: '{0}'", Path));
 
-                var resolvedPaths = SessionState.Path.GetResolvedPSPathFromPSPath(Path);
+                var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
                 if (resolvedPaths.Count != 1)
                 {
                     ThrowTerminatingError(
@@ -93,7 +93,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             this));
                 }
 
-                var resolvedPath = resolvedPaths[0].Path;
+                var resolvedPath = resolvedPaths[0];
                 WriteVerbose(string.Format("Provided resolved path is '{0}'", resolvedPath));
 
                 var versionPaths = Utils.GetSubDirectories(resolvedPath);
