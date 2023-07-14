@@ -26,7 +26,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     [Cmdlet(VerbsData.Publish, 
         "PSResource", 
         SupportsShouldProcess = true)]
-    [Alias("pups")]
+    [Alias("pbres")]
     public sealed class PublishPSResource : PSCmdlet
     {
         #region Parameters

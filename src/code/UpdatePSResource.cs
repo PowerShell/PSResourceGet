@@ -20,7 +20,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     [Cmdlet(VerbsData.Update,
         "PSResource",
         SupportsShouldProcess = true)]
-    [Alias("upps")]
+    [Alias("udres")]
     public sealed class UpdatePSResource : PSCmdlet
     {
         #region Members

@@ -22,7 +22,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         "PSResource", 
         DefaultParameterSetName = "NameParameterSet", 
         SupportsShouldProcess = true)]
-    [Alias("inps")]
+    [Alias("isres")]
     public sealed
     class InstallPSResource : PSCmdlet
     {

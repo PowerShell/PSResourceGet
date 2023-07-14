@@ -264,7 +264,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $res.Version | Should -Be "1.0.0"
     }
 
-    It "Get definition for alias 'inps'" {
-        (Get-Alias inps).Definition | Should -BeExactly 'Install-PSResource'
+    It "Get definition for alias 'isres'" {
+        (Get-Alias isres).Definition | Should -BeExactly 'Install-PSResource'
     }
 }

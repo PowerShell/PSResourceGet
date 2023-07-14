@@ -235,7 +235,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         }
     }
 
-    It "Get definition for alias 'fips'" {
-        (Get-Alias fips).Definition | Should -BeExactly 'Find-PSResource'
+    It "Get definition for alias 'fdres'" {
+        (Get-Alias fdres).Definition | Should -BeExactly 'Find-PSResource'
     }
 }
