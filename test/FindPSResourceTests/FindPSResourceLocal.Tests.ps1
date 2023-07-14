@@ -233,7 +233,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
         $res = Find-PSResource -Type Script -Repository $localRepo
         $res | Should -Not -BeNullOrEmpty
-        $res.Count | Should -Be 1
+        $res.Count | Should -Be 2
         $res.Type | Should -Be "Script"
     }
     
