@@ -666,22 +666,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
         }
 
-        // private void SetNetworkCredential(PSRepositoryInfo repository)
-        // {
-        //     // Explicitly passed in Credential takes precedence over repository CredentialInfo.
-        //     if (_networkCredential == null && repository.CredentialInfo != null)
-        //     {
-        //         PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-        //             repository.Name,
-        //             repository.CredentialInfo,
-        //             _cmdletPassedIn);
-
-        //         _networkCredential = new NetworkCredential(repoCredential.UserName, repoCredential.Password);
-
-        //         _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repository.Name);
-        //     }
-        // }
-
         #endregion
 
         #region Internal Client Search Methods

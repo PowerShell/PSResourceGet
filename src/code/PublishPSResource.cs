@@ -1030,22 +1030,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
               isPasswordClearText: true,
               String.Empty));
         }
-
-        // private void SetNetworkCredential(PSRepositoryInfo repository)
-        // {
-        //     // Explicitly passed in Credential takes precedence over repository CredentialInfo.
-        //     if (_networkCredential == null && repository.CredentialInfo != null)
-        //     {
-        //         PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-        //             repository.Name,
-        //             repository.CredentialInfo,
-        //             this);
-
-        //         _networkCredential = new NetworkCredential(repoCredential.UserName, repoCredential.Password);
-
-        //         WriteVerbose("credential successfully read from vault and set for repository: " + repository.Name);
-        //     }
-        // }
     
     #endregion
   }
