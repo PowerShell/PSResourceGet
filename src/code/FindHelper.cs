@@ -441,10 +441,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             }
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
-                            parentPkgs.Add(foundPkg);
-                            _pkgsLeftToFind.Remove(foundPkg.Name);
-                            pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
-                            yield return foundPkg;
+
+                            if (foundPkg.Type == _type || _type == ResourceType.None)
+                            {
+                                parentPkgs.Add(foundPkg);
+                                _pkgsLeftToFind.Remove(foundPkg.Name);
+                                pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
+                                yield return foundPkg;
+                            }
                         }
                     }
                     else if(pkgName.Contains("*"))

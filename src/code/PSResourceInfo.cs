@@ -1437,6 +1437,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         private static Dependency[] GetDependenciesForPs1(ModuleSpecification[] requiredModules)
         {
             List<Dependency> deps = new List<Dependency>();
+            if (requiredModules == null)
+            {
+                return deps.ToArray();
+            }
+
             foreach(ModuleSpecification depModule in requiredModules)
             {
                 // ModuleSpecification has Version, RequiredVersion, MaximumVersion
