@@ -234,7 +234,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res = Find-PSResource -Type Script -Repository $localRepo
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -Be 2
-        $res.Type | Should -Be "Script"
+        $res.Type | Should -Be @("Script", "Script")
     }
     
     It "find modules given -Type parameter" {
