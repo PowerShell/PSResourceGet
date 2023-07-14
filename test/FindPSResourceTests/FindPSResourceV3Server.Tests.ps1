@@ -285,4 +285,13 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterThan 300
     }
+
+    It "should throw unauthorized exception if private repository with no credentials" {
+        Register-PSResourceRepository -Name "PrivateGallery" -Uri "https://gitlab.com/api/v4/projects/47456554/packages/nuget/index.json"
+        $res = Find-PSResource -Name $testModuleName -Repository "PrivateGallery" -ErrorVariable err -ErrorAction SilentlyContinue
+        Unregister-PSResourceRepository -Name "PrivateGallery"
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -BeGreaterThan 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "UnauthorizedRequest,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
 }

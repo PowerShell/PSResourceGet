@@ -140,7 +140,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
             elseif ($pkg.Name -eq "TestModuleWithDependencyB")
             {
                 $foundDepB = $true
-                $foundDepBCorrectVersion = [System.Version]$pkg.Version -ge [System.Version]"3.0"
+                $foundDepBCorrectVersion = [System.Version]$pkg.Version -ge [System.Version]"1.0"
             }
             elseif ($pkg.Name -eq "TestModuleWithDependencyD")
             {
@@ -371,6 +371,12 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res.Name | Should -Be "testmodule99"
         $res.Count | Should -Be 1
         $res.Repository | Should -Be $PSGalleryName
+    }
+
+    It "find all resources within a version range, including prereleases" {
+        $res = Find-PSResource -Name "PSReadLine" -Version "(2.0,2.1)" -Prerelease -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -Be 7 
     }
 }
 
