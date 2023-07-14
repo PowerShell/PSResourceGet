@@ -899,7 +899,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 filePath: manifestFilePath,
                 allowedVariables: ManifestFileVariables,
                 allowedCommands: Utils.EmptyStrArray,
-                allowEnvironmentVariables: false,
+                allowEnvironmentVariables: true,
                 out manifestInfo,
                 out error);
         }
