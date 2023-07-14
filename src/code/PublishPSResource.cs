@@ -968,7 +968,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 //  for ADO repository feeds that are private feeds the error thrown is different and the 401 is in the inner exception message
                 if (e.InnerException.Message.Contains("401"))
                 {
-                    var message = String.Format ("Repository '{0}': The Credential provided was incorrect. Exception {1}", repoName, e.InnerException.Message);
+                    var message = String.Format ("Repository '{0}': The Credential provided was incorrect. Exception '{1};", repoName, e.InnerException.Message);
+
                     var ex = new ArgumentException(message);
                     var ApiKeyError = new ErrorRecord(ex, "401FatalProtocolError", ErrorCategory.AuthenticationError, null);
                     error = ApiKeyError;
