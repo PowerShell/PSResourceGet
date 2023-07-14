@@ -1,3 +1,4 @@
+using System.Net;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -666,6 +667,27 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return result;
         }
 
+        public static NetworkCredential SetNetworkCredential(
+            PSRepositoryInfo repository,
+            NetworkCredential networkCredential,
+            PSCmdlet cmdletPassedIn)
+        {
+            // Explicitly passed in Credential takes precedence over repository CredentialInfo.
+            if (networkCredential == null && repository.CredentialInfo != null)
+            {
+                PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+                    repository.Name,
+                    repository.CredentialInfo,
+                    cmdletPassedIn);
+
+                networkCredential = new NetworkCredential(repoCredential.UserName, repoCredential.Password);
+
+                cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repository.Name);
+            }
+
+            return networkCredential;
+        }
+        
         #endregion
 
         #region Path methods

@@ -369,7 +369,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
-                SetNetworkCredential(repository);
+                _networkCredential = Utils.SetNetworkCredential(repository, _networkCredential, this);
 
                 // Check if dependencies already exist within the repo if:
                 // 1) the resource to publish has dependencies and
@@ -1031,21 +1031,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
               String.Empty));
         }
 
-        private void SetNetworkCredential(PSRepositoryInfo repository)
-        {
-            // Explicitly passed in Credential takes precedence over repository CredentialInfo.
-            if (_networkCredential == null && repository.CredentialInfo != null)
-            {
-                PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-                    repository.Name,
-                    repository.CredentialInfo,
-                    this);
+        // private void SetNetworkCredential(PSRepositoryInfo repository)
+        // {
+        //     // Explicitly passed in Credential takes precedence over repository CredentialInfo.
+        //     if (_networkCredential == null && repository.CredentialInfo != null)
+        //     {
+        //         PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+        //             repository.Name,
+        //             repository.CredentialInfo,
+        //             this);
 
-                _networkCredential = new NetworkCredential(repoCredential.UserName, repoCredential.Password);
+        //         _networkCredential = new NetworkCredential(repoCredential.UserName, repoCredential.Password);
 
-                WriteVerbose("credential successfully read from vault and set for repository: " + repository.Name);
-            }
-        }
+        //         WriteVerbose("credential successfully read from vault and set for repository: " + repository.Name);
+        //     }
+        // }
     
     #endregion
   }

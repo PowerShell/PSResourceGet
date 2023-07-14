@@ -187,22 +187,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 sourceTrusted = repo.Trusted || trustRepository;
 
-                // Explicitly passed in Credential takes precedence over repository CredentialInfo.
-                if (_networkCredential == null && repo.CredentialInfo != null)
-                {
-                    PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-                        repo.Name,
-                        repo.CredentialInfo,
-                        _cmdletPassedIn);
-
-                    var username = repoCredential.UserName;
-                    var password = repoCredential.Password;
-
-                    _networkCredential = new NetworkCredential(username, password);
-
-                    _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repo.Name);
-                }
-
+                _networkCredential = Utils.SetNetworkCredential(repo, _networkCredential, _cmdletPassedIn);
                 ServerApiCall currentServer = ServerFactory.GetServer(repo, _networkCredential);
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(repo);
                 bool installDepsForRepo = skipDependencyCheck;
