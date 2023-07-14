@@ -55,7 +55,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # FindName()
         $pkgName = "test_nonpsresource"
         $requiredTag = "Tag1"
-        Save-PSResource -Name $pkgName -Repository "NuGetGallery" -Path $localRepoUriAddress -AsNupkg
+        Save-PSResource -Name $pkgName -Repository "NuGetGallery" -Path $localRepoUriAddress -AsNupkg -TrustRepository
         $res = Find-PSResource -Name $pkgName -Repository $localRepo
         $res.Name | Should -Be $pkgName
         $res.Repository | Should -Be $localRepo
@@ -66,7 +66,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # FindName()
         $pkgName = "Required-Script1"
         $requiredTag = "Tag1"
-        Save-PSResource -Name $pkgName -Repository "PSGallery" -Path $localRepoUriAddress -AsNupkg
+        Save-PSResource -Name $pkgName -Repository "PSGallery" -Path $localRepoUriAddress -AsNupkg -TrustRepository
         # $res = Find-PSResource -Name $pkgName -Repository $localRepo
         # $res.Name | Should -Be $pkgName
         # $res.Repository | Should -Be $localRepo
