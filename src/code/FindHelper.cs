@@ -762,7 +762,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         if (responses.IsFindResultsEmpty())
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
-                                        new InvalidOrEmptyResponse($"Dependency package with Name {dep.Name} and VersionRange {dep.VersionRange} could not be found"), 
+                                        new InvalidOrEmptyResponse($"Dependency package with Name {dep.Name} and VersionRange {dep.VersionRange} could not be found in repository '{repository.Name}"), 
                                         "FindDepPackagesFindVersionGlobbingFailure", 
                                         ErrorCategory.InvalidResult, 
                                         this));
@@ -775,7 +775,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
                                  _cmdletPassedIn.WriteError(new ErrorRecord(
-                                            new PackageNotFoundException($"Dependency package '{dep.Name}' with version range '{dep.VersionRange}' could not be found", currentResult.exception), 
+                                            new PackageNotFoundException($"Dependency package '{dep.Name}' with version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception), 
                                             "DependencyPackageNotFound", 
                                             ErrorCategory.ObjectNotFound, 
                                             this));
@@ -800,13 +800,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (depPkg == null)
                         {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(
-                                            new PackageNotFoundException($"Dependency package '{dep.Name}' with version range '{dep.VersionRange}' could not be found"), 
-                                            "DependencyPackageNotFound", 
-                                            ErrorCategory.ObjectNotFound, 
-                                            this));
-                                
-                            yield return null;
+                            continue;
                         }
                         
                         string pkgHashKey = String.Format("{0}{1}", depPkg.Name, depPkg.Version.ToString());
