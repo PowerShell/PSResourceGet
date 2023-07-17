@@ -326,9 +326,10 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
     It "should set temp drive repository" -skip:(!$IsWindows)  {
         Register-PSResourceRepository -Name "tempDriveRepo" -Uri $tmpDir1Path
         $res = Get-PSResourceRepository -Name "tempDriveRepo"
-        Set-PSResourceRepository -Name $TestRepoName1 -Uri "Temp:\"
+        $res.Uri.LocalPath | Should -Be $tmpDir1Path
 
-        $res.Name | Should -Be "tempDriveRepo"
-        $res.Uri.LocalPath | Should -Be "Temp:\"
+        Set-PSResourceRepository -Name "tempDriveRepo" -Uri "Temp:\"
+        $res2 = Get-PSResourceRepository -Name "tempDriveRepo"
+        $res2.Uri.LocalPath | Should -Be "Temp:\"
     }
 }

@@ -336,19 +336,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 Uri thisUrl = null;
                 if (repoUri != null) 
                 {
-                    if (!Uri.TryCreate(repoUri.AbsoluteUri, UriKind.Absolute, out thisUrl))
-                    {
-                        throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Url for repo {0}", repoName));
-                    }
-
                     if (urlAttributeExists)
                     {
-                        node.Attribute("Url").Value = thisUrl.AbsoluteUri;
+                        node.Attribute("Url").Value = repoUri.ToString();
                     }
                     else
                     {
-                        node.Attribute("Uri").Value = thisUrl.AbsoluteUri;
+                        node.Attribute("Uri").Value = repoUri.ToString();
                     }
+                    thisUrl = repoUri;
 
                     if (apiVersion == null)
                     {
