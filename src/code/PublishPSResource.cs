@@ -636,13 +636,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             string tags = (resourceType == ResourceType.Script) ? "PSScript" : "PSModule";
-            if (parsedMetadataHash.ContainsKey("tags"))
+            if (parsedMetadataHash.ContainsKey("tags") && parsedMetadataHash["tags"] != null)
             {
-                if (parsedMetadataHash["tags"] != null)
+                if (parsedMetadataHash["tags"] is string[])
+                {
+                    string[] tagsArr = parsedMetadataHash["tags"] as string[];
+                    tags += " " + String.Join(" ", tagsArr);
+                }
+                else if (parsedMetadataHash["tags"] is string)
                 {
                     tags += " " + parsedMetadataHash["tags"].ToString().Trim();
                 }
             }
+
             metadataElementsDictionary.Add("tags", tags);
 
 
