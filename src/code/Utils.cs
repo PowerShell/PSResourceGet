@@ -899,7 +899,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 filePath: manifestFilePath,
                 allowedVariables: ManifestFileVariables,
                 allowedCommands: Utils.EmptyStrArray,
-                allowEnvironmentVariables: false,
+                allowEnvironmentVariables: true,
                 out manifestInfo,
                 out error);
         }
@@ -986,8 +986,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
                 catch (Exception e)
                 {
-                    errorMsg = $"Error occured while running 'Test-ModuleManifest': {e.Message}";
-                    return false;
+                    if (e.Message.EndsWith("Change the value of the ModuleVersion key to match the version folder name."))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        errorMsg = $"Error occured while running 'Test-ModuleManifest': {e.Message}";
+                        return false;
+                    }
                 }
 
                 if (pwsh.HadErrors)

@@ -88,7 +88,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// The destination where the resource is to be installed. Works for all resource types.
         /// </summary>
-        [Parameter(Mandatory = true, HelpMessage = "Path to save the package to.")]
+        [Parameter(HelpMessage = "Path to save the package to.")]
         [ValidateNotNullOrEmpty]
         public string Path
         {
@@ -182,6 +182,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             RepositorySettings.CheckRepositoryStore();
 
             var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+
+            // If path is not provided, use current path.
+            if (string.IsNullOrEmpty(_path))
+            {
+                _path = GetResolvedProviderPathFromPSPath(SessionState.Path.CurrentFileSystemLocation.Path, out ProviderInfo provider).First();
+                WriteVerbose($"No path was provided. Using the current working directory '{_path}.'");
+            }
 
             _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }

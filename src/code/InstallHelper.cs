@@ -627,20 +627,47 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
             }
 
-            PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responseResults: responses).FirstOrDefault();
-
-            if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
+            PSResourceInfo pkgToInstall = null;
+            foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
             {
-                // V2Server API calls will return non-empty response when package is not found but fail at conversion time
-                _cmdletPassedIn.WriteError(new ErrorRecord(
-                            new InvalidOrEmptyResponse($"Package '{pkgNameToInstall}' could not be installed", currentResult.exception),
-                            "InstallPackageFailure",
-                            ErrorCategory.InvalidData,
-                            this));
+                if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
+                {
+                    // V2Server API calls will return non-empty response when package is not found but fail at conversion time
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new InvalidOrEmptyResponse($"Package '{pkgNameToInstall}' could not be installed", currentResult.exception),
+                                "InstallPackageFailure",
+                                ErrorCategory.InvalidData,
+                                this));
+                }
+                else if (searchVersionType == VersionType.VersionRange)
+                {
+                    // Check to see if version falls within version range 
+                    PSResourceInfo foundPkg = currentResult.returnedObject;
+                    string versionStr = $"{foundPkg.Version}";
+                    if (foundPkg.IsPrerelease)
+                    {
+                        versionStr += $"-{foundPkg.Prerelease}";
+                    }
+
+                    if (NuGetVersion.TryParse(versionStr, out NuGetVersion version)
+                           && _versionRange.Satisfies(version))
+                    {
+                        pkgToInstall = foundPkg;
+
+                        break;
+                    }
+                } else {
+                    pkgToInstall = currentResult.returnedObject;
+
+                    break;
+                }
+            }
+
+            if (pkgToInstall == null)
+            {
                 return packagesHash;
             }
 
-            PSResourceInfo pkgToInstall = currentResult.returnedObject;
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
             pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
 
