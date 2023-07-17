@@ -83,4 +83,36 @@ Describe "Test Get-PSScriptFileInfo" -tags 'CI' {
         $res.Name | Should -Be "ScriptWithInvalidProjectUri"
         $res.ScriptMetadataComment.ProjectUri | Should -BeNullOrEmpty
     }
+
+    It "should get script file object given script that has commas in Tags, ExternalModuleDependencies, RequiredScripts, and ExternalScriptDependencies fields" {
+        # Note: New-PSScriptFileInfo will NOT create script that has commas in these fields, but per user requests we want to account for scripts that may contain it
+        $scriptName = "ScriptWithCommaInTagsInSomeFields.ps1"
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+
+        $res = Get-PSScriptFileInfo $scriptFilePath
+        $foundTags = $res.ScriptMetadataComment.Tags
+        $foundExternalModuleDependencies = $res.ScriptMetadataComment.ExternalModuleDependencies
+        $foundRequiredScripts = $res.ScriptMetadataComment.RequiredScripts
+        $foundExternalScriptDependencies = $res.ScriptMetadataComment.ExternalScriptDependencies
+
+        $foundTags | Should -Be @("tag1", "tag2")
+        foreach($tag in $foundTags) {
+            $tag | Should -Not -Contain ","
+        }
+
+        $foundExternalModuleDependencies | Should -Be @("Storage", "ActiveDirectory")
+        foreach($modDep in $foundExternalModuleDependencies) {
+            $modDep | Should -Not -Contain ","
+        }
+
+        $foundRequiredScripts | Should -Be @("Script1", "Script2")
+        foreach($reqScript in $foundRequiredScripts) {
+            $modDep | Should -Not -Contain ","
+        }
+
+        $foundExternalScriptDependencies | Should -Be @("ExtScript1", "ExtScript2")
+        foreach($scriptDep in $foundExternalScriptDependencies) {
+            $modDep | Should -Not -Contain ","
+        }
+    }
 }

@@ -173,7 +173,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             // now populate the object instance
-            string[] spaceDelimeter = new string[]{" "};
+            string[] delimeter = new string[]{" ", ","};
 
             Uri parsedLicenseUri = null;
             if (!String.IsNullOrEmpty((string) parsedMetadata["LICENSEURI"]))
@@ -214,10 +214,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             ProjectUri = parsedProjectUri;
             IconUri = parsedIconUri;
             
-            Tags = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedMetadata["TAGS"]);;
-            ExternalModuleDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedMetadata["EXTERNALMODULEDEPENDENCIES"]);
-            RequiredScripts = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedMetadata["REQUIREDSCRIPTS"]);
-            ExternalScriptDependencies = Utils.GetStringArrayFromString(spaceDelimeter, (string) parsedMetadata["EXTERNALSCRIPTDEPENDENCIES"]);
+            Tags = Utils.GetStringArrayFromString(delimeter, (string) parsedMetadata["TAGS"]);;
+            ExternalModuleDependencies = Utils.GetStringArrayFromString(delimeter, (string) parsedMetadata["EXTERNALMODULEDEPENDENCIES"]);
+            RequiredScripts = Utils.GetStringArrayFromString(delimeter, (string) parsedMetadata["REQUIREDSCRIPTS"]);
+            ExternalScriptDependencies = Utils.GetStringArrayFromString(delimeter, (string) parsedMetadata["EXTERNALSCRIPTDEPENDENCIES"]);
             ReleaseNotes = (string) parsedMetadata["RELEASENOTES"] ?? String.Empty;
             PrivateData = (string) parsedMetadata["PRIVATEDATA"] ?? String.Empty;
 
@@ -234,7 +234,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             /**
             Comment lines can look like this:
 
-            .KEY1 value
+            .KEY1 value,
 
             .KEY2 value
 
@@ -250,7 +250,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
 
             Hashtable parsedHelpMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
-            char[] spaceDelimeter = new char[]{' '};
+            char[] delimeter = new char[]{' ', ','};
             string keyName = "";
             string value = "";
 
@@ -278,7 +278,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
 
                     // setting count to 2 will get 1st separated string (key) into part[0] and the rest (value) into part[1] if any
-                    string[] parts = line.Trim().TrimStart('.').Split(separator: spaceDelimeter, count: 2);
+                    string[] parts = line.Trim().TrimStart('.').Split(separator: delimeter, count: 2);
                     keyName = parts[0];
                     value = parts.Length == 2 ? parts[1] : String.Empty;
                 }
