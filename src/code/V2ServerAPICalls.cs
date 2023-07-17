@@ -805,7 +805,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (versionRange.MaxVersion != null)
             {
                 string operation = versionRange.IsMaxInclusive ? "le" : "lt";
-                maxPart = String.Format(format, operation, $"'{versionRange.MaxVersion.ToNormalizedString()}'");
+                // Adding 1 because we want to retrieve all the prerelease versions for the max version and PSGallery views prerelease as higher than its stable
+                // eg 3.0.0-prerelease > 3.0.0
+                string maxString = $"{versionRange.MaxVersion.Major}.{versionRange.MaxVersion.Minor + 1}";
+                if (NuGetVersion.TryParse(maxString, out NuGetVersion maxVersion))
+                {
+                    maxPart = String.Format(format, operation, $"'{maxVersion.ToNormalizedString()}'");
+                }
+                else { 
+                    maxPart = String.Format(format, operation, $"'{versionRange.MaxVersion.ToNormalizedString()}'");
+                }
             }
 
             string versionFilterParts = String.Empty;
@@ -841,8 +850,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 filterQuery +=  $"{andOperator}{versionFilterParts}";
             }
 
-            string topParam = getOnlyLatest ? "$top=1" : "$top=100"; // only need 1 package if interested in latest
-            string paginationParam = $"$inlinecount=allpages&$skip={skip}&{topParam}";
+            string paginationParam = $"$inlinecount=allpages&$skip={skip}";
 
             filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
