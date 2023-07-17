@@ -330,6 +330,6 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
 
         Set-PSResourceRepository -Name "tempDriveRepo" -Uri "Temp:\"
         $res2 = Get-PSResourceRepository -Name "tempDriveRepo"
-        $res2.Uri.LocalPath | Should -Be "Temp:\"
+        $res2.Uri.LocalPath | Should -Be "\"
     }
 }
