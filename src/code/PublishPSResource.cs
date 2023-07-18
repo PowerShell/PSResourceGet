@@ -919,7 +919,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (e.Message.Contains("API"))
                     {
                         // For PSGallery when ApiKey is not provided.
-                        var message = String.Format("Repository '{0}': {1} Please try running again with the -ApiKey parameter and specific API key for the repository specified.", repoName, e.Message);
+                        var message = $"Could not publish to repository '{repoName}'. Please try running again with the -ApiKey parameter and the API key for the repository specified. Exception: '{e.Message}'";
+
+
                         ex = new ArgumentException(message);
                         var ApiKeyError = new ErrorRecord(ex, "401ApiKeyError", ErrorCategory.AuthenticationError, null);
                         error = ApiKeyError;
@@ -927,7 +929,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     else
                     {
                         // For ADO repository feeds that are public feeds, when the credentials are incorrect.
-                        var message = String.Format("Repository '{0}': {1} The Credential provided was incorrect.", repoName, e.Message);
+                        var message =$"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception: '{e.Message}'";
+
+
                         ex = new ArgumentException(message);
                         var Error401 = new ErrorRecord(ex, "401Error", ErrorCategory.PermissionDenied, null);
                         error = Error401;
@@ -935,8 +939,31 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else if (e.Message.Contains("403"))
                 {
-                    var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
-                    error = Error403;
+                    if (repoUri.Contains("myget.org"))
+                    {
+                        // For myGet.org repository feeds when the ApiKey is missing or incorrect.
+                        var message = $"Could not publish to repository '{repoName}'. The ApiKey provided is incorrect or missing. Please try running again with the -ApiKey parameter and correct API key value for the repository. Exception: '{e.Message}'";
+
+
+                        ex = new ArgumentException(message);
+                        var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
+                        error = Error403;
+                    }
+                    else if (repoUri.Contains(".jfrog.io"))
+                    {
+                        // For JFrog Artifactory repository feeds when the ApiKey is provided, whether correct or incorrect, as JFrog does not require -ApiKey (but does require ApiKey to be present as password to -Credential).
+                        var message = $"Could not publish to repository '{repoName}'. The ApiKey provided is not needed for JFrog Artifactory. Please try running again without the -ApiKey parameter but ensure that -Credential is provided with ApiKey as password. Exception: '{e.Message}'";
+
+
+                        ex = new ArgumentException(message);
+                        var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
+                        error = Error403;
+                    }
+                    else
+                    {
+                        var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
+                        error = Error403;
+                    }
                 }
                 else if (e.Message.Contains("409"))
                 {
@@ -956,7 +983,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 //  for ADO repository feeds that are private feeds the error thrown is different and the 401 is in the inner exception message
                 if (e.InnerException.Message.Contains("401"))
                 {
-                    var message = String.Format ("Repository '{0}': {1} The Credential provided was incorrect.", repoName, e.InnerException.Message);
+                    var message = $"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception '{e.InnerException.Message}'";
+
+
                     var ex = new ArgumentException(message);
                     var ApiKeyError = new ErrorRecord(ex, "401FatalProtocolError", ErrorCategory.AuthenticationError, null);
                     error = ApiKeyError;
