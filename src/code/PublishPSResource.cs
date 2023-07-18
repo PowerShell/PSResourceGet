@@ -787,7 +787,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 bool depPrerelease = depVersion.Contains("-");
 
                 var repository = new[] { repositoryName };
-                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, depPrerelease, null, repository, false);
+                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, true, null, repository, false);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
                     var message = String.Format("Dependency '{0}' was not found in repository '{1}'.  Make sure the dependency is published to the repository before publishing this module.", dependency, repositoryName);

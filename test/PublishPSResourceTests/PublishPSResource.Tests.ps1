@@ -321,6 +321,34 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Test-Path -Path (Join-Path -Path $unzippedPath -ChildPath $testFile) | Should -Be $True
     }
 
+    It "Publish a module with prerelease dependency" {
+        $DepModuleName = "PrereleaseModule"
+        $DepVersion = "1.0.0"
+        $DepPrereleaseLabel = "beta"
+        $DepModuleRoot = Join-Path -Path $script:PublishModuleBase -ChildPath $DepModuleName
+        New-Item -Path $DepModuleRoot -ItemType Directory -Force
+        $DepManifestPath = Join-Path -Path $DepModuleRoot -ChildPath "$DepModuleName.psd1"
+        New-ModuleManifest -Path $DepManifestPath -ModuleVersion $DepVersion -Description "$DepModuleName module" -Prerelease $DepPrereleaseLabel
+
+        Publish-PSResource -Path $DepManifestPath -Repository $testRepository2
+        Install-PSResource -Name $DepModuleName -Repository $testRepository2 -TrustRepository -Prerelease
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$DepModuleName.$DepVersion-$DepPrereleaseLabel.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+
+        $ParentModuleName = "TestModuleWithPrereleaseDep"
+        $ParentVersion = "1.0.0"
+        $ParentModuleRoot = Join-Path -Path $script:PublishModuleBase -ChildPath $ParentModuleName
+        New-Item -Path $ParentModuleRoot -ItemType Directory -Force
+        $ParentManifestPath = Join-Path -Path $ParentModuleRoot -ChildPath "$ParentModuleName.psd1"
+        New-ModuleManifest -Path $ParentManifestPath -ModuleVersion $ParentVersion -Description "$ParentPkgName module" -RequiredModules $DepModuleName
+
+        Publish-PSResource -Path $ParentManifestPath -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$ParentModuleName.$ParentVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Contain $expectedPath
+    }
+
     <# The following tests are related to passing in parameters to customize a nuspec.
      # These parameters are not going in the current release, but is open for discussion to include in the future.
     It "Publish a module with -Nuspec" {
