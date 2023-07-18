@@ -322,15 +322,13 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
 
     It "Publish a module with prerelease dependency" {
+        # look at functions in test utils for creating a module with prerelease
         $DepModuleName = "PrereleaseModule"
         $DepVersion = "1.0.0"
         $DepPrereleaseLabel = "beta"
         $DepModuleRoot = Join-Path -Path $script:PublishModuleBase -ChildPath $DepModuleName
-        New-Item -Path $DepModuleRoot -ItemType Directory -Force
-        $DepManifestPath = Join-Path -Path $DepModuleRoot -ChildPath "$DepModuleName.psd1"
-        New-ModuleManifest -Path $DepManifestPath -ModuleVersion $DepVersion -Description "$DepModuleName module" -Prerelease $DepPrereleaseLabel
 
-        Publish-PSResource -Path $DepManifestPath -Repository $testRepository2
+        New-TestModule -Path $DepModuleRoot -ModuleName $DepModuleName -RepoName $testRepository2 -PackageVersion $DepVersion -prereleaseLabel $DepPrereleaseLabel  
         Install-PSResource -Name $DepModuleName -Repository $testRepository2 -TrustRepository -Prerelease
 
         $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$DepModuleName.$DepVersion-$DepPrereleaseLabel.nupkg"
