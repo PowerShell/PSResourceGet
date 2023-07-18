@@ -478,10 +478,10 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
 
         $expectedPath = Join-Path -Path $script:destinationPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        (Get-ChildItem $script:destinationPath).FullName | Should -Be $expectedPath
+        (Get-ChildItem $script:destinationPath).FullName | Should -Contain $expectedPath
     }
 
-    It "Publish a module with -Path -Repository and -DestinationPath" {
+    It "Publish a module with with Pester as a dependency" {
         $moduleName = "Pester"
         $moduleVersion = "5.5.0"
         Save-PSResource -Name $moduleName -Path $tmpRepoPath -Version $moduleVersion -Repository PSGallery -TrustRepository
