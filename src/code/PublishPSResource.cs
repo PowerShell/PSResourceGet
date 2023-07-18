@@ -768,7 +768,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 return null;
             }
-
             var requiredModules = parsedMetadataHash["requiredmodules"];
 
             // Required modules can be:
@@ -792,6 +791,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 foreach (var modName in moduleNames)
                 {
                     dependenciesHash.Add(modName, string.Empty);
+                }
+            }
+
+            var externalModuleDeps = parsedMetadataHash.ContainsKey("ExternalModuleDependencies") ? 
+                        parsedMetadataHash["ExternalModuleDependencies"] : null;
+
+            if (externalModuleDeps != null && LanguagePrimitives.TryConvertTo<string[]>(externalModuleDeps, out string[] externalModuleNames))
+            {
+                foreach (var extModName in externalModuleNames)
+                {
+                    if (dependenciesHash.ContainsKey(extModName))
+                    {
+                        dependenciesHash.Remove(extModName);
+                    }
                 }
             }
 

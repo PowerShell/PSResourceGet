@@ -543,6 +543,18 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
 
+    It "should publish a script with sExternalModuleDependencies that are not published" {
+        $scriptName = "test"
+        $scriptVersion = "1.0.0"
+        $scriptPath = Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1"
+        New-PSScriptFileInfo -Description 'test' -Version $scriptVersion -RequiredModules @{ModuleName='testModule'} -ExternalModuleDependencies 'testModule' -Path $scriptPath -Force
+
+        Publish-PSResource -Path $scriptPath 
+
+        $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
+    }
+
     It "should write error and not publish script when Author property is missing" {
         $scriptName = "InvalidScriptMissingAuthor.ps1"
         $scriptVersion = "1.0.0"
