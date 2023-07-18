@@ -935,10 +935,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else if (e.Message.Contains("403"))
                 {
-                    if (repoUri.Contains("myget.org") || repoUri.Contains(".jfrog.io"))
+                    if (repoUri.Contains("myget.org"))
                     {
                         // For myGet.org repository feeds when the ApiKey is missing or incorrect.
                         var message = String.Format("Repository '{0}': The ApiKey provided is incorrect or missing. Please try running again with the -ApiKey parameter and correct API key value for the repository. Exception: '{1}'", repoName, e.Message);
+
+                        ex = new ArgumentException(message);
+                        var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
+                        error = Error403;
+                    }
+                    else if (repoUri.Contains(".jfrog.io"))
+                    {
+                        // For JFrog Artifactory repository feeds when the ApiKey is provided, whether correct or incorrect, as JFrog does not require -ApiKey (but does require ApiKey to be present as password to -Credential).
+                        var message = String.Format("Repository '{0}': The ApiKey provided is not needed for JFrog Artifactory. Please try running again without the -ApiKey parameter but ensure that -Credential is provided with ApiKey as password. Exception: '{1}'", repoName, e.Message);
 
                         ex = new ArgumentException(message);
                         var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
