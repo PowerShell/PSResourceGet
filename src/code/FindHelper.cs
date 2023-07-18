@@ -132,7 +132,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Count > 0 ; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
-                SetNetworkCredential(currentRepository);
+                _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
                 if (currentServer == null)
                 {
@@ -234,7 +234,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 
-                SetNetworkCredential(currentRepository);
+                _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
                 if (currentServer == null)
                 {
@@ -354,7 +354,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && _tagsLeftToFind.Any(); i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
-                SetNetworkCredential(currentRepository);
+                _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
                 if (currentServer == null)
                 {
@@ -679,22 +679,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         yield return pkgDep;
                     }
                 }
-            }
-        }
-
-        private void SetNetworkCredential(PSRepositoryInfo repository)
-        {
-            // Explicitly passed in Credential takes precedence over repository CredentialInfo.
-            if (_networkCredential == null && repository.CredentialInfo != null)
-            {
-                PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-                    repository.Name,
-                    repository.CredentialInfo,
-                    _cmdletPassedIn);
-
-                _networkCredential = new NetworkCredential(repoCredential.UserName, repoCredential.Password);
-
-                _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repository.Name);
             }
         }
 
