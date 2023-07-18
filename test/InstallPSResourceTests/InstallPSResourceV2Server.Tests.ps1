@@ -331,7 +331,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     It "Install module using -WhatIf, should not install the module" {
-        Install-PSResource -Name $testModuleName -WhatIf
+        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -WhatIf
 
         $res = Get-InstalledPSResource $testModuleName
         $res | Should -BeNullOrEmpty
