@@ -113,8 +113,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             if (MyInvocation.BoundParameters.ContainsKey(nameof(Uri)))
             {
-                bool isUriValid = Utils.TryCreateValidUri(Uri, this, out _uri, out ErrorRecord errorRecord);
-                if (!isUriValid)
+                if (!Utils.TryCreateValidUri(Uri, this, out _uri, out ErrorRecord errorRecord))
                 {
                     ThrowTerminatingError(errorRecord);
                 }
