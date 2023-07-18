@@ -486,11 +486,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             out Hashtable requiredModules)
         {
             WriteVerbose("Creating new nuspec file.");
+            bool isModule = resourceType != ResourceType.Script;
             requiredModules = new Hashtable();
 
             // A script will already have the metadata parsed into the parsedMetadatahash,
             // a module will still need the module manifest to be parsed.
-            if (resourceType == ResourceType.Module)
+            if (isModule)
             {
                 // Use the parsed module manifest data as 'parsedMetadataHash' instead of the passed-in data.
                 if (!Utils.TryReadManifestFile(
@@ -548,69 +549,103 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // Look for Prerelease tag and then process any Tags in PrivateData > PSData
-            if (parsedMetadataHash.ContainsKey("PrivateData"))
+            if (isModule)
             {
-                if (parsedMetadataHash["PrivateData"] is Hashtable privateData &&
-                    privateData.ContainsKey("PSData"))
+                if (parsedMetadataHash.ContainsKey("PrivateData"))
                 {
-                    if (privateData["PSData"] is Hashtable psData)
+                    if (parsedMetadataHash["PrivateData"] is Hashtable privateData &&
+                        privateData.ContainsKey("PSData"))
                     {
-                        if (psData.ContainsKey("prerelease") && psData["prerelease"] is string preReleaseVersion)
+                        if (privateData["PSData"] is Hashtable psData)
                         {
-                            if (!string.IsNullOrEmpty(preReleaseVersion))
+                            if (psData.ContainsKey("prerelease") && psData["prerelease"] is string preReleaseVersion)
                             {
-                                version = string.Format(@"{0}-{1}", version, preReleaseVersion);
+                                if (!string.IsNullOrEmpty(preReleaseVersion))
+                                {
+                                    version = string.Format(@"{0}-{1}", version, preReleaseVersion);
+                                }
                             }
-                        }
 
-                        if (psData.ContainsKey("licenseuri") && psData["licenseuri"] is string licenseUri)
+                            if (psData.ContainsKey("licenseuri") && psData["licenseuri"] is string licenseUri)
 
-                        {
-                            metadataElementsDictionary.Add("licenseUrl", licenseUri.Trim());
-                        }
-
-                        if (psData.ContainsKey("projecturi") && psData["projecturi"] is string projectUri)
-                        {
-                            metadataElementsDictionary.Add("projectUrl", projectUri.Trim());
-                        }
-
-                        if (psData.ContainsKey("iconuri") && psData["iconuri"] is string iconUri)
-                        {
-                            metadataElementsDictionary.Add("iconUrl", iconUri.Trim());
-                        }
-
-                        if (psData.ContainsKey("releasenotes"))
-                        {
-                            if (psData["releasenotes"] is string releaseNotes)
                             {
-                                metadataElementsDictionary.Add("releaseNotes", releaseNotes.Trim());
+                                metadataElementsDictionary.Add("licenseUrl", licenseUri.Trim());
                             }
-                            else if (psData["releasenotes"] is string[] releaseNotesArr)
+
+                            if (psData.ContainsKey("projecturi") && psData["projecturi"] is string projectUri)
                             {
-                                metadataElementsDictionary.Add("releaseNotes", string.Join("\n", releaseNotesArr));
+                                metadataElementsDictionary.Add("projectUrl", projectUri.Trim());
                             }
-                        }
 
-                        // defaults to false
-                        // Value for requireAcceptLicense key needs to be a lowercase string representation of the boolean for it to be correctly parsed from psData file.
-
-                        string requireLicenseAcceptance = psData.ContainsKey("requirelicenseacceptance") ? psData["requirelicenseacceptance"].ToString().ToLower() : "false";
-
-                        metadataElementsDictionary.Add("requireLicenseAcceptance", requireLicenseAcceptance);
-
-
-                        if (psData.ContainsKey("Tags") && psData["Tags"] is Array manifestTags)
-                        {
-                            var tagArr = new List<string>();
-                            foreach (string tag in manifestTags)
+                            if (psData.ContainsKey("iconuri") && psData["iconuri"] is string iconUri)
                             {
-                                tagArr.Add(tag);
+                                metadataElementsDictionary.Add("iconUrl", iconUri.Trim());
                             }
-                            parsedMetadataHash["tags"] = string.Join(" ", tagArr.ToArray());
+
+                            if (psData.ContainsKey("releasenotes"))
+                            {
+                                if (psData["releasenotes"] is string releaseNotes)
+                                {
+                                    metadataElementsDictionary.Add("releaseNotes", releaseNotes.Trim());
+                                }
+                                else if (psData["releasenotes"] is string[] releaseNotesArr)
+                                {
+                                    metadataElementsDictionary.Add("releaseNotes", string.Join("\n", releaseNotesArr));
+                                }
+                            }
+
+                            // defaults to false
+                            // Value for requireAcceptLicense key needs to be a lowercase string representation of the boolean for it to be correctly parsed from psData file.
+
+                            string requireLicenseAcceptance = psData.ContainsKey("requirelicenseacceptance") ? psData["requirelicenseacceptance"].ToString().ToLower() : "false";
+
+                            metadataElementsDictionary.Add("requireLicenseAcceptance", requireLicenseAcceptance);
+
+
+                            if (psData.ContainsKey("Tags") && psData["Tags"] is Array manifestTags)
+                            {
+                                var tagArr = new List<string>();
+                                foreach (string tag in manifestTags)
+                                {
+                                    tagArr.Add(tag);
+                                }
+                                parsedMetadataHash["tags"] = string.Join(" ", tagArr.ToArray());
+                            }
                         }
                     }
                 }
             }
+            else
+            {
+                if (parsedMetadataHash.ContainsKey("licenseuri") && parsedMetadataHash["licenseuri"] is Uri licenseUri)
+
+                {
+                    metadataElementsDictionary.Add("licenseUrl", licenseUri.ToString().Trim());
+                }
+
+                if (parsedMetadataHash.ContainsKey("projecturi") && parsedMetadataHash["projecturi"] is Uri projectUri)
+                {
+                    metadataElementsDictionary.Add("projectUrl", projectUri.ToString().Trim());
+                }
+
+                if (parsedMetadataHash.ContainsKey("iconuri") && parsedMetadataHash["iconuri"] is Uri iconUri)
+                {
+                    metadataElementsDictionary.Add("iconUrl", iconUri.ToString().Trim());
+                }
+
+                if (parsedMetadataHash.ContainsKey("releaseNotes"))
+                {
+                    if (parsedMetadataHash["releasenotes"] is string releaseNotes)
+                    {
+                        metadataElementsDictionary.Add("releaseNotes", releaseNotes.Trim());
+                    }
+                    else if (parsedMetadataHash["releasenotes"] is string[] releaseNotesArr)
+                    {
+                        metadataElementsDictionary.Add("releaseNotes", string.Join("\n", releaseNotesArr));
+                    }
+                }
+            }
+
 
             if (NuGetVersion.TryParse(version, out _pkgVersion))
             {
@@ -638,13 +673,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             string tags = (resourceType == ResourceType.Script) ? "PSScript" : "PSModule";
-            if (parsedMetadataHash.ContainsKey("tags"))
+            if (parsedMetadataHash.ContainsKey("tags") && parsedMetadataHash["tags"] != null)
             {
-                if (parsedMetadataHash["tags"] != null)
+                if (parsedMetadataHash["tags"] is string[])
+                {
+                    string[] tagsArr = parsedMetadataHash["tags"] as string[];
+                    tags += " " + String.Join(" ", tagsArr);
+                }
+                else if (parsedMetadataHash["tags"] is string)
                 {
                     tags += " " + parsedMetadataHash["tags"].ToString().Trim();
                 }
             }
+
             metadataElementsDictionary.Add("tags", tags);
 
 
