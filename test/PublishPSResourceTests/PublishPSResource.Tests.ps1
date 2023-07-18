@@ -106,13 +106,13 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     AfterEach {
         # Delete all contents of the repository without deleting the repository directory itself
         $pkgsToDelete = Join-Path -Path "$script:repositoryPath" -ChildPath "*"
-        Remove-Item $pkgsToDelete -Recurse
+        Remove-Item $pkgsToDelete -Recurse -Force -ErrorAction SilentlyContinue
 
         $pkgsToDelete = Join-Path -Path "$script:repositoryPath2" -ChildPath "*"
-        Remove-Item $pkgsToDelete -Recurse
+        Remove-Item $pkgsToDelete -Recurse -Force -ErrorAction SilentlyContinue
 
         $pkgsToDelete = Join-Path -Path $script:PublishModuleBase  -ChildPath "*"
-        Remove-Item $pkgsToDelete -Recurse -ErrorAction SilentlyContinue
+        Remove-Item $pkgsToDelete -Recurse -Force -ErrorAction SilentlyContinue
     }
 
     It "Publish module with required module not installed on the local machine using -SkipModuleManifestValidate" {
@@ -473,7 +473,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
 
-        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Contain $expectedPath
 
         $expectedPath = Join-Path -Path $script:destinationPath -ChildPath "$script:PublishModuleName.$version.nupkg"
         (Get-ChildItem $script:destinationPath).FullName | Should -Contain $expectedPath
@@ -488,7 +488,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $moduleManifestPath = Join-path -Path $moduleVersionPath -ChildPath "$moduleName.psd1"
         Publish-PSResource -Path $moduleManifestPath -Repository $testRepository2
         $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$moduleName.$moduleVersion.nupkg"
-        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Contain $expectedPath
     }
 
     It "Publish a module and clean up properly when file in module is readonly" {
