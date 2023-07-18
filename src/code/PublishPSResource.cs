@@ -917,7 +917,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (e.Message.Contains("API"))
                     {
                         // For PSGallery when ApiKey is not provided.
-                        var message = String.Format("Repository '{0}': Please try running again with the -ApiKey parameter and specific API key for the repository specified. Exception: '{1}'", repoName, e.Message);
+                        var message = $"Could not publish to repository '{repoName}'. Please try running again with the -ApiKey parameter and the API key for the repository specified. Exception: '{e.Message}'";
+
 
                         ex = new ArgumentException(message);
                         var ApiKeyError = new ErrorRecord(ex, "401ApiKeyError", ErrorCategory.AuthenticationError, null);
