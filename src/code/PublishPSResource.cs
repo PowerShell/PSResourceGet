@@ -935,7 +935,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else if (e.Message.Contains("403"))
                 {
-                    if (repoUri.Contains("myget.org"))
+                    if (repoUri.Contains("myget.org") || repoUri.Contains(".jfrog.io"))
                     {
                         // For myGet.org repository feeds when the ApiKey is missing or incorrect.
                         var message = String.Format("Repository '{0}': The ApiKey provided is incorrect or missing. Please try running again with the -ApiKey parameter and correct API key value for the repository. Exception: '{1}'", repoName, e.Message);
