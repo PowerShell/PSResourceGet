@@ -835,7 +835,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // Scenario: local repositories
                 return PSRepositoryInfo.APIVersion.local;
             }
-            else if (repoUri.AbsoluteUri.Contains("/nuget"))
+            else if (repoUri.AbsoluteUri.EndsWith("/nuget", StringComparison.OrdinalIgnoreCase))
             {
                 // Scenario: ASP.Net application feed created with NuGet.Server to host packages
                 return PSRepositoryInfo.APIVersion.nugetServer;

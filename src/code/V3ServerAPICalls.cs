@@ -314,6 +314,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             var matchingPkgEntries = GetVersionedPackageEntriesFromSearchQueryResource(querySearchTerm, includePrerelease, out errRecord);
+            Console.WriteLine(matchingPkgEntries.Count);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -654,16 +655,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Get initial response
             int skip = 0;
             string query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
+            Console.WriteLine($"Query: {query}");
 
             // Get responses for all packages that contain the required tags
             pkgEntries.AddRange(GetJsonElementArr(query, dataName, out int initialCount, out errRecord).ToList());
 
-            // check count (ie "totalHits") 425 ==> count/100  ~~> 5 calls
-            int count = initialCount / 100;
+            // check count (ie "totalHits") 425 ==> count/100  ~~> 4 calls ~~> + 1 = 5 calls
+            int count = initialCount / 100 + 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
                 skip += 100;
+                query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
                 pkgEntries.AddRange(GetJsonElementArr(query, dataName, out int unneededCount, out errRecord).ToList());
                 count--;
             }
