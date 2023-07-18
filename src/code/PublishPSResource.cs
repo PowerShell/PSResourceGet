@@ -927,7 +927,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     else
                     {
                         // For ADO repository feeds that are public feeds, when the credentials are incorrect.
-                        var message = String.Format("Repository '{0}': The Credential provided was incorrect. Exception: '{1}'", repoName, e.Message);
+                        var message =$"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception: '{e.Message}'";
+
 
                         ex = new ArgumentException(message);
                         var Error401 = new ErrorRecord(ex, "401Error", ErrorCategory.PermissionDenied, null);
