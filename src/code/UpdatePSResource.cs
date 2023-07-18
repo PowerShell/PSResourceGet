@@ -192,12 +192,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return;
             }
 
-            if (!ShouldProcess(string.Format("package to update: '{0}'", String.Join(", ", Name))))
-            {
-                WriteVerbose(string.Format("Update is cancelled by user for: {0}", String.Join(", ", Name)));
-                return;
-            }
-
             var installedPkgs = _installHelper.BeginInstallPackages(
                 names: namesToUpdate,
                 versionRange: versionRange,

@@ -463,7 +463,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         continue;
                     }
 
-                    if (packagesHash.Count == 0) {
+                    if (packagesHash.Count == 0)
+                    {
                         continue;
                     }
 
@@ -528,6 +529,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 continue;
                             }
                         }
+                    }
+
+                    // If -WhatIf is passed in, early out.
+                    if (!_cmdletPassedIn.ShouldProcess("Exit ShouldProcess"))
+                    {
+                        return pkgsSuccessfullyInstalled;
                     }
 
                     // Parent package and dependencies are now installed to temp directory.
@@ -675,36 +682,74 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return packagesHash;
             }
 
-            // Download the package.
-            string pkgName = pkgToInstall.Name;
-            Stream responseStream;
 
-            if (searchVersionType == VersionType.NoVersion && !_prerelease)
+            Hashtable updatedPackagesHash = packagesHash;
+
+            // -WhatIf processing.
+            if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
             {
-                responseStream = currentServer.InstallName(pkgName, _prerelease, out ErrorRecord installNameErrRecord);
-                if (installNameErrRecord != null)
+                if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
                 {
-                    errRecord = installNameErrRecord;
-                    return packagesHash;
+                    updatedPackagesHash.Add(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    {
+                        { "isModule", "" },
+                        { "isScript", "" },
+                        { "psResourceInfoPkg", pkgToInstall },
+                        { "tempDirNameVersionPath", tempInstallPath },
+                        { "pkgVersion", "" },
+                        { "scriptPath", ""  },
+                        { "installPath", "" }
+                    });
+                }
+            }
+            else if (!_cmdletPassedIn.ShouldProcess($"Package to install: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
+            {
+                if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
+                {
+                    updatedPackagesHash.Add(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    {
+                        { "isModule", "" },
+                        { "isScript", "" },
+                        { "psResourceInfoPkg", pkgToInstall },
+                        { "tempDirNameVersionPath", tempInstallPath },
+                        { "pkgVersion", "" },
+                        { "scriptPath", ""  },
+                        { "installPath", "" }
+                    });
                 }
             }
             else
             {
-                responseStream = currentServer.InstallVersion(pkgName, pkgVersion, out ErrorRecord installVersionErrRecord);
-                if (installVersionErrRecord != null)
+                // Download the package.
+                string pkgName = pkgToInstall.Name;
+                Stream responseStream;
+
+                if (searchVersionType == VersionType.NoVersion && !_prerelease)
                 {
-                    errRecord = installVersionErrRecord;
+                    responseStream = currentServer.InstallName(pkgName, _prerelease, out ErrorRecord installNameErrRecord);
+                    if (installNameErrRecord != null)
+                    {
+                        errRecord = installNameErrRecord;
+                        return packagesHash;
+                    }
+                }
+                else
+                {
+                    responseStream = currentServer.InstallVersion(pkgName, pkgVersion, out ErrorRecord installVersionErrRecord);
+                    if (installVersionErrRecord != null)
+                    {
+                        errRecord = installVersionErrRecord;
+                        return packagesHash;
+                    }
+                }
+
+                bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :
+                    TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord);
+
+                if (!installedToTempPathSuccessfully)
+                {
                     return packagesHash;
                 }
-            }
-
-            Hashtable updatedPackagesHash;
-            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :
-                TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord);
-
-            if (!installedToTempPathSuccessfully)
-            {
-                return packagesHash;
             }
 
             return updatedPackagesHash;
