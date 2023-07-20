@@ -97,12 +97,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 throw new ArgumentException("Name cannot be null/empty, contain asterisk or be just whitespace");
             }
 
-            if (repoUri == null || !(repoUri.Scheme == System.Uri.UriSchemeHttp || repoUri.Scheme == System.Uri.UriSchemeHttps || repoUri.Scheme == System.Uri.UriSchemeFtp || repoUri.Scheme == System.Uri.UriSchemeFile))
-            {
-                errorMsg = "Invalid Uri, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based";
-                return null;
-            }
-
             PSRepositoryInfo.APIVersion resolvedAPIVersion = apiVersion ?? GetRepoAPIVersion(repoUri);
 
             if (repoCredentialInfo != null)
@@ -147,11 +141,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public static PSRepositoryInfo UpdateRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, bool isSet, int defaultPriority, PSRepositoryInfo.APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string errorMsg)
         {
             errorMsg = string.Empty;
-            if (repoUri != null && !(repoUri.Scheme == System.Uri.UriSchemeHttp || repoUri.Scheme == System.Uri.UriSchemeHttps || repoUri.Scheme == System.Uri.UriSchemeFtp || repoUri.Scheme == System.Uri.UriSchemeFile))
-            {
-                errorMsg = "Invalid Uri, Uri must be one of the following schemes: HTTPS, HTTP, FTP, File Based";
-                return null;
-            }
 
             // check repoName can't contain * or just be whitespace
             // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
@@ -347,19 +336,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 Uri thisUrl = null;
                 if (repoUri != null) 
                 {
-                    if (!Uri.TryCreate(repoUri.AbsoluteUri, UriKind.Absolute, out thisUrl))
-                    {
-                        throw new PSInvalidOperationException(String.Format("Unable to read incorrectly formatted Url for repo {0}", repoName));
-                    }
-
                     if (urlAttributeExists)
                     {
-                        node.Attribute("Url").Value = thisUrl.AbsoluteUri;
+                        node.Attribute("Url").Value = repoUri.ToString();
                     }
                     else
                     {
-                        node.Attribute("Uri").Value = thisUrl.AbsoluteUri;
+                        node.Attribute("Uri").Value = repoUri.ToString();
                     }
+                    thisUrl = repoUri;
 
                     if (apiVersion == null)
                     {
@@ -842,7 +827,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
             else
             {
-                return PSRepositoryInfo.APIVersion.unknown;
+                return PSRepositoryInfo.APIVersion.local;
             }
         }
 

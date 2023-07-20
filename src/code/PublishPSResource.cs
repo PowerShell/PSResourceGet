@@ -369,6 +369,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
+                _networkCredential = Utils.SetNetworkCredential(repository, _networkCredential, this);
+
                 // Check if dependencies already exist within the repo if:
                 // 1) the resource to publish has dependencies and
                 // 2) the -SkipDependenciesCheck flag is not passed in
@@ -484,11 +486,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             out Hashtable requiredModules)
         {
             WriteVerbose("Creating new nuspec file.");
+            bool isModule = resourceType != ResourceType.Script;
             requiredModules = new Hashtable();
 
             // A script will already have the metadata parsed into the parsedMetadatahash,
             // a module will still need the module manifest to be parsed.
-            if (resourceType == ResourceType.Module)
+            if (isModule)
             {
                 // Use the parsed module manifest data as 'parsedMetadataHash' instead of the passed-in data.
                 if (!Utils.TryReadManifestFile(
@@ -546,69 +549,103 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // Look for Prerelease tag and then process any Tags in PrivateData > PSData
-            if (parsedMetadataHash.ContainsKey("PrivateData"))
+            if (isModule)
             {
-                if (parsedMetadataHash["PrivateData"] is Hashtable privateData &&
-                    privateData.ContainsKey("PSData"))
+                if (parsedMetadataHash.ContainsKey("PrivateData"))
                 {
-                    if (privateData["PSData"] is Hashtable psData)
+                    if (parsedMetadataHash["PrivateData"] is Hashtable privateData &&
+                        privateData.ContainsKey("PSData"))
                     {
-                        if (psData.ContainsKey("prerelease") && psData["prerelease"] is string preReleaseVersion)
+                        if (privateData["PSData"] is Hashtable psData)
                         {
-                            if (!string.IsNullOrEmpty(preReleaseVersion))
+                            if (psData.ContainsKey("prerelease") && psData["prerelease"] is string preReleaseVersion)
                             {
-                                version = string.Format(@"{0}-{1}", version, preReleaseVersion);
+                                if (!string.IsNullOrEmpty(preReleaseVersion))
+                                {
+                                    version = string.Format(@"{0}-{1}", version, preReleaseVersion);
+                                }
                             }
-                        }
 
-                        if (psData.ContainsKey("licenseuri") && psData["licenseuri"] is string licenseUri)
+                            if (psData.ContainsKey("licenseuri") && psData["licenseuri"] is string licenseUri)
 
-                        {
-                            metadataElementsDictionary.Add("licenseUrl", licenseUri.Trim());
-                        }
-
-                        if (psData.ContainsKey("projecturi") && psData["projecturi"] is string projectUri)
-                        {
-                            metadataElementsDictionary.Add("projectUrl", projectUri.Trim());
-                        }
-
-                        if (psData.ContainsKey("iconuri") && psData["iconuri"] is string iconUri)
-                        {
-                            metadataElementsDictionary.Add("iconUrl", iconUri.Trim());
-                        }
-
-                        if (psData.ContainsKey("releasenotes"))
-                        {
-                            if (psData["releasenotes"] is string releaseNotes)
                             {
-                                metadataElementsDictionary.Add("releaseNotes", releaseNotes.Trim());
+                                metadataElementsDictionary.Add("licenseUrl", licenseUri.Trim());
                             }
-                            else if (psData["releasenotes"] is string[] releaseNotesArr)
+
+                            if (psData.ContainsKey("projecturi") && psData["projecturi"] is string projectUri)
                             {
-                                metadataElementsDictionary.Add("releaseNotes", string.Join("\n", releaseNotesArr));
+                                metadataElementsDictionary.Add("projectUrl", projectUri.Trim());
                             }
-                        }
 
-                        // defaults to false
-                        // Value for requireAcceptLicense key needs to be a lowercase string representation of the boolean for it to be correctly parsed from psData file.
-
-                        string requireLicenseAcceptance = psData.ContainsKey("requirelicenseacceptance") ? psData["requirelicenseacceptance"].ToString().ToLower() : "false";
-
-                        metadataElementsDictionary.Add("requireLicenseAcceptance", requireLicenseAcceptance);
-
-
-                        if (psData.ContainsKey("Tags") && psData["Tags"] is Array manifestTags)
-                        {
-                            var tagArr = new List<string>();
-                            foreach (string tag in manifestTags)
+                            if (psData.ContainsKey("iconuri") && psData["iconuri"] is string iconUri)
                             {
-                                tagArr.Add(tag);
+                                metadataElementsDictionary.Add("iconUrl", iconUri.Trim());
                             }
-                            parsedMetadataHash["tags"] = string.Join(" ", tagArr.ToArray());
+
+                            if (psData.ContainsKey("releasenotes"))
+                            {
+                                if (psData["releasenotes"] is string releaseNotes)
+                                {
+                                    metadataElementsDictionary.Add("releaseNotes", releaseNotes.Trim());
+                                }
+                                else if (psData["releasenotes"] is string[] releaseNotesArr)
+                                {
+                                    metadataElementsDictionary.Add("releaseNotes", string.Join("\n", releaseNotesArr));
+                                }
+                            }
+
+                            // defaults to false
+                            // Value for requireAcceptLicense key needs to be a lowercase string representation of the boolean for it to be correctly parsed from psData file.
+
+                            string requireLicenseAcceptance = psData.ContainsKey("requirelicenseacceptance") ? psData["requirelicenseacceptance"].ToString().ToLower() : "false";
+
+                            metadataElementsDictionary.Add("requireLicenseAcceptance", requireLicenseAcceptance);
+
+
+                            if (psData.ContainsKey("Tags") && psData["Tags"] is Array manifestTags)
+                            {
+                                var tagArr = new List<string>();
+                                foreach (string tag in manifestTags)
+                                {
+                                    tagArr.Add(tag);
+                                }
+                                parsedMetadataHash["tags"] = string.Join(" ", tagArr.ToArray());
+                            }
                         }
                     }
                 }
             }
+            else
+            {
+                if (parsedMetadataHash.ContainsKey("licenseuri") && parsedMetadataHash["licenseuri"] is Uri licenseUri)
+
+                {
+                    metadataElementsDictionary.Add("licenseUrl", licenseUri.ToString().Trim());
+                }
+
+                if (parsedMetadataHash.ContainsKey("projecturi") && parsedMetadataHash["projecturi"] is Uri projectUri)
+                {
+                    metadataElementsDictionary.Add("projectUrl", projectUri.ToString().Trim());
+                }
+
+                if (parsedMetadataHash.ContainsKey("iconuri") && parsedMetadataHash["iconuri"] is Uri iconUri)
+                {
+                    metadataElementsDictionary.Add("iconUrl", iconUri.ToString().Trim());
+                }
+
+                if (parsedMetadataHash.ContainsKey("releaseNotes"))
+                {
+                    if (parsedMetadataHash["releasenotes"] is string releaseNotes)
+                    {
+                        metadataElementsDictionary.Add("releaseNotes", releaseNotes.Trim());
+                    }
+                    else if (parsedMetadataHash["releasenotes"] is string[] releaseNotesArr)
+                    {
+                        metadataElementsDictionary.Add("releaseNotes", string.Join("\n", releaseNotesArr));
+                    }
+                }
+            }
+
 
             if (NuGetVersion.TryParse(version, out _pkgVersion))
             {
@@ -636,13 +673,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             string tags = (resourceType == ResourceType.Script) ? "PSScript" : "PSModule";
-            if (parsedMetadataHash.ContainsKey("tags"))
+            if (parsedMetadataHash.ContainsKey("tags") && parsedMetadataHash["tags"] != null)
             {
-                if (parsedMetadataHash["tags"] != null)
+                if (parsedMetadataHash["tags"] is string[])
+                {
+                    string[] tagsArr = parsedMetadataHash["tags"] as string[];
+                    tags += " " + String.Join(" ", tagsArr);
+                }
+                else if (parsedMetadataHash["tags"] is string)
                 {
                     tags += " " + parsedMetadataHash["tags"].ToString().Trim();
                 }
             }
+
             metadataElementsDictionary.Add("tags", tags);
 
 
@@ -725,7 +768,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 return null;
             }
-
             var requiredModules = parsedMetadataHash["requiredmodules"];
 
             // Required modules can be:
@@ -749,6 +791,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 foreach (var modName in moduleNames)
                 {
                     dependenciesHash.Add(modName, string.Empty);
+                }
+            }
+
+            var externalModuleDeps = parsedMetadataHash.ContainsKey("ExternalModuleDependencies") ? 
+                        parsedMetadataHash["ExternalModuleDependencies"] : null;
+
+            if (externalModuleDeps != null && LanguagePrimitives.TryConvertTo<string[]>(externalModuleDeps, out string[] externalModuleNames))
+            {
+                foreach (var extModName in externalModuleNames)
+                {
+                    if (dependenciesHash.ContainsKey(extModName))
+                    {
+                        dependenciesHash.Remove(extModName);
+                    }
                 }
             }
 
@@ -790,11 +846,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, depPrerelease, null, repository, false);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
-                    var message = String.Format("Dependency '{0}' was not found in repository '{1}'.  Make sure the dependency is published to the repository before publishing this module.", dependency, repositoryName);
-                    var ex = new ArgumentException(message);
-                    var dependencyNotFound = new ErrorRecord(ex, "DependencyNotFound", ErrorCategory.ObjectNotFound, null);
+                   WriteError(new ErrorRecord(
+                       new ArgumentException($"Dependency '{depName.First()}' was not found in repository '{repositoryName}'.  Make sure the dependency is published to the repository before publishing this module."),
+                       "DependencyNotFound",
+                       ErrorCategory.ObjectNotFound,
+                       this));
 
-                    WriteError(dependencyNotFound);
                     return false;
                 }
             }
@@ -865,7 +922,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var success = false;
 
             var sourceProvider = new PackageSourceProvider(settings);
-            if (Credential != null)
+            if (Credential != null || _networkCredential != null)
             {
                  InjectCredentialsToSettings(settings, sourceProvider, publishLocation);
             }
@@ -917,7 +974,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (e.Message.Contains("API"))
                     {
                         // For PSGallery when ApiKey is not provided.
-                        var message = String.Format("Repository '{0}': {1} Please try running again with the -ApiKey parameter and specific API key for the repository specified.", repoName, e.Message);
+                        var message = $"Could not publish to repository '{repoName}'. Please try running again with the -ApiKey parameter and the API key for the repository specified. Exception: '{e.Message}'";
+
+
                         ex = new ArgumentException(message);
                         var ApiKeyError = new ErrorRecord(ex, "401ApiKeyError", ErrorCategory.AuthenticationError, null);
                         error = ApiKeyError;
@@ -925,7 +984,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     else
                     {
                         // For ADO repository feeds that are public feeds, when the credentials are incorrect.
-                        var message = String.Format("Repository '{0}': {1} The Credential provided was incorrect.", repoName, e.Message);
+                        var message =$"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception: '{e.Message}'";
+
+
                         ex = new ArgumentException(message);
                         var Error401 = new ErrorRecord(ex, "401Error", ErrorCategory.PermissionDenied, null);
                         error = Error401;
@@ -933,8 +994,31 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else if (e.Message.Contains("403"))
                 {
-                    var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
-                    error = Error403;
+                    if (repoUri.Contains("myget.org"))
+                    {
+                        // For myGet.org repository feeds when the ApiKey is missing or incorrect.
+                        var message = $"Could not publish to repository '{repoName}'. The ApiKey provided is incorrect or missing. Please try running again with the -ApiKey parameter and correct API key value for the repository. Exception: '{e.Message}'";
+
+
+                        ex = new ArgumentException(message);
+                        var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
+                        error = Error403;
+                    }
+                    else if (repoUri.Contains(".jfrog.io"))
+                    {
+                        // For JFrog Artifactory repository feeds when the ApiKey is provided, whether correct or incorrect, as JFrog does not require -ApiKey (but does require ApiKey to be present as password to -Credential).
+                        var message = $"Could not publish to repository '{repoName}'. The ApiKey provided is not needed for JFrog Artifactory. Please try running again without the -ApiKey parameter but ensure that -Credential is provided with ApiKey as password. Exception: '{e.Message}'";
+
+
+                        ex = new ArgumentException(message);
+                        var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
+                        error = Error403;
+                    }
+                    else
+                    {
+                        var Error403 = new ErrorRecord(ex, "403Error", ErrorCategory.PermissionDenied, null);
+                        error = Error403;
+                    }
                 }
                 else if (e.Message.Contains("409"))
                 {
@@ -954,7 +1038,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 //  for ADO repository feeds that are private feeds the error thrown is different and the 401 is in the inner exception message
                 if (e.InnerException.Message.Contains("401"))
                 {
-                    var message = String.Format ("Repository '{0}': {1} The Credential provided was incorrect.", repoName, e.InnerException.Message);
+                    var message = $"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception '{e.InnerException.Message}'";
+
+
                     var ex = new ArgumentException(message);
                     var ApiKeyError = new ErrorRecord(ex, "401FatalProtocolError", ErrorCategory.AuthenticationError, null);
                     error = ApiKeyError;
@@ -988,7 +1074,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void InjectCredentialsToSettings(ISettings settings, IPackageSourceProvider sourceProvider, string source)
         {
-          if (Credential == null)
+          if (Credential == null && _networkCredential == null)
           {
                return;
           }
@@ -1003,7 +1089,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
            }
 
 
-          var networkCred = Credential.GetNetworkCredential();
+          var networkCred = Credential == null ? _networkCredential : Credential.GetNetworkCredential();
           string key;
           
           if (packageSource == null)
@@ -1028,7 +1114,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
               isPasswordClearText: true,
               String.Empty));
         }
-
+    
     #endregion
   }
 }

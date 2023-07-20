@@ -515,12 +515,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 ThrowTerminatingError(IncorrectVersionFormat);
             }
 
-            if (!ShouldProcess(string.Format("package to install: '{0}'", String.Join(", ", inputNameToInstall))))
-            {
-                WriteVerbose(string.Format("Install operation cancelled by user for packages: {0}", String.Join(", ", inputNameToInstall)));
-                return;
-            }
-
             var installedPkgs = _installHelper.BeginInstallPackages(
                 names: pkgNames,
                 versionRange: versionRange,
