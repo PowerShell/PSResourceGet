@@ -443,6 +443,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     try
                     {
                         var nupkgName = _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg";
+                        nupkgName = nupkgName.ToLower();
                         File.Copy(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(DestinationPath, nupkgName));
                     }
                     catch (Exception e) {
