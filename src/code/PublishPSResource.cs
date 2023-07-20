@@ -442,7 +442,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     if (!Directory.Exists(DestinationPath))
                     {
-                        var exMessage = string.Format("Destination path does not exist and cannot be created: {0}", DestinationPath);
+                        var exMessage = string.Format("Destination path does not exist: {0}", DestinationPath);
                         var ex = new ArgumentException(exMessage);
                         var InvalidDestinationPath = new ErrorRecord(ex, "InvalidDestinationPath", ErrorCategory.InvalidArgument, null);
                         WriteError(InvalidDestinationPath);
