@@ -444,7 +444,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         var exMessage = string.Format("Destination path does not exist: {0}", DestinationPath);
                         var ex = new ArgumentException(exMessage);
-                        var InvalidDestinationPath = new ErrorRecord(ex, "InvalidDestinationPath", ErrorCategory.InvalidArgument, null);
+                        var InvalidDestinationPath = new ErrorRecord(ex, "InvalidDestinationPath", ErrorCategory.InvalidArgument, targetObject: null);
+
                         WriteError(InvalidDestinationPath);
                         return;
                     }
