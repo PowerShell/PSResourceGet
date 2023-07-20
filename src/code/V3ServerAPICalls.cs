@@ -314,7 +314,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             var matchingPkgEntries = GetVersionedPackageEntriesFromSearchQueryResource(querySearchTerm, includePrerelease, out errRecord);
-            Console.WriteLine(matchingPkgEntries.Count);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -655,7 +654,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Get initial response
             int skip = 0;
             string query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
-            Console.WriteLine($"Query: {query}");
 
             // Get responses for all packages that contain the required tags
             pkgEntries.AddRange(GetJsonElementArr(query, dataName, out int initialCount, out errRecord).ToList());
