@@ -22,6 +22,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
 
     AfterEach {
         Uninstall-PSResource -Name $testModuleName -Version "*" -ErrorAction SilentlyContinue -SkipDependencyCheck
+        Uninstall-PSResource -Name "test_module" -Version "*" -ErrorAction SilentlyContinue -SkipDependencyCheck
     }
 
     AfterAll {
@@ -250,7 +251,10 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
     }
 
     It "Do not Uninstall module that is a dependency for another module" {
-        $null = Install-PSResource "test_module" -Repository $PSGalleryName -TrustRepository -WarningAction SilentlyContinue
+        Install-PSResource "test_module" -Repository $PSGalleryName -TrustRepository -Version "3.0.0" -Reinstall
+
+        $pkg = Get-InstalledPSResource "RequiredModule1"
+        $pkg | Should -Not -Be $null
 
         Uninstall-PSResource -Name "RequiredModule1" -ErrorVariable ev -ErrorAction SilentlyContinue
 
