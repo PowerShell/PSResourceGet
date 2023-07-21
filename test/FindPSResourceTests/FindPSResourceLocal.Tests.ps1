@@ -55,11 +55,22 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # FindName()
         $pkgName = "test_nonpsresource"
         $requiredTag = "Tag1"
-        Save-PSResource -Name $pkgName -Repository "NuGetGallery" -Path $localRepoUriAddress -AsNupkg
+        Save-PSResource -Name $pkgName -Repository "NuGetGallery" -Path $localRepoUriAddress -AsNupkg -TrustRepository
         $res = Find-PSResource -Name $pkgName -Repository $localRepo
         $res.Name | Should -Be $pkgName
         $res.Repository | Should -Be $localRepo
         $res.Tags | Should -Contain $requiredTag
+    }
+
+    It "find script without RequiredModules" {
+        # FindName()
+        $pkgName = "Required-Script1"
+        $requiredTag = "Tag1"
+        Save-PSResource -Name $pkgName -Repository "PSGallery" -Path $localRepoUriAddress -AsNupkg -TrustRepository
+        # $res = Find-PSResource -Name $pkgName -Repository $localRepo
+        # $res.Name | Should -Be $pkgName
+        # $res.Repository | Should -Be $localRepo
+        # $res.Tags | Should -Contain $requiredTag
     }
 
     It "should not find resource given nonexistant Name" {
@@ -222,8 +233,8 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
         $res = Find-PSResource -Type Script -Repository $localRepo
         $res | Should -Not -BeNullOrEmpty
-        $res.Count | Should -Be 1
-        $res.Type | Should -Be "Script"
+        $res.Count | Should -Be 2
+        $res.Type | Should -Be @("Script", "Script")
     }
     
     It "find modules given -Type parameter" {

@@ -275,12 +275,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 pkgPrerelease = true;
             }
 
-            if (!ShouldProcess(string.Format("Resources to save: '{0}'", namesToSave)))
-            {
-                WriteVerbose(string.Format("Save operation cancelled by user for resources: {0}", namesToSave));
-                return;
-            }
-
             var installedPkgs = _installHelper.BeginInstallPackages(
                 names: namesToSave, 
                 versionRange: versionRange,

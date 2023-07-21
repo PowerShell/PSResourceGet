@@ -322,4 +322,14 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         $res.CredentialInfo.SecretName | Should -Be $newRandomSecret
         $res.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
+
+    It "should set temp drive repository" -skip:(!$IsWindows)  {
+        Register-PSResourceRepository -Name "tempDriveRepo" -Uri $tmpDir1Path
+        $res = Get-PSResourceRepository -Name "tempDriveRepo"
+        $res.Uri.LocalPath | Should -Be $tmpDir1Path
+
+        Set-PSResourceRepository -Name "tempDriveRepo" -Uri "Temp:\"
+        $res2 = Get-PSResourceRepository -Name "tempDriveRepo"
+        $res2.Uri.LocalPath | Should -Be "\"
+    }
 }

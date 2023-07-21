@@ -569,6 +569,18 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
 
+    It "should publish a script with sExternalModuleDependencies that are not published" {
+        $scriptName = "test"
+        $scriptVersion = "1.0.0"
+        $scriptPath = Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1"
+        New-PSScriptFileInfo -Description 'test' -Version $scriptVersion -RequiredModules @{ModuleName='testModule'} -ExternalModuleDependencies 'testModule' -Path $scriptPath -Force
+
+        Publish-PSResource -Path $scriptPath 
+
+        $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
+    }
+
     It "should write error and not publish script when Author property is missing" {
         $scriptName = "InvalidScriptMissingAuthor.ps1"
         $scriptVersion = "1.0.0"
@@ -654,5 +666,16 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $null = New-Item -Path $psm1Path -ItemType File -Force
 
         {Publish-PSResource -Path $psm1Path -Repository $testRepository2 -ErrorAction Stop} | Should -Throw -ErrorId "InvalidPublishPath,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+    }
+
+    It "Publish a module and ensure package nupkg name is lowercased" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2 -SkipDependenciesCheck
+        $res = Find-PSResource -Name $script:PublishModuleName -Repository $testRepository2
+        $res | Should -Not -BeNullOrEmpty
+        $expectedPkgBaseName = "$($script:PublishModuleName).$($version)"
+        (Get-ChildItem $script:repositoryPath2).BaseName | Should -Be $expectedPkgBaseName.ToLower()
     }
 }
