@@ -440,10 +440,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // If -DestinationPath is specified then also publish the .nupkg there
                 if (!string.IsNullOrWhiteSpace(DestinationPath))
                 {
+                    if (!Directory.Exists(DestinationPath))
+                    {
+                        var exMessage = string.Format("Destination path does not exist: {0}", DestinationPath);
+                        var ex = new ArgumentException(exMessage);
+                        var InvalidDestinationPath = new ErrorRecord(ex, "InvalidDestinationPath", ErrorCategory.InvalidArgument, targetObject: null);
+
+                        WriteError(InvalidDestinationPath);
+                        return;
+                    }
+
                     try
                     {
                         var nupkgName = _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg";
-                        File.Copy(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(DestinationPath, nupkgName));
+                        string srcPath = System.IO.Path.Combine(outputNupkgDir, nupkgName);
+                        // The file that gets created upon Copy should have lowercased package name.
+                        string destPath = System.IO.Path.Combine(DestinationPath, nupkgName.ToLower());
+                        File.Copy(srcPath, destPath);
                     }
                     catch (Exception e) {
                         var message = string.Format("Error moving .nupkg into destination path '{0}' due to: '{1}'.", DestinationPath, e.Message);

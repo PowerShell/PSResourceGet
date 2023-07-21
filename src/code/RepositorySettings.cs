@@ -815,7 +815,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // Scenario: V3 server protocol repositories (i.e NuGet.org, Azure Artifacts (ADO), Artifactory, Github Packages, MyGet.org)
                 return PSRepositoryInfo.APIVersion.v3;
             }
-            else if (repoUri.AbsoluteUri.Contains("/nuget"))
+            else if (repoUri.AbsoluteUri.EndsWith("/nuget", StringComparison.OrdinalIgnoreCase))
             {
                 // Scenario: ASP.Net application feed created with NuGet.Server to host packages
                 return PSRepositoryInfo.APIVersion.nugetServer;
