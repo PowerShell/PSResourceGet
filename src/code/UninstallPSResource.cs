@@ -9,6 +9,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Collections;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -179,7 +180,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             var successfullyUninstalled = false;
             GetHelper getHelper = new GetHelper(this);
-            List<string>  dirsToDelete = getHelper.FilterPkgPathsByName(Name, _pathsToSearch);
+            List<string> dirsToDelete = getHelper.FilterPkgPathsByName(Name, _pathsToSearch);
             int totalDirs = dirsToDelete.Count;
             errRecords = new List<ErrorRecord>();
 
@@ -268,17 +269,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             errRecord = null;
             var successfullyUninstalledPkg = false;
+            DirectoryInfo dir = new DirectoryInfo(pkgPath);
+            Uri uri = new Uri(dir.FullName);
+            string version = uri.Segments.Last();
 
             // if -SkipDependencyCheck is not specified and the pkg is a dependency for another package,
             // an error will be written and we return false
-            if (!SkipDependencyCheck && CheckIfDependency(pkgName, out errRecord))
+            if (!SkipDependencyCheck && CheckIfDependency(pkgName, version, out errRecord))
             {
                 return false;
             }
 
-            DirectoryInfo dir = new DirectoryInfo(pkgPath);
-            Uri uri = new Uri(dir.FullName);
-            string version = uri.Segments.Last();
             if (!ShouldProcess(string.Format("Uninstall resource '{0}', version '{1}', from path '{2}'", pkgName, version, dir.FullName)))
             {
                 WriteVerbose("ShouldProcess is set to false.");
@@ -374,8 +375,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return successfullyUninstalledPkg;
         }
 
-        private bool CheckIfDependency(string pkgName, out ErrorRecord errorRecord)
+        private bool CheckIfDependency(string pkgName, string version, out ErrorRecord errorRecord)
         {
+            // Checking if a specific package version is a dependency anywhere
             // this is a primitive implementation
             // TODO:  implement a dependencies database for querying dependency info
             // cannot uninstall a module if another module is dependent on it
@@ -389,24 +391,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // _dependentModules is a collection of PSModuleInfo objects that contain a property listing module dependencies, "RequiredModules".
-
             // RequiredModules is collection of PSModuleInfo objects that need to be iterated through to see if any of them are the pkg we're trying to uninstall
             // If we anything from the final call gets returned, there is a dependency on this pkg.
 
-            HashSet<string> uniquePackageNames = new();
+            List<PSModuleInfo> parentPackages = new();
 
             errorRecord = null;
             try
             {
                 for (int i = 0; i < _dependentModules.Count; i++)
                 {
-                    var reqModules = _dependentModules[i].RequiredModules;
+                    var reqModule = _dependentModules[i].RequiredModules;
 
-                    for (int j = 0; j < reqModules.Count; j++)
+                    for (int j = 0; j < reqModule.Count; j++)
                     {
-                        if (reqModules[j].Name.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase))
+                        if (reqModule[j].Name.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase))
                         {
-                            uniquePackageNames.Add(_dependentModules[i].Name);
+                            parentPackages.Add(_dependentModules[i]);
                         }
                     }
                 }
@@ -420,17 +421,58 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     null);
             }
 
-            if (uniquePackageNames.Count > 0)
+            bool dependencyExists = false;
+            List<string> parentsOfDependency = new List<string>();
+            Version systemVersion = null;
+            for (int i = 0; i < parentPackages.Count; i++)
             {
-                var strUniquePkgNames = string.Join(",", uniquePackageNames.ToArray());
+                var parentPkg = parentPackages[i] as PSModuleInfo;
 
+                for (int j = 0; j < parentPkg.RequiredModules.Count; j++)
+                { 
+                    var pkgToUninstall = parentPkg.RequiredModules[j] as PSModuleInfo;
+                    if (string.Equals(pkgToUninstall.Name, pkgName, StringComparison.InvariantCultureIgnoreCase)) {
+                        // then check verison
+                        if (pkgToUninstall.Version == null)
+                        {
+                            // Any version works as a dependency, so only one version needs to be available.  
+                            _pwsh ??= System.Management.Automation.PowerShell.Create();
+                            _pwsh.Commands.Clear();
+
+                            // Get all versions of the package to be uninstalled
+                            Collection<PSModuleInfo> pkgVersions = _pwsh.AddCommand("Microsoft.PowerShell.Core\\Get-Module").AddParameters(
+                                new Hashtable() {
+                                    { "Name", pkgName },
+                                    { "ListAvailable", true }
+                                }).Invoke<PSModuleInfo>();
+
+                            if (pkgVersions.Count == 1)
+                            {
+                                parentsOfDependency.Add(parentPkg.Name);
+                                dependencyExists = true;
+                            }
+                        }
+                        else {
+                            if (System.Version.TryParse(version, out systemVersion) && pkgToUninstall.Version.CompareTo(systemVersion) == 0)
+                            {
+                                // The required version OR module version is the version we're attempting to uninstall.
+                                parentsOfDependency.Add(parentPkg.Name);
+                                dependencyExists = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (dependencyExists)
+            {
+                string versionMsg = systemVersion == null ? string.Empty : $"version '{systemVersion}' of ";
                 errorRecord = new ErrorRecord(
                     new PSInvalidOperationException(
-                        $"Cannot uninstall '{pkgName}'. This package depends on the following package(s): '{strUniquePkgNames}'. If you would still like to uninstall, re-run the command with -SkipDependencyCheck."),
-
-                    "UninstallPSResourcePackageIsaDependency",
+                        $"Cannot uninstall {versionMsg}'{pkgName}'. This package is a dependency for: '{string.Join(", ", parentsOfDependency)}'. If you would still like to uninstall, re-run the command with -SkipDependencyCheck."),
+                    "UninstallPSResourcePackageIsADependency",
                     ErrorCategory.InvalidOperation,
-                    null);
+                    this);
 
                 return true;
             }
