@@ -55,11 +55,22 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # FindName()
         $pkgName = "test_nonpsresource"
         $requiredTag = "Tag1"
-        Save-PSResource -Name $pkgName -Repository "NuGetGallery" -Path $localRepoUriAddress -AsNupkg
+        Save-PSResource -Name $pkgName -Repository "NuGetGallery" -Path $localRepoUriAddress -AsNupkg -TrustRepository
         $res = Find-PSResource -Name $pkgName -Repository $localRepo
         $res.Name | Should -Be $pkgName
         $res.Repository | Should -Be $localRepo
         $res.Tags | Should -Contain $requiredTag
+    }
+
+    It "find script without RequiredModules" {
+        # FindName()
+        $pkgName = "Required-Script1"
+        $requiredTag = "Tag1"
+        Save-PSResource -Name $pkgName -Repository "PSGallery" -Path $localRepoUriAddress -AsNupkg -TrustRepository
+        # $res = Find-PSResource -Name $pkgName -Repository $localRepo
+        # $res.Name | Should -Be $pkgName
+        # $res.Repository | Should -Be $localRepo
+        # $res.Tags | Should -Contain $requiredTag
     }
 
     It "should not find resource given nonexistant Name" {
@@ -215,6 +226,26 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
         $res.Tags | Should -Contain $requiredTags[0]
         $res.Tags | Should -Contain $requiredTags[1]
+    }
+
+    It "find scripts given -Type parameter" {
+        Get-ScriptResourcePublishedToLocalRepoTestDrive "testScriptName" $localRepo "1.0.0"
+
+        $res = Find-PSResource -Type Script -Repository $localRepo
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -Be 2
+        $res.Type | Should -Be @("Script", "Script")
+    }
+    
+    It "find modules given -Type parameter" {
+        Get-ScriptResourcePublishedToLocalRepoTestDrive "testScriptName" $localRepo "1.0.0"
+
+        $res = Find-PSResource -Type Module -Repository $localRepo
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterOrEqual 1
+        foreach ($module in $res) {
+            $module.Type | Should -Be "Module"
+        }
     }
 
     It "find resource given CommandName" -Pending {

@@ -37,7 +37,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     }
 
     AfterEach {
-        Uninstall-PSResource $testModuleName, $testModuleName2, "RequiredModule*", $testModuleClobber, $testModuleClobber2 -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource $testModuleName, $testModuleName2, "test_script", "RequiredModule*", $testModuleClobber, $testModuleClobber2 -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -109,7 +109,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         {}
         $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -142,7 +142,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $pkg.Version | Should -Be "1.0.0"
 
         Install-PSResource -Name $testModuleClobber2 -Repository $localRepo -TrustRepository -NoClobber -ErrorVariable ev -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource $testModuleClobber2
+        $pkg = Get-InstalledPSResource $testModuleClobber2 -ErrorAction SilentlyContinue
         $pkg | Should -BeNullOrEmpty
         $ev.Count | Should -Be 1
         $ev[0] | Should -Be "testModuleClobber2 package could not be installed with error: The following commands are already available on this system: 'Test-Cmdlet1, Test-Cmdlet1'. This module 'testModuleClobber2' may override the existing commands. If you still want to install this module 'testModuleClobber2', remove the -NoClobber parameter."
@@ -254,7 +254,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
     It "Install module using -WhatIf, should not install the module" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $localRepo -TrustRepository -WhatIf
-        $res = Get-InstalledPSResource -Name $testModuleName
+        $res = Get-InstalledPSResource -Name $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -266,5 +266,17 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
     It "Get definition for alias 'isres'" {
         (Get-Alias isres).Definition | Should -BeExactly 'Install-PSResource'
+    }
+    
+    It "Not install resource that lists dependency packages which cannot be found" {
+        $localRepoUri = Join-Path -Path $TestDrive -ChildPath "testdir"
+        Save-PSResource -Name "test_script" -Repository "PSGallery" -TrustRepository -Path $localRepoUri -AsNupkg -SkipDependencyCheck
+        Write-Host $localRepoUri
+        $res = Install-PSResource -Name "test_script" -Repository $localRepo -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        for ($i = 0; $i -lt $err.Count; $i++) {
+            $err[$i].FullyQualifiedErrorId | Should -Not -Be "System.NullReferenceException,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+        }
     }
 }

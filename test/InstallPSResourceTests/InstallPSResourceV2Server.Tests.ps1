@@ -141,11 +141,11 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
     It "Install a module with a dependency" {
         Uninstall-PSResource -Name "TestModuleWithDependency*" -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
-        Install-PSResource -Name "TestModuleWithDependencyC" -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository 
+        Install-PSResource -Name "TestModuleWithDependencyC" -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository 
 
         $pkg = Get-InstalledPSResource "TestModuleWithDependencyC"
         $pkg.Name | Should -Be "TestModuleWithDependencyC"
-        $pkg.Version | Should -Be "1.0"
+        $pkg.Version | Should -Be "5.0"
 
         $pkg = Get-InstalledPSResource "TestModuleWithDependencyB"
         $pkg.Name | Should -Be "TestModuleWithDependencyB"
@@ -153,7 +153,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
         $pkg = Get-InstalledPSResource "TestModuleWithDependencyD"
         $pkg.Name | Should -Be "TestModuleWithDependencyD"
-        $pkg.Version | Should -Be "1.0"
+        $pkg.Version | Should -Be "2.0"
     }
 
     It "Install a module with a dependency and skip installing the dependency" {
@@ -331,7 +331,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     It "Install module using -WhatIf, should not install the module" {
-        Install-PSResource -Name $testModuleName -WhatIf
+        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -WhatIf
 
         $res = Get-InstalledPSResource $testModuleName
         $res | Should -BeNullOrEmpty

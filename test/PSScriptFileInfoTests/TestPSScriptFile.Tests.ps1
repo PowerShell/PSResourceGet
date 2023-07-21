@@ -73,4 +73,19 @@ Describe "Test Test-PSScriptFileInfo" -tags 'CI' {
 
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $true        
     }
+
+    It "determine script file with varying case sensitivity for Script Metadata or Help Comment keys is valid" {
+        $scriptName = "VaryingCaseSensisityKeysScript.ps1"
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
+
+    It "determine script file with commas in Tags, ExternalModuleDependencies, RequiredScripts, ExternalScriptDependencies is valid" {
+        # Note: New-PSScriptFileInfo will NOT create script that has commas in these fields, but per user requests we want to account for scripts that may contain it
+        $scriptName = "ScriptWithCommaInTagsInSomeFields.ps1"
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
 }

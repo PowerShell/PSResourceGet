@@ -1,3 +1,4 @@
+using System.Net;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -14,6 +15,7 @@ using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
 using Microsoft.PowerShell.Commands;
 using Microsoft.PowerShell.PSResourceGet.Cmdlets;
+using System.Net.Http;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -187,6 +189,28 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             errorMsgs = errorMsgsList.ToArray();
             return namesWithSupportedWildcards.ToArray();
+        }
+
+        public static string FormatRequestsExceptions(Exception exception, HttpRequestMessage request)
+        {
+            string exMsg = $"'{exception.Message}' Request sent: '{request.RequestUri.AbsoluteUri}'";
+            if (exception.InnerException != null && !string.IsNullOrEmpty(exception.InnerException.Message))
+            {
+                exMsg += $" Inner exception: '{exception.InnerException.Message}'";
+            }
+
+            return exMsg;
+        }
+
+        public static string FormatCredentialRequestExceptions(Exception exception)
+        {
+            string exMsg = $"'{exception.Message}' Re-run the command with -Credential.";
+            if (exception.InnerException != null && !string.IsNullOrEmpty(exception.InnerException.Message))
+            {
+                exMsg += $" Inner exception: '{exception.InnerException.Message}'";
+            }
+
+            return exMsg;
         }
 
         #endregion
@@ -666,6 +690,27 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return result;
         }
 
+        public static NetworkCredential SetNetworkCredential(
+            PSRepositoryInfo repository,
+            NetworkCredential networkCredential,
+            PSCmdlet cmdletPassedIn)
+        {
+            // Explicitly passed in Credential takes precedence over repository CredentialInfo.
+            if (networkCredential == null && repository.CredentialInfo != null)
+            {
+                PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
+                    repository.Name,
+                    repository.CredentialInfo,
+                    cmdletPassedIn);
+
+                networkCredential = new NetworkCredential(repoCredential.UserName, repoCredential.Password);
+
+                cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repository.Name);
+            }
+
+            return networkCredential;
+        }
+        
         #endregion
 
         #region Path methods
@@ -876,7 +921,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 filePath: manifestFilePath,
                 allowedVariables: ManifestFileVariables,
                 allowedCommands: Utils.EmptyStrArray,
-                allowEnvironmentVariables: false,
+                allowEnvironmentVariables: true,
                 out manifestInfo,
                 out error);
         }
@@ -963,8 +1008,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
                 catch (Exception e)
                 {
-                    errorMsg = $"Error occured while running 'Test-ModuleManifest': {e.Message}";
-                    return false;
+                    if (e.Message.EndsWith("Change the value of the ModuleVersion key to match the version folder name."))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        errorMsg = $"Error occured while running 'Test-ModuleManifest': {e.Message}";
+                        return false;
+                    }
                 }
 
                 if (pwsh.HadErrors)

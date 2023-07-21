@@ -132,7 +132,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Count > 0 ; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
-                SetNetworkCredential(currentRepository);
+                _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
                 if (currentServer == null)
                 {
@@ -234,7 +234,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 
-                SetNetworkCredential(currentRepository);
+                _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
                 if (currentServer == null)
                 {
@@ -354,7 +354,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count && _tagsLeftToFind.Any(); i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
-                SetNetworkCredential(currentRepository);
+                _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
                 if (currentServer == null)
                 {
@@ -441,10 +441,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             }
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
-                            parentPkgs.Add(foundPkg);
-                            _pkgsLeftToFind.Remove(foundPkg.Name);
-                            pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
-                            yield return foundPkg;
+
+                            if (foundPkg.Type == _type || _type == ResourceType.None)
+                            {
+                                parentPkgs.Add(foundPkg);
+                                _pkgsLeftToFind.Remove(foundPkg.Name);
+                                pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
+                                yield return foundPkg;
+                            }
                         }
                     }
                     else if(pkgName.Contains("*"))
@@ -637,11 +641,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 continue;
                             }
 
+                            // Check to see if version falls within version range 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
-                            parentPkgs.Add(foundPkg);
-                            _pkgsLeftToFind.Remove(foundPkg.Name);
-                            pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
-                            yield return foundPkg;
+                            string versionStr = $"{foundPkg.Version}";
+                            if (foundPkg.IsPrerelease)
+                            {
+                                versionStr += $"-{foundPkg.Prerelease}";
+                            }
+
+                            if (NuGetVersion.TryParse(versionStr, out NuGetVersion version)
+                                   && _versionRange.Satisfies(version))
+                            {
+                                parentPkgs.Add(foundPkg);
+                                _pkgsLeftToFind.Remove(foundPkg.Name);
+                                pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
+
+                                yield return foundPkg;
+                            }
                         }
                     }
                 }
@@ -666,22 +682,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
         }
 
-        private void SetNetworkCredential(PSRepositoryInfo repository)
-        {
-            // Explicitly passed in Credential takes precedence over repository CredentialInfo.
-            if (_networkCredential == null && repository.CredentialInfo != null)
-            {
-                PSCredential repoCredential = Utils.GetRepositoryCredentialFromSecretManagement(
-                    repository.Name,
-                    repository.CredentialInfo,
-                    _cmdletPassedIn);
-
-                _networkCredential = new NetworkCredential(repoCredential.UserName, repoCredential.Password);
-
-                _cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repository.Name);
-            }
-        }
-
         #endregion
 
         #region Internal Client Search Methods
@@ -699,7 +699,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     PSResourceInfo depPkg = null;
 
-                    if (dep.VersionRange == VersionRange.All)
+                    if (dep.VersionRange.Equals(VersionRange.All))
                     {
                         FindResults responses = currentServer.FindName(dep.Name, _prerelease, _type, out ErrorRecord errRecord);
                         if (errRecord != null)
@@ -746,7 +746,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         if (responses.IsFindResultsEmpty())
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
-                                        new InvalidOrEmptyResponse($"Dependency package with Name {dep.Name} and VersionRange {dep.VersionRange} could not be found"), 
+                                        new InvalidOrEmptyResponse($"Dependency package with Name {dep.Name} and VersionRange {dep.VersionRange} could not be found in repository '{repository.Name}"), 
                                         "FindDepPackagesFindVersionGlobbingFailure", 
                                         ErrorCategory.InvalidResult, 
                                         this));
@@ -759,7 +759,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
                                  _cmdletPassedIn.WriteError(new ErrorRecord(
-                                            new PackageNotFoundException($"Dependency package '{dep.Name}' with version range '{dep.VersionRange}' could not be found", currentResult.exception), 
+                                            new PackageNotFoundException($"Dependency package '{dep.Name}' with version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception), 
                                             "DependencyPackageNotFound", 
                                             ErrorCategory.ObjectNotFound, 
                                             this));
@@ -768,9 +768,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 continue;
                             }
 
-                            depPkg = currentResult.returnedObject;
+                            // Check to see if version falls within version range 
+                            PSResourceInfo foundDep = currentResult.returnedObject;
+                            string depVersionStr = $"{foundDep.Version}";
+                            if (foundDep.IsPrerelease) {
+                                depVersionStr += $"-{foundDep.Prerelease}";
+                            }
+                            
+                            if (NuGetVersion.TryParse(depVersionStr, out NuGetVersion depVersion)
+                                   && dep.VersionRange.Satisfies(depVersion))
+                            {
+                                depPkg = foundDep;
+                            }
                         }
 
+                        if (depPkg == null)
+                        {
+                            continue;
+                        }
+                        
                         string pkgHashKey = String.Format("{0}{1}", depPkg.Name, depPkg.Version.ToString());
 
                         if (!foundPkgs.Contains(pkgHashKey))

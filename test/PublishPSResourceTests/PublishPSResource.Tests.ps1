@@ -480,6 +480,20 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
     }
 
+    It "Publish a module when the .psd1 version and the path version are different" {
+        $incorrectVersion = "15.2.4"
+        $correctVersion = "1.0.0"
+        $versionBase = (Join-Path -Path $script:PublishModuleBase  -ChildPath $incorrectVersion)
+        New-Item -Path $versionBase -ItemType Directory
+        $modManifestPath = (Join-Path -Path $versionBase -ChildPath "$script:PublishModuleName.psd1")
+        New-ModuleManifest -Path $modManifestPath -ModuleVersion $correctVersion -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $modManifestPath -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$correctVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
     It "publish a script locally"{
         $scriptName = "PSGetTestScript"
         $scriptVersion = "1.0.0"
@@ -524,6 +538,18 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $scriptPath = (Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1")
 
         Publish-PSResource -Path $scriptPath
+
+        $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
+    }
+
+    It "should publish a script with sExternalModuleDependencies that are not published" {
+        $scriptName = "test"
+        $scriptVersion = "1.0.0"
+        $scriptPath = Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1"
+        New-PSScriptFileInfo -Description 'test' -Version $scriptVersion -RequiredModules @{ModuleName='testModule'} -ExternalModuleDependencies 'testModule' -Path $scriptPath -Force
+
+        Publish-PSResource -Path $scriptPath 
 
         $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
@@ -618,5 +644,16 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
     It "Get definition for alias 'pbres'" {
         (Get-Alias pbres).Definition | Should -BeExactly 'Publish-PSResource'
+    }
+    
+    It "Publish a module and ensure package nupkg name is lowercased" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2 -SkipDependenciesCheck
+        $res = Find-PSResource -Name $script:PublishModuleName -Repository $testRepository2
+        $res | Should -Not -BeNullOrEmpty
+        $expectedPkgBaseName = "$($script:PublishModuleName).$($version)"
+        (Get-ChildItem $script:repositoryPath2).BaseName | Should -Be $expectedPkgBaseName.ToLower()
     }
 }

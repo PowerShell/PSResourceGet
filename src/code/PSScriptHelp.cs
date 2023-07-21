@@ -106,7 +106,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             for(int i = 0; i < commentLines.Length; i++)
             {
                 string line = commentLines[i];
-                if (line.Trim().StartsWith(".DESCRIPTION"))
+                if (line.Trim().StartsWith(".DESCRIPTION", StringComparison.OrdinalIgnoreCase))
                 {
                     parsingDescription = true;
                 }
@@ -128,7 +128,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
             }
 
-            Hashtable parsedHelpMetadata = new Hashtable();
+            Hashtable parsedHelpMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
             parsedHelpMetadata.Add("DESCRIPTION", descriptionValue);
             if (helpContent.Count != 0)
             {

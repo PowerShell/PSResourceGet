@@ -64,6 +64,16 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         (Get-ChildItem $pkgDir.FullName) | Should -HaveCount 1
     }
 
+    It "Should save resource given no -Path parameter" {
+        Push-Location $SaveDir
+        Save-PSResource -Name $moduleName -Repository $localRepo -TrustRepository
+        $pkgDir = Get-ChildItem $SaveDir | Where-Object Name -eq $moduleName
+        $pkgDir | Should -Not -BeNullOrEmpty
+        $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
+        $pkgDirVersion.Name | Should -Be "5.0.0"
+        Pop-Location
+    }
+
     It "Save multiple resources by name" {
         $pkgNames = @($moduleName, $moduleName2)
         Save-PSResource -Name $pkgNames -Repository $localRepo -Path $SaveDir -TrustRepository

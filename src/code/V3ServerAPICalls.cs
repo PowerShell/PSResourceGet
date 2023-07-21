@@ -14,6 +14,9 @@ using System.Threading.Tasks;
 using System.Collections;
 using System.Runtime.ExceptionServices;
 using System.Management.Automation;
+using System.Numerics;
+using System.Runtime.InteropServices.ComTypes;
+using System.Security.Cryptography;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -47,7 +50,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Constructor
 
-        public V3ServerAPICalls(PSRepositoryInfo repository, NetworkCredential networkCredential) : base(repository, networkCredential)
+        public V3ServerAPICalls(PSRepositoryInfo repository, NetworkCredential networkCredential, string userAgentString) : base(repository, networkCredential)
         {
             this.Repository = repository;
 
@@ -58,6 +61,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             };
 
             _sessionClient = new HttpClient(handler);
+            _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
 
             _isNuGetRepo = String.Equals(Repository.Uri.AbsoluteUri, nugetRepoUri, StringComparison.InvariantCultureIgnoreCase);
             _isJFrogRepo = Repository.Uri.AbsoluteUri.ToLower().Contains("jfrog.io");
@@ -238,7 +242,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Version: no wildcard support
         /// Examples: Search "NuGet.Server.Core" "3.0.0-beta" -Tag "core"
         /// We use the latest RegistrationBaseUrl version resource we can find and check if contains an entry with the package name, then match to the specified version.
-        /// </summary>     
+        /// </summary>
         public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
         {
             return FindVersionHelper(packageName, version, tags: tags, type, out errRecord);
@@ -262,7 +266,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Version: no wildcard support.
         /// Examples: Install "Newtonsoft.json" -Version "1.0.0.0"
         ///           Install "Newtonsoft.json" -Version "2.5.0-beta"
-        /// </summary>    
+        /// </summary>
         public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
@@ -354,7 +358,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         matchingResponses.Add(pkgEntry.ToString());
                     }
                 }
-                    
+
                 catch (Exception e)
                 {
                     errRecord = new ErrorRecord(e, "GetEntriesFromSearchQueryResourceFailure", ErrorCategory.InvalidResult, this);
@@ -367,12 +371,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Helper method called by FindTags() for special case where repository is NuGet.org repository.
-        /// </summary>        
+        /// </summary>
         private FindResults FindTagsFromNuGetRepo(string[] tags, bool includePrerelease, out ErrorRecord errRecord)
         {
             string tagsQueryTerm = $"tags:{String.Join(" ", tags)}";
             // Get responses for all packages that contain the required tags
-            // example query: 
+            // example query:
             var tagPkgEntries = GetVersionedPackageEntriesFromSearchQueryResource(tagsQueryTerm, includePrerelease, out errRecord);
             if (errRecord != null)
             {
@@ -459,7 +463,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             return new FindResults(stringResponse: new string[] { latestVersionResponse }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
-        
+
         /// <summary>
         /// Helper method called by FindVersion() and FindVersionWithTag()
         /// </summary>
@@ -595,9 +599,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             pkgStream = content.ReadAsStreamAsync().Result;
-            return pkgStream;  
+            return pkgStream;
         }
-        
+
         /// <summary>
         /// Gets the versioned package entries from the RegistrationsBaseUrl resource
         /// i.e when the package Name being searched for does not contain wildcard
@@ -647,19 +651,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return pkgEntries;
             }
 
-            // Get initial response 
+            // Get initial response
             int skip = 0;
             string query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
 
             // Get responses for all packages that contain the required tags
             pkgEntries.AddRange(GetJsonElementArr(query, dataName, out int initialCount, out errRecord).ToList());
 
-            // check count (ie "totalHits") 425 ==> count/100  ~~> 5 calls 
-            int count = initialCount / 100;
+            // check count (ie "totalHits") 425 ==> count/100  ~~> 4 calls ~~> + 1 = 5 calls
+            int count = initialCount / 100 + 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
                 skip += 100;
+                query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
                 pkgEntries.AddRange(GetJsonElementArr(query, dataName, out int unneededCount, out errRecord).ToList());
                 count--;
             }
@@ -713,7 +718,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             return resources;
         }
-        
+
         /// <summary>
         /// Gets the resource of type "RegistrationBaseUrl" from the repository's resources.
         /// A repository can have multiple resources of type "RegistrationsBaseUrl" so it finds the best match according to the guideline comment in the method.
@@ -927,7 +932,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             errRecord = new ErrorRecord(new ArgumentException($"Response does not contain inner '{property}' element for package '{packageName}' from repository '{Repository.Name}'."), "GetResponsesFromRegistrationsResourceFailure", ErrorCategory.InvalidResult, this);
                             continue;
                         }
-                        
+
                         // If metadata has a "listed" property, but it's set to false, skip this package version
                         if (property.Equals("catalogEntry") && metadataElement.TryGetProperty("listed", out JsonElement listedElement))
                         {
@@ -1010,7 +1015,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 errRecord = new ErrorRecord(e, "LatestVersionFirstSearchFailure", ErrorCategory.InvalidResult, this);
                 return true;
             }
-        
+
             return latestVersionFirst;
         }
 
@@ -1083,7 +1088,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
                 }
             }
-            
+
             return isTagMatch;
         }
 
@@ -1096,7 +1101,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             JsonElement[] entries = new JsonElement[0];
             totalHits = 0;
             try
-            { 
+            {
                 string response = HttpRequestCall(request, out errRecord);
                 if (errRecord != null)
                 {
@@ -1120,7 +1125,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     // MyGet.org repository responses from SearchQueryService have a bug where the totalHits property int returned is 1000 + actual number of hits
                     // so reduce totalHits by 1000 iff MyGet repository
-                    totalHits = _isMyGetRepo && reportedHits >= myGetTotalHitsBuffer ? reportedHits - myGetTotalHitsBuffer : reportedHits; 
+                    totalHits = _isMyGetRepo && reportedHits >= myGetTotalHitsBuffer ? reportedHits - myGetTotalHitsBuffer : reportedHits;
                     entries = responseEntries.ToArray();
                 }
             }
@@ -1146,15 +1151,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 response = SendV3RequestAsync(request, _sessionClient).GetAwaiter().GetResult();
             }
+            catch (V3ResourceNotFoundException e)
+            {
+                errRecord = new ErrorRecord(e, "ResourceNotFound", ErrorCategory.InvalidResult, this);
+            }
+            catch (UnauthorizedException e)
+            {
+                errRecord = new ErrorRecord(e, "UnauthorizedRequest", ErrorCategory.InvalidResult, this);
+            }
             catch (HttpRequestException e)
-            {
-                errRecord = new ErrorRecord(e, "HttpRequestCallFailure", ErrorCategory.InvalidResult, this);
-            }
-            catch (ArgumentNullException e)
-            {
-                errRecord = new ErrorRecord(e, "HttpRequestCallFailure", ErrorCategory.InvalidResult, this);
-            }
-            catch (InvalidOperationException e)
             {
                 errRecord = new ErrorRecord(e, "HttpRequestCallFailure", ErrorCategory.InvalidResult, this);
             }
@@ -1173,7 +1178,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             errRecord = null;
             HttpContent content = null;
-
             try
             {
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
@@ -1193,8 +1197,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private static async Task<string> SendV3RequestAsync(HttpRequestMessage message, HttpClient s_client)
         {
-            string errMsg = "SendV3RequestAsync(): Error occured while trying to retrieve response: ";
-
             HttpStatusCode responseStatusCode = HttpStatusCode.OK;
             try
             {
@@ -1209,18 +1211,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (HttpRequestException e)
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound)) {
-                    throw new V3ResourceNotFoundException(errMsg + e.Message);
+                    throw new V3ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                }
+                // ADO feed will return a 401 if a package does not exist on the feed, with the following message:
+                // 401 (Unauthorized - No local versions of package 'NonExistentModule'; please provide authentication to access
+                // versions from upstream that have not yet been saved to your feed. (DevOps Activity ID: 5E5CF528-5B3D-481D-95B5-5DDB5476D7EF))
+                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized) && !e.Message.Contains("access versions from upstream that have not yet been saved to your feed"))
+                {
+                    throw new UnauthorizedException(Utils.FormatCredentialRequestExceptions(e));
                 }
 
-                throw new HttpRequestException(errMsg + e.Message);
+                throw new HttpRequestException(Utils.FormatRequestsExceptions(e, message));
             }
             catch (ArgumentNullException e)
             {
-                throw new ArgumentNullException(errMsg + e.Message);
+                throw new ArgumentNullException(Utils.FormatRequestsExceptions(e, message));
             }
             catch (InvalidOperationException e)
             {
-                throw new InvalidOperationException(errMsg + e.Message);
+                throw new InvalidOperationException(Utils.FormatRequestsExceptions(e, message));
             }
         }
 
@@ -1229,25 +1238,35 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private static async Task<HttpContent> SendV3RequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
         {
-            string errMsg = "SendV3RequestForContentAsync(): Error occured while trying to retrieve response for content: ";
-
+            HttpStatusCode responseStatusCode = HttpStatusCode.OK;
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
+                responseStatusCode = response.StatusCode;
                 response.EnsureSuccessStatusCode();
+
                 return response.Content;
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException(errMsg + e.Message);
+                if (responseStatusCode.Equals(HttpStatusCode.NotFound))
+                {
+                    throw new V3ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                }
+                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
+                {
+                    throw new UnauthorizedException(Utils.FormatCredentialRequestExceptions(e));
+                }
+
+                throw new HttpRequestException(Utils.FormatRequestsExceptions(e, message));
             }
             catch (ArgumentNullException e)
             {
-                throw new ArgumentNullException(errMsg + e.Message);
+                throw new ArgumentNullException(Utils.FormatRequestsExceptions(e, message));
             }
             catch (InvalidOperationException e)
             {
-                throw new InvalidOperationException(errMsg + e.Message);
+                throw new InvalidOperationException(Utils.FormatRequestsExceptions(e, message));
             }
         }
 

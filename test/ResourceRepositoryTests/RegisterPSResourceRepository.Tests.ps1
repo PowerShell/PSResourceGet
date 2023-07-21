@@ -385,4 +385,12 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $res.CredentialInfo.SecretName | Should -Be $randomSecret
         $res.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
+
+    It "should register temp drive as a repository" -skip:(!$IsWindows)  {
+        Register-PSResourceRepository -Name "tempDriveRepo" -Uri "Temp:\"
+        $res = Get-PSResourceRepository -Name "tempDriveRepo"
+
+        $res.Name | Should -Be "tempDriveRepo"
+        $res.Uri.LocalPath | Should -Be "\"
+    }
 }
