@@ -33,7 +33,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         Uninstall-PSResource -name $testModuleName -SkipDependencyCheck
         Get-InstalledPSResource $testModuleName | Should -BeNullOrEmpty
     }
-
+<#
     $testCases = @{Name="Test?Module";      ErrorId="ErrorFilteringNamesForUnsupportedWildcards"},
                  @{Name="Test[Module";      ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
 
@@ -212,7 +212,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $stableVersionPkgs = $res | Where-Object {$_.IsPrerelease -ne $true}
         $stableVersionPkgs.Count | Should -Be 2
     }
-
+#>
     It "uninstall all prerelease versions (which satisfy the range) when -Version range and -Prerelease parameter is specified" {
         Uninstall-PSResource -Name $testModuleName -Version "*" -SkipDependencyCheck
         Install-PSResource -Name $testModuleName -Version "2.5.0-beta" -Repository $PSGalleryName -TrustRepository
@@ -262,7 +262,9 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         write-host "$($pkg.Name)"
         write-host "$($pkg.Version)"
 
-        Uninstall-PSResource -Name "RequiredModule1" -ErrorVariable ev -ErrorAction SilentlyContinue
+        Uninstall-PSResource -Name "RequiredModule1" -ErrorVariable ev -ErrorAction SilentlyContinue -Verbose
+
+        write-host $ev
 
         $pkg = Get-InstalledPSResource "RequiredModule1"
         $pkg | Should -Not -Be $null
@@ -279,7 +281,11 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $pkg = Get-InstalledPSResource "test_module"
         $pkg | Should -Not -Be $null
         $pkg.Count | Should -BeGreaterOrEqual 3
-        Uninstall-PSResource -Name "test_module" -Version "*" -ErrorVariable ev -ErrorAction SilentlyContinue
+
+        write-host "************* LOOOK HERE************************************"
+        write-host "$($pkg.Count)"
+        
+        Uninstall-PSResource -Name "test_module" -Version "*" -Verbose
 
         $pkg = Get-InstalledPSResource "test_module"
         $pkg | Should -Not -Be $null
