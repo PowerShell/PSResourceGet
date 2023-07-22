@@ -254,11 +254,13 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         Install-PSResource "test_module" -Repository $PSGalleryName -TrustRepository -Version "3.0.0" -Reinstall
 
         $pkg = Get-InstalledPSResource "test_module"
-        write-host "$pkg"
+        write-host "$($pkg.Name)"
+        write-host "$($pkg.Version)"
 
         $pkg = Get-InstalledPSResource "RequiredModule1"
         $pkg | Should -Not -Be $null
-        write-host "$pkg"
+        write-host "$($pkg.Name)"
+        write-host "$($pkg.Version)"
 
         Uninstall-PSResource -Name "RequiredModule1" -ErrorVariable ev -ErrorAction SilentlyContinue
 
