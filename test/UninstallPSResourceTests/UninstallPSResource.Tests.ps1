@@ -253,8 +253,12 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
     It "Do not Uninstall module that is a dependency for another module" {
         Install-PSResource "test_module" -Repository $PSGalleryName -TrustRepository -Version "3.0.0" -Reinstall
 
+        $pkg = Get-InstalledPSResource "test_module"
+        write-host "$pkg"
+
         $pkg = Get-InstalledPSResource "RequiredModule1"
         $pkg | Should -Not -Be $null
+        write-host "$pkg"
 
         Uninstall-PSResource -Name "RequiredModule1" -ErrorVariable ev -ErrorAction SilentlyContinue
 
