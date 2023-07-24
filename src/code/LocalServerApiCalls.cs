@@ -256,19 +256,31 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 version = pkgVersion.ToNormalizedString();
             }
 
-            string packageFullName = $"{packageName.ToLower()}.{version}.nupkg";
-            string packagePath = Path.Combine(Repository.Uri.LocalPath, packageFullName);
-            if (!File.Exists(packagePath))
+            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.{version}.nupkg*", WildcardOptions.IgnoreCase);
+            String pkgVersionPath = String.Empty;
+
+            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
-                errRecord = new ErrorRecord(new LocalResourceNotFoundException($"'{packageName}' version '{version}' does not exist in this repository"), "InstallVersionFailure", ErrorCategory.ResourceUnavailable, this);
-                return fs;
+                string packageFullName = Path.GetFileName(path);
+
+                if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
+                {
+                    pkgVersionPath = packageFullName;
+                }
             }
 
-            fs = new FileStream(packagePath, FileMode.Open, FileAccess.Read);
-
-            if (fs == null)
+            if (String.IsNullOrEmpty(pkgVersionPath))
             {
-                errRecord = new ErrorRecord(new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"), "InstallVersionFailure", ErrorCategory.ResourceUnavailable, this);
+                errRecord = new ErrorRecord(new LocalResourceEmpty($"'{packageName}' is not present in repository"), "InstallNameFailure", ErrorCategory.ResourceUnavailable, this);
+            }
+            else
+            {
+                fs = new FileStream(pkgVersionPath, FileMode.Open, FileAccess.Read);
+
+                if (fs == null)
+                {
+                    errRecord = new ErrorRecord(new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"), "InstallNameFailure", ErrorCategory.ResourceUnavailable, this);
+                }
             }
 
             return fs;

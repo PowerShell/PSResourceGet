@@ -642,17 +642,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         {Publish-PSResource -Path $psm1Path -Repository $testRepository2 -ErrorAction Stop} | Should -Throw -ErrorId "InvalidPublishPath,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
-    It "Publish a module and ensure package nupkg name is lowercased" {
-        $version = "1.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
-
-        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2 -SkipDependenciesCheck
-        $res = Find-PSResource -Name $script:PublishModuleName -Repository $testRepository2
-        $res | Should -Not -BeNullOrEmpty
-        $expectedPkgBaseName = "$($script:PublishModuleName).$($version)"
-        (Get-ChildItem $script:repositoryPath2).BaseName | Should -Be $expectedPkgBaseName.ToLower()
-    }
-
     It "Publish a module with prerelease dependency" {
         # look at functions in test utils for creating a module with prerelease
         $DepModuleName = "PrereleaseModule"
