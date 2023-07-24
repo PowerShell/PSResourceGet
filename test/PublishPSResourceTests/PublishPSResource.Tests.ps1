@@ -652,4 +652,30 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $expectedPkgBaseName = "$($script:PublishModuleName).$($version)"
         (Get-ChildItem $script:repositoryPath2).BaseName | Should -Be $expectedPkgBaseName.ToLower()
     }
+
+    It "Publish a module with prerelease dependency" {
+        # look at functions in test utils for creating a module with prerelease
+        $DepModuleName = "PrereleaseModule"
+        $DepVersion = "1.0.0"
+        $DepPrereleaseLabel = "beta"
+        $DepModuleRoot = Join-Path -Path $script:PublishModuleBase -ChildPath $DepModuleName
+
+        New-TestModule -Path $DepModuleRoot -ModuleName $DepModuleName -RepoName $testRepository2 -PackageVersion $DepVersion -prereleaseLabel $DepPrereleaseLabel  
+        Install-PSResource -Name $DepModuleName -Repository $testRepository2 -TrustRepository -Prerelease
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$DepModuleName.$DepVersion-$DepPrereleaseLabel.nupkg".ToLower()
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+
+        $ParentModuleName = "TestModuleWithPrereleaseDep"
+        $ParentVersion = "1.0.0"
+        $ParentModuleRoot = Join-Path -Path $script:PublishModuleBase -ChildPath $ParentModuleName
+        New-Item -Path $ParentModuleRoot -ItemType Directory -Force
+        $ParentManifestPath = Join-Path -Path $ParentModuleRoot -ChildPath "$ParentModuleName.psd1"
+        New-ModuleManifest -Path $ParentManifestPath -ModuleVersion $ParentVersion -Description "$ParentPkgName module" -RequiredModules $DepModuleName
+
+        Publish-PSResource -Path $ParentManifestPath -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$ParentModuleName.$ParentVersion.nupkg".ToLower()
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Contain $expectedPath
+    }
 }
