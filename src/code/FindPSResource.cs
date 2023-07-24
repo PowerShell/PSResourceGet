@@ -21,6 +21,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     [Cmdlet(VerbsCommon.Find,
         "PSResource",
         DefaultParameterSetName = NameParameterSet)]
+    [Alias("fdres")]
     [OutputType(typeof(PSResourceInfo), typeof(PSCommandResourceInfo))]
     public sealed class FindPSResource : PSCmdlet
     {

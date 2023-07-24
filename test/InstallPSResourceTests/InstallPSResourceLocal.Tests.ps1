@@ -264,6 +264,10 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $res.Version | Should -Be "1.0.0"
     }
 
+    It "Get definition for alias 'isres'" {
+        (Get-Alias isres).Definition | Should -BeExactly 'Install-PSResource'
+    }
+    
     It "Not install resource that lists dependency packages which cannot be found" {
         $localRepoUri = Join-Path -Path $TestDrive -ChildPath "testdir"
         Save-PSResource -Name "test_script" -Repository "PSGallery" -TrustRepository -Path $localRepoUri -AsNupkg -SkipDependencyCheck

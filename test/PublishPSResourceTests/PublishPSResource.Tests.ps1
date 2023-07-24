@@ -642,6 +642,10 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         {Publish-PSResource -Path $psm1Path -Repository $testRepository2 -ErrorAction Stop} | Should -Throw -ErrorId "InvalidPublishPath,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
+    It "Get definition for alias 'pbres'" {
+        (Get-Alias pbres).Definition | Should -BeExactly 'Publish-PSResource'
+    }
+    
     It "Publish a module and ensure package nupkg name is lowercased" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
