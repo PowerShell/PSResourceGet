@@ -857,7 +857,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 bool depPrerelease = depVersion.Contains("-");
 
                 var repository = new[] { repositoryName };
-                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, depPrerelease, null, repository, false);
+                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, true, null, repository, false);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
                    WriteError(new ErrorRecord(
