@@ -392,5 +392,6 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
 
         $res.Name | Should -Be "tempDriveRepo"
         $res.Uri.LocalPath | Should -Be "\"
+        $res.ApiVersion | Should -Be "local"
     }
 }

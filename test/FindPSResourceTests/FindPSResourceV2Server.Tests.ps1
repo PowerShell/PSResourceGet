@@ -378,6 +378,17 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterOrEqual 7 
     }
+
+    It "not find resource and error handle when repository's ApiVersion is ApiVersion.unknown" {
+        Register-PSResourceRepository -Name "UnknownTypeRepo" -Uri "https://org.MyCompany.com/repository/shared-feed/" -Trusted
+        $repo = Get-PSResourceRepository -Name "UnknownTypeRepo"
+        $repo.ApiVersion | Should -Be "unknown"
+
+        $res = Find-PSResource -Name "MyPackage" -Repository "UnknownTypeRepo" -ErrorAction SilentlyContinue -ErrorVariable err
+        $err | Should -HaveCount 1
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "RepositoryApiVersionUnknown,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $res | Should -BeNullOrEmpty
+    }
 }
 
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidationOnly' {

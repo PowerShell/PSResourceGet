@@ -189,6 +189,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 _networkCredential = Utils.SetNetworkCredential(repo, _networkCredential, _cmdletPassedIn);
                 ServerApiCall currentServer = ServerFactory.GetServer(repo, _networkCredential);
+
+                if (currentServer == null)
+                {
+                    // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                    new PSInvalidOperationException($"Repository '{repo.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
+                    "RepositoryApiVersionUnknown",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
+                    continue;
+                }
+
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(repo);
                 bool installDepsForRepo = skipDependencyCheck;
 
