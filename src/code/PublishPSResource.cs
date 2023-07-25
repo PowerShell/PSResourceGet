@@ -456,10 +456,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     try
                     {
                         var nupkgName = _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg";
-                        string srcPath = System.IO.Path.Combine(outputNupkgDir, nupkgName);
-                        // The file that gets created upon Copy should have lowercased package name.
-                        string destPath = System.IO.Path.Combine(DestinationPath, nupkgName.ToLower());
-                        File.Copy(srcPath, destPath);
+                        File.Copy(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(DestinationPath, nupkgName));
                     }
                     catch (Exception e) {
                         var message = string.Format("Error moving .nupkg into destination path '{0}' due to: '{1}'.", DestinationPath, e.Message);
