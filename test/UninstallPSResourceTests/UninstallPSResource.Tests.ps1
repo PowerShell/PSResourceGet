@@ -34,7 +34,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         Uninstall-PSResource -name $testModuleName -SkipDependencyCheck
         Get-InstalledPSResource $testModuleName | Should -BeNullOrEmpty
     }
-<#
+
     $testCases = @{Name="Test?Module";      ErrorId="ErrorFilteringNamesForUnsupportedWildcards"},
                  @{Name="Test[Module";      ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
 
@@ -213,7 +213,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $stableVersionPkgs = $res | Where-Object {$_.IsPrerelease -ne $true}
         $stableVersionPkgs.Count | Should -Be 2
     }
-#>
+
     It "uninstall all prerelease versions (which satisfy the range) when -Version range and -Prerelease parameter is specified" {
         Uninstall-PSResource -Name $testModuleName -Version "*" -SkipDependencyCheck
         Install-PSResource -Name $testModuleName -Version "2.5.0-beta" -Repository $PSGalleryName -TrustRepository
@@ -251,28 +251,6 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         RemoveItem -path .\testUninstallWhatIf.txt
     }
 
-    # It "Do not Uninstall module that is a dependency for another module" {
-    #     Install-PSResource "test_module" -Repository $PSGalleryName -TrustRepository -Version "3.0.0" -Reinstall
-
-    #     $pkg = Get-InstalledPSResource "test_module"
-    #     write-host "$($pkg.Name)"
-    #     write-host "$($pkg.Version)"
-
-    #     $pkg = Get-InstalledPSResource "RequiredModule1"
-    #     $pkg | Should -Not -Be $null
-    #     write-host "$($pkg.Name)"
-    #     write-host "$($pkg.Version)"
-
-    #     Uninstall-PSResource -Name "RequiredModule1" -ErrorVariable ev -ErrorAction SilentlyContinue -Verbose
-
-    #     write-host $ev
-
-    #     $pkg = Get-InstalledPSResource "RequiredModule1"
-    #     $pkg | Should -Not -Be $null
-
-    #     $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallPSResourcePackageIsADependency,Microsoft.PowerShell.PSResourceGet.Cmdlets.UninstallPSResource'
-    # }
-
     It "Uninstall specific module version that is not dependency for another module (even though later versions are a dependency)" {
         Install-PSResource "test_module" -Repository $PSGalleryName -Version "1.0.0.0" -TrustRepository -SkipDependencyCheck
         Install-PSResource "test_module" -Repository $PSGalleryName -Version "3.0.0.0" -TrustRepository -SkipDependencyCheck
@@ -290,22 +268,6 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
 
         $pkgVersion5 = Get-InstalledPSResource -Name "test_module" -Version "5.0.0.0"
         $pkgVersion5.Version | Should -Be "5.0.0.0"
-
-
-       
-        # $pkg = Get-InstalledPSResource "test_module"
-        # $pkg | Should -Not -Be $null
-        # $pkg.Count | Should -BeGreaterOrEqual 3
-
-        # write-host "************* LOOK HERE************************************"
-        # write-host "$($pkg.Count)"
-        
-        # Uninstall-PSResource -Name "test_module" -Version "*" -Verbose
-
-        # $pkg = Get-InstalledPSResource "test_module"
-        # $pkg | Should -Not -Be $null
-        # $pkg.Count | Should -Be 1
-        # $ev.FullyQualifiedErrorId | Should -BeExactly 'UninstallPSResourcePackageIsADependency,Microsoft.PowerShell.PSResourceGet.Cmdlets.UninstallPSResource'
     }
 
     It "Should not Uninstall a specific module version that is a dependency for another module" {
