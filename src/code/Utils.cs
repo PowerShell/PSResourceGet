@@ -413,7 +413,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             errorRecord = null;
             if (Uri.TryCreate(uriString, UriKind.Absolute, out uriResult))
             {
-                Console.WriteLine(uriResult.Scheme);
                 return true;
             }
 
