@@ -282,7 +282,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $pkg | Should -Not -Be $null
         $pkg.Count | Should -BeGreaterOrEqual 3
 
-        write-host "************* LOOOK HERE************************************"
+        write-host "************* LOOK HERE************************************"
         write-host "$($pkg.Count)"
         
         Uninstall-PSResource -Name "test_module" -Version "*" -Verbose
