@@ -265,7 +265,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
-                    pkgVersionPath = packageFullName;
+                    pkgVersionPath = path;
                 }
             }
 
