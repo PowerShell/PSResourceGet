@@ -540,7 +540,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $repo.ApiVersion = Microsoft.PowerShell.PSResourceGet.UtilClasses.ApiVersion.unknown
 
         $res = Install-PSResource -Name "MyPackage" -Repository "UnknownTypeRepo" -ErrorAction SilentlyContinue -ErrorVariable err -PassThru
-        $err | Should -HaveCount 0
+        $err | Should -HaveCount 1
         $err[0].FullyQualifiedErrorId | Should -BeExactly "RepositoryApiVersionUnknown,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
         $res | Should -BeNullOrEmpty
     }
