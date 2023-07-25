@@ -221,15 +221,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (String.IsNullOrEmpty(latestVersionPath))
             {
                 errRecord = new ErrorRecord(new LocalResourceEmpty($"'{packageName}' is not present in repository"), "InstallNameFailure", ErrorCategory.ResourceUnavailable, this);
+                return fs;
             }
-            else
-            {
-                fs = new FileStream(latestVersionPath, FileMode.Open, FileAccess.Read);
 
+            try
+            {            
+                fs = new FileStream(latestVersionPath, FileMode.Open, FileAccess.Read);
                 if (fs == null)
                 {
                     errRecord = new ErrorRecord(new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"), "InstallNameFailure", ErrorCategory.ResourceUnavailable, this);
                 }
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(e, "InstallNameFailure", ErrorCategory.ReadError, this);
             }
 
             return fs;
@@ -272,8 +277,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (String.IsNullOrEmpty(pkgVersionPath))
             {
                 errRecord = new ErrorRecord(new LocalResourceEmpty($"'{packageName}' is not present in repository"), "InstallNameFailure", ErrorCategory.ResourceUnavailable, this);
+                return fs;
             }
-            else
+
+            try
             {
                 fs = new FileStream(pkgVersionPath, FileMode.Open, FileAccess.Read);
 
@@ -281,6 +288,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     errRecord = new ErrorRecord(new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"), "InstallNameFailure", ErrorCategory.ResourceUnavailable, this);
                 }
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(e, "InstallVersionFailure", ErrorCategory.ReadError, this);
             }
 
             return fs;
