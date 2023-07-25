@@ -97,6 +97,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 throw new ArgumentException("Name cannot be null/empty, contain asterisk or be just whitespace");
             }
 
+            // repositories with Uri Scheme "temp" may have PSPath Uri's like: "Temp:\repo"
             if (repoUri == null || !(repoUri.Scheme == System.Uri.UriSchemeHttp || repoUri.Scheme == System.Uri.UriSchemeHttps || repoUri.Scheme == System.Uri.UriSchemeFtp || repoUri.Scheme == System.Uri.UriSchemeFile || repoUri.Scheme.Equals("temp", StringComparison.OrdinalIgnoreCase)))
             {
                 errorMsg = "Invalid Uri, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based or temp.";
@@ -147,6 +148,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public static PSRepositoryInfo UpdateRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, bool isSet, int defaultPriority, PSRepositoryInfo.APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string errorMsg)
         {
             errorMsg = string.Empty;
+            // repositories with Uri Scheme "temp" may have PSPath Uri's like: "Temp:\repo"
             if (repoUri != null && !(repoUri.Scheme == System.Uri.UriSchemeHttp || repoUri.Scheme == System.Uri.UriSchemeHttps || repoUri.Scheme == System.Uri.UriSchemeFtp || repoUri.Scheme == System.Uri.UriSchemeFile || repoUri.Scheme.Equals("temp", StringComparison.OrdinalIgnoreCase)))
             {
                 errorMsg = "Invalid Uri, Uri must be one of the following schemes: HTTPS, HTTP, FTP, File Based";
@@ -833,6 +835,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
             else if (repoUri.Scheme.Equals(Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase) || repoUri.Scheme.Equals("temp", StringComparison.OrdinalIgnoreCase))
             {
+                // repositories with Uri Scheme "temp" may have PSPath Uri's like: "Temp:\repo" and we should consider them as local repositories.
                 return PSRepositoryInfo.APIVersion.local;
             }
             else
