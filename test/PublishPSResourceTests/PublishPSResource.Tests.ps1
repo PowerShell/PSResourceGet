@@ -656,7 +656,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         New-TestModule -Path $DepModuleRoot -ModuleName $DepModuleName -RepoName $testRepository2 -PackageVersion $DepVersion -prereleaseLabel $DepPrereleaseLabel  
         Install-PSResource -Name $DepModuleName -Repository $testRepository2 -TrustRepository -Prerelease
 
-        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$DepModuleName.$DepVersion-$DepPrereleaseLabel.nupkg".ToLower()
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$DepModuleName.$DepVersion-$DepPrereleaseLabel.nupkg"
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
 
         $ParentModuleName = "TestModuleWithPrereleaseDep"
@@ -668,7 +668,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $ParentManifestPath -Repository $testRepository2
 
-        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$ParentModuleName.$ParentVersion.nupkg".ToLower()
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$ParentModuleName.$ParentVersion.nupkg"
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Contain $expectedPath
     }
 }
