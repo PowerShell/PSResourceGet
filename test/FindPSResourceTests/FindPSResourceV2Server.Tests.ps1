@@ -385,7 +385,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $repo.ApiVersion = Microsoft.PowerShell.PSResourceGet.UtilClasses.ApiVersion.unknown
 
         $res = Find-PSResource -Name "MyPackage" -Repository "UnknownTypeRepo" -ErrorAction SilentlyContinue -ErrorVariable err
-        $err.Count | Should -Not -Be 0
+        $err | Should -HaveCount 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "RepositoryApiVersionUnknown,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
