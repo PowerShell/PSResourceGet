@@ -456,10 +456,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     try
                     {
                         var nupkgName = _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg";
-                        string srcPath = System.IO.Path.Combine(outputNupkgDir, nupkgName);
-                        // The file that gets created upon Copy should have lowercased package name.
-                        string destPath = System.IO.Path.Combine(DestinationPath, nupkgName.ToLower());
-                        File.Copy(srcPath, destPath);
+                        File.Copy(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(DestinationPath, nupkgName));
                     }
                     catch (Exception e) {
                         var message = string.Format("Error moving .nupkg into destination path '{0}' due to: '{1}'.", DestinationPath, e.Message);
@@ -856,10 +853,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 // Search for and return the dependency if it's in the repository.
                 FindHelper findHelper = new FindHelper(_cancellationToken, this, _networkCredential);
-                bool depPrerelease = depVersion.Contains("-");
 
                 var repository = new[] { repositoryName };
-                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, depPrerelease, null, repository, false);
+                // Note: we set prerelease argument for FindByResourceName() to true because if no version is specified we want latest version (including prerelease).
+                // If version is specified it will get that one. There is also no way to specify a prerelease flag with RequiredModules hashtable of dependency so always try to get latest version.
+                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, prerelease: true, tag: null, repository, includeDependencies: false);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
                    WriteError(new ErrorRecord(
