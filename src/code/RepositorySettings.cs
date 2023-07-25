@@ -97,6 +97,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 throw new ArgumentException("Name cannot be null/empty, contain asterisk or be just whitespace");
             }
 
+            if (repoUri == null || !(repoUri.Scheme == System.Uri.UriSchemeHttp || repoUri.Scheme == System.Uri.UriSchemeHttps || repoUri.Scheme == System.Uri.UriSchemeFtp || repoUri.Scheme == System.Uri.UriSchemeFile || repoUri.Scheme.Equals("temp", StringComparison.OrdinalIgnoreCase)))
+            {
+                errorMsg = "Invalid Uri, must be one of the following Uri schemes: HTTPS, HTTP, FTP, File Based or temp.";
+                return null;
+            }
+
             PSRepositoryInfo.APIVersion resolvedAPIVersion = apiVersion ?? GetRepoAPIVersion(repoUri);
 
             if (repoCredentialInfo != null)
@@ -141,6 +147,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public static PSRepositoryInfo UpdateRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, bool isSet, int defaultPriority, PSRepositoryInfo.APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string errorMsg)
         {
             errorMsg = string.Empty;
+            if (repoUri != null && !(repoUri.Scheme == System.Uri.UriSchemeHttp || repoUri.Scheme == System.Uri.UriSchemeHttps || repoUri.Scheme == System.Uri.UriSchemeFtp || repoUri.Scheme == System.Uri.UriSchemeFile || repoUri.Scheme.Equals("temp", StringComparison.OrdinalIgnoreCase)))
+            {
+                errorMsg = "Invalid Uri, Uri must be one of the following schemes: HTTPS, HTTP, FTP, File Based";
+                return null;
+            }
 
             // check repoName can't contain * or just be whitespace
             // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
@@ -820,9 +831,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // Scenario: ASP.Net application feed created with NuGet.Server to host packages
                 return PSRepositoryInfo.APIVersion.nugetServer;
             }
-            else
+            else if (repoUri.Scheme.Equals(Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase) || repoUri.Scheme.Equals("temp", StringComparison.OrdinalIgnoreCase))
             {
                 return PSRepositoryInfo.APIVersion.local;
+            }
+            else
+            {
+                return PSRepositoryInfo.APIVersion.unknown;
             }
         }
 
