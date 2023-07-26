@@ -5,9 +5,9 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Microsoft.PowerShell.PSResourceGet</RootNamespace>
     <AssemblyName>Microsoft.PowerShell.PSResourceGet</AssemblyName>
-    <AssemblyVersion>0.5.22.0</AssemblyVersion>
-    <FileVersion>0.5.22</FileVersion>
-    <InformationalVersion>0.5.22</InformationalVersion>
+    <AssemblyVersion>0.5.23.0</AssemblyVersion>
+    <FileVersion>0.5.23</FileVersion>
+    <InformationalVersion>0.5.23</InformationalVersion>
     <TargetFrameworks>net472;netstandard2.0</TargetFrameworks>
     <LangVersion>9.0</LangVersion>
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
