@@ -217,6 +217,7 @@ stages:
           $null = New-Item -Path $createdSignSrcPath -ItemType Directory -Verbose
         }
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Microsoft.PowerShell.PSResourceGet.psd1") -Dest $createdSignSrcPath -Force -Verbose
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Microsoft.PowerShell.PSResourceGet.psm1") -Dest $createdSignSrcPath -Force -Verbose
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "PSGet.Format.ps1xml") -Dest $createdSignSrcPath -Force -Verbose
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Microsoft.PowerShell.PSResourceGet.dll") -Dest $createdSignSrcPath -Force -Verbose
 
