@@ -332,4 +332,16 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         $res2 = Get-PSResourceRepository -Name "tempDriveRepo"
         $res2.Uri.LocalPath | Should -Be "\"
     }
+
+    It "should not change ApiVersion of repository if -ApiVersion parameter was not used" {
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
+        $repo = Get-PSResourceRepository $TestRepoName1
+        $repoApiVersion = $repo.ApiVersion
+        $repoApiVersion | Should -Be "local"
+
+        Set-PSResourceRepository -Name $TestRepoName1 -Priority 25
+        $repo = Get-PSResourceRepository $TestRepoName1
+        $repo.ApiVersion | Should -Be "local"
+        $repo.Priority | Should -Be 25
+    }
 }
