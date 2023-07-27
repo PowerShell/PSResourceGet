@@ -86,7 +86,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Specifies the Api version of the repository to be set.
         /// </sumamry>
         [Parameter(ParameterSetName = NameParameterSet)]
-        public PSRepositoryInfo.APIVersion ApiVersion { get; set; }
+        public PSRepositoryInfo.APIVersion? ApiVersion { get; set; } = null;
 
         /// <summary>
         /// Specifies vault and secret names as PSCredentialInfo for the repository.
