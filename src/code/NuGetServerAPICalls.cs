@@ -137,7 +137,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ErrorRecord errRecord)
         {
-            string errMsg = $"Find by CommandName or DSCResource is not supported for the V3 server repository {Repository.Name}";
+            string errMsg = $"Find by CommandName or DSCResource is not supported for the repository '{Repository.Name}'";
             errRecord = new ErrorRecord(new InvalidOperationException(errMsg), "FindCommandOrDscResourceFailure", ErrorCategory.InvalidOperation, this);
 
             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -522,7 +522,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (names.Length == 0)
             {
-                errRecord = new ErrorRecord(new ArgumentException("-Name '*' for V2 server protocol repositories is not supported"), "FindNameGlobbingFailure", ErrorCategory.InvalidArgument, this);
+                errRecord = new ErrorRecord(new ArgumentException("-Name '*' for NuGet.Server hosted feed repository is not supported"), "FindNameGlobbingFailure", ErrorCategory.InvalidArgument, this);
 
                 return string.Empty;
             }
@@ -579,7 +579,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (names.Length == 0)
             {
-                errRecord = new ErrorRecord(new ArgumentException("-Name '*' for V2 server protocol repositories is not supported"), "FindNameGlobbingFailure", ErrorCategory.InvalidArgument, this);
+                errRecord = new ErrorRecord(new ArgumentException("-Name '*' for NuGet.Server hosted feed repository  is not supported"), "FindNameGlobbingFailure", ErrorCategory.InvalidArgument, this);
 
                 return string.Empty;
             }
