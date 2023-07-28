@@ -651,9 +651,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 string packageFullName = Path.GetFileName(path);
                 MatchCollection matches = rx.Matches(packageFullName);
+                if (matches.Count == 0)
+                {
+                    continue;
+                }
+
                 Match match = matches[0];
 
                 GroupCollection groups = match.Groups;
+                if (groups.Count == 0)
+                {
+                    continue;
+                }
+
                 Capture group = groups[0];
 
                 string pkgFoundName = packageFullName.Substring(0, group.Index);
@@ -668,7 +678,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 string version = packageFullName.Substring(group.Index + 1, packageFullName.LastIndexOf('.') - group.Index - 1);
 
-                NuGetVersion.TryParse(version, out NuGetVersion nugetVersion); // TODO: err handle
+                if (!NuGetVersion.TryParse(version, out NuGetVersion nugetVersion))
+                {
+                    continue;
+                }
 
                 if (!nugetVersion.IsPrerelease || includePrerelease)
                 {
