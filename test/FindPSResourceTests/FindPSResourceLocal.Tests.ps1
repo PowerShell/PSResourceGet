@@ -272,7 +272,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
     It "not find resource with tag value that is non-existent for the packages" {
         # Since this is pattern matching based search no error should be written out.
-        $res = Find-PSResource -Tag "nonexistenttag" -Repository $localRepo
+        $res = Find-PSResource -Tag "nonexistenttag" -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err | Should -HaveCount 0
     }
