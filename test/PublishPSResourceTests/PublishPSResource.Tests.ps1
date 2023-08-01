@@ -4,8 +4,6 @@
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-$testDir = (get-item $psscriptroot).parent.FullName
-
 function CreateTestModule
 {
     param (
@@ -543,7 +541,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
 
-    It "should publish a script with sExternalModuleDependencies that are not published" {
+    It "should publish a script with ExternalModuleDependencies that are not published" {
         $scriptName = "test"
         $scriptVersion = "1.0.0"
         $scriptPath = Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1"
@@ -669,6 +667,34 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Publish-PSResource -Path $ParentManifestPath -Repository $testRepository2
 
         $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$ParentModuleName.$ParentVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Contain $expectedPath
+    }
+
+    It "Publish a module with required modules (both in string format and hashtable format)" {
+        # look at functions in test utils for creating a module with prerelease
+        $ModuleName = "ParentModule"
+        $ModuleVersion = "1.0.0"
+        $ModuleRoot = Join-Path -Path $script:PublishModuleBase -ChildPath $ModuleName
+        $ModuleManifestPath = Join-Path -Path $ModuleRoot -ChildPath "$ModuleName.psd1"
+
+        $ReqModule1Name = "ReqModule1"
+        $ReqModule1Version = "3.0.0"
+        $ReqModule1Root = Join-Path -Path $script:PublishModuleBase -ChildPath $ReqModule1Name
+        $ReqModule1ManifestPath = Join-Path -Path $ReqModule1Root -ChildPath "$ReqModule1Name.psd1"
+
+        $ReqModule2Name = "ReqModule2"
+        $ReqModule2Root = Join-Path -Path $script:PublishModuleBase -ChildPath $ReqModule2Name
+        $ReqModule2ManifestPath = Join-Path -Path $reqModule2Root -ChildPath "$ReqModule2Name.psd1"
+
+        New-ModuleManifest -Path $ModuleManifestPath -ModuleVersion $ModuleVersion -Description "$ModuleName module" -RequiredModules @( @{"ModuleName" = $ReqModule1Name; "ModuleVersion" = $ReqModule1Version},  $ReqModule2Name )
+        New-ModuleManifest -Path $ReqModule1ManifestPath -ModuleVersion $ModuleVersion -Description "$ModuleName module" -RequiredModules @( @{"ModuleName" = $ReqModule1Name; "ModuleVersion" = $ReqModule1Version},  $ReqModule2Name )
+        New-ModuleManifest -Path $ReqModule2ManifestPath -ModuleVersion $ModuleVersion -Description "$ModuleName module" -RequiredModules @( @{"ModuleName" = $ReqModule1Name; "ModuleVersion" = $ReqModule1Version},  $ReqModule2Name )
+
+        Publish-PSResource -Path $ReqModule1ManifestPath -Repository $testRepository2
+        Publish-PSResource -Path $ReqModule2ManifestPath -Repository $testRepository2
+        Publish-PSResource -Path $ModuleManifestPath -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$ModuleName.$ModuleVersion.nupkg"
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Contain $expectedPath
     }
 }
