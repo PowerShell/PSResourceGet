@@ -26,6 +26,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
     }
 
+    # Ignore
     It "Update resource installed given Name parameter" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
 
