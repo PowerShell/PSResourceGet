@@ -27,7 +27,9 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     AfterEach {
-        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", "TestFindModule","ClobberTestModule1", "ClobberTestModule2", "PackageManagement", "TestTestScript" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", `
+                     "TestFindModule","ClobberTestModule1", "ClobberTestModule2", "PackageManagement", "TestTestScript", `
+                     "TestModuleWithDependency", "TestModuleWithPrereleaseDep" "PrereleaseModule" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -154,6 +156,19 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $pkg = Get-InstalledPSResource "TestModuleWithDependencyD"
         $pkg.Name | Should -Be "TestModuleWithDependencyD"
         $pkg.Version | Should -Be "2.0"
+    }
+
+    It "Install a module with a prerelease dependency" {
+        Install-PSResource -Name "TestModuleWithPrereleaseDep" -Repository $PSGalleryName -TrustRepository 
+
+        $pkg = Get-InstalledPSResource "TestModuleWithPrereleaseDep"
+        $pkg.Name | Should -Be "TestModuleWithPrereleaseDep"
+        $pkg.Version | Should -Be "0.0.1"
+
+        $pkg = Get-InstalledPSResource "PrereleaseModule"
+        $pkg.Name | Should -Be "PrereleaseModule"
+        $pkg.Version | Should -Be "0.0.1"
+        $pkg.Prerelease | Should -Be "Prerelease"
     }
 
     It "Install a module with a dependency and skip installing the dependency" {
