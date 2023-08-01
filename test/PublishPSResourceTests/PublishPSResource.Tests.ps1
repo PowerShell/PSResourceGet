@@ -692,8 +692,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $ReqModule2ManifestPath = Join-Path -Path $reqModule2Root -ChildPath "$ReqModule2Name.psd1"
 
         New-ModuleManifest -Path $ModuleManifestPath -ModuleVersion $ModuleVersion -Description "$ModuleName module" -RequiredModules @( @{"ModuleName" = $ReqModule1Name; "ModuleVersion" = $ReqModule1Version},  $ReqModule2Name )
-        New-ModuleManifest -Path $ReqModule1ManifestPath -ModuleVersion $ModuleVersion -Description "$ModuleName module" -RequiredModules @( @{"ModuleName" = $ReqModule1Name; "ModuleVersion" = $ReqModule1Version},  $ReqModule2Name )
-        New-ModuleManifest -Path $ReqModule2ManifestPath -ModuleVersion $ModuleVersion -Description "$ModuleName module" -RequiredModules @( @{"ModuleName" = $ReqModule1Name; "ModuleVersion" = $ReqModule1Version},  $ReqModule2Name )
+        New-ModuleManifest -Path $ReqModule1ManifestPath -ModuleVersion $ReqModule1Version -Description "$ReqModule1Name module"
+        New-ModuleManifest -Path $ReqModule2ManifestPath -Description "$ReqModule1Name module"
 
         Publish-PSResource -Path $ReqModule1ManifestPath -Repository $testRepository2
         Publish-PSResource -Path $ReqModule2ManifestPath -Repository $testRepository2
