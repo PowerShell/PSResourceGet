@@ -677,15 +677,18 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $ModuleName = "ParentModule"
         $ModuleVersion = "1.0.0"
         $ModuleRoot = Join-Path -Path $script:PublishModuleBase -ChildPath $ModuleName
+        New-Item $ModuleRoot -ItemType Directory
         $ModuleManifestPath = Join-Path -Path $ModuleRoot -ChildPath "$ModuleName.psd1"
 
         $ReqModule1Name = "ReqModule1"
         $ReqModule1Version = "3.0.0"
         $ReqModule1Root = Join-Path -Path $script:PublishModuleBase -ChildPath $ReqModule1Name
+        New-Item $ReqModule1Root -ItemType Directory
         $ReqModule1ManifestPath = Join-Path -Path $ReqModule1Root -ChildPath "$ReqModule1Name.psd1"
 
         $ReqModule2Name = "ReqModule2"
         $ReqModule2Root = Join-Path -Path $script:PublishModuleBase -ChildPath $ReqModule2Name
+        New-Item $ReqModule2Root -ItemType Directory
         $ReqModule2ManifestPath = Join-Path -Path $reqModule2Root -ChildPath "$ReqModule2Name.psd1"
 
         New-ModuleManifest -Path $ModuleManifestPath -ModuleVersion $ModuleVersion -Description "$ModuleName module" -RequiredModules @( @{"ModuleName" = $ReqModule1Name; "ModuleVersion" = $ReqModule1Version},  $ReqModule2Name )
