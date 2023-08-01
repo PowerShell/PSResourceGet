@@ -41,11 +41,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private FindHelper() { }
 
-        public FindHelper(CancellationToken cancellationToken, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential)
+        public FindHelper(CancellationToken cancellationToken, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential, bool prerelease)
         {
             _cancellationToken = cancellationToken;
             _cmdletPassedIn = cmdletPassedIn;
             _networkCredential = networkCredential;
+            _prerelease = prerelease;
         }
 
         #endregion

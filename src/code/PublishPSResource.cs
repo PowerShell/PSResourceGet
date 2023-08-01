@@ -852,7 +852,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 // Search for and return the dependency if it's in the repository.
-                FindHelper findHelper = new FindHelper(_cancellationToken, this, _networkCredential);
+                FindHelper findHelper = new FindHelper(_cancellationToken, this, _networkCredential, prerelease: true);
 
                 var repository = new[] { repositoryName };
                 // Note: we set prerelease argument for FindByResourceName() to true because if no version is specified we want latest version (including prerelease).

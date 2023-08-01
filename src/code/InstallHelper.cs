@@ -179,7 +179,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var yesToAll = false;
             var noToAll = false;
 
-            var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
+            var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential, _prerelease);
             List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
             bool sourceTrusted = false;
 

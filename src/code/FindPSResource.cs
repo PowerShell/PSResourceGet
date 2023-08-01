@@ -123,7 +123,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _findHelper = new FindHelper(
                 cancellationToken: _cancellationTokenSource.Token,
                 cmdletPassedIn: this,
-                networkCredential: networkCred);
+                networkCredential: networkCred,
+                prerelease: Prerelease);
 
             // Create a repository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
