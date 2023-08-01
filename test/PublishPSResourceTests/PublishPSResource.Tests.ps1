@@ -89,6 +89,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         }
 
         # Path to folder, within our test folder, where we store invalid module and script files used for testing
+        $testDir = (get-item $psscriptroot).parent.FullName
+
         $script:testFilesFolderPath = Join-Path $testDir -ChildPath "testFiles"
 
         # Path to specifically to that invalid test modules folder
@@ -98,7 +100,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $script:testScriptsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testScripts"
 
         # Create test module with missing required module
-        CreateTestModule -Path $TestDrive -ModuleName 'ModuleWithMissingRequiredModule'
+        #CreateTestModule -Path $TestDrive -ModuleName 'ModuleWithMissingRequiredModule'
     }
     AfterAll {
        Get-RevertPSResourceRepositoryFile
@@ -691,12 +693,16 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         New-Item $ReqModule2Root -ItemType Directory
         $ReqModule2ManifestPath = Join-Path -Path $reqModule2Root -ChildPath "$ReqModule2Name.psd1"
 
-        New-ModuleManifest -Path $ModuleManifestPath -ModuleVersion $ModuleVersion -Description "$ModuleName module" -RequiredModules @( @{"ModuleName" = $ReqModule1Name; "ModuleVersion" = $ReqModule1Version},  $ReqModule2Name )
+        New-ModuleManifest -Path $ModuleManifestPath -ModuleVersion $ModuleVersion -Description "$ModuleName module" -RequiredModules @( @{ "ModuleName" = $ReqModule1Name; "ModuleVersion" = $ReqModule1Version },  $ReqModule2Name )
         New-ModuleManifest -Path $ReqModule1ManifestPath -ModuleVersion $ReqModule1Version -Description "$ReqModule1Name module"
         New-ModuleManifest -Path $ReqModule2ManifestPath -Description "$ReqModule1Name module"
-
+        
         Publish-PSResource -Path $ReqModule1ManifestPath -Repository $testRepository2
         Publish-PSResource -Path $ReqModule2ManifestPath -Repository $testRepository2
+
+        Install-PSResource $ReqModule1Name -Repository $testRepository2 -TrustRepository
+        Install-PSResource $ReqModule2Name -Repository $testRepository2 -TrustRepository
+
         Publish-PSResource -Path $ModuleManifestPath -Repository $testRepository2
 
         $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$ModuleName.$ModuleVersion.nupkg"
