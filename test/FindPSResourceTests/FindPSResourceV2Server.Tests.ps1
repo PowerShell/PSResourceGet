@@ -379,6 +379,12 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res.Count | Should -BeGreaterOrEqual 7 
     }
 
+    It "find a specific version using NuGet versioning bracket syntax" {
+        $res = Find-PSResource -Name $testModuleName -Version "[3.0.0,3.0.0]" -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "3.0.0.0"
+    }
+
     It "not find resource and error handle when repository's ApiVersion is ApiVersion.unknown" {
         Register-PSResourceRepository -Name "UnknownTypeRepo" -Uri "https://org.MyCompany.com/repository/shared-feed/" -Trusted
         $repo = Get-PSResourceRepository -Name "UnknownTypeRepo"
