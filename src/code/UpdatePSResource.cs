@@ -199,7 +199,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 nugetVersion: nugetVersion,
                 versionType: versionType,
                 versionString: Version,
-                prerelease: latestInstalledIsPrerelease,
+                prerelease: latestInstalledIsPrerelease || Prerelease,
                 repository: Repository,
                 acceptLicense: AcceptLicense,
                 quiet: Quiet,
@@ -257,7 +257,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             VersionType versionType,
             out bool latestInstalledIsPrerelease)
         {
-            latestInstalledIsPrerelease = Prerelease;
+            latestInstalledIsPrerelease = false;
 
             namesToProcess = Utils.ProcessNameWildcards(
                 pkgNames: namesToProcess,
@@ -331,7 +331,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 nugetVersion: nuGetVersion,
                 versionType: versionType,
                 version: Version,
-                prerelease: latestInstalledIsPrerelease,
+                prerelease: latestInstalledIsPrerelease || Prerelease,
                 tag: null,
                 repository: Repository,
                 includeDependencies: !SkipDependencyCheck))
