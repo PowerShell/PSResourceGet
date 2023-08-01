@@ -257,7 +257,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             VersionType versionType,
             out bool latestInstalledIsPrerelease)
         {
-            latestInstalledIsPrerelease = false;
+            latestInstalledIsPrerelease = Prerelease;
 
             namesToProcess = Utils.ProcessNameWildcards(
                 pkgNames: namesToProcess,
