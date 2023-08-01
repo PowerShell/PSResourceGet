@@ -808,7 +808,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Adding 1 because we want to retrieve all the prerelease versions for the max version and PSGallery views prerelease as higher than its stable
                 // eg 3.0.0-prerelease > 3.0.0
                 string maxString = includePrerelease ? $"{versionRange.MaxVersion.Major}.{versionRange.MaxVersion.Minor + 1}" :
-                                $"{versionRange.MinVersion.ToNormalizedString()}";
+                                $"{versionRange.MaxVersion.ToNormalizedString()}";
                 if (NuGetVersion.TryParse(maxString, out NuGetVersion maxVersion))
                 {
                     maxPart = String.Format(format, operation, $"'{maxVersion.ToNormalizedString()}'");
