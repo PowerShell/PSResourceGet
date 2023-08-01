@@ -163,8 +163,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _findHelper = new FindHelper(
                 cancellationToken: _cancellationTokenSource.Token, 
                 cmdletPassedIn: this,
-                networkCredential: networkCred,
-                prerelease: Prerelease);
+                networkCredential: networkCred);
 
              _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }
