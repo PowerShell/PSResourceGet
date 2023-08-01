@@ -29,7 +29,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     AfterEach {
         Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", `
                      "TestFindModule","ClobberTestModule1", "ClobberTestModule2", "PackageManagement", "TestTestScript", `
-                     "TestModuleWithDependency", "TestModuleWithPrereleaseDep" "PrereleaseModule" -SkipDependencyCheck -ErrorAction SilentlyContinue
+                     "TestModuleWithDependency", "TestModuleWithPrereleaseDep", "PrereleaseModule" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
