@@ -286,8 +286,8 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res.Tags | Should -Contain $requiredTag
     }
 
-    It "" {
-        # FindVersionWithTag()should not find resource if Name, Version and Tag property are not all satisfied (single tag)
+    It "should not find resource if Name, Version and Tag property are not all satisfied (single tag)" {
+        # FindVersionWithTag()
         $requiredTag = "windows" # tag "windows" is not present for test_module package
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
