@@ -89,8 +89,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         }
 
         # Path to folder, within our test folder, where we store invalid module and script files used for testing
-        $testDir = (get-item $psscriptroot).parent.FullName
-
         $script:testFilesFolderPath = Join-Path $testDir -ChildPath "testFiles"
 
         # Path to specifically to that invalid test modules folder
@@ -100,7 +98,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $script:testScriptsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testScripts"
 
         # Create test module with missing required module
-        #CreateTestModule -Path $TestDrive -ModuleName 'ModuleWithMissingRequiredModule'
+        CreateTestModule -Path $TestDrive -ModuleName 'ModuleWithMissingRequiredModule'
     }
     AfterAll {
        Get-RevertPSResourceRepositoryFile
