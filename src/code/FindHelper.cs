@@ -380,7 +380,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 FindResults responses = currentServer.FindTags(_tag, _prerelease, type, out ErrorRecord errRecord);
-
                 if (errRecord != null)
                 {
                     _cmdletPassedIn.WriteError(errRecord);
