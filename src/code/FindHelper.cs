@@ -129,6 +129,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 yield break;
             }
 
+            bool pkgFound = false;
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Count > 0 ; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
@@ -150,20 +151,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
 
-                bool pkgFound = false;
                 foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository))
                 {
                     pkgFound = currentPkg != null;
                     yield return currentPkg;
                 }
+            }
 
-                if (!pkgFound) {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new ResourceNotFoundException($"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' cound not be found in any registered repositories."),
-                                "PackageNotFound",
-                                ErrorCategory.ObjectNotFound,
-                                this));
-                }
+            if (!pkgFound)
+            {
+                _cmdletPassedIn.WriteError(new ErrorRecord(
+                            new ResourceNotFoundException($"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' cound not be found in any registered repositories."),
+                            "PackageNotFound",
+                            ErrorCategory.ObjectNotFound,
+                            this));
             }
         }
 
