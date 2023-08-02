@@ -758,7 +758,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                errRecord = new ErrorRecord(new V3ResourceNotFoundException($"RegistrationBaseUrl resource could not be found for repository '{Repository.Name}'"), "FindRegistrationsBaseUrlFailure", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"RegistrationBaseUrl resource could not be found for repository '{Repository.Name}'"), "FindRegistrationsBaseUrlFailure", ErrorCategory.InvalidResult, this);
             }
 
             return registrationsBaseUrl;
@@ -791,7 +791,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                errRecord = new ErrorRecord(new V3ResourceNotFoundException($"SearchQueryService resource could not be found for Repository '{Repository.Name}'"), "FindSearchQueryServiceFailure", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"SearchQueryService resource could not be found for Repository '{Repository.Name}'"), "FindSearchQueryServiceFailure", ErrorCategory.InvalidResult, this);
             }
 
             return searchQueryServiceUrl;
@@ -814,8 +814,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = HttpRequestCall(metadataUri, out errRecord);
             if (errRecord != null)
             {
-                if (errRecord.Exception is V3ResourceNotFoundException) {
-                    errRecord = new ErrorRecord(new V3ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                if (errRecord.Exception is ResourceNotFoundException) {
+                    errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
                 }
 
                 return metadataElement;
@@ -861,9 +861,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out errRecord);
             if (errRecord != null)
             {
-                if (errRecord.Exception is V3ResourceNotFoundException)
+                if (errRecord.Exception is ResourceNotFoundException)
                 {
-                    errRecord = new ErrorRecord(new V3ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                    errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
                 }
 
                 return Utils.EmptyStrArray;
@@ -1150,7 +1150,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 response = SendV3RequestAsync(request, _sessionClient).GetAwaiter().GetResult();
             }
-            catch (V3ResourceNotFoundException e)
+            catch (ResourceNotFoundException e)
             {
                 errRecord = new ErrorRecord(e, "ResourceNotFound", ErrorCategory.InvalidResult, this);
             }
@@ -1210,7 +1210,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (HttpRequestException e)
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound)) {
-                    throw new V3ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                    throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
                 }
                 // ADO feed will return a 401 if a package does not exist on the feed, with the following message:
                 // 401 (Unauthorized - No local versions of package 'NonExistentModule'; please provide authentication to access
@@ -1250,7 +1250,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound))
                 {
-                    throw new V3ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                    throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
                 }
                 if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
                 {

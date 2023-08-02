@@ -518,7 +518,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 response = SendV2RequestAsync(request, _sessionClient).GetAwaiter().GetResult();
             }
-            catch (V3ResourceNotFoundException e)
+            catch (ResourceNotFoundException e)
             {
                 errRecord = new ErrorRecord(e, "ResourceNotFound", ErrorCategory.InvalidResult, this);
             }
@@ -926,7 +926,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound))
                 {
-                    throw new V2ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                    throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
                 }
                 // ADO feed will return a 401 if a package does not exist on the feed, with the following message:
                 // 401 (Unauthorized - No local versions of package 'NonExistentModule'; please provide authentication to access
@@ -965,7 +965,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound))
                 {
-                    throw new V2ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                    throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
                 }
                 if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
                 {

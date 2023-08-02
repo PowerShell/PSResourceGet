@@ -255,7 +255,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 FindResults responses = currentServer.FindCommandOrDscResource(tag, _prerelease, isSearchingForCommands, out ErrorRecord errRecord);
                 if (errRecord != null)
                 {
-                    _cmdletPassedIn.WriteError(errRecord);
+                    if (errRecord.Exception is ResourceNotFoundException)
+                    {
+                        _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                    }
+                    else {
+                        _cmdletPassedIn.WriteError(errRecord);
+                    }
                     continue;
                 }
 
@@ -383,7 +389,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (errRecord != null)
                 {
-                    _cmdletPassedIn.WriteError(errRecord);
+                    if (errRecord.Exception is ResourceNotFoundException)
+                    {
+                        _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                    }
+                    else {
+                        _cmdletPassedIn.WriteError(errRecord);
+                    }
                     continue;
                 }
 
@@ -424,7 +436,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindResults responses = currentServer.FindAll(_prerelease, _type, out errRecord);
                         if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(errRecord);
+                            if (errRecord.Exception is ResourceNotFoundException)
+                            {
+                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                            }
+                            else {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
                             continue;
                         }
 
@@ -471,7 +489,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(errRecord);
+                            if (errRecord.Exception is ResourceNotFoundException)
+                            {
+                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                            }
+                            else {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
                             continue;
                         }
 
@@ -517,7 +541,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(errRecord);
+                            if (errRecord.Exception is ResourceNotFoundException)
+                            {
+                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                            }
+                            else {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
                             continue;
                         }
 
@@ -572,7 +602,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(errRecord);
+                            if (errRecord.Exception is ResourceNotFoundException)
+                            {
+                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                            }
+                            else {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
                             continue;
                         }
 
@@ -624,7 +660,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(errRecord);
+                            if (errRecord.Exception is ResourceNotFoundException)
+                            {
+                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                            }
+                            else {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
                             continue;
                         }
 
@@ -704,7 +746,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindResults responses = currentServer.FindName(dep.Name, _prerelease, _type, out ErrorRecord errRecord);
                         if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(errRecord);
+                            if (errRecord.Exception is ResourceNotFoundException)
+                            {
+                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                            }
+                            else {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
                             yield return null;
                             continue;
                         }
@@ -738,7 +786,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindResults responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ErrorRecord errRecord);
                         if (errRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(errRecord);
+                            if (errRecord.Exception is ResourceNotFoundException)
+                            {
+                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                            }
+                            else {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
                             yield return null;
                             continue;
                         }
