@@ -274,6 +274,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # Since this is pattern matching based search no error should be written out.
         $res = Find-PSResource -Tag "nonexistenttag" -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-        $err | Should -HaveCount 0
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindTagsPackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 }

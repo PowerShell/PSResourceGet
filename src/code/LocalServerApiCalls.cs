@@ -470,12 +470,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string pkgPath = pkgInfo["path"] as string;
 
                 Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: pkgFound, packagePath: pkgPath, requiredTags: tags, errRecord: out errRecord);
-                if (errRecord != null || pkgMetadata.Count == 0)
+                if (errRecord != null)
                 {
                     return findResponse;
                 }
 
+                // This condition is hit if the package is not a match with respect to tags, in which case we should skip the package and not return from this method.
+                if (pkgMetadata.Count == 0)
+                {
+                    continue;
+                }
+
                 pkgsFound.Add(pkgMetadata);
+            }
+
+            if (pkgsFound.Count == 0)
+            {
+                string parameterForError = tags.Length == 0 ? "Name '*'" : $"Tags '{String.Join(", ", tags)}'";
+                errRecord = new ErrorRecord(new LocalResourceNotFoundException($"Package(s) with {parameterForError} could not be found in repository '{Repository.Name}'."), "FindTagsPackageNotFound", ErrorCategory.ParserError, this);
             }
 
             findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
