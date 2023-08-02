@@ -93,7 +93,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             HashSet<string> pkgsInstalled)
         {
             _cmdletPassedIn.WriteVerbose(string.Format("Parameters passed in >>> Name: '{0}'; VersionRange: '{1}'; NuGetVersion: '{2}'; VersionType: '{3}'; Version: '{4}'; Prerelease: '{5}'; Repository: '{6}'; " +
-                "AcceptLicense: '{7}'; Quiet: '{8}'; Reinstall: '{9}'; TrustRepository: '{10}'; NoClobber: '{11}'; AsNupkg: '{12}'; IncludeXml '{13}'; SavePackage '{14}'; TemporaryPath '{15}'",
+                "AcceptLicense: '{7}'; Quiet: '{8}'; Reinstall: '{9}'; TrustRepository: '{10}'; NoClobber: '{11}'; AsNupkg: '{12}'; IncludeXml '{13}'; SavePackage '{14}'; TemporaryPath '{15}'; SkipDependencyCheck: '{16}'; " + 
+                "AuthenticodeCheck: '{17}'; PathsToInstallPkg: '{18}'; Scope '{19}'",
                 string.Join(",", names),
                 versionRange != null ? (versionRange.OriginalString != null ? versionRange.OriginalString : string.Empty) : string.Empty,
                 nugetVersion != null ? nugetVersion.ToString() : string.Empty,
@@ -109,7 +110,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 asNupkg.ToString(),
                 includeXml.ToString(),
                 savePkg.ToString(),
-                tmpPath ?? string.Empty));
+                tmpPath ?? string.Empty,
+                skipDependencyCheck,
+                authenticodeCheck,
+                pathsToInstallPkg != null ? string.Join(",", pathsToInstallPkg) : string.Empty,
+                scope?.ToString() ?? string.Empty));
+
 
             _versionRange = versionRange;
             _nugetVersion = nugetVersion;
