@@ -484,10 +484,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 pkgsFound.Add(pkgMetadata);
             }
 
-            if (pkgsFound.Count == 0)
+            if (pkgsFound.Count == 0 && tags.Length != 0)
             {
-                string parameterForError = tags.Length == 0 ? "Name '*'" : $"Tags '{String.Join(", ", tags)}'";
-                errRecord = new ErrorRecord(new LocalResourceNotFoundException($"Package(s) with {parameterForError} could not be found in repository '{Repository.Name}'."), "FindTagsPackageNotFound", ErrorCategory.ParserError, this);
+                errRecord = new ErrorRecord(new LocalResourceNotFoundException($"Package(s) with Tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindTagsPackageNotFound", ErrorCategory.ParserError, this);
             }
 
             findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
