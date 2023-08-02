@@ -516,7 +516,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         {
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
-                                // write warning?
                                 string message = _tag.Length == 0 ? $"Package '{pkgName}' could not be found." : $"Package '{pkgName}' with tags '{tagsAsString}' could not be found.";
                                 errRecord = new ErrorRecord(
                                             new ResourceNotFoundException(message, currentResult.exception), 

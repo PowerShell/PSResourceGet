@@ -45,14 +45,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         }
     }
 
-    public class SpecifiedTagsNotFoundException : Exception
-    {
-        public SpecifiedTagsNotFoundException(string message, Exception innerException = null)
-            : base (message)
-        {
-        }
-    }
-
     public class InvalidOrEmptyResponse : Exception
     {
         public InvalidOrEmptyResponse(string message, Exception innerException = null)
