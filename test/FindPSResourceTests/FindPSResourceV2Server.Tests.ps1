@@ -394,6 +394,8 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $err | Should -Not -BeNullOrEmpty
         $err[0].FullyQualifiedErrorId | Should -BeExactly "RepositoryApiVersionUnknown,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
+
+        Unregister-PSResourceRepository -Name "UnknownTypeRepo"
     }
 
     It "find a module that does not exist in the highest priority repository, but does exist in a lower priority repository" {
