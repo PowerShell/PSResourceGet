@@ -114,7 +114,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 skipDependencyCheck,
                 authenticodeCheck,
                 pathsToInstallPkg != null ? string.Join(",", pathsToInstallPkg) : string.Empty,
-                scope != null ? scope.ToString() : string.Empty));
+                scope?.ToString() ?? string.Empty));
+
 
             _versionRange = versionRange;
             _nugetVersion = nugetVersion;
