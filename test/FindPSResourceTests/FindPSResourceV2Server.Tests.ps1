@@ -286,8 +286,8 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res.Tags | Should -Contain $requiredTag
     }
 
-    It "should not find resource if Name, Version and Tag property are not all satisfied (single tag)" {
-        # FindVersionWithTag()
+    It "" {
+        # FindVersionWithTag()should not find resource if Name, Version and Tag property are not all satisfied (single tag)
         $requiredTag = "windows" # tag "windows" is not present for test_module package
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
@@ -393,6 +393,21 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Find-PSResource -Name "MyPackage" -Repository "UnknownTypeRepo" -ErrorAction SilentlyContinue -ErrorVariable err
         $err | Should -Not -BeNullOrEmpty
         $err[0].FullyQualifiedErrorId | Should -BeExactly "RepositoryApiVersionUnknown,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "find a module that does not exist in the highest priority repository, but does exist in a lower priority repository" {
+        $res = Find-PSResource -Name "NewpsGetTestModule" -ErrorVariable err
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "2.1.0"
+        $err.Count | Should -Be 0
+    }
+
+    It "should not find resource given nonexistant Name and no specified repository" {
+        $res = Find-PSResource -Name NonExistantModule -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -Be 1
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 }
