@@ -701,7 +701,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (dep.VersionRange.Equals(VersionRange.All))
                     {
-                        FindResults responses = currentServer.FindName(dep.Name, _prerelease, _type, out ErrorRecord errRecord);
+                        FindResults responses = currentServer.FindName(dep.Name, includePrerelease: true, _type, out ErrorRecord errRecord);
                         if (errRecord != null)
                         {
                             _cmdletPassedIn.WriteError(errRecord);
@@ -735,7 +735,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                     else
                     {
-                        FindResults responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, _prerelease, ResourceType.None, getOnlyLatest: true, out ErrorRecord errRecord);
+                        FindResults responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, out ErrorRecord errRecord);
                         if (errRecord != null)
                         {
                             _cmdletPassedIn.WriteError(errRecord);
