@@ -157,6 +157,12 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         $pkgDir | Should -Not -BeNullOrEmpty
     }
 
+    It "Save module as a nupkg" {
+        Save-PSResource -Name "NewpsGetTestModule" -Path $SaveDir -TrustRepository
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "newpsgettestmodule.2.1.0.nupkg"
+        $pkgDir | Should -Not -BeNullOrEmpty
+    }
+
     It "Save module and include XML metadata file" {
         Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -Path $SaveDir -IncludeXml -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName

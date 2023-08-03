@@ -478,7 +478,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // At this point parent package is installed to temp path.
                     if (errRecord != null)
                     {
-                        _cmdletPassedIn.WriteError(errRecord);
+                        if (string.Equals(errRecord.FullyQualifiedErrorId, "PackageNotFound"))
+                        {
+                            _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                        }
+                        else {
+                            _cmdletPassedIn.WriteError(errRecord);
+                        }
+
                         continue;
                     }
 
