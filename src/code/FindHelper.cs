@@ -161,8 +161,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Do not write out error message if -Name "*"
             if (!pkgFound && !_pkgsLeftToFind.Contains("*"))
             {
+                var msg = string.IsNullOrWhitespace(repository) ? $"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' could not be found in any registered repositories." :
+                             $"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' could not be found in registered repositories: '{string.Join(", ", repositoriesToSearch}'.";
+
                 _cmdletPassedIn.WriteError(new ErrorRecord(
-                            new ResourceNotFoundException($"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' could not be found in any registered repositories."),
+                            new ResourceNotFoundException(msg),
                             "PackageNotFound",
                             ErrorCategory.ObjectNotFound,
                             this));
@@ -469,7 +472,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         {
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
-                               _cmdletPassedIn.WriteVerbose($"Package '{pkgName}' could not be found");
+                                _cmdletPassedIn.WriteVerbose($"Package '{pkgName}' could not be found in repository '{repository.Name}");
                                 continue;
                             }
 
