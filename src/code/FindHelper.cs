@@ -153,7 +153,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository))
                 {
-                    pkgFound = currentPkg != null;
+                    if (currentPkg == null) {
+                        continue;
+                    }
+                    pkgFound = true;
+                    
                     yield return currentPkg;
                 }
             }
