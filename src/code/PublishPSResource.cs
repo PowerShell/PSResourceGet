@@ -794,16 +794,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (LanguagePrimitives.TryConvertTo<Hashtable>(reqModule, out Hashtable moduleHash))
                 {
+                    string moduleName = moduleHash["ModuleName"] as string;
+
                     if (moduleHash.ContainsKey("ModuleVersion"))
                     {
-                        dependenciesHash.Add(moduleHash["ModuleName"], moduleHash["ModuleVersion"]);
+                        dependenciesHash.Add(moduleName, moduleHash["ModuleVersion"]);
                     }
                     else if (moduleHash.ContainsKey("RequiredVersion"))
                     {
-                        dependenciesHash.Add(moduleHash["ModuleName"], moduleHash["RequiredVersion"]);
+                        dependenciesHash.Add(moduleName, moduleHash["RequiredVersion"]);
                     }
                     else {
-                        dependenciesHash.Add(moduleHash["ModuleName"], string.Empty);
+                        dependenciesHash.Add(moduleName, string.Empty);
                     }
                 }
                 else if (LanguagePrimitives.TryConvertTo<string>(reqModule, out string moduleName))
@@ -838,7 +840,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Need to make individual calls since we're look for exact version numbers or ranges.
                 var depName = dependency.Key as string;
                 // test version
-                string depVersion = dependencies[dependency] as string;
+                string depVersion = dependencies[depName] as string;
                 depVersion = string.IsNullOrWhiteSpace(depVersion) ? "*" : depVersion;
 
                 if (!Utils.TryGetVersionType(
