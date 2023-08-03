@@ -833,10 +833,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Check to see that all dependencies are in the repository
             // Searches for each dependency in the repository the pkg is being pushed to,
             // If the dependency is not there, error
-            foreach (var dependency in dependencies.Keys)
+            foreach (DictionaryEntry dependency in dependencies)
             {
                 // Need to make individual calls since we're look for exact version numbers or ranges.
-                var depName = dependency as string;
+                var depName = dependency.Key as string;
                 // test version
                 string depVersion = dependencies[dependency] as string;
                 depVersion = string.IsNullOrWhiteSpace(depVersion) ? "*" : depVersion;
