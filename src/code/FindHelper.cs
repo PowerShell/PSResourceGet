@@ -130,9 +130,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             bool pkgFound = false;
+            List<string> repositoryNamesToSearch = new List<string>();
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Count > 0 ; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
+                repositoryNamesToSearch.Add(currentRepository.Name);
                 _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
                 if (currentServer == null)
@@ -165,8 +167,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Do not write out error message if -Name "*"
             if (!pkgFound && !_pkgsLeftToFind.Contains("*"))
             {
-                var msg = string.IsNullOrWhitespace(repository) ? $"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' could not be found in any registered repositories." :
-                             $"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' could not be found in registered repositories: '{string.Join(", ", repositoriesToSearch}'.";
+                var msg = repository.Length == 0 ? $"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' could not be found in any registered repositories." : $"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
 
                 _cmdletPassedIn.WriteError(new ErrorRecord(
                             new ResourceNotFoundException(msg),
