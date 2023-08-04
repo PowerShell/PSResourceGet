@@ -192,8 +192,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _prerelease = prerelease;
 
-            List<string> cmdsLeftToFind = new List<string>(tag);
-
             if (tag.Length == 0)
             {
                 yield break;
@@ -257,10 +255,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 yield break;
             }
 
-            for (int i = 0; i < repositoriesToSearch.Count; i++)
+            List<string> repositoryNamesToSearch = new List<string>();
+            // For tags that are representative of Commands or DSCResource names, all those tags must be present in the returned package.
+            // The class inheriting from ServerApiCalls must ensure packages returned satisfied all Command/DSCResource tags.
+            bool isCmdOrDSCTagFound = false;
+            for (int i = 0; i < repositoriesToSearch.Count && !isCmdOrDSCTagFound; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
-                
+                repositoryNamesToSearch.Add(currentRepository.Name);
                 _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
                 if (currentServer == null)
@@ -289,6 +291,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     else {
                         _cmdletPassedIn.WriteError(errRecord);
                     }
+
                     continue;
                 }
 
@@ -297,7 +300,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                     {
                         errRecord = new ErrorRecord(
-                                    new ResourceNotFoundException($"'{tag}' could not be found", currentResult.exception), 
+                                    new ResourceNotFoundException($"'{String.Join(", ", tag)}' could not be found", currentResult.exception), 
                                     "FindCmdOrDscToPSResourceObjFailure", 
                                     ErrorCategory.NotSpecified, 
                                     this);
@@ -308,8 +311,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     PSCommandResourceInfo currentCmdPkg = new PSCommandResourceInfo(tag, currentResult.returnedObject);
+                    isCmdOrDSCTagFound = true;
                     yield return currentCmdPkg;
                 }
+            }
+
+            if (!isCmdOrDSCTagFound)
+            {
+                string parameterName = isSearchingForCommands ? "CommandName" : "DSCResourceName";
+                var msg = repository == null ? $"Package with {parameterName} '{String.Join(", ", _tag)}' could not be found in any registered repositories." : 
+                    $"Package with {parameterName} '{String.Join(", ", _tag)}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
+
+                _cmdletPassedIn.WriteError(new ErrorRecord(
+                            new ResourceNotFoundException(msg),
+                            "PackagewithTagsNotFound",
+                            ErrorCategory.ObjectNotFound,
+                            this));
             }
         }
 
@@ -322,8 +339,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _type = type;
             _prerelease = prerelease;
             _tag = tag;
-
-            _tagsLeftToFind = new List<string>(tag);
 
             if (tag.Length == 0)
             {
@@ -387,9 +402,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 yield break;
             }
 
-            for (int i = 0; i < repositoriesToSearch.Count && _tagsLeftToFind.Any(); i++)
+            // For Find-PSResource with -Tags, only packages that have *all* required tags are returned.
+            // The class inheriting from ServerApiCalls must ensure packages returned satisfied all tags.
+            bool isTagFound = false;
+            List<string> repositoryNamesToSearch = new List<string>();
+            for (int i = 0; i < repositoriesToSearch.Count && !isTagFound; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
+                repositoryNamesToSearch.Add(currentRepository.Name);
                 _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
                 if (currentServer == null)
@@ -444,8 +464,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         continue;
                     }
 
+                    isTagFound = true;
                     yield return currentResult.returnedObject;
                 }
+            }
+
+            if (!isTagFound)
+            {
+                var msg = repository == null ? $"Package with Tags '{String.Join(", ", _tag)}' could not be found in any registered repositories." : 
+                    $"Package with Tags '{String.Join(", ", _tag)}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
+
+                _cmdletPassedIn.WriteError(new ErrorRecord(
+                            new ResourceNotFoundException(msg),
+                            "PackagewithTagsNotFound",
+                            ErrorCategory.ObjectNotFound,
+                            this));
             }
         }
 
