@@ -150,7 +150,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initalScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
+                int initialScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
                 if (errRecord != null)
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
