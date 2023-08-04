@@ -129,7 +129,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 yield break;
             }
 
-            bool pkgFound = false;
+            HashSet<string> pkgsDiscovered = GetPackageNamesPopulated(_pkgsLeftToFind.ToArray());
+
             List<string> repositoryNamesToSearch = new List<string>();
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Count > 0 ; i++)
             {
@@ -159,16 +160,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         continue;
                     }
 
-                    pkgFound = true;
+                    // Check if pkgsDiscovered dictionary contains this package name exactly, otherwise this may have been a package found for wildcard name input.
+                    string currentPkgName = currentPkg.Name;
+                    if (pkgsDiscovered.Contains(currentPkgName))
+                    {
+                        pkgsDiscovered.Remove(currentPkgName);
+                    }
+
                     yield return currentPkg;
                 }
             }
 
-            // Do not write out error message if -Name "*"
-            if (!pkgFound && !_pkgsLeftToFind.Contains("*"))
+            foreach(string pkgName in pkgsDiscovered)
             {
-                var msg = repository == null ? $"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' could not be found in any registered repositories." : 
-                    $"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
+                var msg = repository == null ? $"Package '{pkgName}' could not be found in any registered repositories." : 
+                    $"Package '{pkgName}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
 
                 _cmdletPassedIn.WriteError(new ErrorRecord(
                             new ResourceNotFoundException(msg),
@@ -741,6 +747,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Iterates over package names passed in by user, and populates non-wildcard names into a HashSet.
+        /// Since we only write errors for non-wildcard names, this is used to track discovery and report errors.
+        /// </summary>
+        private HashSet<string> GetPackageNamesPopulated(string[] pkgNames)
+        {
+            HashSet<string> pkgsToDiscover = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string name in pkgNames)
+            {
+                if (!name.Contains("*"))
+                {
+                    pkgsToDiscover.Add(name);
+                }
+            }
+
+            return pkgsToDiscover;
         }
 
         #endregion
