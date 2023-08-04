@@ -158,8 +158,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (currentPkg == null) {
                         continue;
                     }
+
                     pkgFound = true;
-                    
                     yield return currentPkg;
                 }
             }
