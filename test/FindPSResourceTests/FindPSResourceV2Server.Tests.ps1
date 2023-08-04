@@ -412,6 +412,16 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
+
+    It "should find resource and write error for other resource not found when multiple packages are specified" {
+        $res = Find-PSResource -Name $testModuleName,"NonExistantModule" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res.Name | Should -Be $testModuleName
+        $res.Repository | Should -Be $PSGalleryName
+
+        $err.Count | Should -Be 1
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $res | Should -BeNullOrEmpty        
+    }
 }
 
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidationOnly' {
