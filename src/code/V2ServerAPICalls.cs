@@ -518,7 +518,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 response = SendV2RequestAsync(request, _sessionClient).GetAwaiter().GetResult();
             }
-            catch (V3ResourceNotFoundException e)
+            catch (ResourceNotFoundException e)
             {
                 errRecord = new ErrorRecord(e, "ResourceNotFound", ErrorCategory.InvalidResult, this);
             }
@@ -926,13 +926,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound))
                 {
-                    throw new V2ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                    throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
                 }
                 // ADO feed will return a 401 if a package does not exist on the feed, with the following message:
                 // 401 (Unauthorized - No local versions of package 'NonExistentModule'; please provide authentication to access
                 // versions from upstream that have not yet been saved to your feed. (DevOps Activity ID: 5E5CF528-5B3D-481D-95B5-5DDB5476D7EF))
-                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized) && !e.Message.Contains("access versions from upstream that have not yet been saved to your feed"))
+                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
                 {
+                    if (e.Message.Contains("access versions from upstream that have not yet been saved to your feed"))
+                    {
+                        throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                    }
+
                     throw new UnauthorizedException(Utils.FormatCredentialRequestExceptions(e));
                 }
 
@@ -965,7 +970,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound))
                 {
-                    throw new V2ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                    throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
                 }
                 if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
                 {

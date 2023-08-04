@@ -185,7 +185,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (pkgsNotFound.Count > 0)
             {
                 WriteError(new ErrorRecord(
-                    new PackageNotFoundException($"No match was found for package '{string.Join(", ", pkgsNotFound)}'."),
+                    new ResourceNotFoundException($"No match was found for package '{string.Join(", ", pkgsNotFound)}'."),
                     "InstalledPackageNotFound",
                     ErrorCategory.ObjectNotFound,
                     this));

@@ -340,7 +340,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (String.IsNullOrEmpty(latestVersionPath))
             {
                 // means no package was found with this name
-                errRecord = new ErrorRecord(new LocalResourceNotFoundException($"Package with name {packageName} could not be found in repository '{Repository.Name}'."), "FindNameFailure", ErrorCategory.ResourceUnavailable, this);
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name {packageName} could not be found in repository '{Repository.Name}'."), "FindNameFailure", ErrorCategory.ResourceUnavailable, this);
                 return findResponse;
             }
 
@@ -353,7 +353,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // this condition will be true, for FindNameWithTags() when package satisfying that criteria is not met
             if (pkgMetadata.Count == 0)
             {
-                errRecord = new ErrorRecord(new SpecifiedTagsNotFoundException($"Package with name '{packageName}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindNameFailure", ErrorCategory.ResourceUnavailable, this);
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindNameFailure", ErrorCategory.ResourceUnavailable, this);
             }
 
             findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
@@ -431,7 +431,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (String.IsNullOrEmpty(pkgPath))
             {
                 // means no package was found with this name, version (and possibly tags).
-                errRecord = new ErrorRecord(new LocalResourceNotFoundException($"Package with name '{packageName}', version '{version}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindVersionFailure", ErrorCategory.ResourceUnavailable, this);
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}', version '{version}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindVersionFailure", ErrorCategory.ResourceUnavailable, this);
                 return findResponse;
             }
 
@@ -444,7 +444,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // this condition will be true, for FindVersionWithTags() when package satisfying that criteria is not met
             if (pkgMetadata.Count == 0)
             {
-                errRecord = new ErrorRecord(new SpecifiedTagsNotFoundException($"Package with name '{packageName}', and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindVersionFailure", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}', and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindVersionFailure", ErrorCategory.InvalidResult, this);
             }
 
             findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
