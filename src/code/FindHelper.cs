@@ -167,7 +167,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Do not write out error message if -Name "*"
             if (!pkgFound && !_pkgsLeftToFind.Contains("*"))
             {
-                var msg = repository.Length == 0 ? $"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' could not be found in any registered repositories." : $"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
+                var msg = repository == null ? $"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' could not be found in any registered repositories." : 
+                    $"Package(s) '{string.Join(", ", _pkgsLeftToFind)}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
 
                 _cmdletPassedIn.WriteError(new ErrorRecord(
                             new ResourceNotFoundException(msg),
