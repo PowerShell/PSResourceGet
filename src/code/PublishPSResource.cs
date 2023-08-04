@@ -780,8 +780,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!parsedMetadataHash.ContainsKey("requiredmodules"))
             {
                 return null;
-            }
-            var requiredModules = parsedMetadataHash["requiredmodules"];
+            }     
+            LanguagePrimitives.TryConvertTo<object[]>(parsedMetadataHash["requiredmodules"], out object[] requiredModules);
 
             // Required modules can be:
             //  a. An array of hash tables of module name and version
@@ -790,23 +790,29 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             //  d. A single string module name
 
             var dependenciesHash = new Hashtable();
-            if (LanguagePrimitives.TryConvertTo<Hashtable[]>(requiredModules, out Hashtable[] moduleList))
+            foreach (var reqModule in requiredModules)
             {
-                // instead of returning an array of hashtables,
-                // loop through the array and add each element of
-                foreach (Hashtable hash in moduleList)
+                if (LanguagePrimitives.TryConvertTo<Hashtable>(reqModule, out Hashtable moduleHash))
                 {
-                    dependenciesHash.Add(hash["ModuleName"], hash["ModuleVersion"]);
-                }
-            }
-            else if (LanguagePrimitives.TryConvertTo<string[]>(requiredModules, out string[] moduleNames))
-            {
-                foreach (var modName in moduleNames)
-                {
-                    dependenciesHash.Add(modName, string.Empty);
-                }
-            }
+                    string moduleName = moduleHash["ModuleName"] as string;
 
+                    if (moduleHash.ContainsKey("ModuleVersion"))
+                    {
+                        dependenciesHash.Add(moduleName, moduleHash["ModuleVersion"]);
+                    }
+                    else if (moduleHash.ContainsKey("RequiredVersion"))
+                    {
+                        dependenciesHash.Add(moduleName, moduleHash["RequiredVersion"]);
+                    }
+                    else {
+                        dependenciesHash.Add(moduleName, string.Empty);
+                    }
+                }
+                else if (LanguagePrimitives.TryConvertTo<string>(reqModule, out string moduleName))
+                {
+                    dependenciesHash.Add(moduleName, string.Empty);
+                }
+            }
             var externalModuleDeps = parsedMetadataHash.ContainsKey("ExternalModuleDependencies") ? 
                         parsedMetadataHash["ExternalModuleDependencies"] : null;
 
@@ -829,12 +835,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Check to see that all dependencies are in the repository
             // Searches for each dependency in the repository the pkg is being pushed to,
             // If the dependency is not there, error
-            foreach (var dependency in dependencies.Keys)
+            foreach (DictionaryEntry dependency in dependencies)
             {
                 // Need to make individual calls since we're look for exact version numbers or ranges.
-                var depName = new[] { (string)dependency };
+                var depName = dependency.Key as string;
                 // test version
-                string depVersion = dependencies[dependency] as string;
+                string depVersion = dependencies[depName] as string;
                 depVersion = string.IsNullOrWhiteSpace(depVersion) ? "*" : depVersion;
 
                 if (!Utils.TryGetVersionType(
@@ -857,11 +863,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var repository = new[] { repositoryName };
                 // Note: we set prerelease argument for FindByResourceName() to true because if no version is specified we want latest version (including prerelease).
                 // If version is specified it will get that one. There is also no way to specify a prerelease flag with RequiredModules hashtable of dependency so always try to get latest version.
-                var dependencyFound = findHelper.FindByResourceName(depName, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, prerelease: true, tag: null, repository, includeDependencies: false);
+                var dependencyFound = findHelper.FindByResourceName(new string[] { depName }, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, prerelease: true, tag: null, repository, includeDependencies: false);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
                    WriteError(new ErrorRecord(
-                       new ArgumentException($"Dependency '{depName.First()}' was not found in repository '{repositoryName}'.  Make sure the dependency is published to the repository before publishing this module."),
+                       new ArgumentException($"Dependency '{depName}' was not found in repository '{repositoryName}'.  Make sure the dependency is published to the repository before publishing this module."),
                        "DependencyNotFound",
                        ErrorCategory.ObjectNotFound,
                        this));
