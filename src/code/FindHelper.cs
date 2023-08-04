@@ -129,7 +129,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 yield break;
             }
 
-            bool pkgFound = false;
+            Dictionary<string, bool> pkgsDiscovered = GetPackageNamesPopulated(_pkgsLeftToFind.ToArray());
+
             List<string> repositoryNamesToSearch = new List<string>();
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Count > 0 ; i++)
             {
@@ -159,11 +160,35 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         continue;
                     }
 
-                    pkgFound = true;
+                    // Check if pkgsDiscovered dictionary contains this package name exactly, otherwise this may have been a package found for wildcard name input.
+                    string currentPkgName = currentPkg.Name;
+                    if (pkgsDiscovered.ContainsKey(currentPkgName))
+                    {
+                        pkgsDiscovered[currentPkgName] = true;
+                    }
+
                     yield return currentPkg;
                 }
             }
 
+            foreach(KeyValuePair<string, bool> pkgEntry in pkgsDiscovered)
+            {
+                bool isPkgFound = pkgEntry.Value;
+                if (!isPkgFound)
+                {
+                    string pkgName = pkgEntry.Key;
+                    var msg = repository == null ? $"Package '{pkgName}' could not be found in any registered repositories." : 
+                        $"Package '{pkgName}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
+
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new ResourceNotFoundException(msg),
+                                "PackageNotFound",
+                                ErrorCategory.ObjectNotFound,
+                                this));
+                }
+            }
+
+            /**
             // Do not write out error message if -Name "*"
             if (!pkgFound && !_pkgsLeftToFind.Contains("*"))
             {
@@ -176,6 +201,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             ErrorCategory.ObjectNotFound,
                             this));
             }
+            */
         }
 
         public IEnumerable<PSCommandResourceInfo> FindByCommandOrDscResource(
@@ -741,6 +767,31 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Iterates over package names passed in by user, and populates them into a dictionary used to track discovery and thereby error reporting
+        /// for package names without wildcard. For package names with wildcard that were provided we don't write errors so this value is set to true to ensure this.
+        /// </summary>
+        private Dictionary<string, bool> GetPackageNamesPopulated(string[] pkgNames)
+        {
+            Dictionary<string, bool> pkgsToDiscover = new Dictionary<string, bool>();
+            foreach (string name in pkgNames)
+            {
+                // dictionary entries follow format of:- key: (string) pkgName, value: (bool) isPkgFound
+                if (!name.Contains("*") && !pkgsToDiscover.ContainsKey(name))
+                {
+                    // for name without wildcard, we will report error if not found, so by default set isPkgFound value is set to false and then updated during package discovery.
+                    pkgsToDiscover.Add(name, false);
+                }
+                else if (name.Contains("*") && !pkgsToDiscover.ContainsKey(name))
+                {
+                    // we will never report 'package not found' errors for package names with wildcards, so can set the isFound value to true so no error is reported.
+                    pkgsToDiscover.Add(name, true);
+                }
+            }
+
+            return pkgsToDiscover;
         }
 
         #endregion
