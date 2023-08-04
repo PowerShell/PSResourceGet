@@ -212,7 +212,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (responses.Count == 0)
             {
                 errRecord = new ErrorRecord(
-                    new PackageNotFoundException($"Package with Tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
+                    new ResourceNotFoundException($"Package with Tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
                     "PackageWithSpecifiedTagsNotFound", 
                     ErrorCategory.InvalidResult, 
                     this);
