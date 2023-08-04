@@ -478,7 +478,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         {
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
-                                _cmdletPassedIn.WriteVerbose($"Package '{pkgName}' could not be found in repository '{repository.Name}");
+                               _cmdletPassedIn.WriteVerbose($"Package '{pkgName}' could not be found in repository '{repository.Name}");
                                 continue;
                             }
 
