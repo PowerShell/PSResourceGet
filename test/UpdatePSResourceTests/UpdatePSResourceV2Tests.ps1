@@ -172,6 +172,24 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $isPkgUpdated | Should -Be $true
     }
 
+    It "Update resource to explicit prerelease version using NuGet syntax" {
+        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name $testModuleName -Version "[5.2.5-alpha001]" -Prerelease -Repository $PSGalleryName -TrustRepository
+        $res = Get-InstalledPSResource -Name $testModuleName
+        $res | Should -Not -BeNullOrEmpty
+        $isPkgUpdated = $false
+        foreach ($pkg in $res)
+        {
+            if ([System.Version]$pkg.Version -eq [System.Version]"5.2.5")
+            {
+                $pkg.Prerelease | Should -Be "alpha001"
+                $isPkgUpdated = $true
+            }
+        }
+
+        $isPkgUpdated | Should -Be $true
+    }
+
     It "Update prerelease version to a higher prerelease version not using -Prerelease parameter" {
         Install-PSResource -Name $testModuleName3 -Version "0.0.99-beta1" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name $testModuleName3 -Repository $PSGalleryName -TrustRepository

@@ -192,7 +192,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
 
                 errRecords.Add(new ErrorRecord(
-                    new PackageNotFoundException(message),
+                    new ResourceNotFoundException(message),
                     "ResourceNotInstalled",
                     ErrorCategory.ObjectNotFound,
                     this));

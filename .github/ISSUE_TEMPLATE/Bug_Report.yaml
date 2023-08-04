@@ -59,9 +59,9 @@ body:
 - type: textarea
   attributes:
     label: Environment data
-    description: Paste verbatim output from `Get-Module PSResourceGet; $PSVersionTable` below.
+    description: Paste verbatim output from `Get-Module Microsoft.PowerShell.PSResourceGet; $PSVersionTable` below.
     render: powershell
-    placeholder: PS> Get-Module PSResourceGet; $PSVersionTable | Format-Table
+    placeholder: PS> Get-Module Microsoft.PowerShell.PSResourceGet; $PSVersionTable | Format-Table
   validations:
     required: true
 - type: textarea

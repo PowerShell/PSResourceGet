@@ -5,25 +5,9 @@ using System;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
-    public class V3ResourceNotFoundException : Exception
+    public class ResourceNotFoundException : Exception
     {
-        public V3ResourceNotFoundException(string message, Exception innerException = null)
-            : base (message, innerException)
-        {
-        }
-    }
-
-    public class V2ResourceNotFoundException : Exception
-    {
-        public V2ResourceNotFoundException(string message, Exception innerException = null)
-            : base(message, innerException)
-        {
-        }
-    }
-
-    public class PackageNotFoundException : Exception
-    {
-        public PackageNotFoundException(string message, Exception innerException = null)
+        public ResourceNotFoundException(string message, Exception innerException = null)
             : base(message, innerException)
         {
         }
@@ -57,14 +41,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
     {
         public ConvertToPSResourceException(string message, Exception innerException = null)
             : base(message)
-        {
-        }
-    }
-
-    public class SpecifiedTagsNotFoundException : Exception
-    {
-        public SpecifiedTagsNotFoundException(string message, Exception innerException = null)
-            : base (message)
         {
         }
     }

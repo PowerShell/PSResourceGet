@@ -119,6 +119,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
+            PSRepositoryInfo.APIVersion? repoApiVersion = null;
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(ApiVersion)))
+            {
+                repoApiVersion = ApiVersion;
+            }
+
             List<PSRepositoryInfo> items = new List<PSRepositoryInfo>();
 
             switch(ParameterSetName)
@@ -132,7 +138,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             Trusted, 
                             isSet,
                             DefaultPriority,
-                            ApiVersion,
+                            repoApiVersion,
                             CredentialInfo,
                             this,
                             out string errorMsg));
