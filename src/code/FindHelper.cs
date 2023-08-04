@@ -191,8 +191,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string[] repository)
         {
             _prerelease = prerelease;
+            _tag = tag;
 
-            if (tag.Length == 0)
+            if (_tag.Length == 0)
             {
                 yield break;
             }
@@ -281,7 +282,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
 
-                FindResults responses = currentServer.FindCommandOrDscResource(tag, _prerelease, isSearchingForCommands, out ErrorRecord errRecord);
+                FindResults responses = currentServer.FindCommandOrDscResource(_tag, _prerelease, isSearchingForCommands, out ErrorRecord errRecord);
                 if (errRecord != null)
                 {
                     if (errRecord.Exception is ResourceNotFoundException)
@@ -300,7 +301,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                     {
                         errRecord = new ErrorRecord(
-                                    new ResourceNotFoundException($"'{String.Join(", ", tag)}' could not be found", currentResult.exception), 
+                                    new ResourceNotFoundException($"'{String.Join(", ", _tag)}' could not be found", currentResult.exception), 
                                     "FindCmdOrDscToPSResourceObjFailure", 
                                     ErrorCategory.NotSpecified, 
                                     this);
@@ -310,7 +311,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         continue;
                     }
 
-                    PSCommandResourceInfo currentCmdPkg = new PSCommandResourceInfo(tag, currentResult.returnedObject);
+                    PSCommandResourceInfo currentCmdPkg = new PSCommandResourceInfo(_tag, currentResult.returnedObject);
                     isCmdOrDSCTagFound = true;
                     yield return currentCmdPkg;
                 }
@@ -340,7 +341,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _prerelease = prerelease;
             _tag = tag;
 
-            if (tag.Length == 0)
+            if (_tag.Length == 0)
             {
                 yield break;
             }
