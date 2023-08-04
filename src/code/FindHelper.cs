@@ -416,7 +416,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 FindResults responses = currentServer.FindTags(_tag, _prerelease, type, out ErrorRecord errRecord);
-
                 if (errRecord != null)
                 {
                     if (errRecord.Exception is ResourceNotFoundException)

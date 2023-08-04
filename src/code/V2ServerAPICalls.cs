@@ -149,25 +149,30 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
-                responses.Add(initialScriptResponse);
-                int initalScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
+
+                int initialScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
                 if (errRecord != null)
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
-                int count = initalScriptCount / 100;
-                // if more than 100 count, loop and add response to list
-                while (count > 0)
+
+                if (initialScriptCount != 0)
                 {
-                    // skip 100
-                    scriptSkip += 100;
-                    var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: false,  scriptSkip, out errRecord);
-                    if (errRecord != null)
+                    responses.Add(initialScriptResponse);
+                    int count = initialScriptCount / 100;
+                    // if more than 100 count, loop and add response to list
+                    while (count > 0)
                     {
-                        return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                        // skip 100
+                        scriptSkip += 100;
+                        var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: false,  scriptSkip, out errRecord);
+                        if (errRecord != null)
+                        {
+                            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                        }
+                        responses.Add(tmpResponse);
+                        count--;
                     }
-                    responses.Add(tmpResponse);
-                    count--;
                 }
             }
             if (_type != ResourceType.Script)
@@ -178,25 +183,39 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
-                responses.Add(initialModuleResponse);
+
                 int initalModuleCount = GetCountFromResponse(initialModuleResponse, out errRecord);
                 if (errRecord != null)
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
-                int count = initalModuleCount / 100;
-                    // if more than 100 count, loop and add response to list
-                while (count > 0)
+
+                if (initalModuleCount != 0)
                 {
-                    moduleSkip += 100;
-                    var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
-                    if (errRecord != null)
+                    responses.Add(initialModuleResponse);
+                    int count = initalModuleCount / 100;
+                    // if more than 100 count, loop and add response to list
+                    while (count > 0)
                     {
-                        return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                        moduleSkip += 100;
+                        var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
+                        if (errRecord != null)
+                        {
+                            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                        }
+                        responses.Add(tmpResponse);
+                        count--;
                     }
-                    responses.Add(tmpResponse);
-                    count--;
                 }
+            }
+
+            if (responses.Count == 0)
+            {
+                errRecord = new ErrorRecord(
+                    new ResourceNotFoundException($"Package with Tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
+                    "PackageWithSpecifiedTagsNotFound", 
+                    ErrorCategory.InvalidResult, 
+                    this);
             }
 
             return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -215,24 +234,39 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
-            responses.Add(initialResponse);
+
             int initialCount = GetCountFromResponse(initialResponse, out errRecord);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
-            int count = initialCount / 100;
 
-            while (count > 0)
+            if (initialCount != 0)
             {
-                skip += 100;
-                var tmpResponse = FindCommandOrDscResource(tags, includePrerelease, isSearchingForCommands, skip, out errRecord);
-                if (errRecord != null)
+                responses.Add(initialResponse);
+                int count = initialCount / 100;
+
+                while (count > 0)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    skip += 100;
+                    var tmpResponse = FindCommandOrDscResource(tags, includePrerelease, isSearchingForCommands, skip, out errRecord);
+                    if (errRecord != null)
+                    {
+                        return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    }
+                    responses.Add(tmpResponse);
+                    count--;
                 }
-                responses.Add(tmpResponse);
-                count--;
+            }
+
+            if (responses.Count == 0)
+            {
+                string parameterForErrorMsg = isSearchingForCommands ? "Command" : "DSC Resource";
+                errRecord = new ErrorRecord(
+                    new ResourceNotFoundException($"Package with {parameterForErrorMsg} '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
+                    "PackageWithSpecifiedCmdOrDSCNotFound", 
+                    ErrorCategory.InvalidResult, 
+                    this);
             }
 
             return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
