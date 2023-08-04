@@ -159,7 +159,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (initialScriptCount != 0)
                 {
                     responses.Add(initialScriptResponse);
-                    int count = initalScriptCount / 100;
+                    int count = initialScriptCount / 100;
                     // if more than 100 count, loop and add response to list
                     while (count > 0)
                     {
