@@ -771,7 +771,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Iterates over package names passed in by user, and populates them into a dictionary used to track discovery and thereby error reporting
-        /// for package names without wildcard. For package names with wildcard that were provided we don't write errors so this value is set to true to ensure this.
+        /// for package names without wildcard.
         /// </summary>
         private Dictionary<string, bool> GetPackageNamesPopulated(string[] pkgNames)
         {
@@ -783,11 +783,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     // for name without wildcard, we will report error if not found, so by default set isPkgFound value is set to false and then updated during package discovery.
                     pkgsToDiscover.Add(name, false);
-                }
-                else if (name.Contains("*") && !pkgsToDiscover.ContainsKey(name))
-                {
-                    // we will never report 'package not found' errors for package names with wildcards, so can set the isFound value to true so no error is reported.
-                    pkgsToDiscover.Add(name, true);
                 }
             }
 
