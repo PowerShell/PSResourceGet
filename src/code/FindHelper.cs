@@ -758,7 +758,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             HashSet<string> pkgsToDiscover = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string name in pkgNames)
             {
-                if (!name.Contains("*") && !pkgsToDiscover.Contains(name))
+                if (!name.Contains("*"))
                 {
                     pkgsToDiscover.Add(name);
                 }
