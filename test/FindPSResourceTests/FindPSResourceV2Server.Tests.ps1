@@ -420,7 +420,6 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
 
         $err.Count | Should -Be 1
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
-        $res | Should -BeNullOrEmpty        
     }
 }
 

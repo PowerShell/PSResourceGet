@@ -129,7 +129,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 yield break;
             }
 
-            Dictionary<string, bool> pkgsDiscovered = GetPackageNamesPopulated(_pkgsLeftToFind.ToArray());
+            HashSet<string> pkgsDiscovered = GetPackageNamesPopulated(_pkgsLeftToFind.ToArray());
 
             List<string> repositoryNamesToSearch = new List<string>();
             for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Count > 0 ; i++)
@@ -162,30 +162,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     // Check if pkgsDiscovered dictionary contains this package name exactly, otherwise this may have been a package found for wildcard name input.
                     string currentPkgName = currentPkg.Name;
-                    if (pkgsDiscovered.ContainsKey(currentPkgName))
+                    if (pkgsDiscovered.Contains(currentPkgName))
                     {
-                        pkgsDiscovered[currentPkgName] = true;
+                        pkgsDiscovered.Remove(currentPkgName);
                     }
 
                     yield return currentPkg;
                 }
             }
 
-            foreach(KeyValuePair<string, bool> pkgEntry in pkgsDiscovered)
+            foreach(string pkgName in pkgsDiscovered)
             {
-                bool isPkgFound = pkgEntry.Value;
-                if (!isPkgFound)
-                {
-                    string pkgName = pkgEntry.Key;
-                    var msg = repository == null ? $"Package '{pkgName}' could not be found in any registered repositories." : 
-                        $"Package '{pkgName}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
+                var msg = repository == null ? $"Package '{pkgName}' could not be found in any registered repositories." : 
+                    $"Package '{pkgName}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
 
-                    _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new ResourceNotFoundException(msg),
-                                "PackageNotFound",
-                                ErrorCategory.ObjectNotFound,
-                                this));
-                }
+                _cmdletPassedIn.WriteError(new ErrorRecord(
+                            new ResourceNotFoundException(msg),
+                            "PackageNotFound",
+                            ErrorCategory.ObjectNotFound,
+                            this));
             }
         }
 
@@ -755,19 +750,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
-        /// Iterates over package names passed in by user, and populates them into a dictionary used to track discovery and thereby error reporting
-        /// for package names without wildcard.
+        /// Iterates over package names passed in by user, and populates non-wildcard names into a HashSet.
+        /// Since we only write errors for non-wildcard names, this is used to track discovery and report errors.
         /// </summary>
-        private Dictionary<string, bool> GetPackageNamesPopulated(string[] pkgNames)
+        private HashSet<string> GetPackageNamesPopulated(string[] pkgNames)
         {
-            Dictionary<string, bool> pkgsToDiscover = new Dictionary<string, bool>();
+            HashSet<string> pkgsToDiscover = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string name in pkgNames)
             {
-                // dictionary entries follow format of:- key: (string) pkgName, value: (bool) isPkgFound
-                if (!name.Contains("*") && !pkgsToDiscover.ContainsKey(name))
+                if (!name.Contains("*") && !pkgsToDiscover.Contains(name))
                 {
-                    // for name without wildcard, we will report error if not found, so by default set isPkgFound value is set to false and then updated during package discovery.
-                    pkgsToDiscover.Add(name, false);
+                    pkgsToDiscover.Add(name);
                 }
             }
 
