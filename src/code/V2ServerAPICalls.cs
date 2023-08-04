@@ -263,7 +263,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 string parameterForErrorMsg = isSearchingForCommands ? "Command" : "DSC Resource";
                 errRecord = new ErrorRecord(
-                    new PackageNotFoundException($"Package with {parameterForErrorMsg} '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
+                    new ResourceNotFoundException($"Package with {parameterForErrorMsg} '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
                     "PackageWithSpecifiedCmdOrDSCNotFound", 
                     ErrorCategory.InvalidResult, 
                     this);
