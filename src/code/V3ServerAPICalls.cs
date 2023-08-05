@@ -445,7 +445,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (String.IsNullOrEmpty(latestVersionResponse))
             {
                 string errMsg = $"Package with name '{packageName}' could not be found in repository '{Repository.Name}'.";
-                errRecord = new ErrorRecord(new SpecifiedTagsNotFoundException(errMsg), "FindNameFailure", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "FindNameFailure", ErrorCategory.InvalidResult, this);
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
@@ -455,7 +455,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (errRecord == null)
                 {
                     string errMsg = $"Package with name '{packageName}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'.";
-                    errRecord = new ErrorRecord(new SpecifiedTagsNotFoundException(errMsg), "FindNameFailure", ErrorCategory.InvalidResult, this);
+                    errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "FindNameFailure", ErrorCategory.InvalidResult, this);
                 }
 
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -521,7 +521,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (String.IsNullOrEmpty(latestVersionResponse))
             {
-                errRecord = new ErrorRecord(new InvalidOrEmptyResponse($"Package with name '{packageName}', version '{version}' could not be found in repository '{Repository.Name}'"), "FindVersionFailure", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}', version '{version}' could not be found in repository '{Repository.Name}'"), "FindVersionFailure", ErrorCategory.InvalidResult, this);
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
@@ -530,7 +530,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (errRecord == null)
                 {
                     string errMsg = $"FindVersion(): Package with name '{packageName}', version '{version}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'.";
-                    errRecord = new ErrorRecord(new SpecifiedTagsNotFoundException(errMsg), "FindVersionFailure", ErrorCategory.InvalidResult, this);
+                    errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "FindVersionFailure", ErrorCategory.InvalidResult, this);
                 }
 
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -758,7 +758,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                errRecord = new ErrorRecord(new V3ResourceNotFoundException($"RegistrationBaseUrl resource could not be found for repository '{Repository.Name}'"), "FindRegistrationsBaseUrlFailure", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"RegistrationBaseUrl resource could not be found for repository '{Repository.Name}'"), "FindRegistrationsBaseUrlFailure", ErrorCategory.InvalidResult, this);
             }
 
             return registrationsBaseUrl;
@@ -791,7 +791,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                errRecord = new ErrorRecord(new V3ResourceNotFoundException($"SearchQueryService resource could not be found for Repository '{Repository.Name}'"), "FindSearchQueryServiceFailure", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"SearchQueryService resource could not be found for Repository '{Repository.Name}'"), "FindSearchQueryServiceFailure", ErrorCategory.InvalidResult, this);
             }
 
             return searchQueryServiceUrl;
@@ -814,8 +814,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = HttpRequestCall(metadataUri, out errRecord);
             if (errRecord != null)
             {
-                if (errRecord.Exception is V3ResourceNotFoundException) {
-                    errRecord = new ErrorRecord(new V3ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                if (errRecord.Exception is ResourceNotFoundException) {
+                    errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
                 }
 
                 return metadataElement;
@@ -828,7 +828,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     JsonElement rootDom = metadataEntries.RootElement;
                     if (!rootDom.TryGetProperty(itemsName, out JsonElement innerItemsElement))
                     {
-                        errRecord = new ErrorRecord(new ArgumentException($"'{itemsName}' element for package with name '{packageName}' could not be found in JFrog repository '{Repository.Name}'"), "GetElementForJFrogRepoFailure", ErrorCategory.InvalidResult, this);
+                        errRecord = new ErrorRecord(new ResourceNotFoundException($"'{itemsName}' element for package with name '{packageName}' could not be found in JFrog repository '{Repository.Name}'"), "GetElementForJFrogRepoFailure", ErrorCategory.InvalidResult, this);
                         return metadataElement;
                     }
 
@@ -861,9 +861,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out errRecord);
             if (errRecord != null)
             {
-                if (errRecord.Exception is V3ResourceNotFoundException)
+                if (errRecord.Exception is ResourceNotFoundException)
                 {
-                    errRecord = new ErrorRecord(new V3ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                    errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
                 }
 
                 return Utils.EmptyStrArray;
@@ -1150,7 +1150,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 response = SendV3RequestAsync(request, _sessionClient).GetAwaiter().GetResult();
             }
-            catch (V3ResourceNotFoundException e)
+            catch (ResourceNotFoundException e)
             {
                 errRecord = new ErrorRecord(e, "ResourceNotFound", ErrorCategory.InvalidResult, this);
             }
@@ -1210,13 +1210,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (HttpRequestException e)
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound)) {
-                    throw new V3ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                    throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
                 }
                 // ADO feed will return a 401 if a package does not exist on the feed, with the following message:
                 // 401 (Unauthorized - No local versions of package 'NonExistentModule'; please provide authentication to access
                 // versions from upstream that have not yet been saved to your feed. (DevOps Activity ID: 5E5CF528-5B3D-481D-95B5-5DDB5476D7EF))
-                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized) && !e.Message.Contains("access versions from upstream that have not yet been saved to your feed"))
+                if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
                 {
+                    if (e.Message.Contains("access versions from upstream that have not yet been saved to your feed"))
+                    {
+                        throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                    }
+
                     throw new UnauthorizedException(Utils.FormatCredentialRequestExceptions(e));
                 }
 
@@ -1250,7 +1255,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound))
                 {
-                    throw new V3ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                    throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
                 }
                 if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
                 {
