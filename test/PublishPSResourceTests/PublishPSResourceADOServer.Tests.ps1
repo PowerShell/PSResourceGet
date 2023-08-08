@@ -115,7 +115,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ADOPrivateRepoName -Credential $correctPrivateRepoCred -ErrorAction SilentlyContinue -ErrorVariable err
 
-        Write-Host "*** error count: $($err.Count)
+        Write-Host "*** error count: $($err.Count)"
         $err[0].FullyQualifiedErrorId | Should -be "400ApiKeyError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 }
