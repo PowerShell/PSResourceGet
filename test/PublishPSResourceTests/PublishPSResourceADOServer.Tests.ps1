@@ -113,8 +113,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        Publish-PSResource -Path $script:PublishModuleBase -Repository $ADOPrivateRepoName -Credential $correctPrivateRepoCred -ErrorAction SilentlyContinue
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $ADOPrivateRepoName -Credential $correctPrivateRepoCred -ErrorAction SilentlyContinue -ErrorVariable err
 
-        $Error[0].FullyQualifiedErrorId | Should -be "400ApiKeyError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        Write-Host "*** error count: $($err.Count)
+        $err[0].FullyQualifiedErrorId | Should -be "400ApiKeyError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 }
