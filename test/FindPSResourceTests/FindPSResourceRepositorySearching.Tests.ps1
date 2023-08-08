@@ -17,33 +17,13 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $NuGetGalleryName = "NuGetGallery"
         $localRepoName = "localRepo"
 
-        # $testModuleName2 = "test_local_mod2"
-        # $commandName = "cmd1"
-        # $dscResourceName = "dsc1"
-        # $prereleaseLabel = ""
         Get-NewPSResourceRepositoryFile
 
         $localRepoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
         $null = New-Item $localRepoUriAddress -ItemType Directory -Force
         Register-PSResourceRepository -Name $localRepoName -Uri $localRepoUriAddress
 
-        
-
-        # Register-LocalRepos
-
-        # $localRepoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
-        # $tagsEscaped = @("'Test'", "'Tag2'", "'$cmdName'", "'$dscName'")
-        # $prereleaseLabel = "alpha001"
-
         New-TestModule -moduleName $testModuleName -repoName localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
-        # New-TestModule -moduleName $testLocalModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
-
-        # New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "3.0.0" -prereleaseLabel "" -tags @() -dscResourceToExport $dscResourceName -commandToExport $commandName
-        # New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tagsEscaped
-        # New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "5.2.5" -prereleaseLabel $prereleaseLabel -tags $tagsEscaped
-
-        # New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tagsEscaped
-        # New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.2.5" -prereleaseLabel $prereleaseLabel -tags $tagsEscaped
     }
 
     AfterAll {
@@ -80,6 +60,14 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $pkg2 = $res[1]
         $pkg2.Name | Should -Be $testScriptName
         $pkg2.Repository | Should -Be $NuGetGalleryName
+    }
+
+    It "should not find resource given nonexistant Name (without -Repository specified)" {
+        $res = Find-PSResource -Name "NonExistantModule" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -Be 1
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $res | Should -BeNullOrEmpty
     }
 
     It "find resources from all pattern matching repositories where it exists (-Repository with wildcard)" {
