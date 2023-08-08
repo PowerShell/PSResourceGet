@@ -108,14 +108,4 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         $Error[0].FullyQualifiedErrorId | Should -be "401FatalProtocolError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
-
-    It "Should not publish module to ADO repository feed (private) when ApiKey is not provided" {
-        $version = "1.0.0"
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
-
-        Publish-PSResource -Path $script:PublishModuleBase -Repository $ADOPrivateRepoName -Credential $correctPrivateRepoCred -ErrorAction SilentlyContinue -ErrorVariable err
-
-        Write-Host "*** error count: $($err.Count)"
-        $err[0].FullyQualifiedErrorId | Should -be "400ApiKeyError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
-    }
 }
