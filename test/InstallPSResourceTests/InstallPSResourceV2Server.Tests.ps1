@@ -559,6 +559,18 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "RepositoryApiVersionUnknown,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
         $res | Should -BeNullOrEmpty
     }
+
+    # This is testing FindVersionGlobbing when it creates the 'maxString' variable, 
+    # specifically when the prerelease versions need to be accounted for since that's when PSResourceGet 
+    # modifies the version range to also account for prerelease versions.
+    #  
+    It "install resource when version has a nine in the digit and -Prerelease parameter is passed in" {
+        $moduleName = "TestModuleVersionWithNine"
+        Install-PSResource -Name $moduleName -Repository "PSGallery" -Version "[1.9.9, 1.9.9]" -Prerelease
+        $res = Get-InstalledPSResource $moduleName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "1.9.9"
+    }
 }
 
 Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'ManualValidationOnly' {
