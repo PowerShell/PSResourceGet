@@ -863,7 +863,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var repository = new[] { repositoryName };
                 // Note: we set prerelease argument for FindByResourceName() to true because if no version is specified we want latest version (including prerelease).
                 // If version is specified it will get that one. There is also no way to specify a prerelease flag with RequiredModules hashtable of dependency so always try to get latest version.
-                var dependencyFound = findHelper.FindByResourceName(new string[] { depName }, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, prerelease: true, tag: null, repository, includeDependencies: false);
+                var dependencyFound = findHelper.FindByResourceName(new string[] { depName }, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, prerelease: true, tag: null, repository, includeDependencies: false, suppressErrors: true);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
                    WriteError(new ErrorRecord(

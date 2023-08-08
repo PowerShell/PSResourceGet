@@ -62,7 +62,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool prerelease,
             string[] tag,
             string[] repository,
-            bool includeDependencies)
+            bool includeDependencies,
+            bool suppressErrors)
         {
             _type = type;
             _version = version;
@@ -190,7 +191,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
 
-                bool shouldReportErrorForEachRepo = !_repositoryNameContainsWildcard;
+                bool shouldReportErrorForEachRepo = !suppressErrors && !_repositoryNameContainsWildcard;
                 foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository, shouldReportErrorForEachRepo: shouldReportErrorForEachRepo, isInstallOperation: false))
                 {
                     if (currentPkg == null) {
@@ -208,7 +209,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            if (_repositoryNameContainsWildcard)
+            if (!suppressErrors && _repositoryNameContainsWildcard)
             {
                 // Scenarios: Find-PSResource -Name "pkg" -> write error only if pkg wasn't found in any registered repositories
                 // Scenarios: Find-PSResource -Name "pkg" -Repository *Gallery -> write error if only if pkg wasn't found in any matching repositories.
