@@ -763,8 +763,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         {
                             errRecord = new ErrorRecord(
                                         new ResourceNotFoundException($"Package with name '{pkgName}', version '{_version}', and tags '{tagsAsString}' could not be found in repository '{repository.Name}'", currentResult.exception), 
-                                        "FindNameConvertToPSResourceFailure", 
-                                        ErrorCategory.InvalidResult, 
+                                        "PackageNotFound", 
+                                        ErrorCategory.ObjectNotFound, 
                                         this);
 
                             if (shouldReportError)
@@ -835,8 +835,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 errRecord = new ErrorRecord(
                                             new ResourceNotFoundException($"Package with name '{pkgName}' and version '{_version}' could not be found in repository '{repository.Name}'", currentResult.exception),
-                                            "FindNameConvertToPSResourceFailure", 
-                                            ErrorCategory.InvalidResult, 
+                                            "PackageNotFound", 
+                                            ErrorCategory.ObjectNotFound, 
                                             this);
 
                                 if (shouldReportError)
