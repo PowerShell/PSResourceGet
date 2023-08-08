@@ -148,7 +148,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res = Find-PSResource -Name "nonExistantPkg" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err | Should -HaveCount 1
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameConvertToPSResourceFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "find resource from all repositories where it exists (-Repository with multiple non-wildcard values)" {
@@ -175,6 +175,6 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $pkg1.Name | Should -Be $pkgOnNuGetGallery
         $pkg1.Repository | Should -Be $NuGetGalleryName
 
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameConvertToPSResourceFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 }

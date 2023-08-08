@@ -190,8 +190,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
 
-                bool shouldReportError = !_repositoryNameContainsWildcard;
-                foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository, shouldReportError: shouldReportError, isInstallOperation: false))
+                bool shouldReportErrorForEachRepo = !_repositoryNameContainsWildcard;
+                foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository, shouldReportErrorForEachRepo: shouldReportErrorForEachRepo, isInstallOperation: false))
                 {
                     if (currentPkg == null) {
                         continue;
@@ -495,7 +495,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Private Client Search Methods
 
-        private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository, bool shouldReportError, bool isInstallOperation)
+        private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository, bool shouldReportErrorForEachRepo, bool isInstallOperation)
         {
             ErrorRecord errRecord = null;
             List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
@@ -512,7 +512,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindResults responses = currentServer.FindAll(_prerelease, _type, out errRecord);
                         if (errRecord != null)
                         {
-                            if (shouldReportError)
+                            if (shouldReportErrorForEachRepo)
                             {
                                 _cmdletPassedIn.WriteError(errRecord);
                             }
@@ -537,7 +537,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             // Note: this currently catches for V2ServerApiCalls. TODO: eventually move off this.
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
-                                if (shouldReportError)
+                                if (shouldReportErrorForEachRepo)
                                 {
                                     _cmdletPassedIn.WriteError(new ErrorRecord(
                                         new ResourceNotFoundException($"Package '{pkgName}' could not be found in repository '{repository.Name}", currentResult.exception), 
@@ -585,7 +585,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (errRecord != null)
                         {
-                            if (shouldReportError)
+                            if (shouldReportErrorForEachRepo)
                             {
                                 _cmdletPassedIn.WriteError(errRecord);
                             }
@@ -616,7 +616,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                             ErrorCategory.ObjectNotFound, 
                                             this);
 
-                                if (shouldReportError)
+                                if (shouldReportErrorForEachRepo)
                                 {
                                     _cmdletPassedIn.WriteError(errRecord);
                                 }
@@ -656,7 +656,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (errRecord != null)
                         {
-                            if (shouldReportError)
+                            if (shouldReportErrorForEachRepo)
                             {
                                 _cmdletPassedIn.WriteError(errRecord);
                             }
@@ -687,7 +687,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                         ErrorCategory.ObjectNotFound, 
                                         this);
 
-                            if (shouldReportError)
+                            if (shouldReportErrorForEachRepo)
                             {
                                 _cmdletPassedIn.WriteError(errRecord);
                             }
@@ -738,7 +738,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (errRecord != null)
                         {
-                            if (shouldReportError)
+                            if (shouldReportErrorForEachRepo)
                             {
                                 _cmdletPassedIn.WriteError(errRecord);
                             }
@@ -768,7 +768,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                         ErrorCategory.ObjectNotFound, 
                                         this);
 
-                            if (shouldReportError)
+                            if (shouldReportErrorForEachRepo)
                             {
                                 _cmdletPassedIn.WriteError(errRecord);
                             }
@@ -840,7 +840,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                             ErrorCategory.ObjectNotFound, 
                                             this);
 
-                                if (shouldReportError)
+                                if (shouldReportErrorForEachRepo)
                                 {
                                     _cmdletPassedIn.WriteError(errRecord);
                                 }
