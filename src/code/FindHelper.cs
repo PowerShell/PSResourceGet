@@ -98,6 +98,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 // TODO: if repo names includes wildcards and nonwildcard names- write error and stop
+                // -Repository *Gallery, localRepo
                 bool containsWildcard = false;
                 bool containsNonWildcard = false;
                 foreach (string repoName in repository)
@@ -540,7 +541,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 {
                                     _cmdletPassedIn.WriteError(new ErrorRecord(
                                         new ResourceNotFoundException($"Package '{pkgName}' could not be found in repository '{repository.Name}", currentResult.exception), 
-                                        "PackageNotFound", 
+                                        "FindAllConvertToPSResourceFailure", 
                                         ErrorCategory.ObjectNotFound, 
                                         this));
                                 }
@@ -611,7 +612,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 string message = _tag.Length == 0 ? $"Package with name '{pkgName}' could not be found in repository '{repository.Name}'." : $"Package with name '{pkgName}' and tags '{tagsAsString}' could not be found in repository '{repository.Name}'.";
                                 errRecord = new ErrorRecord(
                                             new ResourceNotFoundException(message, currentResult.exception), 
-                                            "PackageNotFound", 
+                                            "FindNameGlobbingConvertToPSResourceFailure", 
                                             ErrorCategory.ObjectNotFound, 
                                             this);
 
@@ -682,7 +683,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             string message = _tag.Length == 0 ? $"Package with name '{pkgName}' could not be found in repository '{repository.Name}'." : $"Package with name '{pkgName}' and tags '{tagsAsString}' could not be found in repository '{repository.Name}'.";
                             errRecord = new ErrorRecord(
                                         new ResourceNotFoundException(message, currentResult.exception), 
-                                        "PackageNotFound", 
+                                        "FindNameConvertToPSResourceFailure", 
                                         ErrorCategory.ObjectNotFound, 
                                         this);
 
@@ -763,7 +764,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         {
                             errRecord = new ErrorRecord(
                                         new ResourceNotFoundException($"Package with name '{pkgName}', version '{_version}', and tags '{tagsAsString}' could not be found in repository '{repository.Name}'", currentResult.exception), 
-                                        "PackageNotFound", 
+                                        "FindVersionConvertToPSResourceFailure", 
                                         ErrorCategory.ObjectNotFound, 
                                         this);
 
@@ -835,7 +836,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 errRecord = new ErrorRecord(
                                             new ResourceNotFoundException($"Package with name '{pkgName}' and version '{_version}' could not be found in repository '{repository.Name}'", currentResult.exception),
-                                            "PackageNotFound", 
+                                            "FindVersionGlobbingConvertToPSResourceFailure", 
                                             ErrorCategory.ObjectNotFound, 
                                             this);
 
