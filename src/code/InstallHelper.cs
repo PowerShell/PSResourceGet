@@ -189,8 +189,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
             bool sourceTrusted = false;
 
+            List<string> repositoryNamesToSearch = new List<string>();
             foreach (var repo in listOfRepositories)
             {
+                repositoryNamesToSearch.Add(repo.Name);
                 sourceTrusted = repo.Trusted || trustRepository;
 
                 _networkCredential = Utils.SetNetworkCredential(repo, _networkCredential, _cmdletPassedIn);
@@ -259,6 +261,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 allPkgsInstalled.AddRange(installedPkgs);
+            }
+
+            if (_pkgNamesToInstall.Count != 0) {
+                var msg = repository == null ? $"Package(s) '{string.Join(", ", _pkgNamesToInstall)}' could not be found in any registered repositories." :
+                   $"Package(s) '{string.Join(", ", _pkgNamesToInstall)}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
+                
+                _cmdletPassedIn.WriteError(new ErrorRecord(
+                    new ResourceNotFoundException(msg),
+                    "PackageNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
 
             return allPkgsInstalled;
@@ -651,11 +664,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
                     // V2Server API calls will return non-empty response when package is not found but fail at conversion time
-                    _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new InvalidOrEmptyResponse($"Package '{pkgNameToInstall}' could not be installed", currentResult.exception),
-                                "InstallPackageFailure",
+                    var msg = $"Package '{pkgNameToInstall}' could not be installed from repository '{repository.Name}'.";
+                    errRecord = new ErrorRecord(
+                                new ResourceNotFoundException($"Package '{pkgNameToInstall}' could not be installed", currentResult.exception),
+                                "PackageNotFound",
                                 ErrorCategory.InvalidData,
-                                this));
+                                this);
+
+                    _cmdletPassedIn.WriteVerbose(msg);
                 }
                 else if (searchVersionType == VersionType.VersionRange)
                 {
