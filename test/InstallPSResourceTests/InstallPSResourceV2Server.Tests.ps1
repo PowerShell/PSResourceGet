@@ -566,10 +566,11 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     #  
     It "install resource when version has a nine in the digit and -Prerelease parameter is passed in" {
         $moduleName = "TestModuleVersionWithNine"
-        Install-PSResource -Name $moduleName -Repository "PSGallery" -Version "[1.9.9, 1.9.9]" -Prerelease
+        $version = "1.9.9"
+        Install-PSResource -Name $moduleName -Repository $PSGalleryName -TrustRepository -Version "[$version, $version]" -Prerelease
         $res = Get-InstalledPSResource $moduleName
         $res | Should -Not -BeNullOrEmpty
-        $res.Version | Should -Be "1.9.9"
+        $res.Version | Should -Be $version
     }
 }
 
