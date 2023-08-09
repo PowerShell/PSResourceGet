@@ -97,6 +97,14 @@ Describe 'Test Update-PSModuleManifest' {
         $results.PrivateData.PSData.Prerelease | Should -Be $Prerelease
     }
 
+    It "should not update module manifest given Prerelease parameter that is invalid" {
+        $Description = "Test Description"
+        $ModuleVersion = "1.0.0"
+        $Prerelease = "  "
+        New-ModuleManifest -Path $script:testManifestPath -Description $Description -ModuleVersion $ModuleVersion
+        {Update-PSModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease} | Should -Throw -ErrorId "PrereleaseValueCannotOrBeWhiteSpace,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+    }
+
     It "Update module manifest given ReleaseNotes parameter" {
         $Description = "Test Description"
         $ReleaseNotes = "Release notes for module."

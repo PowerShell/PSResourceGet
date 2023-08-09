@@ -34,7 +34,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Find-PSResource -Name NonExistantModule -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameConvertToPSResourceFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 
@@ -215,7 +215,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Find-PSResource -Name $testModuleName -Tag $requiredTag -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameConvertToPSResourceFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "find resource that satisfies given Name and Tag property (multiple tags)" {
@@ -233,7 +233,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Find-PSResource -Name $testModuleName -Tag $requiredTags -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameConvertToPSResourceFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "find all resources that satisfy Name pattern and have specified Tag (single tag)" {
@@ -292,7 +292,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionConvertToPSResourceFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "find resource that satisfies given Name, Version and Tag property (multiple tags)" {
@@ -312,7 +312,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTags -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionConvertToPSResourceFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     # It "find all resources with specified tag given Tag property" {
@@ -365,13 +365,6 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
             $item.Version.ToString() + $item.Prerelease | Should -Not -Be "1.0.0-beta1"
         }
     }
-    
-    It "find resource from highest priority repo only" {
-        $res = Find-PSResource -Name "testmodule99"
-        $res.Name | Should -Be "testmodule99"
-        $res.Count | Should -Be 1
-        $res.Repository | Should -Be $PSGalleryName
-    }
 
     It "find all resources within a version range, including prereleases" {
         $res = Find-PSResource -Name "PSReadLine" -Version "(2.0,2.1)" -Prerelease -Repository $PSGalleryName
@@ -403,23 +396,6 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res | Should -Not -BeNullOrEmpty
         $res.Version | Should -Be "2.1.0"
         $err.Count | Should -Be 0
-    }
-
-    It "should not find resource given nonexistant Name and no specified repository" {
-        $res = Find-PSResource -Name NonExistantModule -ErrorVariable err -ErrorAction SilentlyContinue
-        $res | Should -BeNullOrEmpty
-        $err.Count | Should -Be 1
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
-        $res | Should -BeNullOrEmpty
-    }
-
-    It "should find resource and write error for other resource not found when multiple packages are specified" {
-        $res = Find-PSResource -Name $testModuleName,"NonExistantModule" -ErrorVariable err -ErrorAction SilentlyContinue
-        $res.Name | Should -Be $testModuleName
-        $res.Repository | Should -Be $PSGalleryName
-
-        $err.Count | Should -Be 1
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 }
 

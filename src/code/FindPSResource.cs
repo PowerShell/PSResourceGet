@@ -254,7 +254,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 prerelease: Prerelease,
                 tag: Tag,
                 repository: Repository,
-                includeDependencies: IncludeDependencies))
+                includeDependencies: IncludeDependencies,
+                suppressErrors: false))
             {
                 WriteObject(pkg);
             }
