@@ -843,7 +843,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // because we want to retrieve all the prerelease versions for the upper end of the range
                 // and PSGallery views prerelease as higher than its stable.
                 // eg 3.0.0-prerelease > 3.0.0
-                // If looking for '[1.9.9,1.9.9]' including prerelease values, this will search for '[1.9.9,1.9.99]' 
+                // If looking for versions within '[1.9.9,1.9.9]' including prerelease values, this will change it to search for '[1.9.9,1.9.99]' 
                 // and find any pkg versions that are 1.9.9-prerelease.
                 string maxString = includePrerelease ? $"{versionRange.MaxVersion.Major}.{versionRange.MaxVersion.Minor}.{versionRange.MaxVersion.Patch.ToString() + "9"}" :
                                  $"{versionRange.MaxVersion.ToNormalizedString()}";
