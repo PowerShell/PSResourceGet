@@ -268,16 +268,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void EndProcessing()
         {
-            if (MyInvocation.BoundParameters.ContainsKey(nameof(Prerelease)) && string.IsNullOrWhiteSpace(Prerelease))
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(Prerelease)))
             {
-                var message = $"Prerelease value cannot be empty or whitespace. Please re-run cmdlet with valid value.";
+                // get rid of any whitespace on prerelease label string.
+                Prerelease = Prerelease.Trim();
+                if (string.IsNullOrWhiteSpace(Prerelease))
+                {
+                    var message = $"Prerelease value cannot be empty or whitespace. Please re-run cmdlet with valid value.";
 
-                ThrowTerminatingError(
-                    new ErrorRecord(
-                         new ArgumentException(message),
-                        "PrereleaseValueWhiteSpace",
-                         ErrorCategory.InvalidArgument,
-                         this));
+                    ThrowTerminatingError(
+                        new ErrorRecord(
+                            new ArgumentException(message),
+                            "PrereleaseValueCannotBeWhiteSpace",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                }
             }
 
             string resolvedManifestPath = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider).First();
