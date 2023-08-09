@@ -97,7 +97,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 this));
                 }
 
-                // Iff repository entries includes wildcards and nonwildcard names, write terminating error
+                // If repository entries includes wildcards and non-wildcard names, write terminating error
                 // Ex: -Repository *Gallery, localRepo
                 bool containsWildcard = false;
                 bool containsNonWildcard = false;
