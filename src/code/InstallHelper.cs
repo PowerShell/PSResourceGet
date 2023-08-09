@@ -222,14 +222,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
 
 
-                if (repo.ApiVersion == PSRepositoryInfo.APIVersion.unknown)
-                {
-                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new ArgumentException($"Repository {repoName} has unknown API Version."),
-                        "RepositoryAPIVersionUnknownError",
-                        ErrorCategory.InvalidOperation,
-                        this));
-                }
+                // if (repo.ApiVersion == PSRepositoryInfo.APIVersion.unknown)
+                // {
+                //     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                //         new ArgumentException($"Repository {repoName} has unknown API Version."),
+                //         "RepositoryAPIVersionUnknownError",
+                //         ErrorCategory.InvalidOperation,
+                //         this));
+                // }
 
                 if (repo.Trusted == false && !trustRepository && !_force)
                 {
