@@ -325,7 +325,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 _cmdletPassedIn.WriteError(new ErrorRecord(
                             new ResourceNotFoundException(msg),
-                            "PackagewithTagsNotFound",
+                            "PackageWithCmdOrDscNotFound",
                             ErrorCategory.ObjectNotFound,
                             this));
             }
