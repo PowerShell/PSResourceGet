@@ -84,39 +84,38 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $pkg2.Repository | Should -Be $NuGetGalleryName
     }
 
-    # It "find resources from pattern matching repositories where it exists and error report for specific repositories (-Repository with wildcard and specific repositories)" {
-    #     # Package "test_script" exists in the following repositories: PSGallery, NuGetGallery
-    #     $res = Find-PSResource -Name $testScriptName -Repository "*Gallery",$localRepoName -ErrorVariable err -ErrorAction SilentlyContinue
-    #     $err | Should -HaveCount 1
-    #     $res | Should -HaveCount 2
-    #     $pkg1 = $res[0]
-    #     $pkg1.Name | Should -Be $testScriptName
-    #     $pkg1.Repository | Should -Be $PSGalleryName
+    It "find resources from pattern matching repositories where it exists and error report for specific repositories (-Repository with wildcard and specific repositories)" -Pending {
+        # Package "test_script" exists in the following repositories: PSGallery, NuGetGallery
+        $res = Find-PSResource -Name $testScriptName -Repository "*Gallery",$localRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -HaveCount 1
+        $res | Should -HaveCount 2
+        $pkg1 = $res[0]
+        $pkg1.Name | Should -Be $testScriptName
+        $pkg1.Repository | Should -Be $PSGalleryName
 
-    #     $pkg2 = $res[1]
-    #     $pkg2.Name | Should -Be $testScriptName
-    #     $pkg2.Repository | Should -Be $NuGetGalleryName
+        $pkg2 = $res[1]
+        $pkg2.Name | Should -Be $testScriptName
+        $pkg2.Repository | Should -Be $NuGetGalleryName
 
-    #     $err.Count | Should -Be 1
-    #     $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
-    # }
+        $err.Count | Should -Be 1
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
 
-    # It "not find resources from pattern matching repositories if it doesn't exist and only write for for specific repositories (-Repository with wildcard and specific repositories)" {
-    #     # Package "nonExistantPkg" does not exist in any repo
-    #     # TODO: determine behavior
-    #     $res = Find-PSResource -Name "nonExistantPkg" -Repository "*Gallery",$localRepoName -ErrorVariable err -ErrorAction SilentlyContinue
-    #     $err | Should -HaveCount 1
-    #     $res | Should -HaveCount 2
-    #     $pkg1 = $res[0]
-    #     $pkg1.Name | Should -Be $testScriptName
-    #     $pkg1.Repository | Should -Be $PSGalleryName
+    It "not find resources from pattern matching repositories if it doesn't exist and only write for for specific repositories (-Repository with wildcard and specific repositories)" -Pending {
+        # Package "nonExistantPkg" does not exist in any repo
+        $res = Find-PSResource -Name "nonExistantPkg" -Repository "*Gallery",$localRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -HaveCount 1
+        $res | Should -HaveCount 2
+        $pkg1 = $res[0]
+        $pkg1.Name | Should -Be $testScriptName
+        $pkg1.Repository | Should -Be $PSGalleryName
 
-    #     $pkg2 = $res[1]
-    #     $pkg2.Name | Should -Be $testScriptName
-    #     $pkg2.Repository | Should -Be $NuGetGalleryName
+        $pkg2 = $res[1]
+        $pkg2.Name | Should -Be $testScriptName
+        $pkg2.Repository | Should -Be $NuGetGalleryName
 
-    #     $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
-    # }
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
 
     It "not find resource and write error if resource does not exist in any pattern matching repositories (-Repository with wildcard)" {
         $res = Find-PSResource -Name "nonExistantPkg" -Repository "*Gallery" -ErrorVariable err -ErrorAction SilentlyContinue
