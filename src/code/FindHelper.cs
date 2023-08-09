@@ -260,6 +260,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 ErrorCategory.InvalidArgument,
                                 this));
                 }
+
+                // If repository entries includes wildcards and non-wildcard names, write terminating error
+                // Ex: -Repository *Gallery, localRepo
+                bool containsWildcard = false;
+                bool containsNonWildcard = false;
+                foreach (string repoName in repository)
+                {
+                    if (repoName.Contains("*"))
+                    {
+                        containsWildcard = true;
+                    }
+                    else
+                    {
+                        containsNonWildcard = true;
+                    }
+                }
+
+                if (containsNonWildcard && containsWildcard)
+                {
+                    string message = "Repository name with wildcard is not allowed when another repository without wildcard is specified.";
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException(message),
+                        "ErrorFilteringNamesForUnsupportedWildcards",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
             }
 
             // Get repositories to search.
@@ -300,6 +326,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // For tags that are representative of Commands or DSCResource names, all those tags must be present in the returned package.
             // The class inheriting from ServerApiCalls must ensure packages returned satisfied all Command/DSCResource tags.
             bool isCmdOrDSCTagFound = false;
+            bool shouldReportErrorForEachRepo = !_repositoryNameContainsWildcard;
             for (int i = 0; i < repositoriesToSearch.Count && !isCmdOrDSCTagFound; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
@@ -325,12 +352,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 FindResults responses = currentServer.FindCommandOrDscResource(_tag, _prerelease, isSearchingForCommands, out ErrorRecord errRecord);
                 if (errRecord != null)
                 {
-                    if (errRecord.Exception is ResourceNotFoundException)
+                    if (shouldReportErrorForEachRepo)
+                    {
+                        _cmdletPassedIn.WriteError(errRecord);
+                    }
+                    else
                     {
                         _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
-                    }
-                    else {
-                        _cmdletPassedIn.WriteError(errRecord);
                     }
 
                     continue;
@@ -346,7 +374,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                     ErrorCategory.NotSpecified, 
                                     this);
 
-                        _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                        if (shouldReportErrorForEachRepo)
+                        {
+                            _cmdletPassedIn.WriteError(errRecord);
+                        }
+                        else
+                        {
+                            _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                        }
                         
                         continue;
                     }
@@ -357,7 +392,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            if (!isCmdOrDSCTagFound)
+            if (!isCmdOrDSCTagFound && !shouldReportErrorForEachRepo)
             {
                 string parameterName = isSearchingForCommands ? "CommandName" : "DSCResourceName";
                 var msg = repository == null ? $"Package with {parameterName} '{String.Join(", ", _tag)}' could not be found in any registered repositories." : 
@@ -407,6 +442,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 ErrorCategory.InvalidArgument,
                                 this));
                 }
+
+                // If repository entries includes wildcards and non-wildcard names, write terminating error
+                // Ex: -Repository *Gallery, localRepo
+                bool containsWildcard = false;
+                bool containsNonWildcard = false;
+                foreach (string repoName in repository)
+                {
+                    if (repoName.Contains("*"))
+                    {
+                        containsWildcard = true;
+                    }
+                    else
+                    {
+                        containsNonWildcard = true;
+                    }
+                }
+
+                if (containsNonWildcard && containsWildcard)
+                {
+                    string message = "Repository name with wildcard is not allowed when another repository without wildcard is specified.";
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException(message),
+                        "ErrorFilteringNamesForUnsupportedWildcards",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
             }
 
             // Get repositories to search.
@@ -444,8 +505,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // For Find-PSResource with -Tags, only packages that have *all* required tags are returned.
-            // The class inheriting from ServerApiCalls must ensure packages returned satisfied all tags.
+            // The class inheriting from ServerA1piCalls must ensure packages returned satisfied all tags.
             bool isTagFound = false;
+            bool shouldReportErrorForEachRepo = !_repositoryNameContainsWildcard;
             List<string> repositoryNamesToSearch = new List<string>();
             for (int i = 0; i < repositoriesToSearch.Count && !isTagFound; i++)
             {
@@ -479,13 +541,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 FindResults responses = currentServer.FindTags(_tag, _prerelease, type, out ErrorRecord errRecord);
                 if (errRecord != null)
                 {
-                    if (errRecord.Exception is ResourceNotFoundException)
+                    if (shouldReportErrorForEachRepo)
+                    {
+                        _cmdletPassedIn.WriteError(errRecord);
+                    }
+                    else
                     {
                         _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
                     }
-                    else {
-                        _cmdletPassedIn.WriteError(errRecord);
-                    }
+
                     continue;
                 }
 
@@ -499,7 +563,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                     ErrorCategory.InvalidResult, 
                                     this);
 
-                        _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                        if (shouldReportErrorForEachRepo)
+                        {
+                            _cmdletPassedIn.WriteError(errRecord);
+                        }
+                        else
+                        {
+                            _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                        }
 
                         continue;
                     }
@@ -509,7 +580,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            if (!isTagFound)
+            if (!isTagFound && !shouldReportErrorForEachRepo)
             {
                 var msg = repository == null ? $"Package with Tags '{String.Join(", ", _tag)}' could not be found in any registered repositories." : 
                     $"Package with Tags '{String.Join(", ", _tag)}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
