@@ -7,7 +7,7 @@ Import-Module $modPath -Force -Verbose
 $psmodulePaths = $env:PSModulePath -split ';'
 Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
 
-Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
+Describe 'Test Find-PSResource for searching and looping through repositories' -tags 'CI' {
 
     BeforeAll{
         $testModuleName = "test_module"
