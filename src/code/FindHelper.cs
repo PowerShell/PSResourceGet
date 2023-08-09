@@ -84,10 +84,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             _tagsLeftToFind = tag == null ? new List<string>() : new List<string>(tag);
 
-
-            // Error out if repository array of names to be searched contains wildcards.
             if (repository != null)
             {
+                // Write error and disregard repository entries containing wildcards.
                 repository = Utils.ProcessNameWildcards(repository, removeWildcardEntries:false, out string[] errorMsgs, out _repositoryNameContainsWildcard);
                 foreach (string error in errorMsgs)
                 {
@@ -98,8 +97,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 this));
                 }
 
-                // TODO: if repo names includes wildcards and nonwildcard names- write error and stop
-                // -Repository *Gallery, localRepo
+                // Iff repository entries includes wildcards and nonwildcard names, write terminating error
+                // Ex: -Repository *Gallery, localRepo
                 bool containsWildcard = false;
                 bool containsNonWildcard = false;
                 foreach (string repoName in repository)
@@ -116,23 +115,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (containsNonWildcard && containsWildcard)
                 {
-                    // throw terminating error
                     string message = "Repository name with wildcard is not allowed when another repository without wildcard is specified.";
-                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                         new PSInvalidOperationException(message),
                         "ErrorFilteringNamesForUnsupportedWildcards",
                         ErrorCategory.InvalidArgument,
                         this));
-                    yield break;
                 }
             }
 
 
-            // At this point we can only have scenarios like this.
+            // At this point we can only have scenarios such as:
             // -Repository PSGallery
             // -Repository PSGallery, NuGetGallery -> search and write error for each
             // -Repository *Gallery -> write error if in none
-            // no -Repository -> search all, write error if in none
+            // No -Repository -> search all, write error if in none
 
             // Get repositories to search.
             List<PSRepositoryInfo> repositoriesToSearch;
@@ -192,7 +189,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
 
                 bool shouldReportErrorForEachRepo = !suppressErrors && !_repositoryNameContainsWildcard;
-                foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository, shouldReportErrorForEachRepo: shouldReportErrorForEachRepo, isInstallOperation: false))
+                foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository, shouldReportErrorForEachRepo: shouldReportErrorForEachRepo))
                 {
                     if (currentPkg == null) {
                         continue;
@@ -213,7 +210,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 // Scenarios: Find-PSResource -Name "pkg" -> write error only if pkg wasn't found in any registered repositories
                 // Scenarios: Find-PSResource -Name "pkg" -Repository *Gallery -> write error if only if pkg wasn't found in any matching repositories.
-                // TODO: maybe refine error.
                 foreach(string pkgName in pkgsDiscovered)
                 {
                     var msg = repository == null ? $"Package '{pkgName}' could not be found in any registered repositories." : 
@@ -496,7 +492,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Private Client Search Methods
 
-        private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository, bool shouldReportErrorForEachRepo, bool isInstallOperation)
+        private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository, bool shouldReportErrorForEachRepo)
         {
             ErrorRecord errRecord = null;
             List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
@@ -521,15 +517,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
                             }
-                            /**
-                            if (errRecord.Exception is ResourceNotFoundException)
-                            {
-                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
-                            }
-                            else {
-                                _cmdletPassedIn.WriteError(errRecord);
-                            }
-                            */
+
                             continue;
                         }
 
@@ -559,11 +547,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             if (foundPkg.Type == _type || _type == ResourceType.None)
                             {
                                 parentPkgs.Add(foundPkg);
-                                if (isInstallOperation)
-                                {
-                                    _pkgsLeftToFind.Remove(foundPkg.Name);
-                                }
-
                                 pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                                 yield return foundPkg;
                             }
@@ -594,15 +577,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
                             }
-                            /**
-                            if (errRecord.Exception is ResourceNotFoundException)
-                            {
-                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
-                            }
-                            else {
-                                _cmdletPassedIn.WriteError(errRecord);
-                            }
-                            */
+
                             continue;
                         }
 
@@ -631,11 +606,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
-                            if (isInstallOperation)
-                            {
-                                _pkgsLeftToFind.Remove(foundPkg.Name);
-                            }
-
                             pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                             yield return foundPkg;
                         }
@@ -665,15 +635,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
                             }
-                            /**
-                            if (errRecord.Exception is ResourceNotFoundException)
-                            {
-                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
-                            }
-                            else {
-                                _cmdletPassedIn.WriteError(errRecord);
-                            }
-                            */
+
                             continue;
                         }
 
@@ -702,11 +664,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         PSResourceInfo foundPkg = currentResult.returnedObject;
                         parentPkgs.Add(foundPkg);
-                        if (isInstallOperation)
-                        {
-                            _pkgsLeftToFind.Remove(foundPkg.Name);
-                        }
-
                         pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                         yield return foundPkg;
                     }
@@ -747,15 +704,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
                             }
-                            /**
-                            if (errRecord.Exception is ResourceNotFoundException)
-                            {
-                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
-                            }
-                            else {
-                                _cmdletPassedIn.WriteError(errRecord);
-                            }
-                            */
+
                             continue;
                         }
 
@@ -783,11 +732,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         PSResourceInfo foundPkg = currentResult.returnedObject;
                         parentPkgs.Add(foundPkg);
-                        if (isInstallOperation)
-                        {
-                            _pkgsLeftToFind.Remove(foundPkg.Name);
-                        }
-
                         pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                         yield return foundPkg;
                     }
@@ -865,11 +809,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                    && _versionRange.Satisfies(version))
                             {
                                 parentPkgs.Add(foundPkg);
-                                if (isInstallOperation)
-                                {
-                                    _pkgsLeftToFind.Remove(foundPkg.Name);
-                                }
-
                                 pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
 
                                 yield return foundPkg;
