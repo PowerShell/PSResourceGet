@@ -334,7 +334,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 prerelease: latestInstalledIsPrerelease || Prerelease,
                 tag: null,
                 repository: Repository,
-                includeDependencies: !SkipDependencyCheck))
+                includeDependencies: !SkipDependencyCheck,
+                suppressErrors: false))
             {
                 if (!repositoryPackages.ContainsKey(foundResource.Name))
                 {

@@ -32,7 +32,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool _prerelease = false;
         private string[] _tag;
         private bool _includeDependencies = false;
-        private bool _repositoryNameContainsWildcard;
+        private bool _repositoryNameContainsWildcard = true;
         private NetworkCredential _networkCredential;
 
         #endregion
@@ -62,7 +62,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool prerelease,
             string[] tag,
             string[] repository,
-            bool includeDependencies)
+            bool includeDependencies,
+            bool suppressErrors)
         {
             _type = type;
             _version = version;
@@ -79,11 +80,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             _pkgsLeftToFind = new HashSet<string>(name, StringComparer.InvariantCultureIgnoreCase);
+            HashSet<string> pkgsDiscovered = GetPackageNamesPopulated(_pkgsLeftToFind.ToArray());
+
             _tagsLeftToFind = tag == null ? new List<string>() : new List<string>(tag);
 
-            // Error out if repository array of names to be searched contains wildcards.
             if (repository != null)
             {
+                // Write error and disregard repository entries containing wildcards.
                 repository = Utils.ProcessNameWildcards(repository, removeWildcardEntries:false, out string[] errorMsgs, out _repositoryNameContainsWildcard);
                 foreach (string error in errorMsgs)
                 {
@@ -93,7 +96,40 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 ErrorCategory.InvalidArgument,
                                 this));
                 }
+
+                // If repository entries includes wildcards and non-wildcard names, write terminating error
+                // Ex: -Repository *Gallery, localRepo
+                bool containsWildcard = false;
+                bool containsNonWildcard = false;
+                foreach (string repoName in repository)
+                {
+                    if (repoName.Contains("*"))
+                    {
+                        containsWildcard = true;
+                    }
+                    else
+                    {
+                        containsNonWildcard = true;
+                    }
+                }
+
+                if (containsNonWildcard && containsWildcard)
+                {
+                    string message = "Repository name with wildcard is not allowed when another repository without wildcard is specified.";
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException(message),
+                        "ErrorFilteringNamesForUnsupportedWildcards",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
             }
+
+
+            // At this point we can only have scenarios such as:
+            // -Repository PSGallery
+            // -Repository PSGallery, NuGetGallery -> search and write error for each
+            // -Repository *Gallery -> write error if in none
+            // No -Repository -> search all, write error if in none
 
             // Get repositories to search.
             List<PSRepositoryInfo> repositoriesToSearch;
@@ -129,10 +165,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 yield break;
             }
 
-            HashSet<string> pkgsDiscovered = GetPackageNamesPopulated(_pkgsLeftToFind.ToArray());
-
             List<string> repositoryNamesToSearch = new List<string>();
-            for (int i = 0; i < repositoriesToSearch.Count && _pkgsLeftToFind.Count > 0 ; i++)
+            for (int i = 0; i < repositoriesToSearch.Count; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 repositoryNamesToSearch.Add(currentRepository.Name);
@@ -154,7 +188,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
 
-                foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository))
+                bool shouldReportErrorForEachRepo = !suppressErrors && !_repositoryNameContainsWildcard;
+                foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository, shouldReportErrorForEachRepo))
                 {
                     if (currentPkg == null) {
                         continue;
@@ -171,16 +206,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            foreach(string pkgName in pkgsDiscovered)
+            if (!suppressErrors && _repositoryNameContainsWildcard)
             {
-                var msg = repository == null ? $"Package '{pkgName}' could not be found in any registered repositories." : 
-                    $"Package '{pkgName}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
+                // Scenarios: Find-PSResource -Name "pkg" -> write error only if pkg wasn't found in any registered repositories
+                // Scenarios: Find-PSResource -Name "pkg" -Repository *Gallery -> write error if only if pkg wasn't found in any matching repositories.
+                foreach(string pkgName in pkgsDiscovered)
+                {
+                    var msg = repository == null ? $"Package '{pkgName}' could not be found in any registered repositories." : 
+                        $"Package '{pkgName}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
 
-                _cmdletPassedIn.WriteError(new ErrorRecord(
-                            new ResourceNotFoundException(msg),
-                            "PackageNotFound",
-                            ErrorCategory.ObjectNotFound,
-                            this));
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new ResourceNotFoundException(msg),
+                                "PackageNotFound",
+                                ErrorCategory.ObjectNotFound,
+                                this));
+                }
             }
         }
 
@@ -452,7 +492,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Private Client Search Methods
 
-        private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository)
+        private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository, bool shouldReportErrorForEachRepo)
         {
             ErrorRecord errRecord = null;
             List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
@@ -469,21 +509,36 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindResults responses = currentServer.FindAll(_prerelease, _type, out errRecord);
                         if (errRecord != null)
                         {
-                            if (errRecord.Exception is ResourceNotFoundException)
+                            if (shouldReportErrorForEachRepo)
+                            {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
+                            else
                             {
                                 _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
                             }
-                            else {
-                                _cmdletPassedIn.WriteError(errRecord);
-                            }
+
                             continue;
                         }
 
                         foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses))
                         {
+                            // This currently catches for V2ServerApiCalls where the package was not found
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
-                               _cmdletPassedIn.WriteVerbose($"Package '{pkgName}' could not be found in repository '{repository.Name}");
+                                if (shouldReportErrorForEachRepo)
+                                {
+                                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                                        new ResourceNotFoundException($"Package '{pkgName}' could not be found in repository '{repository.Name}", currentResult.exception), 
+                                        "FindAllConvertToPSResourceFailure", 
+                                        ErrorCategory.ObjectNotFound, 
+                                        this));
+                                }
+                                else
+                                {
+                                    _cmdletPassedIn.WriteVerbose($"Package '{pkgName}' could not be found in repository '{repository.Name}");
+                                }
+
                                 continue;
                             }
 
@@ -492,7 +547,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             if (foundPkg.Type == _type || _type == ResourceType.None)
                             {
                                 parentPkgs.Add(foundPkg);
-                                _pkgsLeftToFind.Remove(foundPkg.Name);
                                 pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                                 yield return foundPkg;
                             }
@@ -515,35 +569,44 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (errRecord != null)
                         {
-                            if (errRecord.Exception is ResourceNotFoundException)
+                            if (shouldReportErrorForEachRepo)
+                            {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
+                            else
                             {
                                 _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
                             }
-                            else {
-                                _cmdletPassedIn.WriteError(errRecord);
-                            }
+
                             continue;
                         }
 
                         foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                         {
+                            // This currently catches for V2ServerApiCalls where the package was not found
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
                                 string message = _tag.Length == 0 ? $"Package with name '{pkgName}' could not be found in repository '{repository.Name}'." : $"Package with name '{pkgName}' and tags '{tagsAsString}' could not be found in repository '{repository.Name}'.";
                                 errRecord = new ErrorRecord(
                                             new ResourceNotFoundException(message, currentResult.exception), 
                                             "FindNameGlobbingConvertToPSResourceFailure", 
-                                            ErrorCategory.InvalidResult, 
+                                            ErrorCategory.ObjectNotFound, 
                                             this);
-                                
-                                _cmdletPassedIn.WriteVerbose(message);
+
+                                if (shouldReportErrorForEachRepo)
+                                {
+                                    _cmdletPassedIn.WriteError(errRecord);
+                                }
+                                else
+                                {
+                                    _cmdletPassedIn.WriteVerbose(message);
+                                }
 
                                 continue;
                             }
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
-                            _pkgsLeftToFind.Remove(foundPkg.Name);
                             pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                             yield return foundPkg;
                         }
@@ -565,30 +628,43 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (errRecord != null)
                         {
-                            if (errRecord.Exception is ResourceNotFoundException)
+                            if (shouldReportErrorForEachRepo)
+                            {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
+                            else
                             {
                                 _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
                             }
-                            else {
-                                _cmdletPassedIn.WriteError(errRecord);
-                            }
+
                             continue;
                         }
 
                         PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).First();
-                        
+                        // This currently catches for V2ServerApiCalls where the package was not found
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
                             string message = _tag.Length == 0 ? $"Package with name '{pkgName}' could not be found in repository '{repository.Name}'." : $"Package with name '{pkgName}' and tags '{tagsAsString}' could not be found in repository '{repository.Name}'.";
+                            errRecord = new ErrorRecord(
+                                        new ResourceNotFoundException(message, currentResult.exception), 
+                                        "FindNameConvertToPSResourceFailure", 
+                                        ErrorCategory.ObjectNotFound, 
+                                        this);
 
-                            _cmdletPassedIn.WriteVerbose(message);
+                            if (shouldReportErrorForEachRepo)
+                            {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
+                            else
+                            {
+                                _cmdletPassedIn.WriteVerbose(message);
+                            }
 
                             continue;
                         }
 
                         PSResourceInfo foundPkg = currentResult.returnedObject;
                         parentPkgs.Add(foundPkg);
-                        _pkgsLeftToFind.Remove(foundPkg.Name);
                         pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                         yield return foundPkg;
                     }
@@ -621,34 +697,42 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (errRecord != null)
                         {
-                            if (errRecord.Exception is ResourceNotFoundException)
+                            if (shouldReportErrorForEachRepo)
+                            {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
+                            else
                             {
                                 _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
                             }
-                            else {
-                                _cmdletPassedIn.WriteError(errRecord);
-                            }
+
                             continue;
                         }
 
                         PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).First();
-                        
+                        // This currently catches for V2ServerApiCalls where the package was not found
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
                             errRecord = new ErrorRecord(
                                         new ResourceNotFoundException($"Package with name '{pkgName}', version '{_version}', and tags '{tagsAsString}' could not be found in repository '{repository.Name}'", currentResult.exception), 
-                                        "FindNameConvertToPSResourceFailure", 
-                                        ErrorCategory.InvalidResult, 
+                                        "FindVersionConvertToPSResourceFailure", 
+                                        ErrorCategory.ObjectNotFound, 
                                         this);
 
-                            _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                            if (shouldReportErrorForEachRepo)
+                            {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
+                            else
+                            {
+                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                            }
                             
                             continue;
                         }
 
                         PSResourceInfo foundPkg = currentResult.returnedObject;
                         parentPkgs.Add(foundPkg);
-                        _pkgsLeftToFind.Remove(foundPkg.Name);
                         pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
                         yield return foundPkg;
                     }
@@ -673,7 +757,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                         else
                         {
-                            var exMessage = "Name cannot contain or equal wildcard when using version range";
+                            var exMessage = "-Tag cannot be specified when using version range.";
                             var ex = new ArgumentException(exMessage);
                             var WildcardError = new ErrorRecord(ex, "InvalidWildCardUsage", ErrorCategory.InvalidOperation, null);
                             _cmdletPassedIn.WriteError(WildcardError);
@@ -682,27 +766,38 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (errRecord != null)
                         {
-                            if (errRecord.Exception is ResourceNotFoundException)
+                            if (shouldReportErrorForEachRepo)
+                            {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
+                            else
                             {
                                 _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
                             }
-                            else {
-                                _cmdletPassedIn.WriteError(errRecord);
-                            }
+
                             continue;
                         }
 
                         foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                         {
+                            // This currently catches for V2ServerApiCalls where the package was not found
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
                                 errRecord = new ErrorRecord(
                                             new ResourceNotFoundException($"Package with name '{pkgName}' and version '{_version}' could not be found in repository '{repository.Name}'", currentResult.exception),
-                                            "FindNameConvertToPSResourceFailure", 
-                                            ErrorCategory.InvalidResult, 
+                                            "FindVersionGlobbingConvertToPSResourceFailure", 
+                                            ErrorCategory.ObjectNotFound, 
                                             this);
-                                
-                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+
+
+                                if (shouldReportErrorForEachRepo)
+                                {
+                                    _cmdletPassedIn.WriteError(errRecord);
+                                }
+                                else
+                                {
+                                    _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                                }
 
                                 continue;
                             }
@@ -719,7 +814,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                    && _versionRange.Satisfies(version))
                             {
                                 parentPkgs.Add(foundPkg);
-                                _pkgsLeftToFind.Remove(foundPkg.Name);
                                 pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
 
                                 yield return foundPkg;
