@@ -219,16 +219,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
 
-
-                // if (repo.ApiVersion == PSRepositoryInfo.APIVersion.unknown)
-                // {
-                //     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                //         new ArgumentException($"Repository {repoName} has unknown API Version."),
-                //         "RepositoryAPIVersionUnknownError",
-                //         ErrorCategory.InvalidOperation,
-                //         this));
-                // }
-
                 if (repo.Trusted == false && !trustRepository && !_force)
                 {
                     _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
@@ -259,6 +249,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 allPkgsInstalled.AddRange(installedPkgs);
+            }
+
+            if (_pkgNamesToInstall.Count > 0) {
+                _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new ResourceNotFoundException($"Package(s) '{string.Join(", ", _pkgNamesToInstall)}' could not be installed from an."),
+                        "InstallPackageFailure",
+                        ErrorCategory.InvalidData,
+                        this));
             }
 
             return allPkgsInstalled;
@@ -447,6 +445,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool skipDependencyCheck,
             FindHelper findHelper)
         {
+            errRecord = null;
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
 
             // Install parent package to the temp directory,
@@ -478,7 +477,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // At this point parent package is installed to temp path.
                     if (errRecord != null)
                     {
-                        _cmdletPassedIn.WriteError(errRecord);
+                        if (errRecord.FullyQualifiedErrorId.Equals("PackageNotFound"))
+                        {
+                            _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                        }
+                        else if (!errRecord.FullyQualifiedErrorId.Equals("InstallPackageFailure"))
+                        {
+                            _cmdletPassedIn.WriteError(errRecord);
+                        }
+
                         continue;
                     }
 
@@ -644,11 +651,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
                     // V2Server API calls will return non-empty response when package is not found but fail at conversion time
-                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                    errRecord = new ErrorRecord(
                                 new InvalidOrEmptyResponse($"Package '{pkgNameToInstall}' could not be installed", currentResult.exception),
                                 "InstallPackageFailure",
                                 ErrorCategory.InvalidData,
-                                this));
+                                this);
+                   
+                    _cmdletPassedIn.WriteVerbose($"Package '{pkgNameToInstall}' could not be installed from repository '{repository.name}'.");
                 }
                 else if (searchVersionType == VersionType.VersionRange)
                 {
@@ -885,7 +894,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         var message = String.Format("{0} package could not be installed with error: Module manifest file: {1} does not exist. This is not a valid PowerShell module.", pkgName, moduleManifest);
                         var ex = new ArgumentException(message);
                         error = new ErrorRecord(ex, "psdataFileNotExistError", ErrorCategory.ReadError, null);
-                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
 
                         return false;
                     }
@@ -936,7 +944,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         var ex = new InvalidOperationException($"PSScriptFile could not be parsed");
                         error = new ErrorRecord(ex, "psScriptParseError", ErrorCategory.ReadError, null);
-                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
 
                         return false;
                     }
@@ -958,7 +965,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     if (!CreateMetadataXMLFile(tempDirNameVersion, installPath, pkgToInstall, isModule, out error))
                     {
-                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
                         return false;
                     }
                 }
@@ -990,7 +996,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ErrorCategory.InvalidOperation,
                     _cmdletPassedIn);
 
-                _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
                 return false;
             }
         }
@@ -1024,7 +1029,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     if (!CreateMetadataXMLFile(tempInstallPath, installPath, pkgToInstall, isModule: true, out error))
                     {
-                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
                         return false;
                     }
                 }
@@ -1056,7 +1060,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ErrorCategory.InvalidOperation,
                         _cmdletPassedIn);
 
-                _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
                 return false;
             }
         }
@@ -1123,7 +1126,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             "InstallPackageFailed",
                             ErrorCategory.InvalidOperation,
                             _cmdletPassedIn));
-                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
+
                     return false;
                 }
             }
