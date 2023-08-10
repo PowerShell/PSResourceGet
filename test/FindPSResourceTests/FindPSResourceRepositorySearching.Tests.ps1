@@ -11,8 +11,14 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
 
     BeforeAll{
         $testModuleName = "test_module"
+        $testModuleName2 = "test_module2"
         $testLocalModuleName = "test_local_mod"
         $testScriptName = "test_script"
+
+        $tag1 = "CommandsAndResource"
+        $tag2 = "Tag-Required-Script1-2.5"
+        $tagsEscaped = @("'$tag1'")
+
         $PSGalleryName = "PSGallery"
         $NuGetGalleryName = "NuGetGallery"
         $localRepoName = "localRepo"
@@ -23,13 +29,14 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $null = New-Item $localRepoUriAddress -ItemType Directory -Force
         Register-PSResourceRepository -Name $localRepoName -Uri $localRepoUriAddress
 
-        New-TestModule -moduleName $testModuleName -repoName localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
+        New-TestModule -moduleName $testModuleName -repoName localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags $tagsEscaped
     }
 
     AfterAll {
         Get-RevertPSResourceRepositoryFile
     }
 
+    # For -Name based search
     It "find resources from all repositories where it exists (without -Repository specified)" {
         # Package "test_module" exists in the following repositories: PSGallery, NuGetGallery, and localRepo
         $res = Find-PSResource -Name $testModuleName -ErrorVariable err -ErrorAction SilentlyContinue
@@ -86,28 +93,28 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "find multiple resources from all repositories where it exists (without -Repository specified)" {
-        $res = Find-PSResource -Name "test_module","test_module2" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $testModuleName,$testModuleName2 -ErrorVariable err -ErrorAction SilentlyContinue
         $err | Should -HaveCount 0
         $res | Should -HaveCount 5
 
         $pkg1 = $res[0]
-        $pkg1.Name | Should -Be "test_module"
+        $pkg1.Name | Should -Be $testModuleName
         $pkg1.Repository | Should -Be $localRepoName
 
         $pkg2 = $res[1]
-        $pkg2.Name | Should -Be "test_module"
+        $pkg2.Name | Should -Be $testModuleName
         $pkg2.Repository | Should -Be $PSGalleryName
 
         $pkg3 = $res[2]
-        $pkg3.Name | Should -Be "test_module2"
+        $pkg3.Name | Should -Be $testModuleName2
         $pkg3.Repository | Should -Be $PSGalleryName
 
         $pkg4 = $res[3]
-        $pkg4.Name | Should -Be "test_module"
+        $pkg4.Name | Should -Be $testModuleName
         $pkg4.Repository | Should -Be $NuGetGalleryName
 
         $pkg5 = $res[4]
-        $pkg5.Name | Should -Be "test_module2"
+        $pkg5.Name | Should -Be $testModuleName2
         $pkg5.Repository | Should -Be $NuGetGalleryName
     }
 
@@ -193,7 +200,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "should not allow for repository name with wildcard and non-wildcard name specified in same command run" {
-        {Find-PSResource -Name "test_module" -Repository "*Gallery",$localRepoName} | Should -Throw -ErrorId "ErrorFilteringNamesForUnsupportedWildcards,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        {Find-PSResource -Name "test_module" -Repository "*Gallery",$localRepoName} | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
     
     It "not find resource and write error if resource does not exist in any pattern matching repositories (-Repository with wildcard)" {
@@ -261,4 +268,186 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $res | Should -HaveCount 0
         $err | Should -HaveCount 0
     }
+
+    # For Tag based search
+    It "find resources from all repositories where it exists (without -Repository specified)" {
+        # Package with Tag "" exists in the following repositories: PSGallery, NuGetGallery, and localRepo
+        $res = Find-PSResource -Tag $tag1 -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -HaveCount 0
+        $res.Count | Should -BeGreaterOrEqual 5
+
+        $pkg1 = $res[0]
+        $pkg1.Name | Should -Be $testModuleName
+        $pkg1.Repository | Should -Be $localRepoName
+
+        # Note  Find-PSResource -Tag returns package Ids in desc order
+        $pkg2 = $res[1]
+        $pkg2.Name | Should -Be $testModuleName2
+        $pkg2.Repository | Should -Be $PSGalleryName
+
+        $pkg3 = $res[2]
+        $pkg3.Name | Should -Be $testModuleName
+        $pkg3.Repository | Should -Be $PSGalleryName
+        
+        # Note  Find-PSResource -Tag returns package Ids in desc order
+        $pkg4 = $res[3]
+        $pkg4.Name | Should -Be $testModuleName
+        $pkg4.Repository | Should -Be $NuGetGalleryName
+
+        $pkg5 = $res[4]
+        $pkg5.Name | Should -Be $testModuleName2
+        $pkg5.Repository | Should -Be $NuGetGalleryName
+    }
+
+    It "find resources from all repositories where it exists and not write errors for repositories where it does not exist (without -Repository specified)" {
+        # Package with tag "Tag-Required-Script1-2.5" exists in the following repositories: PSGallery, NuGetGallery
+        $res = Find-PSResource -Tag $tag2 -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -HaveCount 0
+        $res.Count | Should -BeGreaterOrEqual 3
+
+        $pkg1 = $res[0]
+        $pkg1.Name | Should -Be "test_script"
+        $pkg1.Repository | Should -Be $PSGalleryName
+
+        $pkg2 = $res[1]
+        $pkg2.Name | Should -Be "Required-Script1"
+        $pkg2.Repository | Should -Be $PSGalleryName
+
+        $pkg3 = $res[2]
+        $pkg3.Name | Should -Be "test_script"
+        $pkg3.Repository | Should -Be $NuGetGalleryName
+    }
+
+    It "not find resource when the tag specified is not found for any package and report error (without -Repository specified)" {
+        $res = Find-PSResource -Tag "NonExistantTag" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -HaveCount 0
+        $err | Should -HaveCount 1
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageWithTagsNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"        
+    }
+
+    It "not find resource when it has one tag specified but not other and report error (without -Repository specified)" {
+        $res = Find-PSResource -Tag $tag2,"NonExistantTag" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -HaveCount 0
+        $err | Should -HaveCount 1
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageWithTagsNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+
+    It "not find resources when Tag entry contains wildcard (without -Repository specified)" {
+        $res = Find-PSResource -Tag "myTag*" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -HaveCount 0
+        $err | Should -HaveCount 1
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "WildcardsUnsupportedForTag,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+
+    It "not find resource and discard Tag entry containing wildcard, but search for other non-wildcard Tag entries" {
+        $res = Find-PSResource -Tag $tag2,"myTag*" -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -HaveCount 1
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "WildcardsUnsupportedForTag,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+
+        $res.Count | Should -BeGreaterOrEqual 3
+        $pkg1 = $res[0]
+        $pkg1.Name | Should -Be "test_script"
+        $pkg1.Repository | Should -Be $PSGalleryName
+
+        $pkg2 = $res[1]
+        $pkg2.Name | Should -Be "Required-Script1"
+        $pkg2.Repository | Should -Be $PSGalleryName
+
+        $pkg3 = $res[2]
+        $pkg3.Name | Should -Be "test_script"
+        $pkg3.Repository | Should -Be $NuGetGalleryName
+    }
+
+    It "find resources from all pattern matching repositories where it exists (-Repository with wildcard)" {
+        # Package with Tag "CommandsAndResource" exists in the following repositories: PSGallery, NuGetGallery, localRepo
+        $res = Find-PSResource -Tag $tag1 -Repository "*Gallery" -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -HaveCount 0
+        $res.Count | Should -BeGreaterOrEqual 4
+
+        # Note  Find-PSResource -Tag returns package Ids in desc order
+        $pkg1 = $res[0]
+        $pkg1.Name | Should -Be $testModuleName2
+        $pkg1.Repository | Should -Be $PSGalleryName
+
+        $pkg2 = $res[1]
+        $pkg2.Name | Should -Be $testModuleName
+        $pkg2.Repository | Should -Be $PSGalleryName
+        
+        # Note  Find-PSResource -Tag returns package Ids in desc order
+        $pkg3 = $res[2]
+        $pkg3.Name | Should -Be $testModuleName
+        $pkg3.Repository | Should -Be $NuGetGalleryName
+
+        $pkg4 = $res[3]
+        $pkg4.Name | Should -Be $testModuleName2
+        $pkg4.Repository | Should -Be $NuGetGalleryName
+    }
+
+    It "should not allow for repository name with wildcard and non-wildcard name specified in same command run" {
+        {Find-PSResource -Tag $tag1 -Repository "*Gallery",$localRepoName} | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+    
+    It "not find resource and write error if tag does not exist for resources in any pattern matching repositories (-Repository with wildcard)" {
+        $res = Find-PSResource -Tag "NonExistantTag" -Repository "*Gallery" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err | Should -HaveCount 1
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageWithTagsNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+
+    It "find resource from single specific repository (-Repository with single non-wildcard value)" {
+        $res = Find-PSResource -Tag $tag2 -Repository $PSGalleryName
+        $res.Count | Should -BeGreaterOrEqual 2
+        $pkg1 = $res[0]
+        $pkg1.Name | Should -Be "test_script"
+        $pkg1.Repository | Should -Be $PSGalleryName
+
+        $pkg2 = $res[1]
+        $pkg2.Name | Should -Be "Required-Script1"
+        $pkg2.Repository | Should -Be $PSGalleryName
+    }
+
+    It "not find resource if it does not exist in repository and write error (-Repository with single non-wildcard value)" {
+        $res = Find-PSResource -Tag "NonExistantTag" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err | Should -HaveCount 1
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageWithSpecifiedTagsNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+
+    It "find resource from all repositories where it exists (-Repository with multiple non-wildcard values)" {
+        $res = Find-PSResource -Tag $tag2 -Repository $PSGalleryName,$NuGetGalleryName
+        $res.Count | Should -BeGreaterOrEqual 3
+
+        $pkg1 = $res[0]
+        $pkg1.Name | Should -Be "test_script"
+        $pkg1.Repository | Should -Be $PSGalleryName
+
+        $pkg2 = $res[1]
+        $pkg2.Name | Should -Be "Required-Script1"
+        $pkg2.Repository | Should -Be $PSGalleryName
+
+        $pkg3 = $res[2]
+        $pkg3.Name | Should -Be "test_script"
+        $pkg3.Repository | Should -Be $NuGetGalleryName
+    }
+
+    It "find resource from all repositories where it exists and write errors for those it does not exist from (-Repository with multiple non-wildcard values)" {
+        # Package eith Tag "Tag-TestMyLocalScript-1.0.0.0" exists in the following repositories: PSGallery
+        $tagForPkgOnPSGallery = "Tag-TestMyLocalScript-1.0.0.0"
+        $res = Find-PSResource -Tag $tagForPkgOnPSGallery -Repository $PSGalleryName,$NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res.Count | Should -BeGreaterOrEqual 2
+        $err | Should -HaveCount 1
+
+        $pkg1 = $res[0]
+        $pkg1.Name | Should -Be "TestLocalScript"
+        $pkg1.Repository | Should -Be $PSGalleryName
+
+        $pkg2 = $res[1]
+        $pkg2.Name | Should -Be "anam_script"
+        $pkg2.Repository | Should -Be $PSGalleryName        
+
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageWithSpecifiedTagsNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+
+    # For Command Name based search
+    # For DSCResource Name based search
 }

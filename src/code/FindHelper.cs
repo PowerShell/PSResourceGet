@@ -118,7 +118,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     string message = "Repository name with wildcard is not allowed when another repository without wildcard is specified.";
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                         new PSInvalidOperationException(message),
-                        "ErrorFilteringNamesForUnsupportedWildcards",
+                        "RepositoryNamesWithWildcardsAndNonWildcardUnsupported",
                         ErrorCategory.InvalidArgument,
                         this));
                 }
@@ -282,7 +282,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     string message = "Repository name with wildcard is not allowed when another repository without wildcard is specified.";
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                         new PSInvalidOperationException(message),
-                        "ErrorFilteringNamesForUnsupportedWildcards",
+                        "RepositoryNamesWithWildcardsAndNonWildcardUnsupported",
                         ErrorCategory.InvalidArgument,
                         this));
                 }
@@ -327,7 +327,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // The class inheriting from ServerApiCalls must ensure packages returned satisfied all Command/DSCResource tags.
             bool isCmdOrDSCTagFound = false;
             bool shouldReportErrorForEachRepo = !_repositoryNameContainsWildcard;
-            for (int i = 0; i < repositoriesToSearch.Count && !isCmdOrDSCTagFound; i++)
+            for (int i = 0; i < repositoriesToSearch.Count; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 repositoryNamesToSearch.Add(currentRepository.Name);
@@ -464,7 +464,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     string message = "Repository name with wildcard is not allowed when another repository without wildcard is specified.";
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                         new PSInvalidOperationException(message),
-                        "ErrorFilteringNamesForUnsupportedWildcards",
+                        "RepositoryNamesWithWildcardsAndNonWildcardUnsupported",
                         ErrorCategory.InvalidArgument,
                         this));
                 }
@@ -509,7 +509,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool isTagFound = false;
             bool shouldReportErrorForEachRepo = !_repositoryNameContainsWildcard;
             List<string> repositoryNamesToSearch = new List<string>();
-            for (int i = 0; i < repositoriesToSearch.Count && !isTagFound; i++)
+            for (int i = 0; i < repositoriesToSearch.Count; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 repositoryNamesToSearch.Add(currentRepository.Name);
