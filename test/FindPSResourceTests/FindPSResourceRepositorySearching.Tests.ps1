@@ -17,7 +17,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
 
         $tag1 = "CommandsAndResource"
         $tag2 = "Tag-Required-Script1-2.5"
-        $tagsEscaped = @("'$tag1'")
+        $tagsEscaped = @("'$tag1'", "'PSCommand_$cmdName'", "'PSDscResource_$dscName'", "'PSCommand_Get-TargetResource'", "'PSDscResource_SystemLocale'")
 
         $PSGalleryName = "PSGallery"
         $NuGetGalleryName = "NuGetGallery"
@@ -448,6 +448,30 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageWithSpecifiedTagsNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
-    # For Command Name based search
-    # For DSCResource Name based search
+    # For Command Name/DSCResource Name based search
+    It "find resource that has CommandName specified from all repositories where it exists (without -Repository specified)" -Pending {
+        $cmdNameToSearch = "Get-TargetResource"
+        $res = Find-PSResource -CommandName $cmdNameToSearch -Verbose
+        $res.Count | Should -BeGreaterOrEqual 10
+        $pkgFoundFromLocalRepo = $false
+        $pkgFoundFromPSGallery = $false
+
+        foreach ($pkg in $res)
+        {
+            if ($pkg.ParentResource.Repository -eq $localRepoName)
+            {
+                $pkgFoundFromLocalRepo = $true
+            }
+            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
+            {
+                $pkgFoundFromPSGallery = $true
+            }
+
+            Write-Host $pkg.ParentResource.Name $pkg.ParentResource.Repository
+            $pkg.Names | Should -Be $cmdNameToSearch    
+            $pkg.ParentResource.Includes.Command | Should -Contain $cmdNameToSearch
+            $pkgFoundFromLocalRepo | Should -BeTrue
+            $pkgFoundFromPSGallery | Should -BeTrue
+        }
+    }
 }

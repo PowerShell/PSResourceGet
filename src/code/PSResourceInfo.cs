@@ -1350,20 +1350,32 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
             }
 
-            ResourceType pkgType = ResourceType.None;
+            ResourceType pkgType = ResourceType.Module;
             var tags = pkgMetadata["Tags"] as string[];
             foreach (string tag in tags)
             {
+                // Local repository packages can either be PSResources (module or script) or non-PSResources (i.e downloaded from NuGetGallery)
+                // but we want non-script resources to be considered module for better/fuller discovery.
                 if (String.Equals(tag, "PSScript", StringComparison.InvariantCultureIgnoreCase))
                 {
                     // clear default None tag
                     pkgType = ResourceType.Script;
-                    pkgType &= ~ResourceType.None;
+                    pkgType &= ~ResourceType.Module;
                 }
-                else if (String.Equals(tag, "PSModule", StringComparison.InvariantCultureIgnoreCase))
+
+                if (tag.StartsWith("PSCommand_", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    pkgType = ResourceType.Module;
-                    pkgType &= ~ResourceType.None;
+                    commandNames.Add(tag.Split('_')[1]);
+                }
+
+                if (tag.StartsWith("PSCmdlet_", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    cmdletNames.Add(tag.Split('_')[1]);
+                }
+
+                if (tag.StartsWith("PSDscResource_", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    dscResourceNames.Add(tag.Split('_')[1]);
                 }
             }
 
