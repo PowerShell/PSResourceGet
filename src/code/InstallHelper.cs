@@ -445,7 +445,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool skipDependencyCheck,
             FindHelper findHelper)
         {
-            errRecord = null;
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
 
             // Install parent package to the temp directory,
@@ -657,7 +656,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 ErrorCategory.InvalidData,
                                 this);
                    
-                    _cmdletPassedIn.WriteVerbose($"Package '{pkgNameToInstall}' could not be installed from repository '{repository.name}'.");
+                    _cmdletPassedIn.WriteVerbose($"Package '{pkgNameToInstall}' could not be installed from repository '{repository.Name}'.");
                 }
                 else if (searchVersionType == VersionType.VersionRange)
                 {
