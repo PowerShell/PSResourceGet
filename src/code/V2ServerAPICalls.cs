@@ -214,7 +214,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 errRecord = new ErrorRecord(
                     new ResourceNotFoundException($"Package with Tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
                     "PackageWithSpecifiedTagsNotFound", 
-                    ErrorCategory.InvalidResult, 
+                    ErrorCategory.ObjectNotFound, 
                     this);
             }
 
@@ -292,7 +292,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string idFilterPart = $" and Id eq '{packageName}'";
             string typeFilterPart = GetTypeFilterForRequest(type);
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{idFilterPart}{typeFilterPart}";
-
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
@@ -644,7 +643,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?{prereleaseFilter}{typeFilterPart}{tagFilterPart}{paginationParam}";
-
             return HttpRequestCall(requestUrlV2: requestUrlV2, out errRecord);
         }
 

@@ -21,7 +21,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         Register-LocalRepos
 
         $localRepoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
-        $tagsEscaped = @("'Test'", "'Tag2'", "'$cmdName'", "'$dscName'")
+        $tagsEscaped = @("'Test'", "'Tag2'", "'PSCommand_$cmdName'", "'PSDscResource_$dscName'")
         $prereleaseLabel = "alpha001"
 
         New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
