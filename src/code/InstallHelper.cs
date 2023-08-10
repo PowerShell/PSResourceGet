@@ -189,8 +189,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
             bool sourceTrusted = false;
 
-            foreach (var repo in listOfRepositories)
+            // Loop through all the repositories provided (in priority order) until there no more packages to install. 
+            for (int i=0; i < listOfRepositories.Count && _pkgNamesToInstall.Count > 0; i++)
             {
+                PSRepositoryInfo repo = listOfRepositories[i];
                 sourceTrusted = repo.Trusted || trustRepository;
 
                 _networkCredential = Utils.SetNetworkCredential(repo, _networkCredential, _cmdletPassedIn);
@@ -476,11 +478,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // At this point parent package is installed to temp path.
                     if (errRecord != null)
                     {
+                        // TODO:  Anam working on fix, this may need to be updated
                         if (errRecord.FullyQualifiedErrorId.Equals("PackageNotFound"))
                         {
                             _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
                         }
-                        else if (!errRecord.FullyQualifiedErrorId.Equals("InstallPackageFailure"))
+                        else
                         {
                             _cmdletPassedIn.WriteError(errRecord);
                         }
@@ -654,9 +657,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 new InvalidOrEmptyResponse($"Package '{pkgNameToInstall}' could not be installed", currentResult.exception),
                                 "InstallPackageFailure",
                                 ErrorCategory.InvalidData,
-                                this);
-                   
-                    _cmdletPassedIn.WriteVerbose($"Package '{pkgNameToInstall}' could not be installed from repository '{repository.Name}'.");
+                                this);                   
                 }
                 else if (searchVersionType == VersionType.VersionRange)
                 {
