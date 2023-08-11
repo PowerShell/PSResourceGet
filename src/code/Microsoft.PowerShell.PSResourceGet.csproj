@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -16,7 +16,7 @@
   <ItemGroup>
     <PackageReference Include="NuGet.Commands" Version="6.2.4" />
     <PackageReference Include="NuGet.Common" Version="6.2.4" />
-    <PackageReference Include="NuGet.Configuration" Version="6.2.4" />
+    <PackageReference Include="NuGet.Configuration" Version="6.7.0" />
     <PackageReference Include="NuGet.Packaging" Version="6.2.4" />
     <PackageReference Include="NuGet.ProjectModel" Version="6.2.4" />
     <PackageReference Include="NuGet.Protocol" Version="6.2.4" />
