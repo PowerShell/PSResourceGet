@@ -56,7 +56,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ErrorRecord errRecord)
         {
-            return FindTagsHelper(tags, includePrerelease, out errRecord);
+            FindResults tagFindResults = FindTagsHelper(tags, includePrerelease, out errRecord);
+            if (tagFindResults.IsFindResultsEmpty())
+            {
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package(s) with Tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindTagsPackageNotFound", ErrorCategory.ObjectNotFound, this);
+            }
+
+            return tagFindResults;
         }
 
         /// <summary>
@@ -65,7 +71,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ErrorRecord errRecord)
         {
             string[] cmdsOrDSCs = GetCmdsOrDSCTags(tags: tags, isSearchingForCommands: isSearchingForCommands);
-            return FindTagsHelper(cmdsOrDSCs, includePrerelease, out errRecord);
+            FindResults cmdOrDSCFindResults = FindTagsHelper(cmdsOrDSCs, includePrerelease, out errRecord);
+            if (cmdOrDSCFindResults.IsFindResultsEmpty())
+            {
+                string paramName = isSearchingForCommands ? "Command Name(s)" : "DSCResource Name(s)";
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package(s) with {paramName} '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindCmdOrDSCNamesPackageNotFound", ErrorCategory.ObjectNotFound, this);
+            }
+
+            return cmdOrDSCFindResults;
         }
 
         /// <summary>
@@ -482,11 +495,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 pkgsFound.Add(pkgMetadata);
-            }
-
-            if (pkgsFound.Count == 0 && tags.Length != 0)
-            {
-                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package(s) with Tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindTagsPackageNotFound", ErrorCategory.ParserError, this);
             }
 
             findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
