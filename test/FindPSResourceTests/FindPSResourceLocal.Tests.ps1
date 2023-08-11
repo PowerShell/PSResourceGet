@@ -21,7 +21,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         Register-LocalRepos
 
         $localRepoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
-        $tagsEscaped = @("'Test'", "'Tag2'", "'$cmdName'", "'$dscName'")
+        $tagsEscaped = @("'Test'", "'Tag2'", "'PSCommand_$cmdName'", "'PSDscResource_$dscName'")
         $prereleaseLabel = "alpha001"
 
         New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
@@ -77,7 +77,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res = Find-PSResource -Name NonExistantModule -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 
@@ -150,7 +150,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res = Find-PSResource -Name $testModuleName -Tag $requiredTag -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 
@@ -214,7 +214,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindVersionFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 

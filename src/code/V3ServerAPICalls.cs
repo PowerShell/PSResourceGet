@@ -383,6 +383,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
+            if (tagPkgEntries.Count == 0)
+            {
+                errRecord = new ErrorRecord(
+                    new ResourceNotFoundException($"Package with Tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
+                    "PackageWithSpecifiedTagsNotFound", 
+                    ErrorCategory.ObjectNotFound, 
+                    this);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            }
+
             List<string> matchingPkgResponses = new List<string>();
             foreach (var pkgEntry in tagPkgEntries)
             {

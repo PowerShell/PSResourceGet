@@ -230,6 +230,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Indicates the prerelease label of the module.
         /// </summary>
         [Parameter]
+        [ValidateNotNullOrEmpty]
         public string Prerelease { get; set; }
 
         /// <summary>
@@ -267,6 +268,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void EndProcessing()
         {
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(Prerelease)))
+            {
+                // get rid of any whitespace on prerelease label string.
+                Prerelease = Prerelease.Trim();
+                if (string.IsNullOrWhiteSpace(Prerelease))
+                {
+                    var message = $"Prerelease value cannot be empty or whitespace. Please re-run cmdlet with valid value.";
+
+                    ThrowTerminatingError(
+                        new ErrorRecord(
+                            new ArgumentException(message),
+                            "PrereleaseValueCannotBeWhiteSpace",
+                            ErrorCategory.InvalidArgument,
+                            this));
+                }
+            }
+
             string resolvedManifestPath = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider).First();
 
             // Test the path of the module manifest to see if the file exists

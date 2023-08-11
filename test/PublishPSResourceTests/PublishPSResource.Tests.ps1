@@ -287,7 +287,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $dependencyVersion = "2.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ModuleName = 'PackageManagement'; ModuleVersion = '1.4.4' })
 
-        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "DependencyNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
 
