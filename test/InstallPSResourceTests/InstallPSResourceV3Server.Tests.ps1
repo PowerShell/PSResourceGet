@@ -70,7 +70,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $pkg = Get-InstalledPSResource "NonExistantModule"
         $pkg.Name | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
     }
 
     # Do some version testing, but Find-PSResource should be doing thorough testing
