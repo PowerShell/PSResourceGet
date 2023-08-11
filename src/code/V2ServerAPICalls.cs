@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using Microsoft.VisualBasic.CompilerServices;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -75,26 +77,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string initialScriptResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
                 if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
-                responses.Add(initialScriptResponse);
-                int initalScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
+
+                int initialScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
                 if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
-                int count = initalScriptCount / 6000;
-                // if more than 100 count, loop and add response to list
-                while (count > 0)
+
+                if (initialScriptCount != 0)
                 {
-                    scriptSkip += 6000;
-                    var tmpResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
-                    if (errRecord != null)
+                    responses.Add(initialScriptResponse);
+                    int count = initialScriptCount / 6000;
+                    // if more than 100 count, loop and add response to list
+                    while (count > 0)
                     {
-                        return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                        scriptSkip += 6000;
+                        var tmpResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
+                        if (errRecord != null)
+                        {
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                        }
+
+                        responses.Add(tmpResponse);
+                        count--;
                     }
-                    responses.Add(tmpResponse);
-                    count--;
                 }
             }
             if (type != ResourceType.Script)
@@ -103,27 +111,33 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string initialModuleResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
                 if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
-                responses.Add(initialModuleResponse);
-                int initalModuleCount = GetCountFromResponse(initialModuleResponse, out errRecord);
+
+                int initialModuleCount = GetCountFromResponse(initialModuleResponse, out errRecord);
                 if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
-                int count = initalModuleCount / 6000;
 
-                // if more than 100 count, loop and add response to list
-                while (count > 0)
+                if (initialModuleCount != 0)
                 {
-                    moduleSkip += 6000;
-                    var tmpResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
-                    if (errRecord != null)
+                    responses.Add(initialModuleResponse);
+                    int count = initialModuleCount / 6000;
+
+                    // if more than 100 count, loop and add response to list
+                    while (count > 0)
                     {
-                        return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                        moduleSkip += 6000;
+                        var tmpResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
+                        if (errRecord != null)
+                        {
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                        }
+
+                        responses.Add(tmpResponse);
+                        count--;
                     }
-                    responses.Add(tmpResponse);
-                    count--;
                 }
             }
 
@@ -147,13 +161,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string initialScriptResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
                 if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
                 int initialScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
                 if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
                 if (initialScriptCount != 0)
@@ -168,8 +182,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: false,  scriptSkip, out errRecord);
                         if (errRecord != null)
                         {
-                            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                         }
+
                         responses.Add(tmpResponse);
                         count--;
                     }
@@ -181,19 +196,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string initialModuleResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
                 if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initalModuleCount = GetCountFromResponse(initialModuleResponse, out errRecord);
+                int initialModuleCount = GetCountFromResponse(initialModuleResponse, out errRecord);
                 if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                if (initalModuleCount != 0)
+                if (initialModuleCount != 0)
                 {
                     responses.Add(initialModuleResponse);
-                    int count = initalModuleCount / 100;
+                    int count = initialModuleCount / 100;
                     // if more than 100 count, loop and add response to list
                     while (count > 0)
                     {
@@ -201,8 +216,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
                         if (errRecord != null)
                         {
-                            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                         }
+
                         responses.Add(tmpResponse);
                         count--;
                     }
@@ -232,13 +248,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string initialResponse = FindCommandOrDscResource(tags, includePrerelease, isSearchingForCommands, skip, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
             int initialCount = GetCountFromResponse(initialResponse, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
             if (initialCount != 0)
@@ -252,8 +268,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     var tmpResponse = FindCommandOrDscResource(tags, includePrerelease, isSearchingForCommands, skip, out errRecord);
                     if (errRecord != null)
                     {
-                        return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                     }
+
                     responses.Add(tmpResponse);
                     count--;
                 }
@@ -293,6 +310,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string typeFilterPart = GetTypeFilterForRequest(type);
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{idFilterPart}{typeFilterPart}";
             string response = HttpRequestCall(requestUrlV2, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+            }
+
+            int count = GetCountFromResponse(response, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+            }
+
+            if (count == 0)
+            {
+                string errMsg = $"Package with name '{packageName}' could not be found in repository '{Repository.Name}'.";
+                errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "FindNameFailure", ErrorCategory.ObjectNotFound, this);
+            }
+
             return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
@@ -321,6 +355,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{idFilterPart}{typeFilterPart}{tagFilterPart}";
 
             string response = HttpRequestCall(requestUrlV2, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+            }
+
+            int count = GetCountFromResponse(response, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+            }
+
+            if (count == 0)
+            {
+                string errMsg = $"Package with name '{packageName}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'.";
+                errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "FindNameFailure", ErrorCategory.ObjectNotFound, this);
+            }
+
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
@@ -340,7 +391,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var initialResponse = FindNameGlobbing(packageName, type, includePrerelease, skip, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
             responses.Add(initialResponse);
@@ -349,8 +400,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             int initialCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
+
+            // If count is 0, early out as this means no packages matching search criteria were found. We want to set the responses array to empty and not set ErrorRecord (as is a globbing scenario).
+            if (initialCount == 0)
+            {
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);   
+            }
+
             int count = (int)Math.Ceiling((double)(initialCount / 100));
             // if more than 100 count, loop and add response to list
             while (count > 0)
@@ -360,8 +418,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var tmpResponse = FindNameGlobbing(packageName, type, includePrerelease, skip, out errRecord);
                 if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
+
                 responses.Add(tmpResponse);
                 count--;
             }
@@ -383,7 +442,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var initialResponse = FindNameGlobbingWithTag(packageName, tags, type, includePrerelease, skip, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
             responses.Add(initialResponse);
@@ -392,8 +451,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             int initialCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
+
+            if (initialCount == 0)
+            {
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);   
+            }
+
             int count = (int)Math.Ceiling((double)(initialCount / 100));
             // if more than 100 count, loop and add response to list
             while (count > 0)
@@ -403,8 +468,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var tmpResponse = FindNameGlobbingWithTag(packageName, tags, type, includePrerelease, skip, out errRecord);
                 if (errRecord != null)
                 {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
+
                 responses.Add(tmpResponse);
                 count--;
             }
@@ -429,17 +495,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var initialResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
+
+            int initialCount = GetCountFromResponse(initialResponse, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+            }
+
+            if (initialCount == 0)
+            {
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);   
+            }
+
             responses.Add(initialResponse);
 
             if (!getOnlyLatest)
             {
-                int initialCount = GetCountFromResponse(initialResponse, out errRecord);
-                if (errRecord != null)
-                {
-                    return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-                }
                 int count = (int)Math.Ceiling((double)(initialCount / 100));
 
                 while (count > 0)
@@ -449,7 +522,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     var tmpResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, out errRecord);
                     if (errRecord != null)
                     {
-                        return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                     }
                     responses.Add(tmpResponse);
                     count--;
@@ -476,6 +549,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{idFilterPart}{typeFilterPart}";
 
             string response = HttpRequestCall(requestUrlV2, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+            }
+
+            int count = GetCountFromResponse(response, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+            }
+
+            if (count == 0)
+            {
+                string errMsg = $"Package with name '{packageName}', version '{version}' could not be found in repository '{Repository.Name}'.";
+                errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "FindVersionFailure", ErrorCategory.ObjectNotFound, this);
+            }
+
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
@@ -499,6 +589,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{idFilterPart}{typeFilterPart}{tagFilterPart}";
 
             string response = HttpRequestCall(requestUrlV2, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+            }
+
+            int count = GetCountFromResponse(response, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+            }
+
+            if (count == 0)
+            {
+                string errMsg = $"Package with name '{packageName}', version '{version}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'.";
+                errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "FindVersionFailure", ErrorCategory.ObjectNotFound, this);
+            }
+            
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
