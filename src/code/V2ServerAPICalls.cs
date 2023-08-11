@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using Microsoft.VisualBasic.CompilerServices;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 

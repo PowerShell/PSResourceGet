@@ -631,7 +631,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
                                 _cmdletPassedIn.WriteError(new ErrorRecord(
-                                    currentResult.Exception, 
+                                    currentResult.exception, 
                                     "FindAllConvertToPSResourceFailure", 
                                     ErrorCategory.InvalidResult, 
                                     this));
@@ -733,7 +733,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 currentResult.exception, 
                                 "FindNameConvertToPSResourceFailure", 
                                 ErrorCategory.ObjectNotFound, 
-                                this););
+                                this));
 
                             continue;
                         }
@@ -852,7 +852,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                     currentResult.exception,
                                     "FindVersionGlobbingConvertToPSResourceFailure", 
                                     ErrorCategory.ObjectNotFound, 
-                                    this););
+                                    this));
 
                                 continue;
                             }
