@@ -269,4 +269,12 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
     It "Get definition for alias 'fdres'" {
         (Get-Alias fdres).Definition | Should -BeExactly 'Find-PSResource'
     }
+
+    It "not find resource with tag value that is non-existent for the packages" {
+        # Since this is pattern matching based search no error should be written out.
+        $res = Find-PSResource -Tag "nonexistenttag" -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindTagsPackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
 }

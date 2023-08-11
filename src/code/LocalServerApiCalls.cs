@@ -56,7 +56,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ErrorRecord errRecord)
         {
-            return FindTagsHelper(tags, includePrerelease, out errRecord);
+            FindResults tagFindResults = FindTagsHelper(tags, includePrerelease, out errRecord);
+            if (tagFindResults.IsFindResultsEmpty())
+            {
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package(s) with Tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindTagsPackageNotFound", ErrorCategory.ObjectNotFound, this);
+            }
+
+            return tagFindResults;
         }
 
         /// <summary>
@@ -65,7 +71,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ErrorRecord errRecord)
         {
             string[] cmdsOrDSCs = GetCmdsOrDSCTags(tags: tags, isSearchingForCommands: isSearchingForCommands);
-            return FindTagsHelper(cmdsOrDSCs, includePrerelease, out errRecord);
+            FindResults cmdOrDSCFindResults = FindTagsHelper(cmdsOrDSCs, includePrerelease, out errRecord);
+            if (cmdOrDSCFindResults.IsFindResultsEmpty())
+            {
+                string paramName = isSearchingForCommands ? "Command Name(s)" : "DSCResource Name(s)";
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package(s) with {paramName} '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindCmdOrDSCNamesPackageNotFound", ErrorCategory.ObjectNotFound, this);
+            }
+
+            return cmdOrDSCFindResults;
         }
 
         /// <summary>
@@ -470,9 +483,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string pkgPath = pkgInfo["path"] as string;
 
                 Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: pkgFound, packagePath: pkgPath, requiredTags: tags, errRecord: out errRecord);
-                if (errRecord != null || pkgMetadata.Count == 0)
+                if (errRecord != null)
                 {
                     return findResponse;
+                }
+
+                // This condition is hit if the package is not a match with respect to tags, in which case we should skip the package and not return from this method.
+                if (pkgMetadata.Count == 0)
+                {
+                    continue;
                 }
 
                 pkgsFound.Add(pkgMetadata);
@@ -651,9 +670,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 string packageFullName = Path.GetFileName(path);
                 MatchCollection matches = rx.Matches(packageFullName);
+                if (matches.Count == 0)
+                {
+                    continue;
+                }
+
                 Match match = matches[0];
 
                 GroupCollection groups = match.Groups;
+                if (groups.Count == 0)
+                {
+                    continue;
+                }
+
                 Capture group = groups[0];
 
                 string pkgFoundName = packageFullName.Substring(0, group.Index);
@@ -668,7 +697,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 string version = packageFullName.Substring(group.Index + 1, packageFullName.LastIndexOf('.') - group.Index - 1);
 
-                NuGetVersion.TryParse(version, out NuGetVersion nugetVersion); // TODO: err handle
+                if (!NuGetVersion.TryParse(version, out NuGetVersion nugetVersion))
+                {
+                    continue;
+                }
 
                 if (!nugetVersion.IsPrerelease || includePrerelease)
                 {

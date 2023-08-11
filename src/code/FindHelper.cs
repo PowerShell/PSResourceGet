@@ -348,7 +348,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-
+                _cmdletPassedIn.WriteVerbose($"tags: {String.Join(",", _tag)}");
                 FindResults responses = currentServer.FindCommandOrDscResource(_tag, _prerelease, isSearchingForCommands, out ErrorRecord errRecord);
                 if (errRecord != null)
                 {
