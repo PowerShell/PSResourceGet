@@ -306,7 +306,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             string idFilterPart = $" and Id eq '{packageName}'";
             string typeFilterPart = GetTypeFilterForRequest(type);
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{idFilterPart}{typeFilterPart}";
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$inlinecount=allpages&$filter={prerelease}{idFilterPart}{typeFilterPart}";
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
@@ -350,8 +350,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 tagFilterPart += $" and substringof('{tag}', Tags) eq true";
             }
 
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{idFilterPart}{typeFilterPart}{tagFilterPart}";
-
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$inlinecount=allpages&$filter={prerelease}{idFilterPart}{typeFilterPart}{tagFilterPart}";
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
@@ -544,8 +543,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             string idFilterPart = $" and Id eq '{packageName}'";
             string typeFilterPart = GetTypeFilterForRequest(type);
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{idFilterPart}{typeFilterPart}";
-
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$inlinecount=allpages&$filter= NormalizedVersion eq '{version}'{idFilterPart}{typeFilterPart}";
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
@@ -584,8 +582,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 tagFilterPart += $" and substringof('{tag}', Tags) eq true";
             }
 
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{idFilterPart}{typeFilterPart}{tagFilterPart}";
-
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$inlinecount=allpages&$filter= NormalizedVersion eq '{version}'{idFilterPart}{typeFilterPart}{tagFilterPart}";
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
@@ -721,7 +718,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
 
             var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?$filter={prereleaseFilter}{paginationParam}";
-
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
@@ -830,7 +826,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             string typeFilterPart = GetTypeFilterForRequest(type);
             var requestUrlV2 = $"{Repository.Uri}/Search()?$filter={nameFilter}{typeFilterPart} and {prerelease}{extraParam}";
-
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
@@ -895,7 +890,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             string typeFilterPart = GetTypeFilterForRequest(type);
             var requestUrlV2 = $"{Repository.Uri}/Search()?$filter={nameFilter}{tagFilterPart}{typeFilterPart} and {prerelease}{extraParam}";
-
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
@@ -996,7 +990,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
-
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
