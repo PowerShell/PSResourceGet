@@ -244,7 +244,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (initialCount != 0)
             {
                 responses.Add(initialResponse);
-                int count = initialCount / 100;
+                int count = (int)Math.Ceiling((double)(initialCount / 100));
 
                 while (count > 0)
                 {
@@ -346,12 +346,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             responses.Add(initialResponse);
 
             // check count (regex)  425 ==> count/100  ~~>  4 calls
-            int initalCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
+            int initialCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
-            int count = initalCount / 100;
+            int count = (int)Math.Ceiling((double)(initialCount / 100));
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -389,12 +389,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             responses.Add(initialResponse);
 
             // check count (regex)  425 ==> count/100  ~~>  4 calls
-            int initalCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
+            int initialCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
-            int count = initalCount / 100;
+            int count = (int)Math.Ceiling((double)(initialCount / 100));
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -435,12 +435,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!getOnlyLatest)
             {
-                int initalCount = GetCountFromResponse(initialResponse, out errRecord);
+                int initialCount = GetCountFromResponse(initialResponse, out errRecord);
                 if (errRecord != null)
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
-                int count = initalCount / 100;
+                int count = (int)Math.Ceiling((double)(initialCount / 100));
 
                 while (count > 0)
                 {
