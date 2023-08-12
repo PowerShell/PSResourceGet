@@ -478,15 +478,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // At this point parent package is installed to temp path.
                     if (errRecord != null)
                     {
-                        // TODO:  Anam working on fix, this may need to be updated
-                        if (errRecord.FullyQualifiedErrorId.Equals("PackageNotFound"))
-                        {
-                            _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
-                        }
-                        else
-                        {
-                            _cmdletPassedIn.WriteError(errRecord);
-                        }
+                        _cmdletPassedIn.WriteError(errRecord);
+                        // // TODO:  Anam working on fix, this may need to be updated
+                        // if (errRecord.FullyQualifiedErrorId.Equals("PackageNotFound"))
+                        // {
+                        //     _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                        // }
+                        // else
+                        // {
+                        //     _cmdletPassedIn.WriteError(errRecord);
+                        // }
 
                         continue;
                     }
@@ -652,12 +653,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
-                    // V2Server API calls will return non-empty response when package is not found but fail at conversion time
                     errRecord = new ErrorRecord(
-                                new InvalidOrEmptyResponse($"Package '{pkgNameToInstall}' could not be installed", currentResult.exception),
-                                "InstallPackageFailure",
-                                ErrorCategory.InvalidData,
-                                this);                   
+                                    currentResult.exception, 
+                                    "FindConvertToPSResourceFailure", 
+                                    ErrorCategory.ObjectNotFound, 
+                                    this);
                 }
                 else if (searchVersionType == VersionType.VersionRange)
                 {
