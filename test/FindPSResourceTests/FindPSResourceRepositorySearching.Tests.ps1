@@ -235,7 +235,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $res = Find-PSResource -Name "NonExistantPkg" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err | Should -HaveCount 1
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "not find resource if it does not exist in repository and not write error given package Name with wildcard (-Repository with single non-wildcard value)" -Pending {
@@ -268,7 +268,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkg1.Name | Should -Be $pkgOnNuGetGallery
         $pkg1.Repository | Should -Be $NuGetGalleryName
 
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "should not find resource from repositories where it does not exist and not write error since package Name contains wilcard" -Pending {
