@@ -181,6 +181,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool skipDependencyCheck,
             ScopeType scope)
         {
+            List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
             if (repository != null && repository.Length != 0)
             {
                 // Write error and disregard repository entries containing wildcards.
@@ -252,7 +253,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             ErrorCategory.InvalidArgument,
                             this));
 
-                yield break;
+                return allPkgsInstalled;
             }
 
             var listOfRepositories = RepositorySettings.Read(repository, out string[] _);
@@ -260,7 +261,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var noToAll = false;
 
             var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
-            List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
             bool sourceTrusted = false;
 
             // Loop through all the repositories provided (in priority order) until there no more packages to install. 
