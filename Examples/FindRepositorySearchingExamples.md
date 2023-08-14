@@ -11,6 +11,8 @@ PSGallery    https://www.powershellgallery.com/api/v2 True    50
 NuGetGallery https://api.nuget.org/v3/index.json      True    60
 ```
 
+Note that PSGallery is a lower priority than NuGetGallery.
+
 1) Searching with only a package name specified, eg: `Find-PSResource 'TestModule'` or `Find-PSResource 'TestModule' -Repository '*'`
     * When the package exists in both repositories:
         ```
@@ -21,7 +23,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
        Should return 'TestModule' from both 'PSGallery' and 'NuGetGallery'.
        
-    * When the package exists in the first repository, but not the second:
+    * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -29,7 +31,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should return 'TestModule' from 'PSGallery'.
 
-    * When the package exists in the second repository, but not the first:
+    * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -37,7 +39,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should return 'TestModule' from 'NuGetGallery'.
 
-    * When the package is in neither repository:
+    * When the package exists in neither repository:
         ```
         Find-PSResource: Package 'TestModule' could not be found in any registered repositories.
         ```
@@ -50,7 +52,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should return 'TestModule' from 'PSGallery'.
 
-    * When the package is in the first repository (PSGallery), but not the second (NuGetGallery):
+    * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -58,11 +60,11 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should return 'TestModule' from 'PSGallery'.
         
-    * When the package is the second repository, but not the first:
+    * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
         ```
         Package with name 'TestModule' could not be found in repository 'PSGallery'.
         ```
-    * When the package is in neither repository:
+    * When the package exists in neither repository:
         ```
         Find-PSResource: Package 'TestModule' could not be found.
         ```
@@ -77,7 +79,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should return 'TestModule' from 'PSGallery' and 'NuGetGallery'.
         
-    * When the package is in the first repository, but not the second:
+    * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -85,7 +87,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should return 'TestModule' from 'PSGallery'.
         
-    * When the package exists in the second repository, but not the first:
+    * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -93,7 +95,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should return 'TestModule' from 'NuGetGallery'.
         
-    * When the package is in neither repository:
+    * When the package exists in neither repository:
         ```
         Find-PSResource: Package 'TestModule' could not be found.
         ```
@@ -109,23 +111,27 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should return 'TestModule' from 'PSGallery' and 'NuGetGallery'.
         
-    * When the package is in the first repository, but not the second:
+    * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery 
+        
+        Find-PSResource: Package with name 'TestModule' could not be found in repository 'NuGetGallery'.
         ```
         Should return 'TestModule' from 'PSGallery'.
-        Find-PSResource: Package with name 'TestModule' could not be found in repository 'NuGetGallery'.
+       
         
-    * When the package is the second repository, but not the first:
+    * When the package exists the second repository (NuGetGallery), but not the first (PSGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            NuGetGallery 
+        
+        Find-PSResource: Package with name 'TestModule' could not be found in repository 'PSGallery'.
         ```
         Should return 'TestModule' from 'NuGetGallery'.
-        Find-PSResource: Package with name 'TestModule' could not be found in repository 'PSGallery'.
+        
         
     * When the package is in neither repository:
         ```
@@ -133,7 +139,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         Find-PSResource: Package with name 'TestModule' could not be found in repository 'NuGetGallery'.
         ```
         
-5) Searching with a package name specified and both a repository name specified AND a repository name with a wildcard, eg: `Find-PSResource 'TestModule' -Repository *Gallery, LocalRepo`
+5) Searching with a package name specified and both a repository name specified AND a repository name with a wildcard, eg: `Find-PSResource 'TestModule' -Repository *Gallery, PSGallery`
 
     * For all scenarios:
         ```
