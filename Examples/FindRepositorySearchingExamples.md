@@ -139,7 +139,7 @@ Note that PSGallery is a lower priority than NuGetGallery.
         Find-PSResource: Package with name 'TestModule' could not be found in repository 'NuGetGallery'.
         ```
         
-5) Searching with a package name specified and both a repository name specified AND a repository name with a wildcard, eg: `Find-PSResource 'TestModule' -Repository *Gallery, PSGallery`
+5) Searching with a package name specified and both a repository name specified AND a repository name with a wildcard, eg: `Find-PSResource 'TestModule' -Repository *Gallery, otherRepository`
 
     * This scenario is not supported due to the ambiguity that arises when a repository with a wildcard in its name is specified as well as a repository with a specific name. The command will display the following error:
         ```
