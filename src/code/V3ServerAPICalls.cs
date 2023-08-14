@@ -873,7 +873,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (errRecord.Exception is ResourceNotFoundException)
                 {
-                    errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                    errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}.'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
                 }
 
                 return Utils.EmptyStrArray;
