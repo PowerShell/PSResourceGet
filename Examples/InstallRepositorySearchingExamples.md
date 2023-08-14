@@ -64,7 +64,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
     * When the package exists in neither repository:
         ```
-        Install-PSResource: Package 'TestModule' could not be found.
+        Install-PSResource: Package(s) 'TestModule' could not be installed from repository 'PSGallery'.
         ```
         
 3) Installing with a package name specified and wildcard repository, eg: `Install-PSResource 'TestModule' -Repository *Gallery -PassThru`
