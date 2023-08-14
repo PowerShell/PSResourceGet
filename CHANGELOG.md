@@ -1,4 +1,26 @@
 # CHANGELOG
+## 0.5.24-beta24
+
+### Bug Fixes
+- Detect empty V2 server responses at ServerApiCall level instead of ResponseUtil level (#1358)
+- Bug fix for finding all versions of a package returning correct results and incorrect "package not found" error (#1356)
+- Bug fix for installing or saving a pkg found in lower priority repository (#1350)
+- Ensure `-Prerelease` is not empty or whitespace for `Update-PSModuleManifest` (#1348)
+- Bug fix for saving `Az` module dependencies (#1343)
+- Bug fix for `Find-PSResource` repository looping to to return matches from all repositories (#1342)
+- Update error handling for Tags, Commands, and DSCResources when searching across repositories (#1339)
+- Update `Find-PSResource` looping and error handling to account for multiple package names (#1338)
+- Update error handling for `Find-PSResource` using V2 server endpoint repositories (#1329)
+- Bug fix for searching through multiple repositories when some repositories do not contain the specified package (#1328)
+- Add parameters to `Install-PSResource` verbose message (#1327)
+- Bug fix for parsing required modules when publishing (#1326)
+- Bug fix for saving dependency modules in version range format (#1323)
+- Bug fix for `Install-PSResource` failing to find prerelease dependencies (#1322)
+- Bug fix for updating to a new version of a prerelease module (#1320)
+- Fix for error message when DSCResource is not found (#1317)
+- Add error handling for local repository pattern based searching (#1316)
+- `Set-PSResourceRepository` run without `-ApiVersion` paramater no longer resets the property for the repository (#1310)
+
 ## 0.5.23-beta23
 
 ### Breaking Changes
