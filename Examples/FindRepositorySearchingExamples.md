@@ -125,6 +125,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         TestModule  1.0.0.0            NuGetGallery 
         ```
         Should return 'TestModule' from 'NuGetGallery'.
+        Find-PSResource: Package with name 'TestModule' could not be found in repository 'PSGallery'.
         
     * When the package is in neither repository:
         ```
