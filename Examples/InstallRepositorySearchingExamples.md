@@ -1,7 +1,7 @@
 
 # Examples for `Install-PSResource` searching through repositories.
 
-These examples will go through a number of scenarios related to `Install-PSResource` searching through repositories to show what the expected outcome will be. `Install-PSResource` will return the resource from the highest priority repository that matches the criteria specified.
+These examples will go through a number of scenarios related to `Install-PSResource` searching through repositories to install from to show what the expected outcome will be. `Install-PSResource` will install the resource from the repository with the highest priority (i.e. the smallest number) that matches the criteria specified.
 In all these examples, the repositories registered and their priorities are as follows:
 
 ```
