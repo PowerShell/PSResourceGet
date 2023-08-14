@@ -531,7 +531,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (String.IsNullOrEmpty(latestVersionResponse))
             {
-                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}', version '{version}' could not be found in repository '{Repository.Name}'"), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}', version '{version}' could not be found in repository '{Repository.Name}'."), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
@@ -825,7 +825,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (errRecord != null)
             {
                 if (errRecord.Exception is ResourceNotFoundException) {
-                    errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                    errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'.", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
                 }
 
                 return metadataElement;
@@ -873,7 +873,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (errRecord.Exception is ResourceNotFoundException)
                 {
-                    errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}.'", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                    errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'.", errRecord.Exception), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
                 }
 
                 return Utils.EmptyStrArray;
