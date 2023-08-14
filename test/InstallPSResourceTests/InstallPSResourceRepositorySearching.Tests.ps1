@@ -134,4 +134,8 @@ Describe 'Test Install-PSResource for searching and looping through repositories
         $pkg2.Name | Should -Be $testModuleName
         $pkg2.Repository | Should -Be $NuGetGalleryName
     }
+
+    It "should not allow for repository name with wildcard and non-wildcard name specified in same command run" {
+        {Find-PSResource -Tag $tag1 -Repository "*Gallery",$localRepoName} | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+    }
 }
