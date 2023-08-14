@@ -1,7 +1,7 @@
 
 # Examples for `Install-PSResource` searching through repositories.
 
-These examples will go through a number of scenarios related to `Install-PSResource` searching through repositories to show what the expected outcome will be.
+These examples will go through a number of scenarios related to `Install-PSResource` searching through repositories to show what the expected outcome will be. `Install-PSResource` will return the resource from the highest priority repository that matches the criteria specified.
 In all these examples, the repositories registered and their priorities are as follows:
 
 ```
@@ -20,7 +20,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
        Should install 'TestModule' from 'PSGallery'.
        
-    * When the package is in the first repository, but not the second:
+    * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -28,7 +28,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should install 'TestModule' from 'PSGallery'.
 
-    * When the package is the second repository, but not the first:
+    * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -36,7 +36,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should install 'TestModule' from 'NuGetGallery'.
 
-    * When the package is in neither repository:
+    * When the package exists in neither repository:
         ```
         Install-PSResource: Package 'TestModule' could not be found.
         ```
@@ -50,7 +50,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should install 'TestModule' from 'PSGallery'.
 
-    * When the package is in the first repository, but not the second:
+    * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -58,11 +58,11 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should install 'TestModule' from 'PSGallery'.
         
-    * When the package is the second repository, but not the first:
+    * When the package exists the second repository (NuGetGallery), but not the first (PSGallery):
         ```
         Install-PSResource: Package 'TestModule' could not be found.
         ```
-    * When the package is in neither repository:
+    * When the package exists in neither repository:
         ```
         Install-PSResource: Package 'TestModule' could not be found.
         ```
@@ -76,7 +76,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should install 'TestModule' from 'PSGallery'.
         
-    * When the package is in the first repository, but not the second:
+    * When the package exists in the first repository (PSSGallery), but not the second (NuGetGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -84,7 +84,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should install 'TestModule' from 'PSGallery'.
         
-    * When the package is the second repository, but not the first:
+    * When the package exists in the second repository (PSGallery), but not the first (NuGetGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -92,7 +92,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should install 'TestModule' from 'NuGetGallery'.
         
-    * When the package is in neither repository:
+    * When the package exists in neither repository:
         ```
         Install-PSResource: Package 'TestModule' could not be found.
         ```
@@ -107,7 +107,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should install 'TestModule' from 'PSGallery'.
         
-    * When the package is in the first repository, but not the second:
+    * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -115,7 +115,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should install 'TestModule' from 'PSGallery'.
         
-    * When the package is the second repository, but not the first:
+    * When the package exists the second repository (NuGetGallery), but not the first (PSGallery):
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -123,13 +123,13 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should install 'TestModule' from 'NuGetGallery'.
         
-    * When the package is in neither repository:
+    * When the package exists in neither repository:
         ```
         Install-PSResource: Package 'TestModule' could not be found.
         ```
         
 5) Installing with a package name specified and both a repository name specified AND a repository name with a wildcard, eg: `Install-PSResource 'TestModule' -Repository *Gallery, LocalRepo`.
-    * For all scenarios:
+    * This scenario is not supported due to the ambiguity that arises when a repository with a wildcard in its name is specified as well as a repository with a specific name. The command will display the following error:
         ```
         Install-PSResource: Package 'TestModule' could not be found.
         ```
