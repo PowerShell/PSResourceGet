@@ -143,5 +143,5 @@ Note that PSGallery is a lower priority than NuGetGallery.
 
     * This scenario is not supported due to the ambiguity that arises when a repository with a wildcard in its name is specified as well as a repository with a specific name. The command will display the following error:
         ```
-        Find-PSResource: Package 'TestModule' could not be found.
+        Find-PSResource: Repository name with wildcard is not allowed when another repository without wildcard is specified.
         ```
