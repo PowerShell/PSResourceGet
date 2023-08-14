@@ -39,7 +39,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
 
     * When the package is in neither repository:
         ```
-        Find-PSResource: Package 'TestModule' could not be found.
+        Find-PSResource: Package 'TestModule' could not be found in any registered repositories.
         ```
 2) Searching with a package name and a repository specified, eg: `Find-PSResource 'TestModule' -Repository PSGallery`
     * When the package exists in both repositories:
