@@ -60,7 +60,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         
     * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
         ```
-        Install-PSResource: Package 'TestModule' could not be found.
+        Install-PSResource: Package(s) 'TestModule' could not be installed from repository 'PSGallery'.
         ```
     * When the package exists in neither repository:
         ```
