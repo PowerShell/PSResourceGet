@@ -257,7 +257,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (_pkgNamesToInstall.Count > 0)
             {
-                Console.WriteLine("in here");
                 string repositoryWording = repositoryNamesToSearch.Count > 1 ? "registered repositories" : "repository";
                 _cmdletPassedIn.WriteError(new ErrorRecord(
                         new ResourceNotFoundException($"Package(s) '{string.Join(", ", _pkgNamesToInstall)}' could not be installed from {repositoryWording} '{String.Join(", ", repositoryNamesToSearch)}'."),
