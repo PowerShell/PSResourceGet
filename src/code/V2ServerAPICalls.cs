@@ -1,3 +1,4 @@
+using System.Text;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -323,6 +324,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 string errMsg = $"Package with name '{packageName}' could not be found in repository '{Repository.Name}'.";
                 errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                response = string.Empty;
             }
 
             return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -367,6 +369,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 string errMsg = $"Package with name '{packageName}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'.";
                 errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                response = string.Empty;
             }
 
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -560,6 +563,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 string errMsg = $"Package with name '{packageName}', version '{version}' could not be found in repository '{Repository.Name}'.";
                 errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                response = string.Empty;
             }
 
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -599,6 +603,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 string errMsg = $"Package with name '{packageName}', version '{version}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'.";
                 errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                response = string.Empty;
             }
             
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
