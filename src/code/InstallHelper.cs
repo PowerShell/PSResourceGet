@@ -261,22 +261,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var noToAll = false;
 
             var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
+            List<string> repositoryNamesToSearch = new List<string>();
             bool sourceTrusted = false;
 
             // Loop through all the repositories provided (in priority order) until there no more packages to install. 
-            for (int i=0; i < listOfRepositories.Count && _pkgNamesToInstall.Count > 0; i++)
+            for (int i = 0; i < listOfRepositories.Count && _pkgNamesToInstall.Count > 0; i++)
             {
-                PSRepositoryInfo repo = listOfRepositories[i];
-                sourceTrusted = repo.Trusted || trustRepository;
+                PSRepositoryInfo currentRepository = listOfRepositories[i];
+                string repoName = currentRepository.Name;
+                sourceTrusted = currentRepository.Trusted || trustRepository;
 
-                _networkCredential = Utils.SetNetworkCredential(repo, _networkCredential, _cmdletPassedIn);
-                ServerApiCall currentServer = ServerFactory.GetServer(repo, _networkCredential);
+                _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
 
                 if (currentServer == null)
                 {
                     // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                    new PSInvalidOperationException($"Repository '{repo.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
+                    new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
                     "RepositoryApiVersionUnknown",
                     ErrorCategory.InvalidArgument,
                     this));
@@ -284,7 +286,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     continue;
                 }
 
-                ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(repo);
+                ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
                 bool installDepsForRepo = skipDependencyCheck;
 
                 // If no more packages to install, then return
@@ -292,10 +294,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return allPkgsInstalled;
                 }
 
-                string repoName = repo.Name;
                 _cmdletPassedIn.WriteVerbose(string.Format("Attempting to search for packages in '{0}'", repoName));
 
-                if (repo.Trusted == false && !trustRepository && !_force)
+                if (currentRepository.Trusted == false && !trustRepository && !_force)
                 {
                     _cmdletPassedIn.WriteVerbose("Checking if untrusted repository should be used");
 
@@ -312,13 +313,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     continue;
                 }
 
-                if ((repo.ApiVersion == PSRepositoryInfo.APIVersion.v3) && (!installDepsForRepo))
+                repositoryNamesToSearch.Add(repoName);
+                if ((currentRepository.ApiVersion == PSRepositoryInfo.APIVersion.v3) && (!installDepsForRepo))
                 {
                     _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
                     installDepsForRepo = true;
                 }
 
-                var installedPkgs = InstallPackages(_pkgNamesToInstall.ToArray(), repo, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
+                var installedPkgs = InstallPackages(_pkgNamesToInstall.ToArray(), currentRepository, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
                 foreach (var pkg in installedPkgs)
                 {
                     _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
@@ -327,9 +329,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 allPkgsInstalled.AddRange(installedPkgs);
             }
 
-            if (_pkgNamesToInstall.Count > 0) {
+            if (_pkgNamesToInstall.Count > 0)
+            {
+                string repositoryWording = repositoryNamesToSearch.Count > 1 ? "registered repositories" : "repository";
                 _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new ResourceNotFoundException($"Package(s) '{string.Join(", ", _pkgNamesToInstall)}' could not be installed from an."),
+                        new ResourceNotFoundException($"Package(s) '{string.Join(", ", _pkgNamesToInstall)}' could not be installed from {repositoryWording} '{String.Join(", ", repositoryNamesToSearch)}'."),
                         "InstallPackageFailure",
                         ErrorCategory.InvalidData,
                         this));
@@ -552,7 +556,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // At this point parent package is installed to temp path.
                     if (errRecord != null)
                     {
-                        // TODO:  Anam working on fix, this may need to be updated
                         if (errRecord.FullyQualifiedErrorId.Equals("PackageNotFound"))
                         {
                             _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
@@ -726,12 +729,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
-                    // V2Server API calls will return non-empty response when package is not found but fail at conversion time
                     errRecord = new ErrorRecord(
-                                new InvalidOrEmptyResponse($"Package '{pkgNameToInstall}' could not be installed", currentResult.exception),
-                                "InstallPackageFailure",
-                                ErrorCategory.InvalidData,
-                                this);                   
+                                    currentResult.exception, 
+                                    "FindConvertToPSResourceFailure", 
+                                    ErrorCategory.ObjectNotFound, 
+                                    this);
                 }
                 else if (searchVersionType == VersionType.VersionRange)
                 {
