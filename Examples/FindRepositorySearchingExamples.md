@@ -131,6 +131,8 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         
 5) Searching with a package name specified and both a repository name specified AND a repository name with a wildcard, eg: `Find-PSResource 'TestModule' -Repository *Gallery, LocalRepo`
+
+    * For all scenarios:
         ```
         Find-PSResource: Package 'TestModule' could not be found.
         ```
