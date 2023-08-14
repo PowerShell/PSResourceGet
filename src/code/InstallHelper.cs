@@ -181,12 +181,86 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool skipDependencyCheck,
             ScopeType scope)
         {
+            List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
+            if (repository != null && repository.Length != 0)
+            {
+                // Write error and disregard repository entries containing wildcards.
+                repository = Utils.ProcessNameWildcards(repository, removeWildcardEntries:false, out string[] errorMsgs, out _);
+                foreach (string error in errorMsgs)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new PSInvalidOperationException(error),
+                                "ErrorFilteringNamesForUnsupportedWildcards",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                }
+
+                // If repository entries includes wildcards and non-wildcard names, write terminating error
+                // Ex: -Repository *Gallery, localRepo
+                bool containsWildcard = false;
+                bool containsNonWildcard = false;
+                foreach (string repoName in repository)
+                {
+                    if (repoName.Contains("*"))
+                    {
+                        containsWildcard = true;
+                    }
+                    else
+                    {
+                        containsNonWildcard = true;
+                    }
+                }
+
+                if (containsNonWildcard && containsWildcard)
+                {
+                    string message = "Repository name with wildcard is not allowed when another repository without wildcard is specified.";
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException(message),
+                        "RepositoryNamesWithWildcardsAndNonWildcardUnsupported",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
+            }
+
+            // Get repositories to search.
+            List<PSRepositoryInfo> repositoriesToSearch;
+            try
+            {
+                repositoriesToSearch = RepositorySettings.Read(repository, out string[] errorList);
+                if (repositoriesToSearch != null && repositoriesToSearch.Count == 0)
+                {
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                                new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
+                                "RepositoryNameIsNotResolved",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                }
+
+                foreach (string error in errorList)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new PSInvalidOperationException(error),
+                                "ErrorRetrievingSpecifiedRepository",
+                                ErrorCategory.InvalidOperation,
+                                this));
+                }
+            }
+            catch (Exception e)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                            new PSInvalidOperationException(e.Message),
+                            "ErrorLoadingRepositoryStoreFile",
+                            ErrorCategory.InvalidArgument,
+                            this));
+
+                return allPkgsInstalled;
+            }
+
             var listOfRepositories = RepositorySettings.Read(repository, out string[] _);
             var yesToAll = false;
             var noToAll = false;
 
             var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
-            List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
             bool sourceTrusted = false;
 
             // Loop through all the repositories provided (in priority order) until there no more packages to install. 
