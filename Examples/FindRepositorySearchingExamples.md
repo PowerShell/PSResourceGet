@@ -85,7 +85,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should return 'TestModule' from 'PSGallery'.
         
-    * When the package is the second repository, but not the first:
+    * When the package exists in the second repository, but not the first:
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
