@@ -128,7 +128,8 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         
     * When the package is in neither repository:
         ```
-        Find-PSResource: Package 'TestModule' could not be found.
+        Find-PSResource: Package with name 'TestModule' could not be found in repository 'PSGallery'.
+        Find-PSResource: Package with name 'TestModule' could not be found in repository 'NuGetGallery'.
         ```
         
 5) Searching with a package name specified and both a repository name specified AND a repository name with a wildcard, eg: `Find-PSResource 'TestModule' -Repository *Gallery, LocalRepo`
