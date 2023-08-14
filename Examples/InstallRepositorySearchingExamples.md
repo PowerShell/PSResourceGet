@@ -58,7 +58,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         ```
         Should install 'TestModule' from 'PSGallery'.
         
-    * When the package exists the second repository (NuGetGallery), but not the first (PSGallery):
+    * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
         ```
         Install-PSResource: Package 'TestModule' could not be found.
         ```
