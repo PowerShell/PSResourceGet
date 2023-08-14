@@ -1,7 +1,7 @@
 
 # Examples for `Find-PSResource` searching through repositories.
 
-These examples will go through a number of scenarios related to `Find-PSResource` searching through repositories to show what the expected outcome will be. `Find-PSResource` will return all resources that match the criteria specified.
+These examples will go through a number of scenarios related to `Find-PSResource` searching through repositories to show what the expected outcome will be. `Find-PSResource` will return resources from all repositories that match the criteria specified.
 In all these examples, the repositories registered and their priorities are as follows:
 
 ```
