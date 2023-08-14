@@ -310,13 +310,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
             }
 
             int count = GetCountFromResponse(response, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
             }
 
             if (count == 0)
@@ -355,13 +355,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
             }
 
             int count = GetCountFromResponse(response, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
             }
 
             if (count == 0)
@@ -549,13 +549,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
             }
 
             int count = GetCountFromResponse(response, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
             }
 
             if (count == 0)
@@ -589,13 +589,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
             }
 
             int count = GetCountFromResponse(response, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: new string[]{ string.Empty }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);                
             }
 
             if (count == 0)
