@@ -66,7 +66,7 @@ Note that PSGallery is a lower priority than NuGetGallery.
         ```
     * When the package exists in neither repository:
         ```
-        Find-PSResource: Package 'TestModule' could not be found.
+        Package with name 'TestModule' could not be found in repository 'PSGallery'.
         ```
         
 3) Searching with a package name specified and wildcard repository, eg: `Find-PSResource 'TestModule' -Repository *Gallery`
