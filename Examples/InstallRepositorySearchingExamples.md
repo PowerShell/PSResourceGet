@@ -128,7 +128,7 @@ NuGetGallery https://api.nuget.org/v3/index.json      True    60
         Install-PSResource: Package 'TestModule' could not be found.
         ```
         
-5) Installing with a package name specified and both a repository name specified AND a repository name with a wildcard, eg: `Install-PSResource 'TestModule' -Repository *Gallery, LocalRepo`.
+5) Installing with a package name specified and both a repository name specified AND a repository name with a wildcard, eg: `Install-PSResource 'TestModule' -Repository *Gallery, otherRepository`.
     * This scenario is not supported due to the ambiguity that arises when a repository with a wildcard in its name is specified as well as a repository with a specific name. The command will display the following error:
         ```
         Install-PSResource: Repository name with wildcard is not allowed when another repository without wildcard is specified.
