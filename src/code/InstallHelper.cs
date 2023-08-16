@@ -777,6 +777,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         string.Format("Resource '{0}' with version '{1}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter",
                         pkgToInstall.Name,
                         pkgVersion));
+
+                    // Remove from tracking list of packages to install.
+                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
                     return packagesHash;
                 }
             }
