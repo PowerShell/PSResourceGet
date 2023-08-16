@@ -45,8 +45,6 @@ Describe 'Test Install-PSResource for searching and looping through repositories
 
     It "install resources from hightest priority repository where it exists and not write errors for repositories where it does not exist (without -Repository specified)" {
         # Package "test_script" exists in the following repositories: PSGallery, NuGetGallery
-        # $find = Install-psresource -Name $testScriptName -Repository PSGallery
-        # write-host $($find.Name)
         Install-PSResource -Name $testScriptName -TrustRepository -SkipDependencyCheck -ErrorVariable err -ErrorAction SilentlyContinue
         $err | Should -HaveCount 0
 
