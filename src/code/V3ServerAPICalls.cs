@@ -868,6 +868,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string[] versionedResponseArr;
             var requestPkgMapping = registrationsBaseUrl.EndsWith("/") ? $"{registrationsBaseUrl}{packageName.ToLower()}/index.json" : $"{registrationsBaseUrl}/{packageName.ToLower()}/index.json";
 
+            Console.WriteLine(requestPkgMapping);
             string pkgMappingResponse = HttpRequestCall(requestPkgMapping, out errRecord);
             if (errRecord != null)
             {

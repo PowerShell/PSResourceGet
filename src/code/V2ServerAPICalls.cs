@@ -1,3 +1,4 @@
+using System.Text;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -1026,21 +1027,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 doc.LoadXml(httpResponse);
+                XmlNodeList elemList = doc.GetElementsByTagName("m:count");
+                if (elemList.Count > 0)
+                {
+                    XmlNode node = elemList[0];
+                    if (node == null || string.IsNullOrEmpty(node.InnerText))
+                    {
+                        errRecord = new ErrorRecord(new PSArgumentException("Count property from server response was empty, invalid or not present."), "GetCountFromResponse", ErrorCategory.InvalidData, this);
+                        return count;
+                    }
+
+                    count = int.Parse(node.InnerText);
+                }
             }
             catch (XmlException e)
             {
                 errRecord = new ErrorRecord(e, "GetCountFromResponse", ErrorCategory.InvalidData, this);
             }
-            if (errRecord != null)
+            catch (Exception e)
             {
-                return count;
-            }
-
-            XmlNodeList elemList = doc.GetElementsByTagName("m:count");
-            if (elemList.Count > 0)
-            {
-                XmlNode node = elemList[0];
-                count = int.Parse(node.InnerText);
+                errRecord = new ErrorRecord(e, "GetCountFromResponse", ErrorCategory.InvalidResult, this);
             }
 
             return count;
