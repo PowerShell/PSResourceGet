@@ -197,8 +197,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private PSRepositoryInfo PSGalleryParameterSetHelper(int repoPriority, bool repoTrusted)
         {
+            WriteDebug("In RegisterPSResourceRepository::PSGalleryParameterSetHelper");
             Uri psGalleryUri = new Uri(PSGalleryRepoUri);
-            WriteVerbose("(PSGallerySet) internal name and uri values for Add() API are hardcoded and validated, priority and trusted values, if passed in, also validated");
+            WriteDebug("Internal name and uri values for PSGallery are hardcoded and validated. Priority and trusted values, if passed in, also validated");
             var addedRepo = RepositorySettings.AddToRepositoryStore(PSGalleryRepoName, 
                 psGalleryUri, 
                 repoPriority, 
@@ -223,6 +224,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private List<PSRepositoryInfo> RepositoriesParameterSetHelper()
         {
+            WriteDebug("In RegisterPSResourceRepository::RepositoriesParameterSetHelper");
             List<PSRepositoryInfo> reposAddedFromHashTable = new List<PSRepositoryInfo>();
             foreach (Hashtable repo in Repository)
             {
@@ -240,7 +242,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     try
                     {
-                        WriteVerbose("(RepositoriesParameterSet): on repo: PSGallery. Registers PSGallery repository");
+                        WriteDebug("Registering PSGallery repository");
                         reposAddedFromHashTable.Add(PSGalleryParameterSetHelper(
                             repo.ContainsKey("Priority") ? (int)repo["Priority"] : DefaultPriority,
                             repo.ContainsKey("Trusted") ? (bool)repo["Trusted"] : DefaultTrusted));
@@ -269,6 +271,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private PSRepositoryInfo RepoValidationHelper(Hashtable repo)
         {
+            WriteDebug("In RegisterPSResourceRepository::RepoValidationHelper");
             if (!repo.ContainsKey("Name") || repo["Name"] == null || String.IsNullOrWhiteSpace(repo["Name"].ToString()))
             {
                 WriteError(new ErrorRecord(
@@ -321,7 +324,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-                WriteVerbose(String.Format("(RepositoriesParameterSet): on repo: {0}. Registers Name based repository", repo["Name"]));
+                WriteDebug($"Registering repository '{repo["Name"]}' with uri '{repoUri}'");
                 var addedRepo = RepositorySettings.AddRepository(repo["Name"].ToString(),
                     repoUri,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
