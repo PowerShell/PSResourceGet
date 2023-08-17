@@ -74,8 +74,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _nugetVersion = nugetVersion;
             _versionType = versionType;
 
+            _cmdletPassedIn.WriteDebug("In FindHelper::FindByResourceName");
+
             if (name.Length == 0)
             {
+                _cmdletPassedIn.WriteDebug("Names were not provided or could not be resolved");
                 yield break;
             }
 
@@ -185,20 +188,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
-
-                _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
+                _cmdletPassedIn.WriteDebug($"Searching through repository '{currentRepository.Name}'");
 
                 bool shouldReportErrorForEachRepo = !suppressErrors && !_repositoryNameContainsWildcard;
                 foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository, shouldReportErrorForEachRepo))
                 {
                     if (currentPkg == null) {
+                        _cmdletPassedIn.WriteDebug("No packages returned from server");
                         continue;
                     }
 
-                    // Check if pkgsDiscovered dictionary contains this package name exactly, otherwise this may have been a package found for wildcard name input.
                     string currentPkgName = currentPkg.Name;
+                    _cmdletPassedIn.WriteDebug($"Package '{currentPkgName}' returned from server");
+                    // Check if pkgsDiscovered dictionary contains this package name exactly, otherwise this may have been a package found for wildcard name input.
                     if (pkgsDiscovered.Contains(currentPkgName))
                     {
+                        _cmdletPassedIn.WriteDebug($"Package '{currentPkgName}' was previously discovered and returned");
                         pkgsDiscovered.Remove(currentPkgName);
                     }
 
@@ -233,8 +238,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _prerelease = prerelease;
             _tag = tag;
 
+            _cmdletPassedIn.WriteDebug("In FindHelper::FindByCommandOrDscResource");
+
             if (_tag.Length == 0)
             {
+                _cmdletPassedIn.WriteDebug("Tags were not provided or could not be resolved");
                 yield break;
             }
 
@@ -347,8 +355,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
 
-                _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-                _cmdletPassedIn.WriteVerbose($"tags: {String.Join(",", _tag)}");
+                _cmdletPassedIn.WriteDebug($"Searching in repository '{currentRepository.Name}' for tags: '{String.Join(",", _tag)}'");
                 FindResults responses = currentServer.FindCommandOrDscResource(_tag, _prerelease, isSearchingForCommands, out ErrorRecord errRecord);
                 if (errRecord != null)
                 {
@@ -388,6 +395,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     PSCommandResourceInfo currentCmdPkg = new PSCommandResourceInfo(_tag, currentResult.returnedObject);
                     isCmdOrDSCTagFound = true;
+                    _cmdletPassedIn.WriteDebug($"Found Command or DSCResource with parent package '{currentCmdPkg.ParentResource.Name}'");
+
                     yield return currentCmdPkg;
                 }
             }
@@ -416,8 +425,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _prerelease = prerelease;
             _tag = tag;
 
+            _cmdletPassedIn.WriteDebug("In FindHelper::FindByTag");
             if (_tag.Length == 0)
             {
+                _cmdletPassedIn.WriteDebug("Tags were not provided or could not be resolved");
                 yield break;
             }
 
@@ -528,7 +539,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
-
+                _cmdletPassedIn.WriteDebug($"Searching through repository '{currentRepository.Name}'");
                 if (_type != ResourceType.None && repositoriesToSearch[i].Name != "PSGallery")
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
@@ -604,12 +615,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             HashSet<string> pkgsFound = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string tagsAsString = String.Empty;
 
+            _cmdletPassedIn.WriteDebug("In FindHelper::SearchByNames");
             foreach (string pkgName in _pkgsLeftToFind.ToArray())
             {
                 if (_versionType == VersionType.NoVersion)
                 {
                     if (pkgName.Trim().Equals("*"))
                     {
+                        _cmdletPassedIn.WriteDebug("No version specified, package name is '*'");
                         // Example: Find-PSResource -Name "*"
                         FindResults responses = currentServer.FindAll(_prerelease, _type, out errRecord);
                         if (errRecord != null)
@@ -645,6 +658,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 parentPkgs.Add(foundPkg);
                                 pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
+                                _cmdletPassedIn.WriteDebug($"Found package '{foundPkg.Name}' version '{foundPkg.Version}'");
                                 yield return foundPkg;
                             }
                         }
@@ -653,6 +667,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         // Example: Find-PSResource -Name "Az*"
                         // Example: Find-PSResource -Name "Az*" -Tag "Storage"
+                        _cmdletPassedIn.WriteDebug("No version specified, package name contains a wildcard.");
+
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
@@ -701,6 +717,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         // Example: Find-PSResource -Name "Az"
                         // Example: Find-PSResource -Name "Az" -Tag "Storage"
+                        _cmdletPassedIn.WriteDebug("No version specified, package name is specified");
+
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
@@ -759,6 +777,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0"
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0" -Tag "Windows"
+                        _cmdletPassedIn.WriteDebug("Exact version and package name are specified");
+
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
@@ -815,6 +835,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     else
                     {
                         // Example: Find-PSResource -Name "Az" -Version "[1.0.0.0, 3.0.0.0]"
+                        _cmdletPassedIn.WriteDebug("Version range and package name are specified");
+
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
@@ -889,6 +911,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 foreach (PSResourceInfo currentPkg in parentPkgs)
                 {
+                    _cmdletPassedIn.WriteDebug($"Finding dependency packages for '{currentPkg.Name}'");
                     foreach (PSResourceInfo pkgDep in FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository, pkgsFound))
                     {
                         yield return pkgDep;
