@@ -33,30 +33,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
-                var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
-                var ex = new ArgumentException(exMessage);
-                var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(InvalidPathError);
+                ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException("Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1"),
+                    "InvalidPath",
+                    ErrorCategory.InvalidArgument,
+                    this));
             }
 
             var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
             if (resolvedPaths.Count != 1)
             {
-                var exMessage = "Error: Could not resolve provided Path argument into a single path.";
-                var ex = new PSArgumentException(exMessage);
-                var InvalidPathArgumentError = new ErrorRecord(ex, "InvalidPathArgumentError", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(InvalidPathArgumentError);
+                ThrowTerminatingError(new ErrorRecord(new PSArgumentException("Could not resolve provided path argument to a single path."),
+                    "InvalidPathArgumentError",
+                    ErrorCategory.InvalidArgument,
+                    this));
             }
 
             var resolvedPath = resolvedPaths[0];
 
             if (!File.Exists(resolvedPath))
             {
-                var exMessage = "A .ps1 file does not exist at the location specified.";
-                var ex = new ArgumentException(exMessage);
-                var FileDoesNotExistError = new ErrorRecord(ex, "FileDoesNotExistAtPath", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(FileDoesNotExistError);
+                ThrowTerminatingError(new ErrorRecord(new ArgumentException("A .ps1 file does not exist at the location specified."),
+                    "FileDoesNotExistAtPath",
+                    ErrorCategory.InvalidArgument,
+                    this));
             }
+            WriteDebug($"Resolved path is '{resolvedPath}'");
 
             bool isValidScript = PSScriptFileInfo.TryTestPSScriptFileInfo(
                 scriptFileInfoPath: resolvedPath,
