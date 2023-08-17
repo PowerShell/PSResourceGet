@@ -71,13 +71,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
-                var IncorrectVersionFormat = new ErrorRecord(
+                ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException("Argument for -Version parameter is not in the proper format."),
                     "IncorrectVersionFormat",
                     ErrorCategory.
                     InvalidArgument,
-                    this);
-                ThrowTerminatingError(IncorrectVersionFormat);
+                    this));
             }
 
             // Determine paths to search.
@@ -88,12 +87,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
                 if (resolvedPaths.Count != 1)
                 {
-                    ThrowTerminatingError(
-                        new ErrorRecord(
-                            new PSArgumentException("Error: Could not resolve provided Path argument into a single path."),
-                            "ErrorInvalidPathArgument",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                    ThrowTerminatingError(new ErrorRecord(
+                        new PSArgumentException("Error: Could not resolve provided Path argument into a single path."),
+                        "ErrorInvalidPathArgument",
+                        ErrorCategory.InvalidArgument,
+                        this));
                 }
 
                 var resolvedPath = resolvedPaths[0];
@@ -102,13 +100,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var versionPaths = Utils.GetSubDirectories(resolvedPath);
                 if (versionPaths.Length == 0)
                 {
-                    ThrowTerminatingError(
-                        new ErrorRecord(
-                            exception: new PSInvalidOperationException(
-                                $"Error cannot find expected subdirectories in provided path: {Path}"),
-                            "PathMissingExpectedSubdirectories",
-                            ErrorCategory.InvalidOperation,
-                            targetObject: null));
+                    ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException($"Error cannot find expected subdirectories in provided path: {Path}"),
+                        "PathMissingExpectedSubdirectories",
+                        ErrorCategory.InvalidOperation,
+                        this));
                 }
 
                 _pathsToSearch.AddRange(versionPaths);

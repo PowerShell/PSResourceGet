@@ -214,9 +214,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (containsNonWildcard && containsWildcard)
                 {
-                    string message = "Repository name with wildcard is not allowed when another repository without wildcard is specified.";
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new PSInvalidOperationException(message),
+                        new PSInvalidOperationException("Repository name with wildcard is not allowed when another repository without wildcard is specified."),
                         "RepositoryNamesWithWildcardsAndNonWildcardUnsupported",
                         ErrorCategory.InvalidArgument,
                         _cmdletPassedIn));
@@ -411,12 +410,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                var TempDirCouldNotBeDeletedError = new ErrorRecord(
+                errorMsg = new ErrorRecord(
                     exception: e,
                     "errorDeletingTempInstallPath",
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
-                errorMsg = TempDirCouldNotBeDeletedError;
                 return false;
             }
 
@@ -1265,12 +1263,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (!File.Exists(LicenseFilePath))
                         {
-                            var acceptLicenseError = new ErrorRecord(
+                            error = new ErrorRecord(
                                 new ArgumentException($"Package '{p.Name}' could not be installed: License.txt not found. License.txt must be provided when user license acceptance is required."),
                                 "LicenseTxtNotFound",
                                 ErrorCategory.ObjectNotFound,
-                                _cmdletPassedIn);
-                            error = acceptLicenseError;
+                                _cmdletPassedIn);;
                             success = false;
                             return success;
                         }
@@ -1294,12 +1291,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // Check if user agreed to license terms, if they didn't then throw error, otherwise continue to install
                     if (!_acceptLicense)
                     {
-                        var acceptLicenseError = new ErrorRecord(
+                        error = new ErrorRecord(
                             new ArgumentException($"Package '{p.Name}' could not be installed: License Acceptance is required for module '{p.Name}'. Please specify '-AcceptLicense' to perform this operation."),
                             "ForceAcceptLicense",
                             ErrorCategory.InvalidArgument,
                             _cmdletPassedIn);
-                        error = acceptLicenseError;
                         success = false;
                     }
                 }
@@ -1357,13 +1353,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     duplicateCmdlets.AddRange(duplicateCmds);
 
-                    var noClobberError = new ErrorRecord(
+                    error = new ErrorRecord(
                         new ArgumentException($"'{pkgName}' package could not be installed with error: The following commands are already available on this system: '{String.Join(", ", duplicateCmdlets)}'. " +
                             $"This module '{pkgName}' may override the existing commands. If you still want to install this module '{pkgName}', remove the -NoClobber parameter."),
                         "CommandAlreadyExists",
                         ErrorCategory.ResourceExists,
                         _cmdletPassedIn);
-                    error = noClobberError;
                     foundClobber = true;
 
                     return foundClobber;
@@ -1392,12 +1387,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Write all metadata into metadataXMLPath
             if (!pkg.TryWrite(metadataXMLPath, out string writeError))
             {
-                var errorParsingMetadata = new ErrorRecord(
+                error = new ErrorRecord(
                     new ArgumentException($"{pkg.Name} package could not be installed with error: Error parsing metadata into XML: '{writeError}'"),
                     "ErrorParsingMetadata",
                     ErrorCategory.ParserError,
                     _cmdletPassedIn);
-                error = errorParsingMetadata;
                 success = false;
             }
 

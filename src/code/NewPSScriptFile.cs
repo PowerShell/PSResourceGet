@@ -180,34 +180,31 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
-                var InvalidPathError = new ErrorRecord(
+                ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException("Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1"),
                     "InvalidPath",
                     ErrorCategory.InvalidArgument,
-                    null);
-                ThrowTerminatingError(InvalidPathError);
+                    this));
             }
 
             var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
             if (String.IsNullOrEmpty(resolvedPath))
             {
-                var InvalidPathArgumentError = new ErrorRecord(
+                ThrowTerminatingError(new ErrorRecord(
                     new PSArgumentException("Could not resolve provided Path argument into a single path."),
                     "InvalidPathArgumentError",
                     ErrorCategory.InvalidArgument,
-                    null);
-                ThrowTerminatingError(InvalidPathArgumentError);
+                    this));
             }
 
             if (File.Exists(resolvedPath) && !Force)
             {
                 // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file);
-                var ScriptAtPathAlreadyExistsError = new ErrorRecord(
+                ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException(".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file."),
                     "ScriptAtPathAlreadyExists",
                      ErrorCategory.InvalidArgument,
-                     null);
-                ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
+                     this));
             }
 
             ModuleSpecification[] validatedRequiredModuleSpecifications = Array.Empty<ModuleSpecification>();

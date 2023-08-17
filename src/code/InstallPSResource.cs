@@ -172,13 +172,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (!File.Exists(resolvedPath))
                 {
-                    var RequiredResourceFileDoesNotExist = new ErrorRecord(
+                    ThrowTerminatingError(new ErrorRecord(
                         new ArgumentException("The RequiredResourceFile does not exist. Please try specifying a path to a valid .json or .psd1 file"),
                         "RequiredResourceFileDoesNotExist",
                         ErrorCategory.ObjectNotFound,
-                        this);
-
-                    ThrowTerminatingError(RequiredResourceFileDoesNotExist);
+                        this));
                 }
 
                 if (resolvedPath.EndsWith(".json", StringComparison.InvariantCultureIgnoreCase))
@@ -192,13 +190,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 else
                 {
                     // Throw here because no further processing can be done.
-                    var RequiredResourceFileNotValid = new ErrorRecord(
+                    ThrowTerminatingError(new ErrorRecord(
                         new ArgumentException("The RequiredResourceFile must have either a '.json' or '.psd1' extension.  Please try specifying a path to a valid .json or .psd1 file"),
                         "RequiredResourceFileNotValid",
                         ErrorCategory.ObjectNotFound,
-                        this);
-
-                    ThrowTerminatingError(RequiredResourceFileNotValid);
+                        this));
                 }
 
                 _requiredResourceFile = resolvedPath;
@@ -359,13 +355,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                     catch (Exception)
                     {
-                        var RequiredResourceFileNotInProperJsonFormat = new ErrorRecord(
+                        ThrowTerminatingError(new ErrorRecord(
                             new ArgumentException($"Argument for parameter -RequiredResourceFile is not in proper json or hashtable format.  Make sure argument is either a valid .json or .psd1 file."),
                             "RequiredResourceFileNotInProperJsonFormat",
                             ErrorCategory.InvalidData,
-                            this);
-
-                        ThrowTerminatingError(RequiredResourceFileNotInProperJsonFormat);
+                            this));
                     }
                     
                     RequiredResourceHelper(pkgsInFile);
@@ -392,13 +386,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                         catch (Exception)
                         {
-                            var RequiredResourceFileNotInProperJsonFormat = new ErrorRecord(
+                            ThrowTerminatingError(new ErrorRecord(
                                 new ArgumentException("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a valid json file."),
                                 "RequiredResourceFileNotInProperJsonFormat",
                                 ErrorCategory.InvalidData,
-                                this);
-
-                            ThrowTerminatingError(RequiredResourceFileNotInProperJsonFormat);
+                                this));
                         }
 
                         RequiredResourceHelper(pkgsHash);
@@ -521,12 +513,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 versionType: out VersionType versionType,
                 out string versionParseError))
             {
-                var IncorrectVersionFormat = new ErrorRecord(
+                ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException(versionParseError),
                     "IncorrectVersionFormat",
                     ErrorCategory.InvalidArgument,
-                    this);
-                ThrowTerminatingError(IncorrectVersionFormat);
+                    this));
             }
 
             var installedPkgs = _installHelper.BeginInstallPackages(

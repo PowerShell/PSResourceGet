@@ -31,23 +31,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {            
             if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
-                var InvalidPathError = new ErrorRecord(
+                ThrowTerminatingError(ErrorRecord(
                     new ArgumentException("The script file pathname must end with a .ps1 file extension. Example: C:/Users/john/x/MyScript.ps1"),
                     "InvalidPath",
                     ErrorCategory.InvalidArgument,
-                    this);
-                ThrowTerminatingError(InvalidPathError);   
+                    this));
             }
 
             var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
             if (resolvedPaths.Count != 1)
             {
-                var InvalidPathArgumentError = new ErrorRecord(
+                ThrowTerminatingError(new ErrorRecord(
                     new PSArgumentException("Error: Could not resolve provided Path argument into a single path."),
                     "InvalidPathArgumentError",
                     ErrorCategory.InvalidArgument,
-                    this);
-                ThrowTerminatingError(InvalidPathArgumentError);
+                    this));
             }
 
             var resolvedPath = resolvedPaths[0];
@@ -67,12 +65,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     exMessage += Environment.NewLine + error.Exception.Message;
                 }
                 
-                var InvalidPSScriptFileError = new ErrorRecord(
+                ThrowTerminatingError(new ErrorRecord(
                     new PSArgumentException(exMessage),
                     "InvalidPSScriptFile",
                     ErrorCategory.InvalidArgument,
-                    this);
-                ThrowTerminatingError(InvalidPSScriptFileError);
+                    this));
             }
 
             PSObject psScriptFileInfoWithName = new PSObject(psScriptFileInfo);
