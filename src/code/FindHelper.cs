@@ -75,6 +75,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _versionType = versionType;
 
             _cmdletPassedIn.WriteDebug("In FindHelper::FindByResourceName");
+            _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; ResourceType: '{1}'; VersionRange: '{2}'; NuGetVersion: '{3}'; VersionType: '{4}'; Version: '{5}'; Prerelease: '{6}'; " +
+                "Tag: '{7}'; Repository: '{8}'; IncludeDependencies '{9}'",
+                string.Join(",", name),
+                type.ToString() ?? string.Empty,
+                versionRange != null ? (versionRange.OriginalString != null ? versionRange.OriginalString : string.Empty) : string.Empty,
+                nugetVersion != null ? nugetVersion.ToString() : string.Empty,
+                versionType.ToString(),
+                version != null ? version : String.Empty,
+                prerelease.ToString(),
+                string.Join(",", tag),
+                repository != null ? string.Join(",", repository) : string.Empty,
+                includeDependencies.ToString()));
 
             if (name.Length == 0)
             {
@@ -239,6 +251,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _tag = tag;
 
             _cmdletPassedIn.WriteDebug("In FindHelper::FindByCommandOrDscResource");
+            _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> IsSearchingForCommands: '{0}'; Prerelease: '{1}'; Tag: '{2}'; Repository: '{3}'",
+                isSearchingForCommands.ToString(),
+                prerelease.ToString(),
+                string.Join(",", tag),
+                repository != null ? string.Join(",", repository) : string.Empty));
 
             if (_tag.Length == 0)
             {
@@ -426,6 +443,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _tag = tag;
 
             _cmdletPassedIn.WriteDebug("In FindHelper::FindByTag");
+            _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> ResourceType: '{0}'; Prerelease: '{1}'; Tag: '{2}'; Repository: '{3}'",
+                type.ToString() ?? string.Empty,
+                prerelease.ToString(),
+                string.Join(",", tag),
+                repository != null ? string.Join(",", repository) : string.Empty));
+
             if (_tag.Length == 0)
             {
                 _cmdletPassedIn.WriteDebug("Tags were not provided or could not be resolved");
