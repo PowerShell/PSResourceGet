@@ -147,10 +147,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             error = null;
             if (!parsedHelpMetadata.ContainsKey("DESCRIPTION"))
             {
-                var exMessage = "PSScript file must contain value for Description. Ensure value for Description is passed in and try again.";
-                var ex = new ArgumentException(exMessage);
-                var PSScriptInfoMissingDescriptionError = new ErrorRecord(ex, "PSScriptInfoMissingDescription", ErrorCategory.InvalidArgument, null);
-                error = PSScriptInfoMissingDescriptionError;
+                error =  new ErrorRecord(
+                    new ArgumentException( "PSScript file must contain value for Description. Ensure value for Description is passed in and try again."), 
+                    "PSScriptInfoMissingDescription", 
+                    ErrorCategory.InvalidArgument, 
+                    null));
+
                 return false;
             }
 
@@ -158,19 +160,23 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             string descriptionString = String.Join("", descriptionValue);
             if (descriptionValue.Count == 0 || (String.IsNullOrEmpty(descriptionString)) || String.IsNullOrWhiteSpace(descriptionString))
             {
-                var exMessage = "PSScript file value for Description cannot be null, empty or whitespace. Ensure value for Description meets these conditions and try again.";
-                var ex = new ArgumentException(exMessage);
-                var PSScriptInfoMissingDescriptionError = new ErrorRecord(ex, "PSScriptInfoMissingDescription", ErrorCategory.InvalidArgument, null);
-                error = PSScriptInfoMissingDescriptionError;
+                error = new ErrorRecord(
+                    new ArgumentException("PSScript file value for Description cannot be null, empty or whitespace. Ensure value for Description meets these conditions and try again."), 
+                    "PSScriptInfoMissingDescription", 
+                    ErrorCategory.InvalidArgument, 
+                    null);
+
                 return false;
             }
 
             if (StringContainsComment(descriptionString))
             {
-                var exMessage = "PSScript file's value for Description cannot contain '<#' or '#>'. Pass in a valid value for Description and try again.";
-                var ex = new ArgumentException(exMessage);
-                var DescriptionContainsCommentError = new ErrorRecord(ex, "DescriptionContainsComment", ErrorCategory.InvalidArgument, null);
-                error = DescriptionContainsCommentError;
+                error = new ErrorRecord(
+                    new ArgumentException("PSScript file's value for Description cannot contain '<#' or '#>'. Pass in a valid value for Description and try again."), 
+                    "DescriptionContainsComment", 
+                    ErrorCategory.InvalidArgument, 
+                    null);
+
                 return false; 
             }
 
@@ -186,19 +192,23 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             error = null;
             if (String.IsNullOrEmpty(Description))
             {
-                var exMessage = "PSScript file must contain value for Description. Ensure value for Description is passed in and try again.";
-                var ex = new ArgumentException(exMessage);
-                var PSScriptInfoMissingDescriptionError = new ErrorRecord(ex, "PSScriptInfoMissingDescription", ErrorCategory.InvalidArgument, null);
-                error = PSScriptInfoMissingDescriptionError;
+                error = new ErrorRecord(
+                    new ArgumentException("PSScript file must contain value for Description. Ensure value for Description is passed in and try again."), 
+                    "PSScriptInfoMissingDescription", 
+                    ErrorCategory.InvalidArgument, 
+                    null);
+
                 return false;
             }
 
             if (StringContainsComment(Description))
             {
-                var exMessage = "PSScript file's value for Description cannot contain '<#' or '#>'. Pass in a valid value for Description and try again.";
-                var ex = new ArgumentException(exMessage);
-                var DescriptionContainsCommentError = new ErrorRecord(ex, "DescriptionContainsComment", ErrorCategory.InvalidArgument, null);
-                error = DescriptionContainsCommentError;
+                error =  new ErrorRecord(
+                    new ArgumentException("PSScript file's value for Description cannot contain '<#' or '#>'. Pass in a valid value for Description and try again."), 
+                    "DescriptionContainsComment", 
+                    ErrorCategory.InvalidArgument, 
+                    null);
+
                 return false; 
             }
 
@@ -238,19 +248,23 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 if (String.Equals(description.Trim(), String.Empty))
                 {
-                    var exMessage = "Description value can't be updated to whitespace as this would invalidate the script.";
-                    var ex = new ArgumentException(exMessage);
-                    var descriptionUpdateValueIsWhitespaceError = new ErrorRecord(ex, "descriptionUpdateValueIsWhitespaceError", ErrorCategory.InvalidArgument, null);
-                    error = descriptionUpdateValueIsWhitespaceError;
+                    error = new ErrorRecord(
+                        new ArgumentException("Description value can't be updated to whitespace as this would invalidate the script."), 
+                        "descriptionUpdateValueIsWhitespaceError", 
+                        ErrorCategory.InvalidArgument, 
+                        null);
+
                     return false;
                 }
 
                 if (StringContainsComment(description))
                 {
-                    var exMessage = "Description value can't be updated to value containing comment '<#' or '#>' as this would invalidate the script.";
-                    var ex = new ArgumentException(exMessage);
-                    var descriptionUpdateValueContainsCommentError = new ErrorRecord(ex, "descriptionUpdateValueContainsCommentError", ErrorCategory.InvalidArgument, null);
-                    error = descriptionUpdateValueContainsCommentError;
+                    error = new ErrorRecord(
+                        new ArgumentException("Description value can't be updated to value containing comment '<#' or '#>' as this would invalidate the script."), 
+                        "descriptionUpdateValueContainsCommentError", 
+                        ErrorCategory.InvalidArgument, 
+                        null);
+
                     return false;
                 }
 

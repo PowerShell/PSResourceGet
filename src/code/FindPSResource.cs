@@ -181,12 +181,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    ThrowTerminatingError(
-                        new ErrorRecord(
-                            new PSInvalidOperationException("Name parameter must be provided, unless Tag or Type parameters are used."),
-                            "NameParameterNotProvided",
-                            ErrorCategory.InvalidOperation,
-                            this));
+                    ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException("Name parameter must be provided, unless Tag or Type parameters are used."),
+                        "NameParameterNotProvided",
+                        ErrorCategory.InvalidOperation,
+                        this));
                 }
             }
 
@@ -232,6 +231,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             "IncorrectVersionFormat",
                             ErrorCategory.InvalidArgument,
                             this));
+                    
                         return;
                     }
                 }

@@ -238,6 +238,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "NameContainsWildcard",
                     ErrorCategory.InvalidArgument,
                     this));
+                    
                 return;
             }
 

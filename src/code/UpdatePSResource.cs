@@ -183,6 +183,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "IncorrectVersionFormat",
                     ErrorCategory.InvalidArgument,
                     this));
+                    
                 return;
             }
 
