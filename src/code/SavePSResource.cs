@@ -229,6 +229,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void ProcessSaveHelper(string[] pkgNames, string pkgVersion, bool pkgPrerelease, string[] pkgRepository)
         {
+            WriteDebug("In SavePSResource::ProcessSaveHelper");
             var namesToSave = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {
@@ -253,6 +254,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // but after filtering out unsupported wildcard names there are no elements left in namesToSave
             if (namesToSave.Length == 0)
             {
+                WriteDebug("Name was not provided or could not be resolved");
                 return;
             }
 
@@ -264,9 +266,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 versionType: out VersionType versionType,
                 out string versionParseError))
             {
-                var ex = new ArgumentException(versionParseError);
-                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(IncorrectVersionFormat);
+                ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException(versionParseError),
+                    "IncorrectVersionFormat",
+                    ErrorCategory.InvalidArgument,
+                    this));
             }
 
             // figure out if version is a prerelease or not.
