@@ -180,27 +180,33 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
-                var exMessage = "Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1";
-                var ex = new ArgumentException(exMessage);
-                var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
+                var InvalidPathError = new ErrorRecord(
+                    new ArgumentException("Path needs to end with a .ps1 file. Example: C:/Users/john/x/MyScript.ps1"),
+                    "InvalidPath",
+                    ErrorCategory.InvalidArgument,
+                    null);
                 ThrowTerminatingError(InvalidPathError);
             }
 
             var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
             if (String.IsNullOrEmpty(resolvedPath))
             {
-                var exMessage = "Error: Could not resolve provided Path argument into a single path.";
-                var ex = new PSArgumentException(exMessage);
-                var InvalidPathArgumentError = new ErrorRecord(ex, "InvalidPathArgumentError", ErrorCategory.InvalidArgument, null);
+                var InvalidPathArgumentError = new ErrorRecord(
+                    new PSArgumentException("Could not resolve provided Path argument into a single path."),
+                    "InvalidPathArgumentError",
+                    ErrorCategory.InvalidArgument,
+                    null);
                 ThrowTerminatingError(InvalidPathArgumentError);
             }
 
             if (File.Exists(resolvedPath) && !Force)
             {
-                // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file
-                var exMessage = ".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file.";
-                var ex = new ArgumentException(exMessage);
-                var ScriptAtPathAlreadyExistsError = new ErrorRecord(ex, "ScriptAtPathAlreadyExists", ErrorCategory.InvalidArgument, null);
+                // .ps1 file at specified location already exists and Force parameter isn't used to rewrite the file);
+                var ScriptAtPathAlreadyExistsError = new ErrorRecord(
+                    new ArgumentException(".ps1 file at specified path already exists. Specify a different location or use -Force parameter to overwrite the .ps1 file."),
+                    "ScriptAtPathAlreadyExists",
+                     ErrorCategory.InvalidArgument,
+                     null);
                 ThrowTerminatingError(ScriptAtPathAlreadyExistsError);
             }
 
