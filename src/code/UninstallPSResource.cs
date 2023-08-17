@@ -178,6 +178,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private bool UninstallPkgHelper(out List<ErrorRecord> errRecords)
         {
+            WriteDebug("In UninstallPSResource::UninstallPkgHelper");
             var successfullyUninstalled = false;
             GetHelper getHelper = new GetHelper(this);
             List<string> dirsToDelete = getHelper.FilterPkgPathsByName(Name, _pathsToSearch);
@@ -186,10 +187,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (totalDirs == 0) {
                 string message = Version == null || Version.Trim().Equals("*") ?
-                    string.Format("Cannot uninstall resource '{0}' because it does not exist", String.Join(", ", Name)) :
-
-                    string.Format("Cannot uninstall verison '{0}' of resource '{1}' because it does not exist", Version, String.Join(", ", Name));
-
+                    $"Cannot uninstall resource '{String.Join(", ", Name)}' because it does not exist" :
+                    $"Cannot uninstall verison '{Version}' of resource '{String.Join(", ", Name)}' because it does not exist";
 
                 errRecords.Add(new ErrorRecord(
                     new ResourceNotFoundException(message),
@@ -217,8 +216,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 // show uninstall progress info
                 int activityId = 0;
-                string activity = string.Format("Uninstalling {0}...", pkgName);
-                string statusDescription = string.Format("{0}/{1} directory uninstalling...", currentUninstalledDirCount, totalDirs);
+                string activity = $"Uninstalling {pkgName}...";
+                string statusDescription = $"{currentUninstalledDirCount}/{totalDirs} directory uninstalling...";
                 this.WriteProgress(new ProgressRecord(activityId, activity, statusDescription));
 
                 ErrorRecord errRecord = null;
@@ -245,10 +244,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (errRecord == null)
                     {
                         string message = Version == null || Version.Trim().Equals("*") ?
-                            string.Format("Cannot uninstall resource '{0}' because it does not exist.", pkgName) :
-
-                            string.Format("Cannot uninstall version '{0}' of resource '{1}' because it does not exist.", Version, pkgName);
-
+                            $"Cannot uninstall resource '{pkgName}' because it does not exist." :
+                            $"Cannot uninstall version '{Version}' of resource '{pkgName}' because it does not exist.";
 
                         errRecords.Add(new ErrorRecord(
                             new PSInvalidOperationException(message),
@@ -267,6 +264,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /* uninstalls a module */
         private bool UninstallModuleHelper(string pkgPath, string pkgName, out ErrorRecord errRecord)
         {
+            WriteDebug("In UninstallPSResource::UninstallModuleHelper");
             errRecord = null;
             var successfullyUninstalledPkg = false;
             DirectoryInfo dir = new DirectoryInfo(pkgPath);
@@ -280,7 +278,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return false;
             }
 
-            if (!ShouldProcess(string.Format("Uninstall resource '{0}', version '{1}', from path '{2}'", pkgName, version, dir.FullName)))
+            if (!ShouldProcess($"Uninstall resource '{pkgName}', version '{version}', from path '{dir.FullName}'"))
             {
                 WriteVerbose("ShouldProcess is set to false.");
                 return true;
@@ -291,7 +289,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 Utils.DeleteDirectory(pkgPath);
-                WriteVerbose(string.Format("Successfully uninstalled '{0}' from path '{1}'.", pkgName, dir.FullName));
+                WriteVerbose($"Successfully uninstalled '{pkgName}' from path '{dir.FullName}'.");
 
                 successfullyUninstalledPkg = true;
 
@@ -318,7 +316,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     new ArgumentException($"Parent directory '{dir.FullName}' could not be deleted: {err.Message}"), 
                     "ErrorDeletingDirectory", 
                     ErrorCategory.PermissionDenied, 
-                    null);
+                    this);
             }
 
             return successfullyUninstalledPkg;
@@ -327,10 +325,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /* uninstalls a script */
         private bool UninstallScriptHelper(string pkgPath, string pkgName, out ErrorRecord errRecord)
         {
+            WriteDebug("In UninstallPSResource::UninstallScriptHelper");
             errRecord = null;
             var successfullyUninstalledPkg = false;
 
-            if (!ShouldProcess(string.Format("Uninstall resource '{0}' from path '{1}'", pkgName, pkgPath)))
+            if (!ShouldProcess($"Uninstall resource '{pkgName}' from path '{pkgPath}'"))
             {
                 WriteVerbose("ShouldProcess is set to false.");
                 return true;
@@ -377,6 +376,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private bool CheckIfDependency(string pkgName, string version, out ErrorRecord errorRecord)
         {
+            WriteDebug("In UninstallPSResource::CheckIfDependency");
             // Checking if a specific package version is a dependency anywhere
             // this is a primitive implementation
             // TODO:  implement a dependencies database for querying dependency info
@@ -418,7 +418,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     new PSInvalidOperationException($"Error checking if resource is a dependency: {e.Message}."),
                     "UninstallPSResourceDependencyCheckError",
                     ErrorCategory.InvalidOperation,
-                    null);
+                    this);
             }
 
             bool dependencyExists = false;
