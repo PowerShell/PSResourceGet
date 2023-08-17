@@ -10,7 +10,6 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
-using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -173,9 +172,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (!File.Exists(resolvedPath))
                 {
-                    var exMessage = String.Format("The RequiredResourceFile does not exist.  Please try specifying a path to a valid .json or .psd1 file");
-                    var ex = new ArgumentException(exMessage);
-                    var RequiredResourceFileDoesNotExist = new ErrorRecord(ex, "RequiredResourceFileDoesNotExist", ErrorCategory.ObjectNotFound, null);
+                    var RequiredResourceFileDoesNotExist = new ErrorRecord(
+                        new ArgumentException("The RequiredResourceFile does not exist. Please try specifying a path to a valid .json or .psd1 file"),
+                        "RequiredResourceFileDoesNotExist",
+                        ErrorCategory.ObjectNotFound,
+                        this);
 
                     ThrowTerminatingError(RequiredResourceFileDoesNotExist);
                 }
@@ -191,9 +192,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 else
                 {
                     // Throw here because no further processing can be done.
-                    var exMessage = String.Format("The RequiredResourceFile must have either a '.json' or '.psd1' extension.  Please try specifying a path to a valid .json or .psd1 file");
-                    var ex = new ArgumentException(exMessage);
-                    var RequiredResourceFileNotValid = new ErrorRecord(ex, "RequiredResourceFileNotValid", ErrorCategory.ObjectNotFound, null);
+                    var RequiredResourceFileNotValid = new ErrorRecord(
+                        new ArgumentException("The RequiredResourceFile must have either a '.json' or '.psd1' extension.  Please try specifying a path to a valid .json or .psd1 file"),
+                        "RequiredResourceFileNotValid",
+                        ErrorCategory.ObjectNotFound,
+                        this);
 
                     ThrowTerminatingError(RequiredResourceFileNotValid);
                 }
@@ -351,15 +354,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 break;
 
                             case ResourceFileType.UnknownFile:
-                                throw new PSInvalidOperationException(
-                                    message: "Unkown file type. Required resource file must be either a json or psd1 data file.");
+                                throw new PSInvalidOperationException("Unkown file type. Required resource file must be either a json or psd1 data file.");
                         }
                     }
                     catch (Exception)
                     {
-                        var exMessage = String.Format("Argument for parameter -RequiredResourceFile is not in proper json or hashtable format.  Make sure argument is either a valid .json or .psd1 file.");
-                        var ex = new ArgumentException(exMessage);
-                        var RequiredResourceFileNotInProperJsonFormat = new ErrorRecord(ex, "RequiredResourceFileNotInProperJsonFormat", ErrorCategory.InvalidData, null);
+                        var RequiredResourceFileNotInProperJsonFormat = new ErrorRecord(
+                            new ArgumentException($"Argument for parameter -RequiredResourceFile is not in proper json or hashtable format.  Make sure argument is either a valid .json or .psd1 file."),
+                            "RequiredResourceFileNotInProperJsonFormat",
+                            ErrorCategory.InvalidData,
+                            this);
 
                         ThrowTerminatingError(RequiredResourceFileNotInProperJsonFormat);
                     }
@@ -388,9 +392,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                         catch (Exception)
                         {
-                            var exMessage = String.Format("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a valid json file.");
-                            var ex = new ArgumentException(exMessage);
-                            var RequiredResourceFileNotInProperJsonFormat = new ErrorRecord(ex, "RequiredResourceFileNotInProperJsonFormat", ErrorCategory.InvalidData, null);
+                            var RequiredResourceFileNotInProperJsonFormat = new ErrorRecord(
+                                new ArgumentException("Argument for parameter -RequiredResource is not in proper json format.  Make sure argument is either a valid json file."),
+                                "RequiredResourceFileNotInProperJsonFormat",
+                                ErrorCategory.InvalidData,
+                                this);
 
                             ThrowTerminatingError(RequiredResourceFileNotInProperJsonFormat);
                         }
@@ -417,7 +423,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 default:
-                    Dbg.Assert(false, "Invalid parameter set");
                     break;
             }
         }
@@ -428,6 +433,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void RequiredResourceHelper(Hashtable reqResourceHash)
         {
+            WriteDebug("In InstallPSResource::RequiredResourceHelper");
             var pkgNames = reqResourceHash.Keys;
 
             foreach (string pkgName in pkgNames)
@@ -479,6 +485,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void ProcessInstallHelper(string[] pkgNames, string pkgVersion, bool pkgPrerelease, string[] pkgRepository, PSCredential pkgCredential, InstallPkgParams reqResourceParams)
         {
+            WriteDebug("In InstallPSResource::ProcessInstallHelper");
             var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {
@@ -514,8 +521,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 versionType: out VersionType versionType,
                 out string versionParseError))
             {
-                var ex = new ArgumentException(versionParseError);
-                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                var IncorrectVersionFormat = new ErrorRecord(
+                    new ArgumentException(versionParseError),
+                    "IncorrectVersionFormat",
+                    ErrorCategory.InvalidArgument,
+                    this);
                 ThrowTerminatingError(IncorrectVersionFormat);
             }
 
