@@ -77,10 +77,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     foreach (ParseError err in parserErrors)
                     {
-                        var message = String.Format("Could not requires comments as valid PowerShell input due to {0}.", err.Message);
-                        var ex = new InvalidOperationException(message);
-                        var requiresCommentParseError = new ErrorRecord(ex, err.ErrorId, ErrorCategory.ParserError, null);
-                        errorsList.Add(requiresCommentParseError);
+                        errorsList.Add(new ErrorRecord(
+                            new InvalidOperationException($"Could not requires comments as valid PowerShell input due to {err.Message}."), 
+                            err.ErrorId, 
+                            ErrorCategory.ParserError, 
+                            null));
                     }
 
                     errors = errorsList.ToArray();
@@ -98,11 +99,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
             catch (Exception e)
             {
-                var message = $"Parsing RequiredModules failed due to {e.Message}";
-                var ex = new ArgumentException(message);
-                var requiredModulesAstParseError = new ErrorRecord(ex, "requiredModulesAstParseThrewError", ErrorCategory.ParserError, null);
-                errorsList.Add(requiredModulesAstParseError);
+                errorsList.Add(new ErrorRecord(
+                    new ArgumentException($"Parsing RequiredModules failed due to {e.Message}"), 
+                    "requiredModulesAstParseThrewError", 
+                    ErrorCategory.ParserError, 
+                    null));
                 errors = errorsList.ToArray();
+                
                 return false;
             }
 

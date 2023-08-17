@@ -1113,8 +1113,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WriteVerbose(string.Format("Successfully published the resource to '{0}'", repoUri));
             error = null;
             success = true;
+            
             return success;
-
         }
 
         private void InjectCredentialsToSettings(ISettings settings, IPackageSourceProvider sourceProvider, string source)

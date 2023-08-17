@@ -43,7 +43,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
             if (resolvedPaths.Count != 1)
             {
-                ThrowTerminatingError(new ErrorRecord(new PSArgumentException("Could not resolve provided path argument to a single path."),
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSArgumentException("Could not resolve provided path argument to a single path."),
                     "InvalidPathArgumentError",
                     ErrorCategory.InvalidArgument,
                     this));
@@ -53,7 +54,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!File.Exists(resolvedPath))
             {
-                ThrowTerminatingError(new ErrorRecord(new ArgumentException("A .ps1 file does not exist at the location specified."),
+                ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException("A .ps1 file does not exist at the location specified."),
                     "FileDoesNotExistAtPath",
                     ErrorCategory.InvalidArgument,
                     this));

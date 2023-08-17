@@ -321,8 +321,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (count == 0)
             {
-                string errMsg = $"Package with name '{packageName}' could not be found in repository '{Repository.Name}'.";
-                errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                errRecord = new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'."), 
+                    "PackageNotFound", 
+                    ErrorCategory.ObjectNotFound, 
+                    this);
                 response = string.Empty;
             }
 
@@ -366,8 +369,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (count == 0)
             {
-                string errMsg = $"Package with name '{packageName}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'.";
-                errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                errRecord = new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."),
+                    "PackageNotFound", 
+                    ErrorCategory.ObjectNotFound, 
+                    this);
                 response = string.Empty;
             }
 
@@ -560,8 +566,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (count == 0)
             {
-                string errMsg = $"Package with name '{packageName}', version '{version}' could not be found in repository '{Repository.Name}'.";
-                errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                errRecord = new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}', version '{version}' could not be found in repository '{Repository.Name}'."), 
+                    "PackageNotFound", 
+                    ErrorCategory.ObjectNotFound, 
+                    this);
                 response = string.Empty;
             }
 
@@ -600,8 +609,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (count == 0)
             {
-                string errMsg = $"Package with name '{packageName}', version '{version}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'.";
-                errRecord = new ErrorRecord(new ResourceNotFoundException(errMsg), "PackageNotFound", ErrorCategory.ObjectNotFound, this);
+                errRecord = new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}', version '{version}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
+                    "PackageNotFound", 
+                    ErrorCategory.ObjectNotFound, 
+                    this);
                 response = string.Empty;
             }
             
@@ -637,9 +649,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
             var requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
-
             var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
             var responseStream = response.ReadAsStreamAsync().Result;
+
             return responseStream;
         }
 
@@ -659,21 +671,36 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (ResourceNotFoundException e)
             {
-                errRecord = new ErrorRecord(e, "ResourceNotFound", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(
+                    exception: e, 
+                    "ResourceNotFound", 
+                    ErrorCategory.InvalidResult, 
+                    this);
             }
             catch (UnauthorizedException e)
             {
-                errRecord = new ErrorRecord(e, "UnauthorizedRequest", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(
+                    exception: e, 
+                    "UnauthorizedRequest", 
+                    ErrorCategory.InvalidResult, 
+                    this);
             }
             catch (HttpRequestException e)
             {
-                errRecord = new ErrorRecord(e, "HttpRequestCallFailure", ErrorCategory.ConnectionError, this);
+                errRecord = new ErrorRecord(
+                    exception: e, 
+                    "HttpRequestCallFailure", 
+                    ErrorCategory.ConnectionError, 
+                    this);
             }
             catch (Exception e)
             {
-                errRecord = new ErrorRecord(e, "HttpRequestCallFailure", ErrorCategory.ConnectionError, this);
+                errRecord = new ErrorRecord(
+                    exception: e, 
+                    "HttpRequestCallFailure", 
+                    ErrorCategory.ConnectionError, 
+                    this);
             }
-
 
             return response;
         }
@@ -694,15 +721,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (HttpRequestException e)
             {
-                errRecord = new ErrorRecord(e, "HttpRequestFailure", ErrorCategory.ConnectionError , this);
+                errRecord = new ErrorRecord(
+                    exception: e, 
+                    "HttpRequestFailure", 
+                    ErrorCategory.ConnectionError, 
+                    this);
             }
             catch (ArgumentNullException e)
             {
-                errRecord = new ErrorRecord(e, "HttpRequestFailure", ErrorCategory.InvalidData, this);
+                errRecord = new ErrorRecord(
+                    exception: e, 
+                    "HttpRequestFailure", 
+                    ErrorCategory.InvalidData, 
+                    this);
             }
             catch (InvalidOperationException e)
             {
-                errRecord = new ErrorRecord(e, "HttpRequestFailure", ErrorCategory.InvalidOperation, this);
+                errRecord = new ErrorRecord(
+                    exception: e, 
+                    "HttpRequestFailure", 
+                    ErrorCategory.InvalidOperation, 
+                    this);
             }
 
             return content;
@@ -748,6 +787,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?{prereleaseFilter}{typeFilterPart}{tagFilterPart}{paginationParam}";
+            
             return HttpRequestCall(requestUrlV2: requestUrlV2, out errRecord);
         }
 
@@ -773,6 +813,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             var requestUrlV2 = $"{Repository.Uri}/Search()?{prereleaseFilter}&searchTerm='{tagSearchTermPart}'{paginationParam}";
+            
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
@@ -792,7 +833,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (names.Length == 0)
             {
-                errRecord = new ErrorRecord(new ArgumentException("-Name '*' for V2 server protocol repositories is not supported"), "FindNameGlobbingFailure", ErrorCategory.InvalidArgument, this);
+                errRecord = new ErrorRecord(
+                    new ArgumentException("-Name '*' for V2 server protocol repositories is not supported"), 
+                    "FindNameGlobbingFailure", 
+                    ErrorCategory.InvalidArgument, 
+                    this);
 
                 return string.Empty;
             }
@@ -824,12 +869,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                errRecord = new ErrorRecord(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."), "FindNameGlobbingFailure", ErrorCategory.InvalidArgument, this);
+                errRecord = new ErrorRecord(
+                    new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."), 
+                    "FindNameGlobbingFailure", 
+                    ErrorCategory.InvalidArgument, 
+                    this);
+
                 return string.Empty;
             }
 
             string typeFilterPart = GetTypeFilterForRequest(type);
             var requestUrlV2 = $"{Repository.Uri}/Search()?$filter={nameFilter}{typeFilterPart} and {prerelease}{extraParam}";
+            
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
@@ -849,7 +900,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (names.Length == 0)
             {
-                errRecord = new ErrorRecord(new ArgumentException("-Name '*' for V2 server protocol repositories is not supported"), "FindNameGlobbingFailure", ErrorCategory.InvalidArgument, this);
+                errRecord = new ErrorRecord(
+                    new ArgumentException("-Name '*' for V2 server protocol repositories is not supported"), 
+                    "FindNameGlobbingFailure", 
+                    ErrorCategory.InvalidArgument, 
+                    this);
 
                 return string.Empty;
             }
@@ -881,7 +936,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                errRecord = new ErrorRecord(new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."), "FindNameGlobbing", ErrorCategory.InvalidArgument, this);
+                errRecord = new ErrorRecord(
+                    new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."), 
+                    "FindNameGlobbing", 
+                    ErrorCategory.InvalidArgument, 
+                    this);
 
                 return string.Empty;
             }
@@ -894,6 +953,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             string typeFilterPart = GetTypeFilterForRequest(type);
             var requestUrlV2 = $"{Repository.Uri}/Search()?$filter={nameFilter}{tagFilterPart}{typeFilterPart} and {prerelease}{extraParam}";
+            
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
@@ -994,6 +1054,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
+            
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
@@ -1029,7 +1090,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (XmlException e)
             {
-                errRecord = new ErrorRecord(e, "GetCountFromResponse", ErrorCategory.InvalidData, this);
+                errRecord = new ErrorRecord(
+                    exception: e, 
+                    "GetCountFromResponse", 
+                    ErrorCategory.InvalidData, 
+                    this);
             }
             if (errRecord != null)
             {
@@ -1056,8 +1121,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
                 responseStatusCode = response.StatusCode;
-
                 response.EnsureSuccessStatusCode();
+
                 return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
             }
             catch (HttpRequestException e)
@@ -1102,6 +1167,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 HttpResponseMessage response = await s_client.SendAsync(message);
                 responseStatusCode = response.StatusCode;
                 response.EnsureSuccessStatusCode();
+
                 return response.Content;
             }
             catch (HttpRequestException e)

@@ -287,12 +287,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Test the path of the module manifest to see if the file exists
             if (!File.Exists(resolvedManifestPath) || !resolvedManifestPath.EndsWith(".psd1"))
             {
-                ThrowTerminatingError(
-                    new ErrorRecord(
-                         new ArgumentException($"The provided file path was not found: '{resolvedManifestPath}'. Please specify a valid module manifest (.psd1) file path."),
-                        "moduleManifestPathNotFound",
-                         ErrorCategory.ObjectNotFound,
-                         this));
+                ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException($"The provided file path was not found: '{resolvedManifestPath}'. Please specify a valid module manifest (.psd1) file path."),
+                    "moduleManifestPathNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
 
             // Parse the module manifest
@@ -301,12 +300,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         manifestInfo: out Hashtable parsedMetadata,
                         error: out Exception manifestReadError))
             {
-                ThrowTerminatingError(
-                  new ErrorRecord(
-                       manifestReadError,
-                       "ModuleManifestParseFailure",
-                       ErrorCategory.ParserError,
-                       this));
+                ThrowTerminatingError(new ErrorRecord(
+                    manifestReadError,
+                    "ModuleManifestParseFailure",
+                    ErrorCategory.ParserError,
+                    this));
             }
 
             // Prerelease, ReleaseNotes, Tags, ProjectUri, LicenseUri, IconUri, RequireLicenseAcceptance,

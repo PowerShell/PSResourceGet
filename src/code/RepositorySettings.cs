@@ -306,6 +306,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     bool repoIsTrusted = !(repoTrusted == null || repoTrusted == false);
                     repoPriority = repoPriority < 0 ? DefaultPriority : repoPriority;
+
                     return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, apiVersion, repoCredentialInfo, force:true, cmdletPassedIn, out errorMsg);
                 }
 
@@ -779,6 +780,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             errorList = tempErrorList.ToArray();
             // Sort by priority, then by repo name
             var reposToReturn = foundRepos.OrderBy(x => x.Priority).ThenBy(x => x.Name);
+            
             return reposToReturn.ToList();
         }
 

@@ -200,10 +200,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (!repo.ContainsKey("Name") || repo["Name"] == null || String.IsNullOrEmpty(repo["Name"].ToString()))
                 {
                     WriteError(new ErrorRecord(
-                            new PSInvalidOperationException("Repository hashtable must contain Name key value pair"),
-                            "NullNameForRepositoriesParameterSetRepo",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                        new PSInvalidOperationException("Repository hashtable must contain Name key value pair"),
+                        "NullNameForRepositoriesParameterSetRepo",
+                        ErrorCategory.InvalidArgument,
+                        this));
+
                     continue;
                 }
 
@@ -227,10 +228,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (String.IsNullOrEmpty(repo["Uri"].ToString()))
                 {
                     WriteError(new ErrorRecord(
-                            new PSInvalidOperationException("Repository Uri cannot be null if provided"),
-                            "NullUriForRepositoriesParameterSetUpdate",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                        new PSInvalidOperationException("Repository Uri cannot be null if provided"),
+                        "NullUriForRepositoriesParameterSetUpdate",
+                        ErrorCategory.InvalidArgument,
+                        this));
+
                     return null;
                 }
 
@@ -240,6 +242,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     errorRecord: out ErrorRecord errorRecord))
                 {
                     WriteError(errorRecord);
+
                     return null;
                 }
             }
@@ -260,6 +263,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     errorRecord: out ErrorRecord errorRecord1))
             {
                 WriteError(errorRecord1);
+                
                 return null;
             }
 
@@ -290,10 +294,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (Exception e)
             {
                 WriteError(new ErrorRecord(
-                        new PSInvalidOperationException(e.Message),
-                        "ErrorSettingIndividualRepoFromRepositories",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                    new PSInvalidOperationException(e.Message),
+                    "ErrorSettingIndividualRepoFromRepositories",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
                 return null;
             }
         }

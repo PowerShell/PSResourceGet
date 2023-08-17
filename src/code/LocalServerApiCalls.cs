@@ -59,7 +59,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             FindResults tagFindResults = FindTagsHelper(tags, includePrerelease, out errRecord);
             if (tagFindResults.IsFindResultsEmpty())
             {
-                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package(s) with Tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindTagsPackageNotFound", ErrorCategory.ObjectNotFound, this);
+                errRecord = new ErrorRecord(
+                    new ResourceNotFoundException($"Package(s) with Tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
+                    "FindTagsPackageNotFound", 
+                    ErrorCategory.ObjectNotFound, 
+                    this);
             }
 
             return tagFindResults;
@@ -75,7 +79,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (cmdOrDSCFindResults.IsFindResultsEmpty())
             {
                 string paramName = isSearchingForCommands ? "Command Name(s)" : "DSCResource Name(s)";
-                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package(s) with {paramName} '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "FindCmdOrDSCNamesPackageNotFound", ErrorCategory.ObjectNotFound, this);
+                errRecord = new ErrorRecord(
+                    new ResourceNotFoundException($"Package(s) with {paramName} '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
+                    "FindCmdOrDSCNamesPackageNotFound", 
+                    ErrorCategory.ObjectNotFound, 
+                    this);
             }
 
             return cmdOrDSCFindResults;
@@ -233,7 +241,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (String.IsNullOrEmpty(latestVersionPath))
             {
-                errRecord = new ErrorRecord(new LocalResourceEmpty($"'{packageName}' is not present in repository"), "InstallNameFailure", ErrorCategory.ResourceUnavailable, this);
+                errRecord = new ErrorRecord(
+                    new LocalResourceEmpty($"'{packageName}' is not present in repository"), 
+                    "InstallNameFailure", 
+                    ErrorCategory.ResourceUnavailable, 
+                    this);
+
                 return fs;
             }
 
@@ -242,12 +255,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 fs = new FileStream(latestVersionPath, FileMode.Open, FileAccess.Read);
                 if (fs == null)
                 {
-                    errRecord = new ErrorRecord(new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"), "InstallNameFailure", ErrorCategory.ResourceUnavailable, this);
+                    errRecord = new ErrorRecord(
+                        new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"), 
+                        "InstallNameFailure", 
+                        ErrorCategory.ResourceUnavailable, 
+                        this);
                 }
             }
             catch (Exception e)
             {
-                errRecord = new ErrorRecord(e, "InstallNameFailure", ErrorCategory.ReadError, this);
+                errRecord = new ErrorRecord(
+                    exception: e, 
+                    "InstallNameFailure", 
+                    ErrorCategory.ReadError, 
+                    this);
             }
 
             return fs;
@@ -289,7 +310,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (String.IsNullOrEmpty(pkgVersionPath))
             {
-                errRecord = new ErrorRecord(new LocalResourceEmpty($"'{packageName}' is not present in repository"), "InstallNameFailure", ErrorCategory.ResourceUnavailable, this);
+                errRecord = new ErrorRecord(
+                    new LocalResourceEmpty($"'{packageName}' is not present in repository"), 
+                    "InstallNameFailure", 
+                    ErrorCategory.ResourceUnavailable, 
+                    this);
+
                 return fs;
             }
 
@@ -299,12 +325,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (fs == null)
                 {
-                    errRecord = new ErrorRecord(new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"), "InstallNameFailure", ErrorCategory.ResourceUnavailable, this);
+                    errRecord = new ErrorRecord(
+                        new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"), 
+                        "InstallNameFailure", 
+                        ErrorCategory.ResourceUnavailable, 
+                        this);
                 }
             }
             catch (Exception e)
             {
-                errRecord = new ErrorRecord(e, "InstallVersionFailure", ErrorCategory.ReadError, this);
+                errRecord = new ErrorRecord(
+                    exception: e, 
+                    "InstallVersionFailure", 
+                    ErrorCategory.ReadError, 
+                    this);
             }
 
             return fs;
@@ -353,7 +387,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (String.IsNullOrEmpty(latestVersionPath))
             {
                 // means no package was found with this name
-                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name {packageName} could not be found in repository '{Repository.Name}'."), "PackageNotFound", ErrorCategory.ResourceUnavailable, this);
+                errRecord = new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name {packageName} could not be found in repository '{Repository.Name}'."), 
+                    "PackageNotFound", 
+                    ErrorCategory.ResourceUnavailable, 
+                    this);
+
                 return findResponse;
             }
 
@@ -366,7 +405,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // this condition will be true, for FindNameWithTags() when package satisfying that criteria is not met
             if (pkgMetadata.Count == 0)
             {
-                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "PackageNotFound", ErrorCategory.ResourceUnavailable, this);
+                errRecord = new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
+                    "PackageNotFound", 
+                    ErrorCategory.ResourceUnavailable, 
+                    this);
             }
 
             findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
@@ -414,7 +457,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
-                errRecord = new ErrorRecord(new InvalidOperationException($"Version {version} could not be parsed into a valid NuGetVersion"), "FindVersionFailure", ErrorCategory.InvalidData, this);
+                errRecord = new ErrorRecord(
+                    new InvalidOperationException($"Version {version} could not be parsed into a valid NuGetVersion"),
+                    "FindVersionFailure", 
+                    ErrorCategory.InvalidData, 
+                    this);
+                    
                 return findResponse;
             }
 
@@ -444,7 +492,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (String.IsNullOrEmpty(pkgPath))
             {
                 // means no package was found with this name, version (and possibly tags).
-                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}', version '{version}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "PackageNotFound", ErrorCategory.ResourceUnavailable, this);
+                errRecord = new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}', version '{version}' and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
+                    "PackageNotFound", 
+                    ErrorCategory.ResourceUnavailable, 
+                    this);
+
                 return findResponse;
             }
 
@@ -457,7 +510,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // this condition will be true, for FindVersionWithTags() when package satisfying that criteria is not met
             if (pkgMetadata.Count == 0)
             {
-                errRecord = new ErrorRecord(new ResourceNotFoundException($"Package with name '{packageName}', and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), "PackageNotFound", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}', and tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."), 
+                    "PackageNotFound", 
+                    ErrorCategory.InvalidResult, 
+                    this);
             }
 
             findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
@@ -541,7 +598,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
                     {
-                        errRecord = new ErrorRecord(readManifestError, "GetMetadataFromNupkgFailure", ErrorCategory.ParserError, this);
+                        errRecord = new ErrorRecord(
+                            readManifestError, 
+                            "GetMetadataFromNupkgFailure", 
+                            ErrorCategory.ParserError, 
+                            this);
+                        
                         return pkgMetadata;
                     }
 
@@ -561,7 +623,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     if (!PSScriptFileInfo.TryTestPSScriptFileInfo(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
                     {
-                        errRecord = new ErrorRecord(new InvalidDataException($"PSScriptFile could not be read properly"), "GetMetadataFromNupkgFailure", ErrorCategory.ParserError, this);
+                        errRecord = new ErrorRecord(
+                            new InvalidDataException($"PSScriptFile could not be read properly"), 
+                            "GetMetadataFromNupkgFailure", 
+                            ErrorCategory.ParserError, 
+                            this);
+
                         return pkgMetadata;
                     }
 
@@ -586,7 +653,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    errRecord = new ErrorRecord(new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"), "GetMetadataFromNupkgFailure", ErrorCategory.InvalidData, this);
+                    errRecord = new ErrorRecord(
+                        new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"),
+                        "GetMetadataFromNupkgFailure", 
+                        ErrorCategory.InvalidData, 
+                        this);
+                        
                     return pkgMetadata;
                 }
 
@@ -600,7 +672,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-               errRecord = new ErrorRecord(new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"), "GetMetadataFromNupkgFailure", ErrorCategory.InvalidOperation, this);
+               errRecord = new ErrorRecord(
+                   new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"), 
+                   "GetMetadataFromNupkgFailure", 
+                   ErrorCategory.InvalidOperation, 
+                   this);
             }
             finally
             {
@@ -744,7 +820,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string version = packageVersionAndExtension.Substring(0, extensionDot);
             if (!NuGetVersion.TryParse(version, out NuGetVersion nugetVersion))
             {
-                errRecord = new ErrorRecord(new ArgumentException($"Could not parse version {version} from file {packageFullName}"), "GetInfoFromFileNameFilaure", ErrorCategory.ParserError, this);
+                errRecord = new ErrorRecord(
+                    new ArgumentException($"Could not parse version {version} from file {packageFullName}"), 
+                    "GetInfoFromFileNameFilaure", 
+                    ErrorCategory.ParserError, 
+                    this);
+
                 return null;
             }
 
@@ -762,7 +843,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try { doc.Load(filePath); }
             catch (Exception e)
             {
-                errRecord = new ErrorRecord(e, "LoadXmlDocumentFailure", ErrorCategory.ReadError, this);
+                errRecord = new ErrorRecord(
+                    exception: e, 
+                    "LoadXmlDocumentFailure", 
+                    ErrorCategory.ReadError, 
+                    this);
             }
 
             return doc;
@@ -822,7 +907,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                errRecord = new ErrorRecord(e, "GetHashtableForNuspecFailure", ErrorCategory.ReadError, this);
+                errRecord = new ErrorRecord(
+                    exception: e, 
+                    "GetHashtableForNuspecFailure", 
+                    ErrorCategory.ReadError, 
+                    this);
             }
 
             return nuspecHashtable;

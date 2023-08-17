@@ -233,10 +233,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (repo.ContainsKey("Name") || repo.ContainsKey("Uri") || repo.ContainsKey("CredentialInfo"))
                     {
                         WriteError(new ErrorRecord(
-                                new PSInvalidOperationException("Repository hashtable cannot contain PSGallery key with -Name, -Uri and/or -CredentialInfo key value pairs"),
-                                "NotProvideNameUriCredentialInfoForPSGalleryRepositoriesParameterSetRegistration",
-                                ErrorCategory.InvalidArgument,
-                                this));
+                            new PSInvalidOperationException("Repository hashtable cannot contain PSGallery key with -Name, -Uri and/or -CredentialInfo key value pairs"),
+                            "NotProvideNameUriCredentialInfoForPSGalleryRepositoriesParameterSetRegistration",
+                            ErrorCategory.InvalidArgument,
+                            this));
                         continue;
                     }
 
@@ -275,10 +275,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!repo.ContainsKey("Name") || repo["Name"] == null || String.IsNullOrWhiteSpace(repo["Name"].ToString()))
             {
                 WriteError(new ErrorRecord(
-                        new PSInvalidOperationException("Repository name cannot be null"),
-                        "NullNameForRepositoriesParameterSetRegistration",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                    new PSInvalidOperationException("Repository name cannot be null"),
+                    "NullNameForRepositoriesParameterSetRegistration",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
                 return null;
             }
 
@@ -289,16 +290,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         "PSGalleryProvidedAsNameRepoPSet",
                         ErrorCategory.InvalidArgument,
                         this));
+
                 return null;
             }
 
             if (!repo.ContainsKey("Uri") || repo["Uri"] == null || String.IsNullOrEmpty(repo["Uri"].ToString()))
             {
                 WriteError(new ErrorRecord(
-                        new PSInvalidOperationException("Repository Uri cannot be null"),
-                        "NullUriForRepositoriesParameterSetRegistration",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                    new PSInvalidOperationException("Repository Uri cannot be null"),
+                    "NullUriForRepositoriesParameterSetRegistration",
+                    ErrorCategory.InvalidArgument,
+                    this));
+                    
                 return null;
             }
 
@@ -358,10 +361,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 WriteError(new ErrorRecord(
-                        new PSInvalidOperationException(e.Message),
-                        "ErrorParsingIndividualRepo",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                    new PSInvalidOperationException(e.Message),
+                    "ErrorParsingIndividualRepo",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
                 return null;
             }
         }

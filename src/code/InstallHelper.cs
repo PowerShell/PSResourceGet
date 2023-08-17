@@ -415,6 +415,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "errorDeletingTempInstallPath",
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
+
                 return false;
             }
 
@@ -1026,9 +1027,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             _cmdletPassedIn.WriteError(parseError);
                         }
 
-                        var ex = new InvalidOperationException($"PSScriptFile could not be parsed");
                         error = new ErrorRecord(
-                            ex,
+                            new InvalidOperationException($"PSScriptFile could not be parsed"),
                             "PSScriptParseError",
                             ErrorCategory.ReadError,
                             _cmdletPassedIn);
@@ -1269,6 +1269,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 ErrorCategory.ObjectNotFound,
                                 _cmdletPassedIn);;
                             success = false;
+                            
                             return success;
                         }
 

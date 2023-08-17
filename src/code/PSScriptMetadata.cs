@@ -159,10 +159,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             if (parsedMetadata.Count == 0)
             {
-                var message = String.Format("PowerShell script '<#PSScriptInfo .. #>' comment block contains no metadata");
-                var ex = new InvalidOperationException(message);
-                var psScriptInfoBlockMissingMetadata = new ErrorRecord(ex, "psScriptInfoBlockMissingMetadataError", ErrorCategory.ParserError, null);
-                errors = new ErrorRecord[]{psScriptInfoBlockMissingMetadata};
+                errors = new ErrorRecord[]{ new ErrorRecord(
+                     new InvalidOperationException("PowerShell script '<#PSScriptInfo .. #>' comment block contains no metadata"), 
+                    "psScriptInfoBlockMissingMetadataError", 
+                    ErrorCategory.ParserError, 
+                    null) };
+                    
                 return false;
             }
 
@@ -267,10 +269,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     {
                         if (parsedHelpMetadata.ContainsKey(keyName))
                         {
-                            var message = String.Format("PowerShell script '<#PSScriptInfo .. #>' comment block metadata cannot contain duplicate key i.e .KEY");
-                            var ex = new InvalidOperationException(message);
-                            var psScriptInfoDuplicateKeyError = new ErrorRecord(ex, "psScriptInfoDuplicateKeyError", ErrorCategory.ParserError, null);
-                            errorsList.Add(psScriptInfoDuplicateKeyError);
+                            errorsList.Add(new ErrorRecord(
+                                new InvalidOperationException("PowerShell script '<#PSScriptInfo .. #>' comment block metadata cannot contain duplicate key i.e .KEY"), 
+                                "psScriptInfoDuplicateKeyError", 
+                                ErrorCategory.ParserError, 
+                                null));
+
                             continue;
                         }
 
@@ -321,26 +325,29 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             if (!parsedMetadata.ContainsKey("VERSION") || String.IsNullOrEmpty((string) parsedMetadata["VERSION"]) || String.Equals(((string) parsedMetadata["VERSION"]).Trim(), String.Empty))
             {
-                var message = String.Format("PSScript file is missing the required Version property");
-                var ex = new ArgumentException(message);
-                var psScriptMissingVersionError = new ErrorRecord(ex, "psScriptMissingVersion", ErrorCategory.ParserError, null);
-                errorsList.Add(psScriptMissingVersionError);
+                errorsList.Add(new ErrorRecord(
+                    new ArgumentException("PSScript file is missing the required Version property), 
+                    "psScriptMissingVersion", 
+                    ErrorCategory.ParserError, 
+                    null));
             }
 
             if (!parsedMetadata.ContainsKey("AUTHOR") || String.IsNullOrEmpty((string) parsedMetadata["AUTHOR"]) || String.Equals(((string) parsedMetadata["AUTHOR"]).Trim(), String.Empty))
             {
-                var message = String.Format("PSScript file is missing the required Author property");
-                var ex = new ArgumentException(message);
-                var psScriptMissingAuthorError = new ErrorRecord(ex, "psScriptMissingAuthor", ErrorCategory.ParserError, null);
-                errorsList.Add(psScriptMissingAuthorError);
+                errorsList.Add(new ErrorRecord(
+                    new ArgumentException("PSScript file is missing the required Author property"), 
+                    "psScriptMissingAuthor", 
+                    ErrorCategory.ParserError, 
+                    null));
             }
 
             if (!parsedMetadata.ContainsKey("GUID") || String.IsNullOrEmpty((string) parsedMetadata["GUID"]) || String.Equals(((string) parsedMetadata["GUID"]).Trim(), String.Empty))
             {
-                var message = String.Format("PSScript file is missing the required Guid property");
-                var ex = new ArgumentException(message);
-                var psScriptMissingGuidError = new ErrorRecord(ex, "psScriptMissingGuid", ErrorCategory.ParserError, null);
-                errorsList.Add(psScriptMissingGuidError);
+                errorsList.Add(new ErrorRecord(
+                    new ArgumentException("PSScript file is missing the required Guid property"), 
+                    "psScriptMissingGuid", 
+                    ErrorCategory.ParserError, 
+                    null));
             }
 
             errors = errorsList.ToArray();
@@ -357,28 +364,31 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             if (Version == null || String.IsNullOrEmpty(Version.ToString()))
             {
-                var message = String.Format("PSScript file is missing the required Version property");
-                var ex = new ArgumentException(message);
-                var psScriptMissingVersionError = new ErrorRecord(ex, "psScriptMissingVersion", ErrorCategory.ParserError, null);
-                errorsList.Add(psScriptMissingVersionError);
+                errorsList.Add(new ErrorRecord(
+                    new ArgumentException("PSScript file is missing the required Version property"), 
+                    "psScriptMissingVersion", 
+                    ErrorCategory.ParserError, 
+                    null));
                 validPSScriptInfo = false;
             }
 
             if (String.IsNullOrEmpty(Author))
             {
-                var message = String.Format("PSScript file is missing the required Author property");
-                var ex = new ArgumentException(message);
-                var psScriptMissingAuthorError = new ErrorRecord(ex, "psScriptMissingAuthor", ErrorCategory.ParserError, null);
-                errorsList.Add(psScriptMissingAuthorError);
+                errorsList.Add(new ErrorRecord(
+                    new ArgumentException("PSScript file is missing the required Author property"), 
+                    "psScriptMissingAuthor", 
+                    ErrorCategory.ParserError, 
+                    null));
                 validPSScriptInfo = false;
             }
 
             if (Guid == Guid.Empty)
             {
-                var message = String.Format("PSScript file is missing the required Guid property");
-                var ex = new ArgumentException(message);
-                var psScriptMissingGuidError = new ErrorRecord(ex, "psScriptMissingGuid", ErrorCategory.ParserError, null);
-                errorsList.Add(psScriptMissingGuidError);
+                errorsList.Add(new ErrorRecord(
+                    new ArgumentException("PSScript file is missing the required Guid property"),
+                    "psScriptMissingGuid", 
+                    ErrorCategory.ParserError, 
+                    null));
                 validPSScriptInfo = false;
             }
 
@@ -474,10 +484,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 if (!NuGetVersion.TryParse(version, out NuGetVersion updatedVersion))
                 {
-                    var message = String.Format("Version provided for update could not be parsed successfully into NuGetVersion");
-                    var ex = new ArgumentException(message);
-                    var versionParseIntoNuGetVersionError = new ErrorRecord(ex, "VersionParseIntoNuGetVersion", ErrorCategory.ParserError, null);
-                    error = versionParseIntoNuGetVersionError;
+                    error =  new ErrorRecord(
+                        new ArgumentException("Version provided for update could not be parsed successfully into NuGetVersion"), 
+                        "VersionParseIntoNuGetVersion", 
+                        ErrorCategory.ParserError, 
+                        null);
+
                     return false;
                 }
 

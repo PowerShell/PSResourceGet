@@ -153,6 +153,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             "MissingEndBracketToPSScriptInfoParseError", 
                             ErrorCategory.ParserError, 
                             this);
+
                         return false;
                     }
                 }
@@ -184,6 +185,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             "MissingEndBracketToHelpInfoCommentParseError", 
                             ErrorCategory.ParserError,
                             this);
+
                         return false;
                     }
                 }
@@ -219,6 +221,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     "MissingEndBracketToHelpInfoCommentParseError", 
                     ErrorCategory.ParserError, 
                     this);
+
                 return false;
             }
 
@@ -230,6 +233,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     "missingHelpInfoCommentError", 
                     ErrorCategory.ParserError, 
                     this);
+                    
                 return false;
             }
 
@@ -356,6 +360,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     "PSScriptFileInfoObjectNotCreatedFromFileError", 
                     ErrorCategory.ParserError,
                     this) };
+
                 return false;
             }
 
