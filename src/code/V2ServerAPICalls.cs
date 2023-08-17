@@ -1033,7 +1033,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     XmlNode node = elemList[0];
                     if (node == null || string.IsNullOrEmpty(node.InnerText))
                     {
-                        errRecord = new ErrorRecord(new PSArgumentException("Count property from server response was empty, invalid or not present."), "GetCountFromResponse", ErrorCategory.InvalidData, this);
+                        errRecord = new ErrorRecord(new PSArgumentException("Count property from server response was empty, invalid or not present. If the server supports the V3 server protocol try modifying the repository URI endpoint and ApiVersion to reflect V3 server protocol."), "GetCountFromResponse", ErrorCategory.InvalidData, this);
                         return count;
                     }
 
