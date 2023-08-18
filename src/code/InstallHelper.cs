@@ -783,6 +783,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
                 {
                     _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
+                    
+                    // Remove from tracking list of packages to install.
+                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
+
                     return packagesHash;
                 }
             }
