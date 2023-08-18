@@ -21,6 +21,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         #region Members
 
         public override PSRepositoryInfo Repository { get; set; }
+        public PSCmdlet _cmdletPassedIn { get; set; }
         private readonly FindResponseType _localServerFindResponseType = FindResponseType.ResponseHashtable;
         private readonly string _fileTypeKey = "filetype";
 
@@ -28,9 +29,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Constructor
 
-        public LocalServerAPICalls (PSRepositoryInfo repository, NetworkCredential networkCredential) : base (repository, networkCredential)
+        public LocalServerAPICalls (PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential) : base (repository, networkCredential)
         {
             this.Repository = repository;
+            _cmdletPassedIn = cmdletPassedIn;
         }
 
         #endregion
@@ -45,6 +47,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindAll");
             return FindTagsHelper(tags: Utils.EmptyStrArray, includePrerelease, out errRecord);
         }
 
@@ -56,6 +59,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindTags");
             FindResults tagFindResults = FindTagsHelper(tags, includePrerelease, out errRecord);
             if (tagFindResults.IsFindResultsEmpty())
             {
@@ -74,6 +78,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindCommandOrDscResource");
             string[] cmdsOrDSCs = GetCmdsOrDSCTags(tags: tags, isSearchingForCommands: isSearchingForCommands);
             FindResults cmdOrDSCFindResults = FindTagsHelper(cmdsOrDSCs, includePrerelease, out errRecord);
             if (cmdOrDSCFindResults.IsFindResultsEmpty())
@@ -100,6 +105,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindName");
             return FindNameHelper(packageName, Utils.EmptyStrArray, includePrerelease, type, out errRecord);
         }
 
@@ -111,6 +117,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameWithTag");
             return FindNameHelper(packageName, tags, includePrerelease, type, out errRecord);
         }
 
@@ -124,6 +131,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameGlobbing");
             return FindNameGlobbingHelper(packageName, Utils.EmptyStrArray, includePrerelease, type, out errRecord);
         }
 
@@ -135,6 +143,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameGlobbingWithTag");
             return FindNameGlobbingHelper(packageName, tags, includePrerelease, type, out errRecord);
         }
 
@@ -149,6 +158,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindVersionGlobbing");
             FindResults findResponse = new FindResults();
             errRecord = null;
             string actualPkgName = packageName;
@@ -188,6 +198,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindVersion");
             return FindVersionHelper(packageName, version, Utils.EmptyStrArray, type, out errRecord);
         }
 
@@ -199,6 +210,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindVersionWithTag");
             return FindVersionHelper(packageName, version, tags, type, out errRecord);
         }
 
@@ -213,6 +225,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::InstallName");
             FileStream fs = null;
             errRecord = null;
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
@@ -225,10 +238,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
+                    _cmdletPassedIn.WriteDebug($"'{packageName}' found in '{path}'");
                     string[] packageWithoutName = packageFullName.ToLower().Split(new string[]{ $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
                     string packageVersionAndExtension = packageWithoutName[0];
                     int extensionDot = packageVersionAndExtension.LastIndexOf('.');
                     string version = packageVersionAndExtension.Substring(0, extensionDot);
+                    _cmdletPassedIn.WriteDebug($"Parsing version '{version}' of package '{packageName}'");
                     NuGetVersion.TryParse(version, out NuGetVersion nugetVersion);
 
                     if ((!nugetVersion.IsPrerelease || includePrerelease) && (nugetVersion > latestVersion))
@@ -251,7 +266,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             try
-            {            
+            {
+                _cmdletPassedIn.WriteDebug($"Reading file '{latestVersionPath}'");
                 fs = new FileStream(latestVersionPath, FileMode.Open, FileAccess.Read);
                 if (fs == null)
                 {
@@ -284,12 +300,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::InstallVersion");
             errRecord = null;
             FileStream fs = null;
 
             // if 4 digits and last is 0, create 3 digit equiv string
             // 4 digit version (where last is 0) is always passed in.
             NuGetVersion.TryParse(version, out NuGetVersion pkgVersion);
+            _cmdletPassedIn.WriteDebug($"Version parsed as '{pkgVersion}'");
+
             if (pkgVersion.Revision == 0)
             {
                 version = pkgVersion.ToNormalizedString();
@@ -304,6 +323,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
+                    _cmdletPassedIn.WriteDebug($"Found match with '{path}'");
                     pkgVersionPath = path;
                 }
             }
@@ -321,6 +341,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
+                _cmdletPassedIn.WriteDebug($"Reading file '{pkgVersionPath}'");
                 fs = new FileStream(pkgVersionPath, FileMode.Open, FileAccess.Read);
 
                 if (fs == null)
@@ -353,6 +374,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private FindResults FindNameHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameHelper");
             FindResults findResponse = new FindResults();
             errRecord = null;
 
@@ -368,6 +390,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
                     NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out errRecord);
+                    _cmdletPassedIn.WriteDebug($"Version parsed as '{nugetVersion}'");
+
                     if (errRecord != null)
                     {
                         return findResponse;
@@ -413,6 +437,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
+
             return findResponse;
         }
 
@@ -421,6 +446,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private FindResults FindNameGlobbingHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameGlobbingHelper");
             FindResults findResponse = new FindResults();
             List<Hashtable> pkgsFound = new List<Hashtable>();
             errRecord = null;
@@ -432,6 +458,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 Hashtable pkgInfo = pkgVersionsFound[pkgFound] as Hashtable;
                 string pkgPath = pkgInfo["path"] as string;
+                _cmdletPassedIn.WriteDebug($"Package '{pkgFound}' found from path '{pkgPath}'");
 
                 Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: pkgFound, packagePath: pkgPath, requiredTags: tags, errRecord: out errRecord);
                 if (errRecord != null || pkgMetadata.Count == 0)
@@ -452,6 +479,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private FindResults FindVersionHelper(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindVersionHelper");
             FindResults findResponse = new FindResults();
             errRecord = null;
 
@@ -475,6 +503,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
                     NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out errRecord);
+                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{nugetVersion}'");
+
                     if (errRecord != null)
                     {
                         return findResponse;
@@ -482,6 +512,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (nugetVersion == requiredVersion)
                     {
+                        _cmdletPassedIn.WriteDebug("Found matching version");
                         string pkgFullName = $"{actualPkgName}.{nugetVersion.ToString()}.nupkg";
                         pkgPath = Path.Combine(Repository.Uri.LocalPath, pkgFullName);
                         break;
@@ -526,6 +557,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private FindResults FindTagsHelper(string[] tags, bool includePrerelease, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindTagsHelper");
             FindResults findResponse = new FindResults();
             List<Hashtable> pkgsFound = new List<Hashtable>();
             errRecord = null;
@@ -538,6 +570,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 Hashtable pkgInfo = pkgVersionsFound[pkgFound] as Hashtable;
                 NuGetVersion pkgVersion = pkgInfo["version"] as NuGetVersion;
                 string pkgPath = pkgInfo["path"] as string;
+                _cmdletPassedIn.WriteDebug($"Found package '{pkgFound}' from path '{pkgPath}'");
 
                 Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: pkgFound, packagePath: pkgPath, requiredTags: tags, errRecord: out errRecord);
                 if (errRecord != null)
@@ -565,6 +598,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Hashtable GetMetadataFromNupkg(string packageName, string packagePath, string[] requiredTags, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::GetMetadataFromNupkg");
             Hashtable pkgMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
             errRecord = null;
 
@@ -586,6 +620,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 File.Move(destNupkgPath, zipFilePath);
 
                 // extract from .zip
+                _cmdletPassedIn.WriteDebug($"Extracting '{zipFilePath}' to '{tempDiscoveryPath}'");
                 System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, tempDiscoveryPath);
 
                 string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.psd1");
@@ -596,6 +631,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (File.Exists(psd1FilePath))
                 {
+                    _cmdletPassedIn.WriteDebug($"Attempting to read module manifest file '{psd1FilePath}'");
                     if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
                     {
                         errRecord = new ErrorRecord(
@@ -621,6 +657,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else if (File.Exists(ps1FilePath))
                 {
+                    _cmdletPassedIn.WriteDebug($"Attempting to read script file '{ps1FilePath}'");
                     if (!PSScriptFileInfo.TryTestPSScriptFileInfo(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
                     {
                         errRecord = new ErrorRecord(
@@ -640,6 +677,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else if (File.Exists(nuspecFilePath))
                 {
+                    _cmdletPassedIn.WriteDebug($"Attempting to read nuspec file '{nuspecFilePath}'");
                     pkgMetadata = GetHashtableForNuspec(nuspecFilePath, out errRecord);
                     if (errRecord != null)
                     {
@@ -661,7 +699,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         
                     return pkgMetadata;
                 }
-
 
                 // if no RequiredTags are specified for the API, this will return true by default.
                 bool isTagMatch = DeterminePkgTagsSatisfyRequiredTags(pkgTags: pkgTags.ToArray(), requiredTags: requiredTags);
@@ -696,6 +733,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Hashtable GetMatchingFilesGivenSpecificName(string packageName, bool includePrerelease, VersionRange versionRange, out string actualName, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::GetMatchingFilesGivenSpecificName");
             actualName = packageName;
             // used for FindVersionGlobbing where we know exact non-wildcard name of the package
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
@@ -709,6 +747,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
                 {
                     NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, out actualName, errRecord: out errRecord);
+                    _cmdletPassedIn.WriteDebug($"Found package '{packageName}' from path '{path}'");
                     if (errRecord != null)
                     {
                         continue;
@@ -734,6 +773,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Hashtable GetMatchingFilesGivenNamePattern(string packageNameWithWildcard, bool includePrerelease)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::GetMatchingFilesGivenNamePattern");
             bool isNameFilteringRequired = !String.IsNullOrEmpty(packageNameWithWildcard);
 
             // wildcard name possibilities: power*, *get, power*get
@@ -772,6 +812,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 string version = packageFullName.Substring(group.Index + 1, packageFullName.LastIndexOf('.') - group.Index - 1);
+                _cmdletPassedIn.WriteDebug($"Found package '{pkgFoundName}', version '{version}', from path '{path}'");
 
                 if (!NuGetVersion.TryParse(version, out NuGetVersion nugetVersion))
                 {
@@ -809,6 +850,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private NuGetVersion GetInfoFromFileName(string packageFullName, string packageName, out string actualName, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::GetInfoFromFileName");
             // packageFullName will look like package.1.0.0.nupkg
             errRecord = null;
 

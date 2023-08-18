@@ -24,6 +24,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     {
         #region Members
         public override PSRepositoryInfo Repository { get; set; }
+        public PSCmdlet _cmdletPassedIn { get; set; }
         private HttpClient _sessionClient { get; set; }
         private bool _isNuGetRepo { get; set; }
         private bool _isJFrogRepo { get; set; }
@@ -50,10 +51,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Constructor
 
-        public V3ServerAPICalls(PSRepositoryInfo repository, NetworkCredential networkCredential, string userAgentString) : base(repository, networkCredential)
+        public V3ServerAPICalls(PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential, string userAgentString) : base(repository, networkCredential)
         {
             this.Repository = repository;
-
+            _cmdletPassedIn = cmdletPassedIn;
             HttpClientHandler handler = new HttpClientHandler()
             {
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
@@ -94,6 +95,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindTags");
             if (_isNuGetRepo || _isJFrogRepo)
             {
                 return FindTagsFromNuGetRepo(tags, includePrerelease, out errRecord);
@@ -133,6 +135,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindName");
             return FindNameHelper(packageName, tags: Utils.EmptyStrArray, includePrerelease, type, out errRecord);
         }
 
@@ -144,6 +147,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameWithTag");
             return FindNameHelper(packageName, tags, includePrerelease, type, out errRecord);
         }
 
@@ -153,6 +157,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameGlobbing");
             if (_isNuGetRepo || _isJFrogRepo || _isGHPkgsRepo || _isMyGetRepo)
             {
                 return FindNameGlobbingFromNuGetRepo(packageName, tags: Utils.EmptyStrArray, includePrerelease, out errRecord);
@@ -175,6 +180,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameGlobbingWithTag");
             if (_isNuGetRepo || _isJFrogRepo || _isGHPkgsRepo || _isMyGetRepo)
             {
                 return FindNameGlobbingFromNuGetRepo(packageName, tags, includePrerelease, out errRecord);
@@ -201,6 +207,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindVersionGlobbing");
             string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, catalogEntryProperty, isSearch: true, out errRecord);
             if (errRecord != null)
             {
@@ -228,6 +235,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion) && versionRange.Satisfies(pkgVersion))
                         {
+                            _cmdletPassedIn.WriteDebug($"Package version parsed as '{pkgVersion}' satisfies the version range");
                             if (!pkgVersion.IsPrerelease || includePrerelease)
                             {
                                 satisfyingVersions.Add(response);
@@ -259,6 +267,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindVersion");
             return FindVersionHelper(packageName, version, tags: Utils.EmptyStrArray, type, out errRecord);
         }
 
@@ -271,6 +280,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindVersionWithTag");
             return FindVersionHelper(packageName, version, tags: tags, type, out errRecord);
         }
 
@@ -283,6 +293,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallName");
             return InstallHelper(packageName, version: null, out errRecord);
         }
 
@@ -295,6 +306,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallVersion");
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
                 errRecord = new ErrorRecord(
@@ -318,6 +330,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private FindResults FindNameGlobbingFromNuGetRepo(string packageName, string[] tags, bool includePrerelease, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameGlobbingFromNuGetRepo");
             var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
             string querySearchTerm;
 
@@ -391,12 +404,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     id = idItem.ToString();
+                    _cmdletPassedIn.WriteDebug($"Id found '{id}'");
 
                     // determine if id matches our wildcard criteria
                     if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.ToLower().Contains(querySearchTerm.ToLower())) ||
                         (packageName.EndsWith("*") && id.StartsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)) ||
                         (packageName.StartsWith("*") && id.EndsWith(querySearchTerm, StringComparison.OrdinalIgnoreCase)))
                     {
+                        _cmdletPassedIn.WriteDebug($"Id '{id}' matches wildcard search criteria");
                         bool isTagMatch = IsRequiredTagSatisfied(tagsItem, tags, out errRecord);
                         if (!isTagMatch)
                         {
@@ -427,6 +442,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private FindResults FindTagsFromNuGetRepo(string[] tags, bool includePrerelease, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindTagsFromNuGetRepo");
             string tagsQueryTerm = $"tags:{String.Join(" ", tags)}";
             // Get responses for all packages that contain the required tags
             // example query:
@@ -461,6 +477,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         private FindResults FindNameHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameHelper");
             string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, catalogEntryProperty, isSearch: true, out errRecord);
             if (errRecord != null)
             {
@@ -499,6 +516,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
                         {
+                            _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
                             if (!pkgVersion.IsPrerelease || includePrerelease)
                             {
                                 // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
@@ -556,6 +574,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private FindResults FindVersionHelper(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindVersionHelper");
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
                 errRecord = new ErrorRecord(
@@ -566,6 +585,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
+            _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{requiredVersion}'");
 
             string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, catalogEntryProperty, isSearch: true, out errRecord);
             if (errRecord != null)
@@ -661,6 +681,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Stream InstallHelper(string packageName, NuGetVersion version, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallHelper");
             Stream pkgStream = null;
             bool getLatestVersion = true;
             if (version != null)
@@ -734,6 +755,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string[] GetVersionedPackageEntriesFromRegistrationsResource(string packageName, string propertyName, bool isSearch, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedPackageEntriesFromRegistrationsResource");
             string[] responses = Utils.EmptyStrArray;
             Dictionary<string, string> resources = GetResourcesFromServiceIndex(out errRecord);
             if (errRecord != null)
@@ -763,6 +785,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private List<JsonElement> GetVersionedPackageEntriesFromSearchQueryResource(string queryTerm, bool includePrerelease, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedPackageEntriesFromSearchQueryResource");
             List<JsonElement> pkgEntries = new();
             Dictionary<string, string> resources = GetResourcesFromServiceIndex(out errRecord);
             if (errRecord != null)
@@ -803,6 +826,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Dictionary<string, string> GetResourcesFromServiceIndex(out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetResourcesFromServiceIndex");
             Dictionary<string, string> resources = new Dictionary<string, string>();
             JsonElement[] resourcesArray = GetJsonElementArr($"{Repository.Uri}", resourcesName, out int totalHits, out errRecord);
             if (errRecord != null)
@@ -844,7 +868,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 catch (Exception e)
                 {
                     errRecord = new ErrorRecord(
-                        $"Exception parsing service index JSON for respository '{Repository.Name}' with error: {e.Message}", 
+                        new Exception($"Exception parsing service index JSON for respository '{Repository.Name}' with error: {e.Message}"), 
                         "GetResourcesFromServiceIndexFailure", 
                         ErrorCategory.InvalidResult, 
                         this);
@@ -862,6 +886,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string FindRegistrationsBaseUrl(Dictionary<string, string> resources, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindRegistrationsBaseUrl");
             errRecord = null;
             string registrationsBaseUrl = String.Empty;
 
@@ -912,6 +937,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string FindSearchQueryService(Dictionary<string, string> resources, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindSearchQueryService");
             errRecord = null;
             string searchQueryServiceUrl = String.Empty;
 
@@ -949,6 +975,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private JsonElement GetMetadataElementForJFrogRepo(JsonElement itemsElement, string packageName, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetMetadataElementForJFrogRepo");
             JsonElement metadataElement;
             if (!itemsElement.TryGetProperty(idLinkName, out metadataElement))
             {
@@ -1018,6 +1045,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         private string[] GetVersionedResponsesFromRegistrationsResource(string registrationsBaseUrl, string packageName, string property, bool isSearch, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedResponsesFromRegistrationsResource");
             List<string> versionedResponses = new List<string>();
             string[] versionedResponseArr;
             var requestPkgMapping = registrationsBaseUrl.EndsWith("/") ? $"{registrationsBaseUrl}{packageName.ToLower()}/index.json" : $"{registrationsBaseUrl}/{packageName.ToLower()}/index.json";
@@ -1175,6 +1203,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool IsLatestVersionFirstForSearch(string[] versionedResponses, string upperVersion, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForSearch");
             errRecord = null;
             bool latestVersionFirst = true;
 
@@ -1231,6 +1260,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool IsLatestVersionFirstForInstall(string[] versionedResponses, string upperVersion, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForInstall");
             errRecord = null;
             bool latestVersionFirst = true;
 
@@ -1357,11 +1387,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string HttpRequestCall(string requestUrlV3, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::HttpRequestCall");
             errRecord = null;
             string response = string.Empty;
 
             try
             {
+                _cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV3}'");
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
 
                 response = SendV3RequestAsync(request, _sessionClient).GetAwaiter().GetResult();
@@ -1407,10 +1439,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private HttpContent HttpRequestCallForContent(string requestUrlV3, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::HttpRequestCallForContent");
             errRecord = null;
             HttpContent content = null;
             try
             {
+                _cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV3}'");
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
 
                 content = SendV3RequestForContentAsync(request, _sessionClient).GetAwaiter().GetResult();
@@ -1422,6 +1456,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "HttpRequestCallForContentFailure", 
                     ErrorCategory.InvalidResult, 
                     this);
+            }
+
+            if (string.IsNullOrEmpty(content.ToString()))
+            {
+                _cmdletPassedIn.WriteDebug("Response is empty");
             }
 
             return content;
