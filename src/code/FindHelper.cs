@@ -185,7 +185,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 repositoryNamesToSearch.Add(currentRepository.Name);
                 _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
                 if (currentServer == null)
                 {
                     // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
@@ -355,7 +355,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 repositoryNamesToSearch.Add(currentRepository.Name);
                 _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
                 if (currentServer == null)
                 {
                     // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
@@ -545,7 +545,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 repositoryNamesToSearch.Add(currentRepository.Name);
                 _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
                 if (currentServer == null)
                 {
                     // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
@@ -790,7 +790,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             new ArgumentException("Name cannot contain or equal wildcard when using specific version."),
                             "InvalidWildCardUsage", 
                             ErrorCategory.InvalidOperation, 
-                            this);
+                            this));
 
                         continue;
                     }

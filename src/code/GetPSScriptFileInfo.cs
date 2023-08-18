@@ -31,7 +31,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {            
             if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
-                ThrowTerminatingError(ErrorRecord(
+                ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException("The script file pathname must end with a .ps1 file extension. Example: C:/Users/john/x/MyScript.ps1"),
                     "InvalidPath",
                     ErrorCategory.InvalidArgument,

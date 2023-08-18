@@ -151,7 +151,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     new ArgumentException( "PSScript file must contain value for Description. Ensure value for Description is passed in and try again."), 
                     "PSScriptInfoMissingDescription", 
                     ErrorCategory.InvalidArgument, 
-                    null));
+                    null);
 
                 return false;
             }

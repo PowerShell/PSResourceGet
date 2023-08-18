@@ -272,7 +272,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 sourceTrusted = currentRepository.Trusted || trustRepository;
 
                 _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
 
                 if (currentServer == null)
                 {
@@ -1269,7 +1269,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 ErrorCategory.ObjectNotFound,
                                 _cmdletPassedIn);;
                             success = false;
-                            
+
                             return success;
                         }
 

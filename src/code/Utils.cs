@@ -1133,7 +1133,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             new ArgumentException($"ModuleSpecification object was not able to be created for {moduleSpecName}"), 
                             "ModuleSpecificationNotCreated", 
                             ErrorCategory.InvalidArgument, 
-                            null););
+                            null));
                         moduleSpecCreatedSuccessfully = false;
                         continue;
                     }

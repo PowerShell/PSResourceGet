@@ -152,7 +152,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             new InvalidOperationException($"Could not parse '{scriptFileInfoPath}' as a PowerShell script file due to missing the closing '#>' for <#PSScriptInfo comment block"),
                             "MissingEndBracketToPSScriptInfoParseError", 
                             ErrorCategory.ParserError, 
-                            this);
+                            null);
 
                         return false;
                     }
@@ -184,7 +184,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             new InvalidOperationException($"Could not parse '{scriptFileInfoPath}' as a PowerShell script file due to missing the closing '#>' for HelpInfo comment block"),
                             "MissingEndBracketToHelpInfoCommentParseError", 
                             ErrorCategory.ParserError,
-                            this);
+                            null);
 
                         return false;
                     }
@@ -220,7 +220,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     new InvalidOperationException($"Could not parse '{scriptFileInfoPath}' as a PowerShell script due to it missing '<#PSScriptInfo #> block"),
                     "MissingEndBracketToHelpInfoCommentParseError", 
                     ErrorCategory.ParserError, 
-                    this);
+                    null);
 
                 return false;
             }
@@ -232,8 +232,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     new InvalidOperationException($"Could not parse '{scriptFileInfoPath}' as a PowerShell script due to it missing HelpInfo comment block"),
                     "missingHelpInfoCommentError", 
                     ErrorCategory.ParserError, 
-                    this);
-                    
+                    null);
+
                 return false;
             }
 
@@ -359,7 +359,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     new ArgumentException($"PSScriptFileInfo object could not be created from passed in file due to {e.Message}"),
                     "PSScriptFileInfoObjectNotCreatedFromFileError", 
                     ErrorCategory.ParserError,
-                    this) };
+                    null) };
 
                 return false;
             }

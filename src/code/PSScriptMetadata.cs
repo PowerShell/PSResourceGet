@@ -164,7 +164,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     "psScriptInfoBlockMissingMetadataError", 
                     ErrorCategory.ParserError, 
                     null) };
-                    
+
                 return false;
             }
 
@@ -326,7 +326,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (!parsedMetadata.ContainsKey("VERSION") || String.IsNullOrEmpty((string) parsedMetadata["VERSION"]) || String.Equals(((string) parsedMetadata["VERSION"]).Trim(), String.Empty))
             {
                 errorsList.Add(new ErrorRecord(
-                    new ArgumentException("PSScript file is missing the required Version property), 
+                    new ArgumentException("PSScript file is missing the required Version property"), 
                     "psScriptMissingVersion", 
                     ErrorCategory.ParserError, 
                     null));
