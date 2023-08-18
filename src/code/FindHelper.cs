@@ -84,7 +84,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 versionType.ToString(),
                 version != null ? version : String.Empty,
                 prerelease.ToString(),
-                string.Join(",", tag),
+                tag != null ? string.Join(",", tag) : string.Empty,
                 repository != null ? string.Join(",", repository) : string.Empty,
                 includeDependencies.ToString()));
 
