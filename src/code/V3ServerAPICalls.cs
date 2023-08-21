@@ -811,10 +811,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// For some packages (i.e that we know of JFrog repo and some packages on NuGet.org), the metadata is located under outer "items" element > "@id" element > inner "items" element
         /// This requires a different search than if it were under outer "items" element > inner "items" element.
         /// </summary>
-        private JsonElement GetMetadataElementForIdLinkElement(JsonElement idLinkElement, string packageName, out string lowerVersion, out string upperVersion, out ErrorRecord errRecord)
+        private JsonElement GetMetadataElementForIdLinkElement(JsonElement idLinkElement, string packageName, out string upperVersion, out ErrorRecord errRecord)
         {
             upperVersion = String.Empty;
-            lowerVersion = String.Empty;
             // Since JsonElement is not a nullable type, can't return null as default value.
             JsonElement metadataElement = idLinkElement;
 
@@ -847,18 +846,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         upperVersion = upperVerElement.ToString();
                     }
 
-                    if (rootDom.TryGetProperty("lower", out JsonElement lowerVerElement))
-                    {
-                        lowerVersion = lowerVerElement.ToString();
-                    }
-
                     // return clone, otherwise this JsonElement will be out of scope to the caller once JsonDocument is disposed
                     metadataElement = innerItemsElement.Clone();
                 }
             }
             catch (Exception e)
             {
-                errRecord = new ErrorRecord(e, "FindSearchQueryServiceFailure", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(e, "MetadataElementRetrievalFailure", ErrorCategory.InvalidResult, this);
             }
 
             return metadataElement;
@@ -908,7 +902,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     Console.WriteLine($"outer items count: {outerItemsArrayCount}");
 
                     string upperVersion = String.Empty;
-                    string lowerVersion = String.Empty;
 
                     // this will be a list of the inner most items elements (i.e containing the package metadata metadata)
                     List<JsonElement> innerItemsElements = new List<JsonElement>();
@@ -940,7 +933,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                         else if (currentItem.TryGetProperty(idLinkName, out JsonElement idLinkElement))
                         {
-                            JsonElement innerItemElementFromId = GetMetadataElementForIdLinkElement(idLinkElement, packageName, out lowerVersion, out upperVersion, out errRecord);
+                            JsonElement innerItemElementFromId = GetMetadataElementForIdLinkElement(idLinkElement, packageName, out upperVersion, out errRecord);
                             if (errRecord != null)
                             {
                                 continue;
