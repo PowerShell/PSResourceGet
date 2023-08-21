@@ -967,27 +967,37 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         if (item.ValueKind == JsonValueKind.Object)
                         {
+                            Console.WriteLine("object");
                             if (!item.TryGetProperty(property, out JsonElement metadataElement))
                             {
                                 errRecord = new ErrorRecord(new ArgumentException($"Response does not contain inner '{property}' element for package '{packageName}' from repository '{Repository.Name}'."), "GetResponsesFromRegistrationsResourceFailure", ErrorCategory.InvalidResult, this);
                                 continue;
                             }
 
-                            // If metadata has a "listed" property, but it's set to false, skip this package version
-                            if (property.Equals("catalogEntry") && metadataElement.TryGetProperty("listed", out JsonElement listedElement))
+                            if (metadataElement.ValueKind == JsonValueKind.String)
                             {
-                                if (bool.TryParse(listedElement.ToString(), out bool listed) && !listed)
+                                // This is when property is "packageContent"
+                                versionedResponses.Add(metadataElement.ToString());
+                            }
+                            else if(metadataElement.ValueKind == JsonValueKind.Object)
+                            {
+                                // This is when property is "catalogEntry"
+                                // If metadata has a "listed" property, but it's set to false, skip this package version
+                                if (property.Equals("catalogEntry") && metadataElement.TryGetProperty("listed", out JsonElement listedElement))
                                 {
-                                    continue;
+                                    if (bool.TryParse(listedElement.ToString(), out bool listed) && !listed)
+                                    {
+                                        continue;
+                                    }
                                 }
-                            }
 
-                            if (metadataElement.TryGetProperty("version", out JsonElement versionElementForPkg))
-                            {
-                                Console.WriteLine(versionElementForPkg.ToString());
-                            }
+                                if (metadataElement.TryGetProperty("version", out JsonElement versionElementForPkg))
+                                {
+                                    Console.WriteLine(versionElementForPkg.ToString());
+                                }
 
-                            versionedResponses.Add(metadataElement.ToString());
+                                versionedResponses.Add(metadataElement.ToString());
+                            }
                         }
                         else if (item.ValueKind == JsonValueKind.Array)
                         {
@@ -1004,16 +1014,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                     continue;
                                 }
 
-                                // If metadata has a "listed" property, but it's set to false, skip this package version
-                                if (property.Equals("catalogEntry") && metadataElement.TryGetProperty("listed", out JsonElement listedElement))
+                                if (metadataElement.ValueKind == JsonValueKind.String)
                                 {
-                                    if (bool.TryParse(listedElement.ToString(), out bool listed) && !listed)
-                                    {
-                                        continue;
-                                    }
+                                    versionedResponses.Add(metadataElement.ToString());
                                 }
+                                else if (metadataElement.ValueKind == JsonValueKind.Object)
+                                {
+                                    // If metadata has a "listed" property, but it's set to false, skip this package version
+                                    if (property.Equals("catalogEntry") && metadataElement.TryGetProperty("listed", out JsonElement listedElement))
+                                    {
+                                        if (bool.TryParse(listedElement.ToString(), out bool listed) && !listed)
+                                        {
+                                            continue;
+                                        }
+                                    }
 
-                                versionedResponses.Add(metadataElement.ToString());
+                                    versionedResponses.Add(metadataElement.ToString());
+                                }
                             }
                         }
                     }
