@@ -411,4 +411,18 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidatio
 
         Set-PSResourceRepository PoshTestGallery -Trusted
     }
+
+    It "Install package from NuGetGallery that has outer and inner 'items' elements only and has outer items element array length greater than 1" {
+        $res = Install-PSResource -Name "Microsoft.Extensions.DependencyInjection" -Repository $NuGetGalleryName -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -HaveCount 0
+
+        $res.Name | Should -Be "Microsoft.Extensions.DependencyInjection"
+    }
+
+    It "Install package from NuGetGallery that has outer 'items', '@id' and inner 'items' elements" {
+        $res = Install-PSResource -Name "MsgReader" -Repository $NuGetGalleryName -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -HaveCount 0
+
+        $res.Name | Should -Be "MsgReader"
+    }
 }
