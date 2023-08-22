@@ -588,6 +588,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     CultureInfo.InvariantCulture,
                     @"TryConvertFromXml: Cannot parse PSResourceInfo from XmlNode with error: {0}",
                     ex.Message);
+
                 return false;
             }
         }
@@ -769,6 +770,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     CultureInfo.InvariantCulture,
                     @"TryConvertFromJson: Cannot parse PSResourceInfo from json object with error: {0}",
                     ex.Message);
+                    
                 return false;
             }
         }

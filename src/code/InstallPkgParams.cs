@@ -44,9 +44,11 @@ public class InstallPkgParams
                 }
                 else if (!Utils.TryParseVersionOrVersionRange(propertyValue, out versionTmp))
                 {
-                    var exMessage = "Argument for Version parameter is not in the proper format.";
-                    var ex = new ArgumentException(exMessage);
-                    IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
+                    IncorrectVersionFormat = new ErrorRecord(
+                        new ArgumentException("Argument for Version parameter is not in the proper format."),
+                        "IncorrectVersionFormat", 
+                        ErrorCategory.InvalidArgument,
+                        this);
                 }
                 Version = versionTmp;
                 break;

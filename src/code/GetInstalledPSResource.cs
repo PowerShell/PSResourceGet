@@ -66,46 +66,46 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // an exact version will be formatted into a version range.
             if (Version == null)
             {
+                WriteDebug("Searcing for all versions");
                 _versionRange = VersionRange.All;
             }
             else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
             {
-                var exMessage = "Argument for -Version parameter is not in the proper format.";
-                var ex = new ArgumentException(exMessage);
-                var IncorrectVersionFormat = new ErrorRecord(ex, "IncorrectVersionFormat", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(IncorrectVersionFormat);
+                ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException("Argument for -Version parameter is not in the proper format."),
+                    "IncorrectVersionFormat",
+                    ErrorCategory.
+                    InvalidArgument,
+                    this));
             }
 
             // Determine paths to search.
             _pathsToSearch = new List<string>();
             if (Path != null)
             {
-                WriteVerbose(string.Format("Provided path is: '{0}'", Path));
-
+                WriteDebug($"Provided path is: '{Path}'");
                 var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
                 if (resolvedPaths.Count != 1)
                 {
-                    ThrowTerminatingError(
-                        new ErrorRecord(
-                            new PSArgumentException("Error: Could not resolve provided Path argument into a single path."),
-                            "ErrorInvalidPathArgument",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                    ThrowTerminatingError(new ErrorRecord(
+                        new PSArgumentException($"Error: Could not resolve provided Path argument '{Path}' into a single path."),
+
+                        "ErrorInvalidPathArgument",
+                        ErrorCategory.InvalidArgument,
+                        this));
                 }
 
                 var resolvedPath = resolvedPaths[0];
-                WriteVerbose(string.Format("Provided resolved path is '{0}'", resolvedPath));
+                WriteDebug($"Provided resolved path is '{resolvedPath}'");
 
                 var versionPaths = Utils.GetSubDirectories(resolvedPath);
                 if (versionPaths.Length == 0)
                 {
-                    ThrowTerminatingError(
-                        new ErrorRecord(
-                            exception: new PSInvalidOperationException(
-                                $"Error cannot find expected subdirectories in provided path: {Path}"),
-                            "PathMissingExpectedSubdirectories",
-                            ErrorCategory.InvalidOperation,
-                            targetObject: null));
+                    ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException($"Error cannot find expected subdirectories in provided path: {Path}"),
+                        "PathMissingExpectedSubdirectories",
+                        ErrorCategory.InvalidOperation,
+                        this));
                 }
 
                 _pathsToSearch.AddRange(versionPaths);
@@ -119,8 +119,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            WriteVerbose("Entering GetInstalledPSResource");
-
             var namesToSearch = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] errorMsgs, out bool _);
             foreach (string error in errorMsgs)
             {
@@ -135,7 +133,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // but after filtering out unsupported wildcard names in BeginProcessing() there are no elements left in Name.
             if (namesToSearch.Length == 0)
             {
-                 return;
+                WriteDebug("Names were not provided or could not be resolved");
+                return;
             }
 
             // SelectPrereleaseOnly is false because we want both stable and prerelease versions all the time..

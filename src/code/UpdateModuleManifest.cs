@@ -274,14 +274,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 Prerelease = Prerelease.Trim();
                 if (string.IsNullOrWhiteSpace(Prerelease))
                 {
-                    var message = $"Prerelease value cannot be empty or whitespace. Please re-run cmdlet with valid value.";
-
-                    ThrowTerminatingError(
-                        new ErrorRecord(
-                            new ArgumentException(message),
-                            "PrereleaseValueCannotBeWhiteSpace",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                    ThrowTerminatingError(new ErrorRecord(
+                        new ArgumentException("Prerelease value cannot be empty or whitespace. Please re-run cmdlet with valid value."),
+                        "PrereleaseValueCannotBeWhiteSpace",
+                        ErrorCategory.InvalidArgument,
+                        this));
                 }
             }
 
@@ -290,14 +287,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Test the path of the module manifest to see if the file exists
             if (!File.Exists(resolvedManifestPath) || !resolvedManifestPath.EndsWith(".psd1"))
             {
-                var message = $"The provided file path was not found: '{resolvedManifestPath}'.  Please specify a valid module manifest (.psd1) file path.";
-
-                ThrowTerminatingError(
-                    new ErrorRecord(
-                         new ArgumentException(message),
-                        "moduleManifestPathNotFound",
-                         ErrorCategory.ObjectNotFound,
-                         this));
+                ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException($"The provided file path was not found: '{resolvedManifestPath}'. Please specify a valid module manifest (.psd1) file path."),
+                    "moduleManifestPathNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
 
             // Parse the module manifest
@@ -306,12 +300,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         manifestInfo: out Hashtable parsedMetadata,
                         error: out Exception manifestReadError))
             {
-                ThrowTerminatingError(
-                  new ErrorRecord(
-                       exception: manifestReadError,
-                       errorId: "ModuleManifestParseFailure",
-                       errorCategory: ErrorCategory.ParserError,
-                       targetObject: this));
+                ThrowTerminatingError(new ErrorRecord(
+                    manifestReadError,
+                    "ModuleManifestParseFailure",
+                    ErrorCategory.ParserError,
+                    this));
             }
 
             // Prerelease, ReleaseNotes, Tags, ProjectUri, LicenseUri, IconUri, RequireLicenseAcceptance,
@@ -597,12 +590,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                ThrowTerminatingError(
-                        new ErrorRecord(
-                              new ArgumentException(e.Message),
-                                        "ErrorCreatingTempDir",
-                                        ErrorCategory.InvalidData,
-                                        this));
+                ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException(e.Message),
+                    "ErrorCreatingTempDir",
+                    ErrorCategory.InvalidData,
+                    this));
             }
 
             string tmpModuleManifestPath = System.IO.Path.Combine(tmpParentPath, System.IO.Path.GetFileName(resolvedManifestPath));
@@ -627,12 +619,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    ThrowTerminatingError(
-                        new ErrorRecord(
-                           new ArgumentException($"Error occured while running 'New-ModuleManifest': {e.Message}"),
-                            "ErrorExecutingNewModuleManifest",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                    ThrowTerminatingError(new ErrorRecord(
+                        new ArgumentException($"Error occured while running 'New-ModuleManifest': {e.Message}"),
+                        "ErrorExecutingNewModuleManifest",
+                        ErrorCategory.InvalidArgument,
+                        this));
                 }
             }
 

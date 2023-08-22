@@ -323,7 +323,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $pkg = Get-InstalledPSResource $clobberTestModule2
         $pkg | Should -BeNullOrEmpty
         $ev.Count | Should -Be 1
-        $ev[0] | Should -Be "ClobberTestModule2 package could not be installed with error: The following commands are already available on this system: 'Test-Command2, Test-Command2'. This module 'ClobberTestModule2' may override the existing commands. If you still want to install this module 'ClobberTestModule2', remove the -NoClobber parameter."
+        $ev[0] | Should -Be "'ClobberTestModule2' package could not be installed with error: The following commands are already available on this system: 'Test-Command2, Test-Command2'. This module 'ClobberTestModule2' may override the existing commands. If you still want to install this module 'ClobberTestModule2', remove the -NoClobber parameter."
     }
 
     It "Install resource with cmdlet names from a module already installed (should clobber)" {

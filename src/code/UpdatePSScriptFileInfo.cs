@@ -180,29 +180,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
-                    var exMessage = "File path needs to end with a .ps1 extension. Example: C:/Users/john/x/MyScript.ps1";
-                    var ex = new ArgumentException(exMessage);
-                    var InvalidOrNonExistantPathError = new ErrorRecord(ex, "InvalidOrNonExistantPath", ErrorCategory.InvalidArgument, null);
-                    ThrowTerminatingError(InvalidOrNonExistantPathError);   
+                ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException("File path needs to end with a .ps1 extension. Example: C:/Users/john/x/MyScript.ps1"),
+                    "InvalidOrNonExistantPath",
+                    ErrorCategory.InvalidArgument,
+                    this));
             }
 
             var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
             if (resolvedPaths.Count != 1)
             {
-                var exMessage = "Error: Could not resolve provided Path argument into a single path.";
-                var ex = new PSArgumentException(exMessage);
-                var InvalidPathArgumentError = new ErrorRecord(ex, "InvalidPathArgumentError", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(InvalidPathArgumentError);
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSArgumentException("Could not resolve provided path argument into a single path."),
+                    "InvalidPathArgumentError",
+                    ErrorCategory.InvalidArgument,
+                    this));
             }
 
             string resolvedPath = resolvedPaths[0];
 
             if (!File.Exists(resolvedPath))
             {
-                var exMessage = "A script file does not exist at the location specified";
-                var ex = new ArgumentException(exMessage);
-                var FileDoesNotExistError = new ErrorRecord(ex, "FileDoesNotExistAtPath", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(FileDoesNotExistError);
+                ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException("A script file does not exist at the location specified"),
+                    "FileDoesNotExistAtPath",
+                    ErrorCategory.InvalidArgument,
+                    this));
             }
             
             ModuleSpecification[] validatedRequiredModuleSpecifications = Array.Empty<ModuleSpecification>();
@@ -246,15 +249,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (!RemoveSignature)
                 {
-                    var exMessage = "Cannot update the script file because the file contains a signature block and updating will invalidate the signature. Use -RemoveSignature to remove the signature block, and then re-sign the file after it is updated.";
-                    var ex = new PSInvalidOperationException(exMessage);
-                    var ScriptToBeUpdatedContainsSignatureError = new ErrorRecord(ex, "ScriptToBeUpdatedContainsSignature", ErrorCategory.InvalidOperation, null);
-                    ThrowTerminatingError(ScriptToBeUpdatedContainsSignatureError);
+                    ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException("Cannot update the script file because the file contains a signature block and updating will invalidate the signature. " +
+                            "Use -RemoveSignature to remove the signature block, and then re-sign the file after it is updated."),
+                        "ScriptToBeUpdatedContainsSignature",
+                        ErrorCategory.InvalidOperation,
+                        this));
                 }
                 
                 signatureRemoved = true;
             }
-            
+
+            WriteDebug("Attempting to update script file contents");
             if (!PSScriptFileInfo.TryUpdateScriptFileContents(
                 scriptInfo: parsedScriptInfo,
                 updatedPSScriptFileContents: out string[] updatedPSScriptFileContents,

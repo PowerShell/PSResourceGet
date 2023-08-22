@@ -193,16 +193,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private List<PSRepositoryInfo> RepositoriesParameterSetHelper()
         {
+            WriteDebug("In SetPSResourceRepository::RepositoriesParameterSetHelper()");
             List<PSRepositoryInfo> reposUpdatedFromHashtable = new List<PSRepositoryInfo>();
             foreach (Hashtable repo in Repository)
             {
                 if (!repo.ContainsKey("Name") || repo["Name"] == null || String.IsNullOrEmpty(repo["Name"].ToString()))
                 {
                     WriteError(new ErrorRecord(
-                            new PSInvalidOperationException("Repository hashtable must contain Name key value pair"),
-                            "NullNameForRepositoriesParameterSetRepo",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                        new PSInvalidOperationException("Repository hashtable must contain Name key value pair"),
+                        "NullNameForRepositoriesParameterSetRepo",
+                        ErrorCategory.InvalidArgument,
+                        this));
+
                     continue;
                 }
 
@@ -217,7 +219,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private PSRepositoryInfo RepoValidationHelper(Hashtable repo)
         {
-            WriteVerbose(String.Format("Parsing through repository: {0}", repo["Name"]));
+            WriteDebug("In SetPSResourceRepository::RepoValidationHelper()");
+            WriteDebug($"Parsing through repository '{repo["Name"]}'");
 
             Uri repoUri = null;
             if (repo.ContainsKey("Uri"))
@@ -225,10 +228,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (String.IsNullOrEmpty(repo["Uri"].ToString()))
                 {
                     WriteError(new ErrorRecord(
-                            new PSInvalidOperationException("Repository Uri cannot be null if provided"),
-                            "NullUriForRepositoriesParameterSetUpdate",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                        new PSInvalidOperationException("Repository Uri cannot be null if provided"),
+                        "NullUriForRepositoriesParameterSetUpdate",
+                        ErrorCategory.InvalidArgument,
+                        this));
+
                     return null;
                 }
 
@@ -238,6 +242,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     errorRecord: out ErrorRecord errorRecord))
                 {
                     WriteError(errorRecord);
+
                     return null;
                 }
             }
@@ -258,6 +263,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     errorRecord: out ErrorRecord errorRecord1))
             {
                 WriteError(errorRecord1);
+                
                 return null;
             }
 
@@ -288,10 +294,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (Exception e)
             {
                 WriteError(new ErrorRecord(
-                        new PSInvalidOperationException(e.Message),
-                        "ErrorSettingIndividualRepoFromRepositories",
-                        ErrorCategory.InvalidArgument,
-                        this));
+                    new PSInvalidOperationException(e.Message),
+                    "ErrorSettingIndividualRepoFromRepositories",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
                 return null;
             }
         }

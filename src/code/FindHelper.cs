@@ -74,8 +74,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _nugetVersion = nugetVersion;
             _versionType = versionType;
 
+            _cmdletPassedIn.WriteDebug("In FindHelper::FindByResourceName()");
+            _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; ResourceType: '{1}'; VersionRange: '{2}'; NuGetVersion: '{3}'; VersionType: '{4}'; Version: '{5}'; Prerelease: '{6}'; " +
+                "Tag: '{7}'; Repository: '{8}'; IncludeDependencies '{9}'",
+                string.Join(",", name),
+                type.ToString() ?? string.Empty,
+                versionRange != null ? (versionRange.OriginalString != null ? versionRange.OriginalString : string.Empty) : string.Empty,
+                nugetVersion != null ? nugetVersion.ToString() : string.Empty,
+                versionType.ToString(),
+                version != null ? version : String.Empty,
+                prerelease.ToString(),
+                tag != null ? string.Join(",", tag) : string.Empty,
+                repository != null ? string.Join(",", repository) : string.Empty,
+                includeDependencies.ToString()));
+
             if (name.Length == 0)
             {
+                _cmdletPassedIn.WriteDebug("Names were not provided or could not be resolved");
                 yield break;
             }
 
@@ -91,10 +106,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 foreach (string error in errorMsgs)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new PSInvalidOperationException(error),
-                                "ErrorFilteringNamesForUnsupportedWildcards",
-                                ErrorCategory.InvalidArgument,
-                                this));
+                        new PSInvalidOperationException(error),
+                        "ErrorFilteringNamesForUnsupportedWildcards",
+                        ErrorCategory.InvalidArgument,
+                        this));
                 }
 
                 // If repository entries includes wildcards and non-wildcard names, write terminating error
@@ -115,9 +130,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (containsNonWildcard && containsWildcard)
                 {
-                    string message = "Repository name with wildcard is not allowed when another repository without wildcard is specified.";
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new PSInvalidOperationException(message),
+                        new PSInvalidOperationException("Repository name with wildcard is not allowed when another repository without wildcard is specified."),
                         "RepositoryNamesWithWildcardsAndNonWildcardUnsupported",
                         ErrorCategory.InvalidArgument,
                         this));
@@ -139,28 +153,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (repositoriesToSearch != null && repositoriesToSearch.Count == 0)
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                                new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
-                                "RepositoryNameIsNotResolved",
-                                ErrorCategory.InvalidArgument,
-                                this));
+                        new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
+                        "RepositoryNameIsNotResolved",
+                        ErrorCategory.InvalidArgument,
+                        this));
                 }
 
                 foreach (string error in errorList)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new PSInvalidOperationException(error),
-                                "ErrorRetrievingSpecifiedRepository",
-                                ErrorCategory.InvalidOperation,
-                                this));
+                        new PSInvalidOperationException(error),
+                        "ErrorRetrievingSpecifiedRepository",
+                        ErrorCategory.InvalidOperation,
+                        this));
                 }
             }
             catch (Exception e)
             {
                 _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                            new PSInvalidOperationException(e.Message),
-                            "ErrorLoadingRepositoryStoreFile",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                    new PSInvalidOperationException(e.Message),
+                    "ErrorLoadingRepositoryStoreFile",
+                    ErrorCategory.InvalidArgument,
+                    this));
 
                 yield break;
             }
@@ -171,34 +185,36 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 repositoryNamesToSearch.Add(currentRepository.Name);
                 _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
                 if (currentServer == null)
                 {
                     // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                    new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
-                    "RepositoryApiVersionUnknown",
-                    ErrorCategory.InvalidArgument,
-                    this));
+                        new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
+                        "RepositoryApiVersionUnknown",
+                        ErrorCategory.InvalidArgument,
+                        this));
 
                     continue;
                 }
 
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
-
-                _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
+                _cmdletPassedIn.WriteDebug($"Searching through repository '{currentRepository.Name}'");
 
                 bool shouldReportErrorForEachRepo = !suppressErrors && !_repositoryNameContainsWildcard;
                 foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository, shouldReportErrorForEachRepo))
                 {
                     if (currentPkg == null) {
+                        _cmdletPassedIn.WriteDebug("No packages returned from server");
                         continue;
                     }
 
-                    // Check if pkgsDiscovered dictionary contains this package name exactly, otherwise this may have been a package found for wildcard name input.
                     string currentPkgName = currentPkg.Name;
+                    _cmdletPassedIn.WriteDebug($"Package '{currentPkgName}' returned from server");
+                    // Check if pkgsDiscovered dictionary contains this package name exactly, otherwise this may have been a package found for wildcard name input.
                     if (pkgsDiscovered.Contains(currentPkgName))
                     {
+                        _cmdletPassedIn.WriteDebug($"Package '{currentPkgName}' was previously discovered and returned");
                         pkgsDiscovered.Remove(currentPkgName);
                     }
 
@@ -216,13 +232,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         $"Package '{pkgName}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
 
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new ResourceNotFoundException(msg),
-                                "PackageNotFound",
-                                ErrorCategory.ObjectNotFound,
-                                this));
+                        new ResourceNotFoundException(msg),
+                        "PackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this));
                 }
             }
-        }
+}
 
         public IEnumerable<PSCommandResourceInfo> FindByCommandOrDscResource(
             bool isSearchingForCommands,
@@ -233,8 +249,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _prerelease = prerelease;
             _tag = tag;
 
+            _cmdletPassedIn.WriteDebug("In FindHelper::FindByCommandOrDscResource()");
+            _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> IsSearchingForCommands: '{0}'; Prerelease: '{1}'; Tag: '{2}'; Repository: '{3}'",
+                isSearchingForCommands.ToString(),
+                prerelease.ToString(),
+                string.Join(",", tag),
+                repository != null ? string.Join(",", repository) : string.Empty));
+
             if (_tag.Length == 0)
             {
+                _cmdletPassedIn.WriteDebug("Tags were not provided or could not be resolved");
                 yield break;
             }
 
@@ -246,19 +270,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (string.Equals(repository[0], "*"))
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                                new PSArgumentException ("-Repository parameter does not support entry '*' with -CommandName and -DSCResourceName parameters."),
-                                "RepositoryDoesNotSupportWildcardEntryWithCmdOrDSCName",
-                                ErrorCategory.InvalidArgument,
-                                this));
+                        new PSArgumentException ("-Repository parameter does not support entry '*' with -CommandName and -DSCResourceName parameters."),
+                        "RepositoryDoesNotSupportWildcardEntryWithCmdOrDSCName",
+                        ErrorCategory.InvalidArgument,
+                        this));
                 }
 
                 foreach (string error in errorMsgs)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new PSInvalidOperationException(error),
-                                "ErrorFilteringNamesForUnsupportedWildcards",
-                                ErrorCategory.InvalidArgument,
-                                this));
+                        new PSInvalidOperationException(error),
+                        "ErrorFilteringNamesForUnsupportedWildcards",
+                        ErrorCategory.InvalidArgument,
+                        this));
                 }
 
                 // If repository entries includes wildcards and non-wildcard names, write terminating error
@@ -279,9 +303,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (containsNonWildcard && containsWildcard)
                 {
-                    string message = "Repository name with wildcard is not allowed when another repository without wildcard is specified.";
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new PSInvalidOperationException(message),
+                        new PSInvalidOperationException("Repository name with wildcard is not allowed when another repository without wildcard is specified."),
                         "RepositoryNamesWithWildcardsAndNonWildcardUnsupported",
                         ErrorCategory.InvalidArgument,
                         this));
@@ -296,28 +319,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (repositoriesToSearch != null && repositoriesToSearch.Count == 0)
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                                new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
-                                "RepositoryNameIsNotResolved",
-                                ErrorCategory.InvalidArgument,
-                                this));
+                        new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
+                        "RepositoryNameIsNotResolved",
+                        ErrorCategory.InvalidArgument,
+                        this));
                 }
 
                 foreach (string error in errorList)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new PSInvalidOperationException(error),
-                                "ErrorRetrievingSpecifiedRepository",
-                                ErrorCategory.InvalidOperation,
-                                this));
+                        new PSInvalidOperationException(error),
+                        "ErrorRetrievingSpecifiedRepository",
+                        ErrorCategory.InvalidOperation,
+                        this));
                 }
             }
             catch (Exception e)
             {
                 _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                            new PSInvalidOperationException(e.Message),
-                            "ErrorLoadingRepositoryStoreFile",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                    new PSInvalidOperationException(e.Message),
+                    "ErrorLoadingRepositoryStoreFile",
+                    ErrorCategory.InvalidArgument,
+                    this));
 
                 yield break;
             }
@@ -332,23 +355,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 repositoryNamesToSearch.Add(currentRepository.Name);
                 _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
                 if (currentServer == null)
                 {
                     // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                    new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
-                    "RepositoryApiVersionUnknown",
-                    ErrorCategory.InvalidArgument,
-                    this));
+                        new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
+                        "RepositoryApiVersionUnknown",
+                        ErrorCategory.InvalidArgument,
+                        this));
 
                     continue;
                 }
 
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
 
-                _cmdletPassedIn.WriteVerbose(string.Format("Searching in repository {0}", repositoriesToSearch[i].Name));
-                _cmdletPassedIn.WriteVerbose($"tags: {String.Join(",", _tag)}");
+                _cmdletPassedIn.WriteDebug($"Searching in repository '{currentRepository.Name}' for tags: '{String.Join(",", _tag)}'");
                 FindResults responses = currentServer.FindCommandOrDscResource(_tag, _prerelease, isSearchingForCommands, out ErrorRecord errRecord);
                 if (errRecord != null)
                 {
@@ -369,10 +391,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                     {
                         errRecord = new ErrorRecord(
-                                    new ResourceNotFoundException($"'{String.Join(", ", _tag)}' could not be found", currentResult.exception), 
-                                    "FindCmdOrDscToPSResourceObjFailure", 
-                                    ErrorCategory.NotSpecified, 
-                                    this);
+                            new ResourceNotFoundException($"'{String.Join(", ", _tag)}' could not be found", currentResult.exception), 
+                            "FindCmdOrDscToPSResourceObjFailure", 
+                            ErrorCategory.NotSpecified, 
+                            this);
 
                         if (shouldReportErrorForEachRepo)
                         {
@@ -388,6 +410,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     PSCommandResourceInfo currentCmdPkg = new PSCommandResourceInfo(_tag, currentResult.returnedObject);
                     isCmdOrDSCTagFound = true;
+                    _cmdletPassedIn.WriteDebug($"Found Command or DSCResource with parent package '{currentCmdPkg.ParentResource.Name}'");
+
                     yield return currentCmdPkg;
                 }
             }
@@ -399,10 +423,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     $"Package with {parameterName} '{String.Join(", ", _tag)}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
 
                 _cmdletPassedIn.WriteError(new ErrorRecord(
-                            new ResourceNotFoundException(msg),
-                            "PackageWithCmdOrDscNotFound",
-                            ErrorCategory.ObjectNotFound,
-                            this));
+                    new ResourceNotFoundException(msg),
+                    "PackageWithCmdOrDscNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
         }
 
@@ -416,8 +440,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _prerelease = prerelease;
             _tag = tag;
 
+            _cmdletPassedIn.WriteDebug("In FindHelper::FindByTag()");
+            _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> ResourceType: '{0}'; Prerelease: '{1}'; Tag: '{2}'; Repository: '{3}'",
+                type.ToString() ?? string.Empty,
+                prerelease.ToString(),
+                string.Join(",", tag),
+                repository != null ? string.Join(",", repository) : string.Empty));
+
             if (_tag.Length == 0)
             {
+                _cmdletPassedIn.WriteDebug("Tags were not provided or could not be resolved");
                 yield break;
             }
 
@@ -428,19 +460,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (string.Equals(repository[0], "*"))
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                                new PSArgumentException ("-Repository parameter does not support entry '*' with -Tag parameter."),
-                                "RepositoryDoesNotSupportWildcardEntryWithTag",
-                                ErrorCategory.InvalidArgument,
-                                this));
+                        new PSArgumentException ("-Repository parameter does not support entry '*' with -Tag parameter."),
+                        "RepositoryDoesNotSupportWildcardEntryWithTag",
+                        ErrorCategory.InvalidArgument,
+                        this));
                 }
 
                 foreach (string error in errorMsgs)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new PSInvalidOperationException(error),
-                                "ErrorFilteringNamesForUnsupportedWildcards",
-                                ErrorCategory.InvalidArgument,
-                                this));
+                        new PSInvalidOperationException(error),
+                        "ErrorFilteringNamesForUnsupportedWildcards",
+                        ErrorCategory.InvalidArgument,
+                        this));
                 }
 
                 // If repository entries includes wildcards and non-wildcard names, write terminating error
@@ -461,9 +493,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (containsNonWildcard && containsWildcard)
                 {
-                    string message = "Repository name with wildcard is not allowed when another repository without wildcard is specified.";
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new PSInvalidOperationException(message),
+                        new PSInvalidOperationException("Repository name with wildcard is not allowed when another repository without wildcard is specified."),
                         "RepositoryNamesWithWildcardsAndNonWildcardUnsupported",
                         ErrorCategory.InvalidArgument,
                         this));
@@ -478,28 +509,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (repositoriesToSearch != null && repositoriesToSearch.Count == 0)
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                                new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
-                                "RepositoryNameIsNotResolved",
-                                ErrorCategory.InvalidArgument,
-                                this));
+                        new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
+                        "RepositoryNameIsNotResolved",
+                        ErrorCategory.InvalidArgument,
+                        this));
                 }
 
                 foreach (string error in errorList)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new PSInvalidOperationException(error),
-                                "ErrorRetrievingSpecifiedRepository",
-                                ErrorCategory.InvalidOperation,
-                                this));
+                        new PSInvalidOperationException(error),
+                        "ErrorRetrievingSpecifiedRepository",
+                        ErrorCategory.InvalidOperation,
+                        this));
                 }
             }
             catch (Exception e)
             {
                 _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                            new PSInvalidOperationException(e.Message),
-                            "ErrorLoadingRepositoryStoreFile",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                    new PSInvalidOperationException(e.Message),
+                    "ErrorLoadingRepositoryStoreFile",
+                    ErrorCategory.InvalidArgument,
+                    this));
 
                 yield break;
             }
@@ -514,28 +545,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
                 repositoryNamesToSearch.Add(currentRepository.Name);
                 _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _networkCredential);
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
                 if (currentServer == null)
                 {
                     // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                    new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
-                    "RepositoryApiVersionUnknown",
-                    ErrorCategory.InvalidArgument,
-                    this));
+                        new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not a known repository type that is supported. Please file an issue for support at https://github.com/PowerShell/PSResourceGet/issues"),
+                        "RepositoryApiVersionUnknown",
+                        ErrorCategory.InvalidArgument,
+                        this));
 
                     continue;
                 }
 
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
-
+                _cmdletPassedIn.WriteDebug($"Searching through repository '{currentRepository.Name}'");
                 if (_type != ResourceType.None && repositoriesToSearch[i].Name != "PSGallery")
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                                new PSInvalidOperationException("-Type parameter is only supported with the PowerShellGallery."),
-                                "ErrorUsingTypeParameter",
-                                ErrorCategory.InvalidOperation,
-                                this));
+                        new PSInvalidOperationException("-Type parameter is only supported with the PowerShellGallery."),
+                        "ErrorUsingTypeParameter",
+                        ErrorCategory.InvalidOperation,
+                        this));
                 }
 
                 FindResults responses = currentServer.FindTags(_tag, _prerelease, type, out ErrorRecord errRecord);
@@ -558,10 +589,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                     {
                         errRecord = new ErrorRecord(
-                                    new ResourceNotFoundException($"Tags '{String.Join(", ", _tag)}' could not be found" , currentResult.exception), 
-                                    "FindTagConvertToPSResourceFailure", 
-                                    ErrorCategory.InvalidResult, 
-                                    this);
+                            new ResourceNotFoundException($"Tags '{String.Join(", ", _tag)}' could not be found" , currentResult.exception), 
+                            "FindTagConvertToPSResourceFailure", 
+                            ErrorCategory.InvalidResult, 
+                            this);
 
                         if (shouldReportErrorForEachRepo)
                         {
@@ -586,10 +617,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     $"Package with Tags '{String.Join(", ", _tag)}' could not be found in registered repositories: '{string.Join(", ", repositoryNamesToSearch)}'.";
 
                 _cmdletPassedIn.WriteError(new ErrorRecord(
-                            new ResourceNotFoundException(msg),
-                            "PackageWithTagsNotFound",
-                            ErrorCategory.ObjectNotFound,
-                            this));
+                    new ResourceNotFoundException(msg),
+                    "PackageWithTagsNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
         }
 
@@ -604,12 +635,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             HashSet<string> pkgsFound = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string tagsAsString = String.Empty;
 
+            _cmdletPassedIn.WriteDebug("In FindHelper::SearchByNames()");
             foreach (string pkgName in _pkgsLeftToFind.ToArray())
             {
                 if (_versionType == VersionType.NoVersion)
                 {
                     if (pkgName.Trim().Equals("*"))
                     {
+                        _cmdletPassedIn.WriteDebug("No version specified, package name is '*'");
                         // Example: Find-PSResource -Name "*"
                         FindResults responses = currentServer.FindAll(_prerelease, _type, out errRecord);
                         if (errRecord != null)
@@ -645,6 +678,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 parentPkgs.Add(foundPkg);
                                 pkgsFound.Add(String.Format("{0}{1}", foundPkg.Name, foundPkg.Version.ToString()));
+                                _cmdletPassedIn.WriteDebug($"Found package '{foundPkg.Name}' version '{foundPkg.Version}'");
                                 yield return foundPkg;
                             }
                         }
@@ -653,6 +687,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         // Example: Find-PSResource -Name "Az*"
                         // Example: Find-PSResource -Name "Az*" -Tag "Storage"
+                        _cmdletPassedIn.WriteDebug("No version specified, package name contains a wildcard.");
+
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
@@ -701,6 +737,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         // Example: Find-PSResource -Name "Az"
                         // Example: Find-PSResource -Name "Az" -Tag "Storage"
+                        _cmdletPassedIn.WriteDebug("No version specified, package name is specified");
+
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
@@ -748,10 +786,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     if (pkgName.Contains("*"))
                     {
-                        var exMessage = "Name cannot contain or equal wildcard when using specific version.";
-                        var ex = new ArgumentException(exMessage);
-                        var WildcardError = new ErrorRecord(ex, "InvalidWildCardUsage", ErrorCategory.InvalidOperation, null);
-                        _cmdletPassedIn.WriteError(WildcardError);
+                        _cmdletPassedIn.WriteError(new ErrorRecord(
+                            new ArgumentException("Name cannot contain or equal wildcard when using specific version."),
+                            "InvalidWildCardUsage", 
+                            ErrorCategory.InvalidOperation, 
+                            this));
 
                         continue;
                     }
@@ -759,6 +798,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0"
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0" -Tag "Windows"
+                        _cmdletPassedIn.WriteDebug("Exact version and package name are specified");
+
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
@@ -807,14 +848,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // version type is Version Range
                     if (pkgName.Contains("*"))
                     {
-                        var exMessage = "Name cannot contain or equal wildcard when using version range";
-                        var ex = new ArgumentException(exMessage);
-                        var WildcardError = new ErrorRecord(ex, "InvalidWildCardUsage", ErrorCategory.InvalidOperation, null);
-                        _cmdletPassedIn.WriteError(WildcardError);
+                        _cmdletPassedIn.WriteError(new ErrorRecord(
+                            new ArgumentException("Name cannot contain or equal wildcard when using version range"),
+                            "InvalidWildCardUsage", 
+                            ErrorCategory.InvalidOperation, 
+                            this));
                     }
                     else
                     {
                         // Example: Find-PSResource -Name "Az" -Version "[1.0.0.0, 3.0.0.0]"
+                        _cmdletPassedIn.WriteDebug("Version range and package name are specified");
+
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
@@ -822,10 +866,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                         else
                         {
-                            var exMessage = "-Tag parameter cannot be specified when using version range.";
-                            var ex = new ArgumentException(exMessage);
-                            var WildcardError = new ErrorRecord(ex, "InvalidWildCardUsage", ErrorCategory.InvalidOperation, null);
-                            _cmdletPassedIn.WriteError(WildcardError);
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new ArgumentException("-Tag parameter cannot be specified when using version range."),
+                                "InvalidWildCardUsage", 
+                                ErrorCategory.InvalidOperation,
+                                this));
+
                             continue;
                         }
 
@@ -889,6 +935,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 foreach (PSResourceInfo currentPkg in parentPkgs)
                 {
+                    _cmdletPassedIn.WriteDebug($"Finding dependency packages for '{currentPkg.Name}'");
                     foreach (PSResourceInfo pkgDep in FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository, pkgsFound))
                     {
                         yield return pkgDep;
@@ -953,10 +1000,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
-                                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'", currentResult.exception), 
-                                        "DependencyPackageNotFound", 
-                                        ErrorCategory.ObjectNotFound, 
-                                        this));
+                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'", currentResult.exception), 
+                                "DependencyPackageNotFound", 
+                                ErrorCategory.ObjectNotFound, 
+                                this));
                             yield return null;
                             continue;
                         }
@@ -991,10 +1038,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         if (responses.IsFindResultsEmpty())
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
-                                        new InvalidOrEmptyResponse($"Dependency package with name {dep.Name} and version range {dep.VersionRange} could not be found in repository '{repository.Name}"), 
-                                        "FindDepPackagesFindVersionGlobbingFailure", 
-                                        ErrorCategory.InvalidResult, 
-                                        this));
+                                new InvalidOrEmptyResponse($"Dependency package with name {dep.Name} and version range {dep.VersionRange} could not be found in repository '{repository.Name}"), 
+                                "FindDepPackagesFindVersionGlobbingFailure", 
+                                ErrorCategory.InvalidResult, 
+                                this));
                             yield return null;
                             continue;
                         }
@@ -1004,10 +1051,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
                                 _cmdletPassedIn.WriteError(new ErrorRecord(
-                                            new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception), 
-                                            "DependencyPackageNotFound", 
-                                            ErrorCategory.ObjectNotFound, 
-                                            this));
+                                    new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception), 
+                                    "DependencyPackageNotFound", 
+                                    ErrorCategory.ObjectNotFound, 
+                                    this));
                                 
                                 yield return null;
                                 continue;

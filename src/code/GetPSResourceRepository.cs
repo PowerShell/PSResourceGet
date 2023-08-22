@@ -44,7 +44,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             string nameArrayAsString = (Name == null || !Name.Any() || string.Equals(Name[0], "*") || Name[0] == null)
                 ? "all" : string.Join(", ", Name);
-            WriteVerbose(String.Format("reading repository: {0}. Calling Read() API now", nameArrayAsString));
+            WriteDebug($"Reading repository info for '{nameArrayAsString}'");
             List<PSRepositoryInfo> items = RepositorySettings.Read(Name, out string[] errorList);
 
             // handle non-terminating errors

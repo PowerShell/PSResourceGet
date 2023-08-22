@@ -43,6 +43,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             IEnumerable<PSResourceInfo> pkgs,
             List<string> pathsToSearch)
         {
+            _cmdletPassedIn.WriteDebug("In GetHelper::GetInstalledPackages()");
             foreach (var pkg in pkgs)
             {
                 // Parse Normalized version if present, if not use Version property of the package
@@ -56,7 +57,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         value: pkg.Version.ToString(),
                         out nugetVersion))
                     {
-                        _cmdletPassedIn.WriteVerbose(String.Format("Package's normalized version and version '{0}' could not be parsed into NuGetVersion.", normalizedVersion));
+                        _cmdletPassedIn.WriteVerbose($"Normalized package version '{normalizedVersion}' could not be parsed into NuGetVersion.");
                         yield break;
                     }
                 }
@@ -93,6 +94,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> pathsToSearch,
             bool selectPrereleaseOnly)
         {
+            _cmdletPassedIn.WriteDebug("In GetHelper::GetPackagesFromPath()");
             List<string> pkgPathsByName = FilterPkgPathsByName(name, pathsToSearch);
 
             foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pkgPathsByName, selectPrereleaseOnly))
@@ -108,11 +110,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         // Filter packages by user provided name
         public List<string> FilterPkgPathsByName(string[] names, List<string> dirsToSearch)
         {
+            _cmdletPassedIn.WriteDebug("In GetHelper::FilterPkgPathsByName()");
             List<string> wildCardDirsToSearch = new List<string>();
 
             if (names == null)
             {
-                _cmdletPassedIn.WriteVerbose("No names were provided.");
+                _cmdletPassedIn.WriteDebug("No names were provided");
                 return wildCardDirsToSearch;
             }
 
@@ -131,10 +134,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         // Filter by user provided version
         public IEnumerable<String> FilterPkgPathsByVersion(VersionRange versionRange, List<string> dirsToSearch, bool selectPrereleaseOnly)
         {
+            _cmdletPassedIn.WriteDebug("In GetHelper::FilterPkgPathsByVersion()");
             // if no version is specified, just get the latest version
             foreach (string pkgPath in dirsToSearch)
             {
-                _cmdletPassedIn.WriteVerbose(string.Format("Searching through package path: '{0}'", pkgPath));
+                _cmdletPassedIn.WriteDebug($"Searching through package path: '{pkgPath}'");
 
                 // if this is a module directory
                 if (Directory.Exists(pkgPath))
@@ -142,14 +146,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // search modules paths
                     // ./Modules/Test-Module/1.0.0
                     // ./Modules/Test-Module/2.0.0
-                    _cmdletPassedIn.WriteVerbose(string.Format("Searching through package path: '{0}'", pkgPath));
+                    _cmdletPassedIn.WriteDebug($"Searching through package path: '{pkgPath}'");
 
                     string[] versionsDirs = Utils.GetSubDirectories(pkgPath);
 
                     if (versionsDirs.Length == 0)
                     {
-                        _cmdletPassedIn.WriteVerbose(
-                            $"No version subdirectories found for path: {pkgPath}");
+                        _cmdletPassedIn.WriteDebug($"No version subdirectories found for path: {pkgPath}");
                         continue;
                     }
 
@@ -159,7 +162,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     foreach (string versionPath in versionsDirs)
                     {
-                        _cmdletPassedIn.WriteVerbose(string.Format("Searching through package version path: '{0}'", versionPath));
+                        _cmdletPassedIn.WriteDebug($"Searching through package version path: '{versionPath}'");
                         if(!Utils.GetVersionForInstallPath(installedPkgPath: versionPath,
                             isModule: true,
                             cmdletPassedIn: _cmdletPassedIn,
@@ -169,7 +172,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        _cmdletPassedIn.WriteVerbose(string.Format("Package version parsed as NuGet version: '{0}'", pkgNugetVersion));
+                        _cmdletPassedIn.WriteDebug($"Package version parsed as NuGet version: '{pkgNugetVersion}'");
 
                         // For Uninstall-PSResource Prerelease parameter equates to selecting prerelease versions only to uninstall.
                         // For other cmdlets (Find-PSResource, Install-PSResource) Prerelease parmater equates to selecting stable and prerelease versions.
@@ -210,9 +213,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             yield return pkgPath;
                         }
 
-                        _cmdletPassedIn.WriteVerbose(string.Format("Package version parsed as NuGet version: '{0}'", pkgNugetVersion));
+                        _cmdletPassedIn.WriteDebug($"Package version parsed as NuGet version: '{pkgNugetVersion}'");
                         if (versionRange.Satisfies(pkgNugetVersion))
                         {
+                            _cmdletPassedIn.WriteDebug($"Version range is satisfied by version '{pkgNugetVersion}'");
                             _scriptDictionary.Add(pkgPath, scriptInfo);
                             yield return pkgPath;
                         }
@@ -248,14 +252,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // Read metadata from XML and parse into PSResourceInfo object
-            _cmdletPassedIn.WriteVerbose(string.Format("Reading package metadata from: '{0}'", xmlFilePath));
+            _cmdletPassedIn.WriteDebug($"Reading package metadata from: '{xmlFilePath}'");
             if (PSResourceInfo.TryRead(xmlFilePath, out PSResourceInfo psGetInfo, out string errorMsg))
             {
                 return psGetInfo;
             }
 
-            _cmdletPassedIn.WriteVerbose(
-                $"Reading metadata for package {pkgName} failed with error: {errorMsg}");
+            _cmdletPassedIn.WriteVerbose($"Reading metadata for package '{pkgName}' failed with error: '{errorMsg}'");
             return null;
         }
 
