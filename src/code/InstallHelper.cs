@@ -487,10 +487,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
+                var scriptXML = pkgInfo.Name + "_InstalledScriptInfo.xml";
                 if (!_savePkg)
                 {
                     // Need to delete old xml files because there can only be 1 per script
-                    var scriptXML = pkgInfo.Name + "_InstalledScriptInfo.xml";
                     _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(installPath, "InstalledScriptInfos", scriptXML))));
                     if (File.Exists(Path.Combine(installPath, "InstalledScriptInfos", scriptXML)))
                     {
@@ -508,6 +508,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         _cmdletPassedIn.WriteVerbose("Deleting script file");
                         File.Delete(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
                     }
+                }
+                else {
+                    _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, scriptXML)));
+                    Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, scriptXML));
                 }
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)));
