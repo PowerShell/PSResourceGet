@@ -1049,7 +1049,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                errRecord = new ErrorRecord(e, "MetadataElementForItemsElementRetrievalFailure", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "MetadataElementForItemsElementRetrievalFailure",
+                    ErrorCategory.InvalidResult,
+                    this);
             }
 
             return innerItemsList.ToArray();
@@ -1076,7 +1080,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     JsonElement rootDom = pkgVersionEntry.RootElement;
                     if (!rootDom.TryGetProperty(itemsName, out JsonElement itemsElement) || itemsElement.GetArrayLength() == 0)
                     {
-                        errRecord = new ErrorRecord(new ArgumentException($"Response does not contain '{itemsName}' element for package with name '{packageName}' from repository '{Repository.Name}'."), "GetResponsesFromRegistrationsResourceFailure", ErrorCategory.InvalidResult, this);
+                        errRecord = new ErrorRecord(
+                            new ArgumentException($"Response does not contain '{itemsName}' element for package with name '{packageName}' from repository '{Repository.Name}'."),
+                            "GetResponsesFromRegistrationsResourceFailure",
+                            ErrorCategory.InvalidResult,
+                            this);
+
                         return Utils.EmptyStrArray;
                     }
 
@@ -1124,7 +1133,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         if (!item.TryGetProperty(property, out JsonElement metadataElement))
                         {
-                            errRecord = new ErrorRecord(new ArgumentException($"Response does not contain inner '{property}' element for package '{packageName}' from repository '{Repository.Name}'."), "GetResponsesFromRegistrationsResourceFailure", ErrorCategory.InvalidResult, this);
+                            errRecord = new ErrorRecord(
+                                new ArgumentException($"Response does not contain inner '{property}' element for package '{packageName}' from repository '{Repository.Name}'."),
+                                "GetResponsesFromRegistrationsResourceFailure",
+                                ErrorCategory.InvalidResult,
+                                this);
+
                             continue;
                         }
 
@@ -1153,7 +1167,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                errRecord = new ErrorRecord(e, "GetResponsesFromRegistrationsResourceFailure", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "GetResponsesFromRegistrationsResourceFailure",
+                    ErrorCategory.InvalidResult,
+                    this);
+
                 return Utils.EmptyStrArray;
             }
 
@@ -1250,7 +1269,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     JsonElement firstResponseDom = firstResponseJson.RootElement;
                     if (!firstResponseDom.TryGetProperty(versionName, out JsonElement firstVersionElement))
                     {
-                        errRecord = new ErrorRecord(new JsonParsingException($"Response did not contain '{versionName}' element"), "FirstVersionFirstSearchFailure", ErrorCategory.InvalidResult, this);
+                        errRecord = new ErrorRecord(
+                            new JsonParsingException($"Response did not contain '{versionName}' element"),
+                            "FirstVersionFirstSearchFailure",
+                            ErrorCategory.InvalidResult,
+                            this);
+
                         return latestVersionFirst;
                     }
                     
@@ -1258,7 +1282,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     string firstVersion = firstVersionElement.ToString();
                     if (!NuGetVersion.TryParse(firstVersion, out firstPkgVersion))
                     {
-                        errRecord = new ErrorRecord(new JsonParsingException($"First version '{firstVersion}' could not be parsed into NuGetVersion."), "FirstVersionFirstSearchFailure", ErrorCategory.InvalidResult, this);
+                        errRecord = new ErrorRecord(
+                            new JsonParsingException($"First version '{firstVersion}' could not be parsed into NuGetVersion."),
+                            "FirstVersionFirstSearchFailure",
+                            ErrorCategory.InvalidResult,
+                            this);
+
                         return latestVersionFirst;
                     }
                 }
@@ -1268,7 +1297,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     JsonElement lastResponseDom = lastResponseJson.RootElement;
                     if (!lastResponseDom.TryGetProperty(versionName, out JsonElement lastVersionElement))
                     {
-                        errRecord = new ErrorRecord(new JsonParsingException($"Response did not contain '{versionName}' element"), "LatestVersionFirstSearchFailure", ErrorCategory.InvalidResult, this);
+                        errRecord = new ErrorRecord(
+                            new JsonParsingException($"Response did not contain '{versionName}' element"),
+                            "LatestVersionFirstSearchFailure",
+                            ErrorCategory.InvalidResult,
+                            this);
+
                         return latestVersionFirst;
                     }
                     
@@ -1276,7 +1310,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     string lastVersion = lastVersionElement.ToString();
                     if (!NuGetVersion.TryParse(lastVersion, out lastPkgVersion))
                     {
-                        errRecord = new ErrorRecord(new JsonParsingException($"Last version '{lastVersion}' could not be parsed into NuGetVersion."), "LatestVersionFirstSearchFailure", ErrorCategory.InvalidResult, this);
+                        errRecord = new ErrorRecord(
+                            new JsonParsingException($"Last version '{lastVersion}' could not be parsed into NuGetVersion."),
+                            "LatestVersionFirstSearchFailure",
+                            ErrorCategory.InvalidResult,
+                            this);
+
                         return latestVersionFirst;
                     }
                 }
