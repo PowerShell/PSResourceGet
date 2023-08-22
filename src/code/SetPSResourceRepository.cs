@@ -117,11 +117,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 !MyInvocation.BoundParameters.ContainsKey(nameof(Priority)) &&
                 !MyInvocation.BoundParameters.ContainsKey(nameof(Trusted)) &&
                 !MyInvocation.BoundParameters.ContainsKey(nameof(ApiVersion)) &&
-                !MyInvocation.BoundParameters.ContainsKey(nameof(CredentialInfo)))
+                !MyInvocation.BoundParameters.ContainsKey(nameof(CredentialInfo)) &&
+                !MyInvocation.BoundParameters.ContainsKey(nameof(Repository)))
             {
                 ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException("Must set Uri, Priority, Trusted, ApiVersion, or CredentialInfo parameter"), 
-                    "SetPSResourceRepositoryFailure", 
+                    "SetRepositoryParameterBindingFailure", 
                     ErrorCategory.InvalidArgument, 
                     this));                
             }

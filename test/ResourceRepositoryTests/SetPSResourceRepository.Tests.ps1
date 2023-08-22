@@ -100,7 +100,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
 
     It "not set repository and write error given just Name parameter" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
-        {Set-PSResourceRepository -Name $TestRepoName1 -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
+        {Set-PSResourceRepository -Name $TestRepoName1 -ErrorAction Stop} | Should -Throw -ErrorId "SetRepositoryParameterBindingFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
     }
 
     $testCases = @{Type = "contains *";     Name = "test*Repository"; ErrorId = "ErrorInNameParameterSet"},
