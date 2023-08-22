@@ -75,6 +75,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindAll()");
             errRecord = new ErrorRecord(
                 new InvalidOperationException($"Find all is not supported for the V3 server protocol repository '{Repository.Name}'"),
                 "FindAllFailure", 
@@ -113,6 +114,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindCommandOrDscResource()");
             errRecord = new ErrorRecord(
                 new InvalidOperationException($"Find by CommandName or DSCResource is not supported for the V3 server protocol repository '{Repository.Name}'"), 
                 "FindCommandOrDscResourceFailure", 
@@ -970,6 +972,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private JsonElement[] GetMetadataElementFromIdLinkElement(JsonElement idLinkElement, string packageName, out string upperVersion, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetMetadataElementFromIdLinkElement()");
             upperVersion = String.Empty;
             JsonElement[] innerItems = new JsonElement[]{};
             List<JsonElement> innerItemsList = new List<JsonElement>();
@@ -1009,8 +1012,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         upperVersion = upperVerElement.ToString();
                     }
-
-                    // TODO: add ELSE condition and write debug statement saying upper property not present, so package versions may not be in descending order.
+                    else
+                    {
+                        _cmdletPassedIn.WriteDebug($"Package with name '{packageName}' did not have 'upper' property so package versions may not be in descending order.");
+                    }
 
                     foreach(JsonElement entry in innerItemsElement.EnumerateArray())
                     {
@@ -1036,6 +1041,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private JsonElement[] GetMetadataElementFromItemsElement(JsonElement itemsElement, string packageName, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetMetadataElementFromItemsElement()");
             errRecord = null;
             List<JsonElement> innerItemsList = new List<JsonElement>();
 
@@ -1067,6 +1073,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string[] GetMetadataElementsFromResponse(string response, string property, string packageName, out string upperVersion, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetMetadataElementsFromResponse()");
             errRecord = null;
             upperVersion = String.Empty;
             List<string> versionedPkgResponses = new List<string>();
@@ -1110,7 +1117,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 upperVersion = upperVersionElement.ToString();
                             }
-                            // TODO: add ELSE condition, write debug statement saying upper property not present, so package versions may not be in descending order.
+                            else
+                            {
+                                _cmdletPassedIn.WriteDebug($"Package with name '{packageName}' did not have 'upper' property so package versions may not be in descending order.");
+                            }
 
                             innerItemsElements.AddRange(innerItemsFromItemsElement);
                         }
@@ -1125,7 +1135,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             innerItemsElements.AddRange(innerItemsFromIdElement);
                         }
-                        // TODO: add ELSE statement if neither of these cases are true with a Debug statement.
+                        else
+                        {
+                            _cmdletPassedIn.WriteDebug($"Metadata for package with name '{packageName}' did not have inner 'items' or '@Id' properties.");
+                        }
                     }
 
                     // Loop through inner "items" entries we collected, and get the specific entry for each package version
@@ -1161,7 +1174,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             versionedPkgResponses.Add(metadataElement.ToString());
                         }
-                        // TODO: add else statement with Debug statement
+                        else
+                        {
+                            _cmdletPassedIn.WriteDebug($"Metadata for package with name '{packageName}' was not of value kind type string or object.");
+                        }
                     }
                 }
             }
