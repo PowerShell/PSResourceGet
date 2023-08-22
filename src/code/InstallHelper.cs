@@ -504,8 +504,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                 }
 
-                _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML)));
-                Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, scriptXML));
+                // Move xml file
+                var srcPath = Path.Combine(dirNameVersion, scriptXML);
+                var destPath = Path.Combine(installPath, scriptXML);
+                _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", srcPath, destPath));
+                Utils.MoveFiles(srcPath, destPath);
 
                 _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)));
                 Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
