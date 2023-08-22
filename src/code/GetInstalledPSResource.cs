@@ -88,7 +88,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (resolvedPaths.Count != 1)
                 {
                     ThrowTerminatingError(new ErrorRecord(
-                        new PSArgumentException("Error: Could not resolve provided Path argument into a single path."),
+                        new PSArgumentException($"Error: Could not resolve provided Path argument '{Path}' into a single path."),
+
                         "ErrorInvalidPathArgument",
                         ErrorCategory.InvalidArgument,
                         this));
