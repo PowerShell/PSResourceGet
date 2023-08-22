@@ -404,7 +404,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     id = idItem.ToString();
-                    _cmdletPassedIn.WriteDebug($"Id found '{id}'");
+                    _cmdletPassedIn.WriteDebug($"Id for package that could be candidate for FindNameGlobbing found '{id}'");
 
                     // determine if id matches our wildcard criteria
                     if ((packageName.StartsWith("*") && packageName.EndsWith("*") && id.ToLower().Contains(querySearchTerm.ToLower())) ||
