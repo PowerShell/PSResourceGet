@@ -21,7 +21,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         #region Members
 
         public override PSRepositoryInfo Repository { get; set; }
-        public PSCmdlet _cmdletPassedIn { get; set; }
+        private readonly PSCmdlet _cmdletPassedIn;
         private HttpClient _sessionClient { get; set; }
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         public FindResponseType FindResponseType = FindResponseType.ResponseString;

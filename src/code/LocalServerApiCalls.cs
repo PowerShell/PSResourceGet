@@ -21,7 +21,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         #region Members
 
         public override PSRepositoryInfo Repository { get; set; }
-        public PSCmdlet _cmdletPassedIn { get; set; }
+        private readonly PSCmdlet _cmdletPassedIn;
         private readonly FindResponseType _localServerFindResponseType = FindResponseType.ResponseHashtable;
         private readonly string _fileTypeKey = "filetype";
 
