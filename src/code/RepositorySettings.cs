@@ -204,14 +204,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
             }
 
-            // determine if either 1 of 5 values are attempting to be set: Uri, Priority, Trusted, APIVerison, CredentialInfo.
-            // if none are (i.e only Name parameter was provided, write error)
-            if (repoUri == null && repoPriority == defaultPriority && _trustedNullable == null && repoCredentialInfo == null && apiVersion == null)
-            {
-                errorMsg = "Must set Uri, Priority, Trusted, ApiVersion, or CredentialInfo parameter";
-                return null;
-            }
-
             if (!cmdletPassedIn.ShouldProcess(repoName, "Set repository's value(s) in repository store"))
             {
                 return null;
