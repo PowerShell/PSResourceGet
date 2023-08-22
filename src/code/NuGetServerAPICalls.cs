@@ -55,7 +55,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindAll");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindAll()");
             errRecord = null;
             List<string> responses = new List<string>();
 
@@ -100,7 +100,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindTags");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindTags()");
             errRecord = null;
             List<string> responses = new List<string>();
 
@@ -162,7 +162,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindName");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindName()");
             // Make sure to include quotations around the package name
             var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
 
@@ -184,7 +184,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindNameWithTag");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindNameWithTag()");
             // Make sure to include quotations around the package name
             var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
 
@@ -214,7 +214,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindNameGlobbing");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindNameGlobbing()");
             List<string> responses = new List<string>();
             int skip = 0;
 
@@ -259,7 +259,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindNameGlobbingWithTag");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindNameGlobbingWithTag()");
             List<string> responses = new List<string>();
             int skip = 0;
 
@@ -307,7 +307,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindVersionGlobbing");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindVersionGlobbing()");
             List<string> responses = new List<string>();
             int skip = 0;
 
@@ -356,7 +356,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindVersion");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindVersion()");
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true
             // Quotations around package name and version do not matter, same metadata gets returned.
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
@@ -375,7 +375,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindVersionWithTag");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindVersionWithTag()");
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             string idFilterPart = $" and Id eq '{packageName}'";
             string tagFilterPart = String.Empty;
@@ -401,7 +401,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallName");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallName()");
             var requestUrl = $"{Repository.Uri}/Packages/(Id='{packageName}')/Download";
             var response = HttpRequestCallForContent(requestUrl, out errRecord);
             var responseStream = response.ReadAsStreamAsync().Result;
@@ -419,7 +419,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>    
         public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallVersion");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallVersion()");
             var requestUrl = $"{Repository.Uri}/Packages(Id='{packageName}',Version='{version}')/Download";
             var response = HttpRequestCallForContent(requestUrl, out errRecord);
             var responseStream = response.ReadAsStreamAsync().Result;
@@ -432,7 +432,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string HttpRequestCall(string requestUrl, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::HttpRequestCall");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::HttpRequestCall()");
             errRecord = null;
             string response = string.Empty;
 
@@ -481,7 +481,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private HttpContent HttpRequestCallForContent(string requestUrl, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::HttpRequestCallForContent");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::HttpRequestCallForContent()");
             errRecord = null;
             HttpContent content = null;
 
@@ -534,7 +534,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string FindAllFromEndPoint(bool includePrerelease, int skip, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindAllFromEndPoint");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindAllFromEndPoint()");
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
             var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
             var requestUrl = $"{Repository.Uri}/Search()?$filter={prereleaseFilter}{paginationParam}";
@@ -547,7 +547,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string FindTagFromEndpoint(string[] tags, bool includePrerelease, int skip, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindTagFromEndpoint");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindTagFromEndpoint()");
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
             var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
 
@@ -567,7 +567,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string FindNameGlobbing(string packageName, bool includePrerelease, int skip, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindNameGlobbing");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindNameGlobbing()");
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
 
@@ -634,7 +634,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, int skip, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindNameGlobbingWithTag");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindNameGlobbingWithTag()");
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
 
@@ -707,7 +707,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, int skip, bool getOnlyLatest, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindVersionGlobbing");
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindVersionGlobbing()");
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
             // NormalizedVersion doesn't include trailing zeroes

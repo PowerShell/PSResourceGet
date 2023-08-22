@@ -47,7 +47,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindAll");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindAll()");
             return FindTagsHelper(tags: Utils.EmptyStrArray, includePrerelease, out errRecord);
         }
 
@@ -59,7 +59,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindTags");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindTags()");
             FindResults tagFindResults = FindTagsHelper(tags, includePrerelease, out errRecord);
             if (tagFindResults.IsFindResultsEmpty())
             {
@@ -78,7 +78,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindCommandOrDscResource");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindCommandOrDscResource()");
             string[] cmdsOrDSCs = GetCmdsOrDSCTags(tags: tags, isSearchingForCommands: isSearchingForCommands);
             FindResults cmdOrDSCFindResults = FindTagsHelper(cmdsOrDSCs, includePrerelease, out errRecord);
             if (cmdOrDSCFindResults.IsFindResultsEmpty())
@@ -105,7 +105,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindName");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindName()");
             return FindNameHelper(packageName, Utils.EmptyStrArray, includePrerelease, type, out errRecord);
         }
 
@@ -117,7 +117,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameWithTag");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameWithTag()");
             return FindNameHelper(packageName, tags, includePrerelease, type, out errRecord);
         }
 
@@ -131,7 +131,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameGlobbing");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameGlobbing()");
             return FindNameGlobbingHelper(packageName, Utils.EmptyStrArray, includePrerelease, type, out errRecord);
         }
 
@@ -143,7 +143,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameGlobbingWithTag");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameGlobbingWithTag()");
             return FindNameGlobbingHelper(packageName, tags, includePrerelease, type, out errRecord);
         }
 
@@ -158,7 +158,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindVersionGlobbing");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindVersionGlobbing()");
             FindResults findResponse = new FindResults();
             errRecord = null;
             string actualPkgName = packageName;
@@ -198,7 +198,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindVersion");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindVersion()");
             return FindVersionHelper(packageName, version, Utils.EmptyStrArray, type, out errRecord);
         }
 
@@ -210,7 +210,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindVersionWithTag");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindVersionWithTag()");
             return FindVersionHelper(packageName, version, tags, type, out errRecord);
         }
 
@@ -225,7 +225,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::InstallName");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::InstallName()");
             FileStream fs = null;
             errRecord = null;
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
@@ -300,7 +300,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::InstallVersion");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::InstallVersion()");
             errRecord = null;
             FileStream fs = null;
 
@@ -374,7 +374,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private FindResults FindNameHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameHelper");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameHelper()");
             FindResults findResponse = new FindResults();
             errRecord = null;
 
@@ -446,7 +446,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private FindResults FindNameGlobbingHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameGlobbingHelper");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindNameGlobbingHelper()");
             FindResults findResponse = new FindResults();
             List<Hashtable> pkgsFound = new List<Hashtable>();
             errRecord = null;
@@ -479,7 +479,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private FindResults FindVersionHelper(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindVersionHelper");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindVersionHelper()");
             FindResults findResponse = new FindResults();
             errRecord = null;
 
@@ -557,7 +557,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private FindResults FindTagsHelper(string[] tags, bool includePrerelease, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindTagsHelper");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindTagsHelper()");
             FindResults findResponse = new FindResults();
             List<Hashtable> pkgsFound = new List<Hashtable>();
             errRecord = null;
@@ -598,7 +598,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Hashtable GetMetadataFromNupkg(string packageName, string packagePath, string[] requiredTags, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::GetMetadataFromNupkg");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::GetMetadataFromNupkg()");
             Hashtable pkgMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
             errRecord = null;
 
@@ -733,7 +733,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Hashtable GetMatchingFilesGivenSpecificName(string packageName, bool includePrerelease, VersionRange versionRange, out string actualName, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::GetMatchingFilesGivenSpecificName");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::GetMatchingFilesGivenSpecificName()");
             actualName = packageName;
             // used for FindVersionGlobbing where we know exact non-wildcard name of the package
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
@@ -773,7 +773,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Hashtable GetMatchingFilesGivenNamePattern(string packageNameWithWildcard, bool includePrerelease)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::GetMatchingFilesGivenNamePattern");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::GetMatchingFilesGivenNamePattern()");
             bool isNameFilteringRequired = !String.IsNullOrEmpty(packageNameWithWildcard);
 
             // wildcard name possibilities: power*, *get, power*get
@@ -850,7 +850,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private NuGetVersion GetInfoFromFileName(string packageFullName, string packageName, out string actualName, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::GetInfoFromFileName");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::GetInfoFromFileName()");
             // packageFullName will look like package.1.0.0.nupkg
             errRecord = null;
 

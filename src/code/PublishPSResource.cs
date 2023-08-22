@@ -506,7 +506,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Hashtable parsedMetadataHash,
             out Hashtable requiredModules)
         {
-            WriteDebug("In PublishPSResource::CreateNuspec");
+            WriteDebug("In PublishPSResource::CreateNuspec()");
             bool isModule = resourceType != ResourceType.Script;
             requiredModules = new Hashtable();
 
@@ -785,7 +785,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private Hashtable ParseRequiredModules(Hashtable parsedMetadataHash)
         {
-            WriteDebug("In PublishPSResource::ParseRequiredModules");
+            WriteDebug("In PublishPSResource::ParseRequiredModules()");
             if (!parsedMetadataHash.ContainsKey("requiredmodules"))
             {
                 return null;
@@ -841,7 +841,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private bool CheckDependenciesExist(Hashtable dependencies, string repositoryName)
         {
-            WriteDebug("In PublishPSResource::CheckDependenciesExist");
+            WriteDebug("In PublishPSResource::CheckDependenciesExist()");
             // Check to see that all dependencies are in the repository
             // Searches for each dependency in the repository the pkg is being pushed to,
             // If the dependency is not there, error
@@ -890,7 +890,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private bool PackNupkg(string outputDir, string outputNupkgDir, string nuspecFile, out ErrorRecord error)
         {
-            WriteDebug("In PublishPSResource::PackNupkg");
+            WriteDebug("In PublishPSResource::PackNupkg()");
             // Pack the module or script into a nupkg given a nuspec.
             var builder = new PackageBuilder();
             try
@@ -942,7 +942,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private bool PushNupkg(string outputNupkgDir, string repoName, string repoUri, out ErrorRecord error)
         {
-            WriteDebug("In PublishPSResource::PushNupkg");
+            WriteDebug("In PublishPSResource::PushNupkg()");
             // Push the nupkg to the appropriate repository
             // Pkg version is parsed from .ps1 file or .psd1 file
             var fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg");
@@ -1119,7 +1119,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void InjectCredentialsToSettings(ISettings settings, IPackageSourceProvider sourceProvider, string source)
         {
-            WriteDebug("In PublishPSResource::InjectCredentialsToSettings");
+            WriteDebug("In PublishPSResource::InjectCredentialsToSettings()");
             if (Credential == null && _networkCredential == null)
             {
                 return;

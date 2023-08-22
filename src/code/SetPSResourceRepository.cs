@@ -193,7 +193,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private List<PSRepositoryInfo> RepositoriesParameterSetHelper()
         {
-            WriteDebug("In SetPSResourceRepository::RepositoriesParameterSetHelper");
+            WriteDebug("In SetPSResourceRepository::RepositoriesParameterSetHelper()");
             List<PSRepositoryInfo> reposUpdatedFromHashtable = new List<PSRepositoryInfo>();
             foreach (Hashtable repo in Repository)
             {
@@ -219,7 +219,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private PSRepositoryInfo RepoValidationHelper(Hashtable repo)
         {
-            WriteDebug("In SetPSResourceRepository::RepoValidationHelper");
+            WriteDebug("In SetPSResourceRepository::RepoValidationHelper()");
             WriteDebug($"Parsing through repository '{repo["Name"]}'");
 
             Uri repoUri = null;

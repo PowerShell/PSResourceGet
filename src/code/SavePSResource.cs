@@ -229,7 +229,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void ProcessSaveHelper(string[] pkgNames, string pkgVersion, bool pkgPrerelease, string[] pkgRepository)
         {
-            WriteDebug("In SavePSResource::ProcessSaveHelper");
+            WriteDebug("In SavePSResource::ProcessSaveHelper()");
             var namesToSave = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {

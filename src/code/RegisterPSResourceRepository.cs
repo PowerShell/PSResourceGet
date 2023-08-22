@@ -197,7 +197,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private PSRepositoryInfo PSGalleryParameterSetHelper(int repoPriority, bool repoTrusted)
         {
-            WriteDebug("In RegisterPSResourceRepository::PSGalleryParameterSetHelper");
+            WriteDebug("In RegisterPSResourceRepository::PSGalleryParameterSetHelper()");
             Uri psGalleryUri = new Uri(PSGalleryRepoUri);
             WriteDebug("Internal name and uri values for PSGallery are hardcoded and validated. Priority and trusted values, if passed in, also validated");
             var addedRepo = RepositorySettings.AddToRepositoryStore(PSGalleryRepoName, 
@@ -224,7 +224,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private List<PSRepositoryInfo> RepositoriesParameterSetHelper()
         {
-            WriteDebug("In RegisterPSResourceRepository::RepositoriesParameterSetHelper");
+            WriteDebug("In RegisterPSResourceRepository::RepositoriesParameterSetHelper()");
             List<PSRepositoryInfo> reposAddedFromHashTable = new List<PSRepositoryInfo>();
             foreach (Hashtable repo in Repository)
             {
@@ -271,7 +271,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private PSRepositoryInfo RepoValidationHelper(Hashtable repo)
         {
-            WriteDebug("In RegisterPSResourceRepository::RepoValidationHelper");
+            WriteDebug("In RegisterPSResourceRepository::RepoValidationHelper()");
             if (!repo.ContainsKey("Name") || repo["Name"] == null || String.IsNullOrWhiteSpace(repo["Name"].ToString()))
             {
                 WriteError(new ErrorRecord(

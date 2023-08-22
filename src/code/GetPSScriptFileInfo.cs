@@ -53,7 +53,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 scriptFileInfoPath: resolvedPath,
                 parsedScript: out PSScriptFileInfo psScriptFileInfo,
                 errors: out ErrorRecord[] errors,
-                out string[] verboseMsgs);
+                out string[] debugMsgs);
 
             if (!isValidScript)
             {
@@ -77,7 +77,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string Name = System.IO.Path.GetFileNameWithoutExtension(resolvedPath);
             psScriptFileInfoWithName.Properties.Add(new PSNoteProperty(nameof(Name), Name));
 
-            foreach (string msg in verboseMsgs)
+            foreach (string msg in debugMsgs)
             {
                 WriteDebug(msg);
             }

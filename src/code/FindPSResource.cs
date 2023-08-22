@@ -166,7 +166,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void ProcessResourceNameParameterSet()
         {
-            WriteDebug("In FindPSResource::ProcessResourceNameParameterSet");
+            WriteDebug("In FindPSResource::ProcessResourceNameParameterSet()");
             // only cases where Name is allowed to not be specified is if Type or Tag parameters are
             if (!MyInvocation.BoundParameters.ContainsKey(nameof(Name)))
             {
@@ -264,7 +264,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void ProcessCommandOrDscParameterSet(bool isSearchingForCommands)
         {
-            WriteDebug("In FindPSResource::ProcessCommandOrDscParameterSet");
+            WriteDebug("In FindPSResource::ProcessCommandOrDscParameterSet()");
             var commandOrDSCNamesToSearch = Utils.ProcessNameWildcards(
                 pkgNames: isSearchingForCommands ? CommandName : DscResourceName,
                 removeWildcardEntries: true,
@@ -301,7 +301,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void ProcessTags()
         {
-            WriteDebug("In FindPSResource::ProcessTags");
+            WriteDebug("In FindPSResource::ProcessTags()");
             var tagsToSearch = Utils.ProcessNameWildcards(
                 pkgNames: Tag,
                 removeWildcardEntries: true,

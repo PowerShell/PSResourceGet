@@ -425,7 +425,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void RequiredResourceHelper(Hashtable reqResourceHash)
         {
-            WriteDebug("In InstallPSResource::RequiredResourceHelper");
+            WriteDebug("In InstallPSResource::RequiredResourceHelper()");
             var pkgNames = reqResourceHash.Keys;
 
             foreach (string pkgName in pkgNames)
@@ -477,7 +477,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void ProcessInstallHelper(string[] pkgNames, string pkgVersion, bool pkgPrerelease, string[] pkgRepository, PSCredential pkgCredential, InstallPkgParams reqResourceParams)
         {
-            WriteDebug("In InstallPSResource::ProcessInstallHelper");
+            WriteDebug("In InstallPSResource::ProcessInstallHelper()");
             var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {

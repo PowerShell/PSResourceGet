@@ -92,7 +92,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string tmpPath,
             HashSet<string> pkgsInstalled)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::BeginInstallPackages");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::BeginInstallPackages()");
             _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; VersionRange: '{1}'; NuGetVersion: '{2}'; VersionType: '{3}'; Version: '{4}'; Prerelease: '{5}'; Repository: '{6}'; " +
                 "AcceptLicense: '{7}'; Quiet: '{8}'; Reinstall: '{9}'; TrustRepository: '{10}'; NoClobber: '{11}'; AsNupkg: '{12}'; IncludeXml '{13}'; SavePackage '{14}'; TemporaryPath '{15}'; SkipDependencyCheck: '{16}'; " + 
                 "AuthenticodeCheck: '{17}'; PathsToInstallPkg: '{18}'; Scope '{19}'",
@@ -181,7 +181,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool skipDependencyCheck,
             ScopeType scope)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::ProcessRepositories");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::ProcessRepositories()");
             List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
             if (repository != null && repository.Length != 0)
             {
@@ -356,7 +356,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // ./InstallPackagePath2/PackageC
             // ./InstallPackagePath3/PackageD
 
-            _cmdletPassedIn.WriteDebug("In InstallHelper::FilterByInstalledPkgs");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::FilterByInstalledPkgs()");
             // Get currently installed packages.
             var getHelper = new GetHelper(_cmdletPassedIn);
             var installedPackageNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
@@ -436,7 +436,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string moduleManifestVersion,
             string scriptPath)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::MoveFilesIntoInstallPath");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::MoveFilesIntoInstallPath()");
             // Creating the proper installation path depending on whether pkg is a module or script
             var newPathParent = isModule ? Path.Combine(installPath, pkgInfo.Name) : installPath;
             var finalModuleVersionDir = isModule ? Path.Combine(installPath, pkgInfo.Name, moduleManifestVersion) : installPath;
@@ -528,7 +528,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool skipDependencyCheck,
             FindHelper findHelper)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackages");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackages()");
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
 
             // Install parent package to the temp directory,
@@ -692,7 +692,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Hashtable packagesHash,
             out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackage");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackage()");
             FindResults responses = null;
             errRecord = null;
 
@@ -932,7 +932,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             out Hashtable updatedPackagesHash,
             out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::TryInstallToTempPath");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::TryInstallToTempPath()");
             error = null;
             updatedPackagesHash = packagesHash;
             try
@@ -1105,7 +1105,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             out Hashtable updatedPackagesHash,
             out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::TrySaveNupkgToTempPath");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::TrySaveNupkgToTempPath()");
             error = null;
             updatedPackagesHash = packagesHash;
 
@@ -1162,7 +1162,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool TryMoveInstallContent(string tempInstallPath, ScopeType scope, Hashtable packagesHash)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::TryMoveInstallContent");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::TryMoveInstallContent()");
             foreach (string pkgName in packagesHash.Keys)
             {
                 Hashtable pkgInfo = packagesHash[pkgName] as Hashtable;
@@ -1232,7 +1232,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool CallAcceptLicense(PSResourceInfo p, string moduleManifest, string tempInstallPath, string newVersion, out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::CallAcceptLicense");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::CallAcceptLicense()");
             error = null;
             var requireLicenseAcceptance = false;
             var success = true;
@@ -1314,7 +1314,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool DetectClobber(string pkgName, Hashtable parsedMetadataHashtable, out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::DetectClobber");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::DetectClobber()");
             error = null;
             bool foundClobber = false;
 
@@ -1378,7 +1378,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool CreateMetadataXMLFile(string dirNameVersion, string installPath, PSResourceInfo pkg, bool isModule, out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::CreateMetadataXMLFile");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::CreateMetadataXMLFile()");
             error = null;
             bool success = true;
             // Script will have a metadata file similar to:  "TestScript_InstalledScriptInfo.xml"
@@ -1408,7 +1408,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private void DeleteExtraneousFiles(string packageName, string dirNameVersion)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::DeleteExtraneousFiles");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::DeleteExtraneousFiles()");
             // Deleting .nupkg SHA file, .nuspec, and .nupkg after unpacking the module
             // since we download as .zip for HTTP calls, we shouldn't have .nupkg* files
             // var nupkgSHAToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg.sha512");

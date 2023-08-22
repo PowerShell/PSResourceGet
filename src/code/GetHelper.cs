@@ -43,7 +43,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             IEnumerable<PSResourceInfo> pkgs,
             List<string> pathsToSearch)
         {
-            _cmdletPassedIn.WriteDebug("In GetHelper::GetInstalledPackages");
+            _cmdletPassedIn.WriteDebug("In GetHelper::GetInstalledPackages()");
             foreach (var pkg in pkgs)
             {
                 // Parse Normalized version if present, if not use Version property of the package
@@ -94,7 +94,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> pathsToSearch,
             bool selectPrereleaseOnly)
         {
-            _cmdletPassedIn.WriteDebug("In GetHelper::GetPackagesFromPath");
+            _cmdletPassedIn.WriteDebug("In GetHelper::GetPackagesFromPath()");
             List<string> pkgPathsByName = FilterPkgPathsByName(name, pathsToSearch);
 
             foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pkgPathsByName, selectPrereleaseOnly))
@@ -110,7 +110,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         // Filter packages by user provided name
         public List<string> FilterPkgPathsByName(string[] names, List<string> dirsToSearch)
         {
-            _cmdletPassedIn.WriteDebug("In GetHelper::FilterPkgPathsByName");
+            _cmdletPassedIn.WriteDebug("In GetHelper::FilterPkgPathsByName()");
             List<string> wildCardDirsToSearch = new List<string>();
 
             if (names == null)
@@ -134,7 +134,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         // Filter by user provided version
         public IEnumerable<String> FilterPkgPathsByVersion(VersionRange versionRange, List<string> dirsToSearch, bool selectPrereleaseOnly)
         {
-            _cmdletPassedIn.WriteDebug("In GetHelper::FilterPkgPathsByVersion");
+            _cmdletPassedIn.WriteDebug("In GetHelper::FilterPkgPathsByVersion()");
             // if no version is specified, just get the latest version
             foreach (string pkgPath in dirsToSearch)
             {

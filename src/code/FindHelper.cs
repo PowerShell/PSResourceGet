@@ -74,7 +74,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _nugetVersion = nugetVersion;
             _versionType = versionType;
 
-            _cmdletPassedIn.WriteDebug("In FindHelper::FindByResourceName");
+            _cmdletPassedIn.WriteDebug("In FindHelper::FindByResourceName()");
             _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; ResourceType: '{1}'; VersionRange: '{2}'; NuGetVersion: '{3}'; VersionType: '{4}'; Version: '{5}'; Prerelease: '{6}'; " +
                 "Tag: '{7}'; Repository: '{8}'; IncludeDependencies '{9}'",
                 string.Join(",", name),
@@ -249,7 +249,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _prerelease = prerelease;
             _tag = tag;
 
-            _cmdletPassedIn.WriteDebug("In FindHelper::FindByCommandOrDscResource");
+            _cmdletPassedIn.WriteDebug("In FindHelper::FindByCommandOrDscResource()");
             _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> IsSearchingForCommands: '{0}'; Prerelease: '{1}'; Tag: '{2}'; Repository: '{3}'",
                 isSearchingForCommands.ToString(),
                 prerelease.ToString(),
@@ -440,7 +440,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _prerelease = prerelease;
             _tag = tag;
 
-            _cmdletPassedIn.WriteDebug("In FindHelper::FindByTag");
+            _cmdletPassedIn.WriteDebug("In FindHelper::FindByTag()");
             _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> ResourceType: '{0}'; Prerelease: '{1}'; Tag: '{2}'; Repository: '{3}'",
                 type.ToString() ?? string.Empty,
                 prerelease.ToString(),
@@ -635,7 +635,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             HashSet<string> pkgsFound = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string tagsAsString = String.Empty;
 
-            _cmdletPassedIn.WriteDebug("In FindHelper::SearchByNames");
+            _cmdletPassedIn.WriteDebug("In FindHelper::SearchByNames()");
             foreach (string pkgName in _pkgsLeftToFind.ToArray())
             {
                 if (_versionType == VersionType.NoVersion)
