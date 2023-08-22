@@ -123,7 +123,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     new InvalidArgument("Must set Uri, Priority, Trusted, ApiVersion, or CredentialInfo parameter"), 
                     "SetPSResourceRepositoryFailure", 
                     ErrorCategory.InvalidArgument, 
-                    this);                
+                    this));                
             }
 
             if (MyInvocation.BoundParameters.ContainsKey(nameof(Uri)))
