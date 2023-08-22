@@ -1,4 +1,3 @@
-using System.Reflection.Emit;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -13,11 +12,7 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections;
-using System.Runtime.ExceptionServices;
 using System.Management.Automation;
-using System.Numerics;
-using System.Runtime.InteropServices.ComTypes;
-using System.Security.Cryptography;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -35,7 +30,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private static readonly string nugetRepoUri = "https://api.nuget.org/v3/index.json";
         private static readonly string resourcesName = "resources";
         private static readonly string itemsName = "items";
-        private static readonly string countName = "count";
         private static readonly string versionName = "version";
         private static readonly string dataName = "data";
         private static readonly string idName = "id";
@@ -809,10 +803,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
-        /// For some packages (i.e that we know of JFrog repo and some packages on NuGet.org), the metadata is located under outer "items" element > "@id" element > inner "items" element
-        /// This requires a different search than if it were under outer "items" element > inner "items" element.
+        /// For some packages (that we know of: JFrog repo and some packages on NuGet.org), the metadata is located under outer "items" element > "@id" element > inner "items" element
+        /// This requires a different search.
         /// </summary>
-        private JsonElement[] GetMetadataElementForIdLinkElement(JsonElement idLinkElement, string packageName, out string upperVersion, out ErrorRecord errRecord)
+        private JsonElement[] GetMetadataElementFromIdLinkElement(JsonElement idLinkElement, string packageName, out string upperVersion, out ErrorRecord errRecord)
         {
             upperVersion = String.Empty;
             JsonElement[] innerItems = new JsonElement[]{};
@@ -837,7 +831,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     JsonElement rootDom = metadataEntries.RootElement;
                     if (!rootDom.TryGetProperty(itemsName, out JsonElement innerItemsElement))
                     {
-                        errRecord = new ErrorRecord(new ResourceNotFoundException($"'{itemsName}' element for package with name '{packageName}' could not be found in JFrog repository '{Repository.Name}'"), "GetElementForJFrogRepoFailure", ErrorCategory.InvalidResult, this);
+                        errRecord = new ErrorRecord(new ResourceNotFoundException($"'{itemsName}' element for package with name '{packageName}' could not be found in repository '{Repository.Name}'"), "GetElementForIdLinkElementFailure", ErrorCategory.InvalidResult, this);
                         return innerItems;
                     }
 
@@ -846,38 +840,53 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         upperVersion = upperVerElement.ToString();
                     }
 
+                    // TODO: add ELSE condition and write debug statement saying upper property not present, so package versions may not be in descending order.
+
                     foreach(JsonElement entry in innerItemsElement.EnumerateArray())
                     {
                         // add clone, otherwise this JsonElement will be out of scope to the caller once JsonDocument is disposed
-                        Console.WriteLine($"First loop, scenario 2: {entry.ValueKind}");
                         innerItemsList.Add(entry.Clone());
                     }
                 }
             }
             catch (Exception e)
             {
-                errRecord = new ErrorRecord(e, "MetadataElementRetrievalFailure", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(e, "MetadataElementForIdElementRetrievalFailure", ErrorCategory.InvalidResult, this);
             }
 
             return innerItemsList.ToArray();
         }
 
-        private JsonElement[] GetMetadataElementForItemsElement(JsonElement itemsElement, string packageName, out string upperVersion, out ErrorRecord errRecord)
+        /// <summary>
+        ///  For most packages returned from V3 server protocol responses, the metadata is located under outer "items" element > inner "items" element.
+        /// </summary>
+        private JsonElement[] GetMetadataElementFromItemsElement(JsonElement itemsElement, string packageName, out ErrorRecord errRecord)
         {
-            upperVersion = String.Empty;
             errRecord = null;
             List<JsonElement> innerItemsList = new List<JsonElement>();
 
-            foreach (JsonElement entry in itemsElement.EnumerateArray())
+            try
             {
-                // add clone, otherwise this JsonElement will be out of scope to the caller once JsonDocument is disposed
-
-                innerItemsList.Add(entry.Clone());
+                foreach (JsonElement entry in itemsElement.EnumerateArray())
+                {
+                    // add clone, otherwise this JsonElement will be out of scope to the caller once JsonDocument is disposed
+                    innerItemsList.Add(entry.Clone());
+                }
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(e, "MetadataElementForItemsElementRetrievalFailure", ErrorCategory.InvalidResult, this);
             }
 
             return innerItemsList.ToArray();
         }
 
+        /// <summary>
+        ///  Uses the response returned from the registrations based url query, and gets the package's entries.
+        ///  For package metadata responses returned from the V3 server protocol, the metadata can either be located:
+        ///  under outer "items" element > inner "items" element (for which we call helper method GetMetadataElementFromItemsElement()), OR
+        ///  under outer "items" element > "@Id" element > inner "items" element (for which we call helper method GetMetadataElementFromIdLinkElement)
+        /// </summary>
         private string[] GetMetadataElementsFromResponse(string response, string property, string packageName, out string upperVersion, out ErrorRecord errRecord)
         {
             errRecord = null;
@@ -908,7 +917,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         if (currentItem.TryGetProperty(itemsName, out JsonElement currentInnerItemsElement))
                         {
                             // Scenarios: NuGet.org majority responses
-                            JsonElement[] innerItemsFromItemsElement = GetMetadataElementForItemsElement(currentInnerItemsElement, packageName, out upperVersion, out errRecord);
+                            JsonElement[] innerItemsFromItemsElement = GetMetadataElementFromItemsElement(currentInnerItemsElement, packageName, out errRecord);
                             if (errRecord != null)
                             {
                                 continue;
@@ -918,18 +927,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 upperVersion = upperVersionElement.ToString();
                             }
-                            else
-                            {
-                                // TODO: fix error message and add try catch tbh
-                                errRecord = new ErrorRecord(new ResourceNotFoundException($"'{itemsName}' element for package with name '{packageName}' could not be found in JFrog repository '{Repository.Name}'"), "GetElementForJFrogRepoFailure", ErrorCategory.InvalidResult, this);
-                            }
+                            // TODO: add ELSE condition, write debug statement saying upper property not present, so package versions may not be in descending order.
 
                             innerItemsElements.AddRange(innerItemsFromItemsElement);
                         }
                         else if (currentItem.TryGetProperty(idLinkName, out JsonElement idLinkElement))
                         {
                             // Scenarios: JFrog responses, some NuGet.org responses
-                            JsonElement[] innerItemsFromIdElement = GetMetadataElementForIdLinkElement(idLinkElement, packageName, out upperVersion, out errRecord);
+                            JsonElement[] innerItemsFromIdElement = GetMetadataElementFromIdLinkElement(idLinkElement, packageName, out upperVersion, out errRecord);
                             if (errRecord != null)
                             {
                                 continue;
@@ -937,6 +942,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             innerItemsElements.AddRange(innerItemsFromIdElement);
                         }
+                        // TODO: add ELSE statement if neither of these cases are true with a Debug statement.
                     }
 
                     // Loop through inner "items" entries we collected, and get the specific entry for each package version
@@ -957,7 +963,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         {
                             // This is when property is "catalogEntry"
                             // If metadata has a "listed" property, but it's set to false, skip this package version
-                            if (property.Equals("catalogEntry") && metadataElement.TryGetProperty("listed", out JsonElement listedElement))
+                            if (metadataElement.TryGetProperty("listed", out JsonElement listedElement))
                             {
                                 if (bool.TryParse(listedElement.ToString(), out bool listed) && !listed)
                                 {
@@ -967,6 +973,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             versionedPkgResponses.Add(metadataElement.ToString());
                         }
+                        // TODO: add else statement with Debug statement
                     }
                 }
             }
@@ -1013,7 +1020,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Reverse array of versioned responses, if needed, so that version entries are in descending order.
             if (String.IsNullOrEmpty(upperVersion))
             {
-                // TODO: or write error?
+                // add write Debug and use these results
                 return versionedResponseArr;
             }
 
@@ -1111,11 +1118,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Returns true if the nupkg URI entries for each package version are arranged in descending order with respect to the package's version.
         /// ADO feeds usually return version entries in descending order, but Nuget.org repository returns them in ascending order.
-        /// Entries do not reflect prerelease preference so all versions are being considered here, so upper version can be used for comparision.
+        /// Entries do not reflect prerelease preference so all versions (including prerelease) are being considered here, so upper version (including prerelease) can be used for comparision.
         /// </summary>
         private bool IsLatestVersionFirstForInstall(string[] versionedResponses, string upperVersion, out ErrorRecord errRecord)
         {
-            Console.WriteLine($"upper version {upperVersion} and version responses array length: {versionedResponses.Length}");
             errRecord = null;
             bool latestVersionFirst = true;
 
@@ -1126,17 +1132,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             string firstResponse = versionedResponses[0];
-            Console.WriteLine($"FIRST RESPONSE: {firstResponse}");
-            Console.WriteLine($"LAST RESPONSE: {versionedResponses[versionedResponses.Length - 1]}");
             // for Install, response will be a URI value for the package .nupkg, not JSON
             if (!firstResponse.Contains(upperVersion))
             {
-                Console.WriteLine($"response {firstResponse} didn't contain uppperVersion: {upperVersion}");
                 latestVersionFirst = false;
-            }
-            else
-            {
-                Console.WriteLine($"Response {firstResponse} did contain upper Version {upperVersion}");
             }
 
             return latestVersionFirst;
