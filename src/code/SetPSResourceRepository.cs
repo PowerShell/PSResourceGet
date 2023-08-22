@@ -111,6 +111,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void ProcessRecord()
         {
+            // determine if either 1 of 5 values are attempting to be set: Uri, Priority, Trusted, APIVerison, CredentialInfo.
+            // if none are (i.e only Name parameter was provided, write error)
+            if (!MyInvocation.BoundParameters.ContainsKey(nameof(Uri)) &&
+                !MyInvocation.BoundParameters.ContainsKey(nameof(Priority)) &&
+                !MyInvocation.BoundParameters.ContainsKey(nameof(Trusted)) &&
+                !MyInvocation.BoundParameters.ContainsKey(nameof(ApiVersion)) &&
+                !MyInvocation.BoundParameters.ContainsKey(nameof(CredentialInfo)))
+            {
+                ThrowTerminatingError("Must set Uri, Priority, Trusted, ApiVersion, or CredentialInfo parameter");
+            }
+
             if (MyInvocation.BoundParameters.ContainsKey(nameof(Uri)))
             {
                 if (!Utils.TryCreateValidUri(Uri, this, out _uri, out ErrorRecord errorRecord))
