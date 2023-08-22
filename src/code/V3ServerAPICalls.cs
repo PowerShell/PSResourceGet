@@ -1035,8 +1035,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return versionedResponseArr;
         }
 
-
-
         /// <summary>
         /// Returns true if the metadata entries are arranged in descending order with respect to the package's version.
         /// ADO feeds usually return version entries in descending order, but Nuget.org repository returns them in ascending order.
