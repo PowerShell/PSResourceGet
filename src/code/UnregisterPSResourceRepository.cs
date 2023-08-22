@@ -48,15 +48,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Name = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] _, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {
-                var message = String.Format("Name: '{0}, cannot contain wildcards", String.Join(", ", Name));
-                var ex = new ArgumentException(message);
-                var NameContainsWildCardError = new ErrorRecord(ex, "nameContainsWildCardError", ErrorCategory.ReadError, null);
-                WriteError(NameContainsWildCardError);
+                WriteError(new ErrorRecord(
+                    new ArgumentException($"Name: '{String.Join(", ", Name)}' cannot contain wildcards"),
+                    "nameContainsWildCardError",
+                    ErrorCategory.ReadError,
+                    this));
+
                 return;
             }
 
             string nameArrayAsString = string.Join(", ", Name);
-            WriteVerbose(String.Format("removing repository {0}. Calling Remove() API now", nameArrayAsString));
+            WriteVerbose($"Removing repository '{nameArrayAsString}'");
             if (!ShouldProcess(nameArrayAsString, "Unregister repositories from repository store"))
             {
                 return;

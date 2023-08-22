@@ -8,8 +8,6 @@ using System.Management.Automation;
 using System.Net;
 using System.Threading;
 
-using Dbg = System.Diagnostics.Debug;
-
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
@@ -158,7 +156,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 default:
-                    Dbg.Assert(false, "Invalid parameter set");
                     break;
             }
         }
@@ -169,6 +166,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void ProcessResourceNameParameterSet()
         {
+            WriteDebug("In FindPSResource::ProcessResourceNameParameterSet()");
             // only cases where Name is allowed to not be specified is if Type or Tag parameters are
             if (!MyInvocation.BoundParameters.ContainsKey(nameof(Name)))
             {
@@ -183,15 +181,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    ThrowTerminatingError(
-                        new ErrorRecord(
-                            new PSInvalidOperationException("Name parameter must be provided, unless Tag or Type parameters are used."),
-                            "NameParameterNotProvided",
-                            ErrorCategory.InvalidOperation,
-                            this));
+                    ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException("Name parameter must be provided, unless Tag or Type parameters are used."),
+                        "NameParameterNotProvided",
+                        ErrorCategory.InvalidOperation,
+                        this));
                 }
             }
 
+            WriteDebug("Filtering package name(s) on wildcards");
             Name = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
             
             foreach (string error in errorMsgs)
@@ -207,6 +205,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // but after filtering out unsupported wildcard names there are no elements left in namesToSearch
             if (Name.Length == 0)
             {
+                WriteDebug("Package name(s) could not be resolved");
                 return;
             }         
 
@@ -217,6 +216,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (Version != null)
             {
+                WriteDebug("Parsing package version");
                 if (!NuGetVersion.TryParse(Version, out nugetVersion))
                 {
                     if (Version.Trim().Equals("*"))
@@ -231,6 +231,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             "IncorrectVersionFormat",
                             ErrorCategory.InvalidArgument,
                             this));
+                    
                         return;
                     }
                 }
@@ -263,6 +264,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void ProcessCommandOrDscParameterSet(bool isSearchingForCommands)
         {
+            WriteDebug("In FindPSResource::ProcessCommandOrDscParameterSet()");
             var commandOrDSCNamesToSearch = Utils.ProcessNameWildcards(
                 pkgNames: isSearchingForCommands ? CommandName : DscResourceName,
                 removeWildcardEntries: true,
@@ -283,7 +285,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // but after filtering out unsupported wildcard names there are no elements left in commandOrDSCNamesToSearch
             if (commandOrDSCNamesToSearch.Length == 0)
             {
-                 return;
+                WriteDebug("Command or DSCResource name(s) could not be resolved");
+                return;
             }
             
             foreach (PSCommandResourceInfo cmdPkg in _findHelper.FindByCommandOrDscResource(
@@ -298,6 +301,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void ProcessTags()
         {
+            WriteDebug("In FindPSResource::ProcessTags()");
             var tagsToSearch = Utils.ProcessNameWildcards(
                 pkgNames: Tag,
                 removeWildcardEntries: true,
@@ -317,7 +321,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // but after filtering out unsupported wildcard names there are no elements left in tagsToSearch
             if (tagsToSearch.Length == 0)
             {
-                 return;
+                WriteDebug("Tags(s) could not be resolved");
+                return;
             }
             
             foreach (PSResourceInfo tagPkg in _findHelper.FindByTag(

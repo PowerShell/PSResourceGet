@@ -148,9 +148,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     if (!reachedPSScriptInfoCommentEnd)
                     {
-                        var message = String.Format("Could not parse '{0}' as a PowerShell script file due to missing the closing '#>' for <#PSScriptInfo comment block", scriptFileInfoPath);
-                        var ex = new InvalidOperationException(message);
-                        error = new ErrorRecord(ex, "MissingEndBracketToPSScriptInfoParseError", ErrorCategory.ParserError, null);
+                        error = new ErrorRecord(
+                            new InvalidOperationException($"Could not parse '{scriptFileInfoPath}' as a PowerShell script file due to missing the closing '#>' for <#PSScriptInfo comment block"),
+                            "MissingEndBracketToPSScriptInfoParseError", 
+                            ErrorCategory.ParserError, 
+                            null);
+
                         return false;
                     }
                 }
@@ -177,9 +180,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     if (!reachedHelpInfoCommentEnd)
                     {
-                        var message = String.Format("Could not parse '{0}' as a PowerShell script file due to missing the closing '#>' for HelpInfo comment block", scriptFileInfoPath);
-                        var ex = new InvalidOperationException(message);
-                        error = new ErrorRecord(ex, "MissingEndBracketToHelpInfoCommentParseError", ErrorCategory.ParserError, null);
+                        error = new ErrorRecord(
+                            new InvalidOperationException($"Could not parse '{scriptFileInfoPath}' as a PowerShell script file due to missing the closing '#>' for HelpInfo comment block"),
+                            "MissingEndBracketToHelpInfoCommentParseError", 
+                            ErrorCategory.ParserError,
+                            null);
+
                         return false;
                     }
                 }
@@ -210,18 +216,24 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (psScriptInfoCommentContent.Count() == 0)
             {
                 // check for file not containing '<#PSScriptInfo ... #>' comment
-                var message = String.Format("Could not parse '{0}' as a PowerShell script due to it missing '<#PSScriptInfo #> block", scriptFileInfoPath);
-                var ex = new InvalidOperationException(message);
-                error = new ErrorRecord(ex, "MissingEndBracketToHelpInfoCommentParseError", ErrorCategory.ParserError, null);
+                error = new ErrorRecord(
+                    new InvalidOperationException($"Could not parse '{scriptFileInfoPath}' as a PowerShell script due to it missing '<#PSScriptInfo #> block"),
+                    "MissingEndBracketToHelpInfoCommentParseError", 
+                    ErrorCategory.ParserError, 
+                    null);
+
                 return false;
             }
 
             if (helpInfoCommentContent.Count() == 0)
             {
                 // check for file not containing HelpInfo comment
-                var message = String.Format("Could not parse '{0}' as a PowerShell script due to it missing HelpInfo comment block", scriptFileInfoPath);
-                var ex = new InvalidOperationException(message);
-                error = new ErrorRecord(ex, "missingHelpInfoCommentError", ErrorCategory.ParserError, null);
+                error = new ErrorRecord(
+                    new InvalidOperationException($"Could not parse '{scriptFileInfoPath}' as a PowerShell script due to it missing HelpInfo comment block"),
+                    "missingHelpInfoCommentError", 
+                    ErrorCategory.ParserError, 
+                    null);
+
                 return false;
             }
 
@@ -343,10 +355,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
             catch (Exception e)
             {
-                var message = String.Format("PSScriptFileInfo object could not be created from passed in file due to {0}", e.Message);
-                var ex = new ArgumentException(message);
-                var PSScriptFileInfoObjectNotCreatedFromFileError = new ErrorRecord(ex, "PSScriptFileInfoObjectNotCreatedFromFileError", ErrorCategory.ParserError, null);
-                errors = new ErrorRecord[]{PSScriptFileInfoObjectNotCreatedFromFileError};
+                errors = new ErrorRecord[]{ new ErrorRecord(
+                    new ArgumentException($"PSScriptFileInfo object could not be created from passed in file due to {e.Message}"),
+                    "PSScriptFileInfoObjectNotCreatedFromFileError", 
+                    ErrorCategory.ParserError,
+                    null) };
+
                 return false;
             }
 

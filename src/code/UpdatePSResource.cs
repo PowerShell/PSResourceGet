@@ -183,6 +183,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "IncorrectVersionFormat",
                     ErrorCategory.InvalidArgument,
                     this));
+                    
                 return;
             }
 
@@ -305,10 +306,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (installedPackages.Count is 0)
             {
-                var message = $"No installed packages were found with name '{string.Join(", ", namesToProcess)}' in scope '{Scope}'. First install package using 'Install-PSResource'.";
-
                 WriteError(new ErrorRecord(
-                    new PSInvalidOperationException(message),
+                    new PSInvalidOperationException($"No installed packages were found with name '{string.Join(", ", namesToProcess)}' in scope '{Scope}'. First install package using 'Install-PSResource'."),
                     "NoInstalledPackagesFoundWithNameProvided",
                     ErrorCategory.InvalidOperation,
                     this));

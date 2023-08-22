@@ -31,19 +31,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {            
             if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
-                var exMessage = "The script file pathname must end with a .ps1 file extension. Example: C:/Users/john/x/MyScript.ps1";
-                var ex = new ArgumentException(exMessage);
-                var InvalidPathError = new ErrorRecord(ex, "InvalidPath", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(InvalidPathError);   
+                ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException("The script file pathname must end with a .ps1 file extension. Example: C:/Users/john/x/MyScript.ps1"),
+                    "InvalidPath",
+                    ErrorCategory.InvalidArgument,
+                    this));
             }
 
             var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
             if (resolvedPaths.Count != 1)
             {
-                var exMessage = "Error: Could not resolve provided Path argument into a single path.";
-                var ex = new PSArgumentException(exMessage);
-                var InvalidPathArgumentError = new ErrorRecord(ex, "InvalidPathArgumentError", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(InvalidPathArgumentError);
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSArgumentException("Error: Could not resolve provided Path argument into a single path."),
+                    "InvalidPathArgumentError",
+                    ErrorCategory.InvalidArgument,
+                    this));
             }
 
             var resolvedPath = resolvedPaths[0];
@@ -51,7 +53,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 scriptFileInfoPath: resolvedPath,
                 parsedScript: out PSScriptFileInfo psScriptFileInfo,
                 errors: out ErrorRecord[] errors,
-                out string[] verboseMsgs);
+                out string[] debugMsgs);
 
             if (!isValidScript)
             {
@@ -63,9 +65,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     exMessage += Environment.NewLine + error.Exception.Message;
                 }
                 
-                var ex = new PSArgumentException(exMessage);
-                var InvalidPSScriptFileError = new ErrorRecord(ex, "InvalidPSScriptFile", ErrorCategory.InvalidArgument, null);
-                ThrowTerminatingError(InvalidPSScriptFileError);
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSArgumentException(exMessage),
+                    "InvalidPSScriptFile",
+                    ErrorCategory.InvalidArgument,
+                    this));
             }
 
             PSObject psScriptFileInfoWithName = new PSObject(psScriptFileInfo);
@@ -73,9 +77,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string Name = System.IO.Path.GetFileNameWithoutExtension(resolvedPath);
             psScriptFileInfoWithName.Properties.Add(new PSNoteProperty(nameof(Name), Name));
 
-            foreach (string msg in verboseMsgs)
+            foreach (string msg in debugMsgs)
             {
-                WriteVerbose(msg);
+                WriteDebug(msg);
             }
 
             WriteObject(psScriptFileInfoWithName);

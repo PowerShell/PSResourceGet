@@ -435,9 +435,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             errorRecord = new ErrorRecord(
-                new PSArgumentException(
-                    $"The provided Uri is not valid: {uriString}. It must be of Uri Scheme: HTTP, HTTPS, FTP or a file path",
-                    ex),
+                new PSArgumentException($"The provided Uri is not valid: {uriString}. It must be of Uri Scheme: HTTP, HTTPS, FTP or a file path", ex),
                 "InvalidUri",
                 ErrorCategory.InvalidArgument,
                 cmdletPassedIn);
@@ -526,6 +524,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         "RepositoryCredentialSecretManagementInaccessibleVault",
                         ErrorCategory.ResourceUnavailable,
                         cmdletPassedIn));
+
                 return null;
             }
 
@@ -1106,10 +1105,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // ModuleSpecification(string) constructor for creating a ModuleSpecification when only ModuleName is provided.
                 if (!moduleSpec.ContainsKey("ModuleName") || String.IsNullOrEmpty((string) moduleSpec["ModuleName"]))
                 {
-                    var exMessage = $"RequiredModules Hashtable entry {moduleSpec.ToString()} is missing a key 'ModuleName' and associated value, which is required for each module specification entry";
-                    var ex = new ArgumentException(exMessage);
-                    var NameMissingModuleSpecError = new ErrorRecord(ex, "NameMissingInModuleSpecification", ErrorCategory.InvalidArgument, null);
-                    errorList.Add(NameMissingModuleSpecError);
+                    errorList.Add(new ErrorRecord(
+                        new ArgumentException($"RequiredModules Hashtable entry {moduleSpec.ToString()} is missing a key 'ModuleName' and associated value, which is required for each module specification entry"), 
+                        "NameMissingInModuleSpecification", 
+                        ErrorCategory.InvalidArgument, 
+                        null));
                     moduleSpecCreatedSuccessfully = false;
                     continue;
                 }
@@ -1129,10 +1129,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
                     else
                     {
-                        var exMessage = $"ModuleSpecification object was not able to be created for {moduleSpecName}";
-                        var ex = new ArgumentException(exMessage);
-                        var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
-                        errorList.Add(ModuleSpecNotCreatedError);
+                        errorList.Add(new ErrorRecord(
+                            new ArgumentException($"ModuleSpecification object was not able to be created for {moduleSpecName}"), 
+                            "ModuleSpecificationNotCreated", 
+                            ErrorCategory.InvalidArgument, 
+                            null));
                         moduleSpecCreatedSuccessfully = false;
                         continue;
                     }
@@ -1147,10 +1148,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     if (String.IsNullOrEmpty(moduleSpecMaxVersion) && String.IsNullOrEmpty(moduleSpecModuleVersion) && String.IsNullOrEmpty(moduleSpecRequiredVersion))
                     {
-                        var exMessage = $"ModuleSpecification hashtable requires one of the following keys: MaximumVersion, ModuleVersion, RequiredVersion and failed to be created for {moduleSpecName}";
-                        var ex = new ArgumentException(exMessage);
-                        var MissingModuleSpecificationMemberError = new ErrorRecord(ex, "MissingModuleSpecificationMember", ErrorCategory.InvalidArgument, null);
-                        errorList.Add(MissingModuleSpecificationMemberError);
+                        errorList.Add(new ErrorRecord(
+                            new ArgumentException($"ModuleSpecification hashtable requires one of the following keys: MaximumVersion, ModuleVersion, RequiredVersion and failed to be created for {moduleSpecName}"), 
+                            "MissingModuleSpecificationMember", 
+                            ErrorCategory.InvalidArgument, 
+                            null));
                         moduleSpecCreatedSuccessfully = false;
                         continue;
                     }
@@ -1184,9 +1186,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
                     catch (Exception e)
                     {
-                        var ex = new ArgumentException($"ModuleSpecification instance was not able to be created with hashtable constructor due to: {e.Message}");
-                        var ModuleSpecNotCreatedError = new ErrorRecord(ex, "ModuleSpecificationNotCreated", ErrorCategory.InvalidArgument, null);
-                        errorList.Add(ModuleSpecNotCreatedError);
+                        errorList.Add(new ErrorRecord(
+                            new ArgumentException($"ModuleSpecification instance was not able to be created with hashtable constructor due to: {e.Message}"), 
+                            "ModuleSpecificationNotCreated", 
+                            ErrorCategory.InvalidArgument, 
+                            null));
                         moduleSpecCreatedSuccessfully = false;
                     }
 
@@ -1557,7 +1561,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
             catch (Exception e)
             {
-                errorRecord = new ErrorRecord(new ArgumentException(e.Message), "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                errorRecord = new ErrorRecord(
+                    new ArgumentException(e.Message), 
+                    "GetAuthenticodeSignatureError", 
+                    ErrorCategory.InvalidResult, 
+                    cmdletPassedIn);
+
                 return false;
             }
 
@@ -1567,9 +1576,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 Signature signature = (Signature)signatureObject.BaseObject;
                 if (!signature.Status.Equals(SignatureStatus.Valid))
                 {
-                    var exMessage = String.Format("The signature for '{0}' is '{1}.", pkgName, signature.Status.ToString());
-                    var ex = new ArgumentException(exMessage);
-                    errorRecord = new ErrorRecord(ex, "GetAuthenticodeSignatureError", ErrorCategory.InvalidResult, cmdletPassedIn);
+                    errorRecord = new ErrorRecord(
+                        new ArgumentException($"The signature for '{pkgName}' is '{signature.Status}."), 
+                        "GetAuthenticodeSignatureError", 
+                        ErrorCategory.InvalidResult, 
+                        cmdletPassedIn);
 
                     return false;
                 }
