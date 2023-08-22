@@ -344,4 +344,16 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         $repo.ApiVersion | Should -Be "local"
         $repo.Priority | Should -Be 25
     }
+
+    It "should not change ApiVersion of repository if -ApiVersion parameter was not used" {
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
+        $repo = Get-PSResourceRepository $TestRepoName1
+        $repoApiVersion = $repo.ApiVersion
+        $repoApiVersion | Should -Be "local"
+
+        Set-PSResourceRepository -Name $TestRepoName1 -ApiVersion "unknown" -ErrorVariable err -ErrorAction SilentlyContinue
+        $repo = Get-PSResourceRepository $TestRepoName1
+        $repo.ApiVersion | Should -Be "unknown"
+        $err.Count | Should -Be 0
+    }
 }
