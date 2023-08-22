@@ -173,6 +173,18 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "1.0.0.0"
     }
 
+    It "Save script using -IncludeXML" {
+        Save-PSResource -Name $testScriptName -Repository $PSGalleryName -Path $SaveDir -TrustRepository
+
+        $scriptXML = $testScriptNamen + "_InstalledScriptInfo.xml"
+        $savedScriptFile = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "test_script.ps1"
+        $savedScriptXML = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $scriptXML
+        $savedScriptFile | Should -Not -BeNullOrEmpty
+        (Get-ChildItem $savedScriptFile.FullName) | Should -HaveCount 1
+        $savedScriptXML | Should -Not -BeNullOrEmpty
+        (Get-ChildItem $savedScriptXML.FullName) | Should -HaveCount 1
+    }
+
     # Save module that is not authenticode signed
     # Should FAIL to save the module
     It "Save module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
