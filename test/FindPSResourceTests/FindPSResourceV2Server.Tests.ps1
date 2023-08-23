@@ -6,7 +6,7 @@ Import-Module $modPath -Force -Verbose
 
 $psmodulePaths = $env:PSModulePath -split ';'
 Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
-<#
+
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
 
     BeforeAll{
@@ -398,7 +398,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $err.Count | Should -Be 0
     }
 }
-#>
+
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidationOnly' {
 
     BeforeAll{
@@ -412,9 +412,9 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidat
     }
 
     It "find resource given CommandName" {
-        #$res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName -Type Module
+        $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName -Type Module
 
-        #$res.Name | Should -Be $testModuleName
+        $res.Name | Should -Be $testModuleName
     }
 
     It "find should not duplicate dependencies found" {
