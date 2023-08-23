@@ -1159,6 +1159,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
    
                 if (!countSearchSucceeded)
                 {
+                             // Note: not all V2 servers may have the 'count' property implemented or valid (i.e CloudSmith server), in this case try to get 'd:Id' property.
                     elemList = doc.GetElementsByTagName("d:Id");
                     if (elemList.Count > 0)
                     {
