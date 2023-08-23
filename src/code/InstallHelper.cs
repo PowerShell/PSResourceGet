@@ -591,12 +591,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
                         }
 
-                        HashSet<string> myHash = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        Dictionary<string,string> depDictionary = new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
                         // Get the dependencies from the installed package.
                         if (parentPkgObj.Dependencies.Length > 0)
                         {
                             bool depFindFailed = false;
-                            foreach (PSResourceInfo depPkg in findHelper.FindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository, myHash))
+                            foreach (PSResourceInfo depPkg in findHelper.FindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository, depDictionary))
                             {
                                 if (depPkg == null)
                                 {
