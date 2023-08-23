@@ -67,7 +67,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
 
     It "Should not install resource given nonexistant name" {
         Install-PSResource -Name "NonExistantModule" -Repository $NuGetGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource "NonExistantModule"
+        $pkg = Get-InstalledPSResource "NonExistantModule" -ErrorAction SilentlyContinue
         $pkg.Name | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
@@ -112,7 +112,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         {}
         $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -410,5 +410,19 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidatio
         $pkg.Name | Should -Be $testModuleName
 
         Set-PSResourceRepository PoshTestGallery -Trusted
+    }
+
+    It "Install package from NuGetGallery that has outer and inner 'items' elements only and has outer items element array length greater than 1" {
+        $res = Install-PSResource -Name "Microsoft.Extensions.DependencyInjection" -Repository $NuGetGalleryName -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -HaveCount 0
+
+        $res.Name | Should -Be "Microsoft.Extensions.DependencyInjection"
+    }
+
+    It "Install package from NuGetGallery that has outer 'items', '@id' and inner 'items' elements" {
+        $res = Install-PSResource -Name "MsgReader" -Repository $NuGetGalleryName -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -HaveCount 0
+
+        $res.Name | Should -Be "MsgReader"
     }
 }
