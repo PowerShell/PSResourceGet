@@ -820,7 +820,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         private static PSRepositoryInfo.APIVersion GetRepoAPIVersion(Uri repoUri)
         {
-            if (repoUri.AbsoluteUri.EndsWith("api/v2", StringComparison.OrdinalIgnoreCase))
+            if (repoUri.AbsoluteUri.EndsWith("/v2", StringComparison.OrdinalIgnoreCase))
             {
                 // Scenario: V2 server protocol repositories (i.e PSGallery)
                 return PSRepositoryInfo.APIVersion.v2;
