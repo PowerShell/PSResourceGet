@@ -1156,6 +1156,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         countSearchSucceeded = int.TryParse(node.InnerText, out count);
                     }
                 }
+   
                 if (!countSearchSucceeded)
                 {
                     elemList = doc.GetElementsByTagName("d:Id");
