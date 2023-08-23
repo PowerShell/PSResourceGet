@@ -1135,6 +1135,40 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 doc.LoadXml(httpResponse);
+
+                bool countSearchSucceeded = false;
+                XmlNodeList elemList = doc.GetElementsByTagName("m:count");
+                if (elemList.Count > 0)
+                {
+                    countSearchSucceeded = true;
+                    XmlNode node = elemList[0];
+                    if (node == null || String.IsNullOrWhiteSpace(node.InnerText))
+                    {
+                        countSearchSucceeded = false;
+                        errRecord = new ErrorRecord(
+                            new PSArgumentException("Count property from server response was empty, invalid or not present."),
+                            "GetCountFromResponseFailure",
+                            ErrorCategory.InvalidData,
+                            this);
+                    }
+                    else
+                    {
+                        countSearchSucceeded = int.TryParse(node.InnerText, out count);
+                    }
+                }
+                if (!countSearchSucceeded)
+                {
+                    elemList = doc.GetElementsByTagName("d:Id");
+                    if (elemList.Count > 0)
+                    {
+                        count = elemList.Count;
+                        errRecord = null;
+                    }
+                    else
+                    {
+                        _cmdletPassedIn.WriteDebug($"Property 'count' and 'd:Id' could not be found in response. This may indicate that the package could not be found"); 
+                    }
+                }
             }
             catch (XmlException e)
             {
@@ -1143,17 +1177,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "GetCountFromResponse", 
                     ErrorCategory.InvalidData, 
                     this);
-            }
-            if (errRecord != null)
-            {
-                return count;
-            }
-
-            XmlNodeList elemList = doc.GetElementsByTagName("m:count");
-            if (elemList.Count > 0)
-            {
-                XmlNode node = elemList[0];
-                count = int.Parse(node.InnerText);
             }
 
             return count;
