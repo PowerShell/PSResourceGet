@@ -1122,6 +1122,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // if adding yield return
             if (!_packagesFound.ContainsKey(currentPkg.Name)) // todo: check version too
             {
+                TryAddToDependencyHash(currentPkg);
                 yield return currentPkg;
             }
         }
