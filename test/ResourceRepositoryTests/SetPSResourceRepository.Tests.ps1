@@ -100,7 +100,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
 
     It "not set repository and write error given just Name parameter" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
-        {Set-PSResourceRepository -Name $TestRepoName1 -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
+        {Set-PSResourceRepository -Name $TestRepoName1 -ErrorAction Stop} | Should -Throw -ErrorId "SetRepositoryParameterBindingFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
     }
 
     $testCases = @{Type = "contains *";     Name = "test*Repository"; ErrorId = "ErrorInNameParameterSet"},
@@ -343,5 +343,17 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         $repo = Get-PSResourceRepository $TestRepoName1
         $repo.ApiVersion | Should -Be "local"
         $repo.Priority | Should -Be 25
+    }
+
+    It "should not change ApiVersion of repository if -ApiVersion parameter was not used" {
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
+        $repo = Get-PSResourceRepository $TestRepoName1
+        $repoApiVersion = $repo.ApiVersion
+        $repoApiVersion | Should -Be "local"
+
+        Set-PSResourceRepository -Name $TestRepoName1 -ApiVersion "unknown" -ErrorVariable err -ErrorAction SilentlyContinue
+        $repo = Get-PSResourceRepository $TestRepoName1
+        $repo.ApiVersion | Should -Be "unknown"
+        $err.Count | Should -Be 0
     }
 }
