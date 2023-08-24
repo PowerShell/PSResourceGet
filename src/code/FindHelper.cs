@@ -634,7 +634,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             ErrorRecord errRecord = null;
             List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
-            //Dictionary<string, List<string>> pkgsFound = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
             string tagsAsString = String.Empty;
 
             _cmdletPassedIn.WriteDebug("In FindHelper::SearchByNames()");
@@ -679,8 +678,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             if (foundPkg.Type == _type || _type == ResourceType.None)
                             {
                                 parentPkgs.Add(foundPkg);
-                                TryAddToDependencyHash(foundPkg);
+                                TryAddToPackagesFoundHash(foundPkg);
                                 _cmdletPassedIn.WriteDebug($"Found package '{foundPkg.Name}' version '{foundPkg.Version}'");
+
                                 yield return foundPkg;
                             }
                         }
@@ -731,7 +731,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             PSResourceInfo foundPkg = currentResult.returnedObject;
                             parentPkgs.Add(foundPkg);
-                            TryAddToDependencyHash(foundPkg);
+                            TryAddToPackagesFoundHash(foundPkg);
+
                             yield return foundPkg;
                         }
                     }
@@ -780,7 +781,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         PSResourceInfo foundPkg = currentResult.returnedObject;
                         parentPkgs.Add(foundPkg);
-                        TryAddToDependencyHash(foundPkg);
+                        TryAddToPackagesFoundHash(foundPkg);
+
                         yield return foundPkg;
                     }
                 }
@@ -841,7 +843,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         PSResourceInfo foundPkg = currentResult.returnedObject;
                         parentPkgs.Add(foundPkg);
-                        TryAddToDependencyHash(foundPkg);
+                        TryAddToPackagesFoundHash(foundPkg);
 
                         yield return foundPkg;
                     }
@@ -918,7 +920,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                    && _versionRange.Satisfies(version))
                             {
                                 parentPkgs.Add(foundPkg);
-                                TryAddToDependencyHash(foundPkg);
+                                TryAddToPackagesFoundHash(foundPkg);
 
                                 yield return foundPkg;
                             }
@@ -966,7 +968,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
 
-        private bool TryAddToDependencyHash(PSResourceInfo foundPkg)
+        private bool TryAddToPackagesFoundHash(PSResourceInfo foundPkg)
         {
             bool addedToHash = false;
             string foundPkgName = foundPkg.Name;
@@ -1122,7 +1124,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // if adding yield return
             if (!_packagesFound.ContainsKey(currentPkg.Name)) // todo: check version too
             {
-                TryAddToDependencyHash(currentPkg);
+                TryAddToPackagesFoundHash(currentPkg);
                 yield return currentPkg;
             }
         }
