@@ -1042,11 +1042,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         depPkg = currentResult.returnedObject;
 
-                        if (!_packagesFound.ContainsKey(depPkg.Name)) // todo: check version too
+                        if (!_packagesFound.ContainsKey(depPkg.Name)) // todo version should be full version
                         {
                             foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
                             {
                                 yield return depRes;
+                            }
+                        }
+                        else
+                        {
+                            List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
+                            // _packagesFound has depPkg.name in it, but the version is not the same
+                            if (!pkgVersions.Contains(depPkg.Version.ToString()))
+                            {
+                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                                {
+                                    yield return depRes;
+                                }
                             }
                         }
                     }
@@ -1110,23 +1122,46 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        if (!_packagesFound.ContainsKey(depPkg.Name)) // todo: check version too
+                        if (!_packagesFound.ContainsKey(depPkg.Name)) // todo version should be full version
                         {
                             foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
                             {
                                 yield return depRes;
                             }
                         }
+                        else {
+                            List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
+                            // _packagesFound has depPkg.name in it, but the version is not the same
+                            if (!pkgVersions.Contains(depPkg.Version.ToString()))
+                            {
+                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                                {
+                                    yield return depRes;
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            // if adding yield return
-            if (!_packagesFound.ContainsKey(currentPkg.Name)) // todo: check version too
+            if (!_packagesFound.ContainsKey(currentPkg.Name))  // todo version should be full version
             {
                 TryAddToPackagesFoundHash(currentPkg);
+
                 yield return currentPkg;
             }
+            else
+            {
+                List<string> pkgVersions = _packagesFound[currentPkg.Name] as List<string>;
+                // _packagesFound has currentPkg.name in it, but the version is not the same
+                if (!pkgVersions.Contains(currentPkg.Version.ToString()))
+                {
+                    TryAddToPackagesFoundHash(currentPkg);
+
+                    yield return currentPkg;
+                }
+            }
+
         }
 
         #endregion
