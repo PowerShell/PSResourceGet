@@ -1145,7 +1145,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            if (!_packagesFound.ContainsKey(currentPkg.Name))  // todo version should be full version
+            if (!_packagesFound.ContainsKey(currentPkg.Name))
             {
                 TryAddToPackagesFoundHash(currentPkg);
 
