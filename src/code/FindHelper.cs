@@ -972,7 +972,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             bool addedToHash = false;
             string foundPkgName = foundPkg.Name;
-            string foundPkgVersion = foundPkg.Version.ToString();
+            string foundPkgVersion = Utils.GetNormalizedVersionString(foundPkg.Version.ToString(), foundPkg.Prerelease);
 
             if (_packagesFound.ContainsKey(foundPkgName))
             {
