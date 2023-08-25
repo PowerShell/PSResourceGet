@@ -1123,7 +1123,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        if (!_packagesFound.ContainsKey(depPkg.Name)) // todo version should be full version
+                        if (!_packagesFound.ContainsKey(depPkg.Name))
                         {
                             foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
                             {
