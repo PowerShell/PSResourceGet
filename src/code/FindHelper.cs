@@ -990,6 +990,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 _packagesFound.Add(foundPkg.Name, new List<string> { foundPkgVersion });
                 addedToHash = true;
             }
+   
             _cmdletPassedIn.WriteDebug($"Found package '{foundPkg.Name}' version '{foundPkg.Version}'");
 
             return addedToHash;
