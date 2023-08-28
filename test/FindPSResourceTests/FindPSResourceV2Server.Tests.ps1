@@ -415,4 +415,25 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidat
 
         $res.Name | Should -Be $testModuleName
     }
+
+    It "find should not duplicate dependencies found" {
+        $res = Find-PSResource -Name "Az" -IncludeDependencies -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
+
+        $foundPkgs = [System.Collections.Generic.HashSet[String]]::new()
+        $duplicatePkgsFound = $false
+        foreach ($item in $res)
+        {
+            if ($foundPkgs.Contains($item.Name))
+            {
+                write-host "this pkg already found"
+                $duplicatePkgsFound = $true
+                break
+            }
+
+            $foundPkgs.Add($item.Name)
+        }
+
+        $duplicatePkgsFound | Should -BeFalse
+    }
 }
