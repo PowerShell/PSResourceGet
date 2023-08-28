@@ -767,8 +767,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        IEnumerable<PSResourceResult> responseUtilResults = currentResponseUtil.ConvertToPSResourceResult(responses);
-                        if (responseUtilResults.Count() == 0)
+                        PSResourceResult[] responseUtilResults = currentResponseUtil.ConvertToPSResourceResult(responses).ToArray();
+                        if (responseUtilResults.Length == 0)
                         {
                             // This scenario may occur when the package version requested is unlisted.
                             _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -776,11 +776,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 "PackageNotFound", 
                                 ErrorCategory.ObjectNotFound, 
                                 this));
-                            yield return null;
+
                             continue;
                         }
 
-                        PSResourceResult currentResult = responseUtilResults.First();
+                        PSResourceResult currentResult = responseUtilResults[0];
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -842,8 +842,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        IEnumerable<PSResourceResult> responseUtilResults = currentResponseUtil.ConvertToPSResourceResult(responses);
-                        if (responseUtilResults.Count() == 0)
+                        PSResourceResult[] responseUtilResults = currentResponseUtil.ConvertToPSResourceResult(responses).ToArray();
+                        if (responseUtilResults.Length == 0)
                         {
                             // This scenario may occur when the package version requested is unlisted.
                             _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -851,11 +851,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 "PackageNotFound", 
                                 ErrorCategory.ObjectNotFound, 
                                 this));
-                            yield return null;
+
                             continue;
                         }
 
-                        PSResourceResult currentResult = responseUtilResults.First();
+                        PSResourceResult currentResult = responseUtilResults[0];
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -1067,8 +1067,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        IEnumerable<PSResourceResult> responseUtilResults = currentResponseUtil.ConvertToPSResourceResult(responses);
-                        if (responseUtilResults.Count() == 0)
+                        PSResourceResult[] responseUtilResults = currentResponseUtil.ConvertToPSResourceResult(responses).ToArray();
+                        if (responseUtilResults.Length == 0)
                         {
                             // This scenario may occur when the package version requested is unlisted.
                             _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -1080,7 +1080,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceResult currentResult = responseUtilResults.First();
+                        PSResourceResult currentResult = responseUtilResults[0];
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
