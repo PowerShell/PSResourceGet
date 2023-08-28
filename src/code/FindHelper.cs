@@ -699,7 +699,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         else
                         {
                             responses = currentServer.FindNameGlobbingWithTag(pkgName, _tag, _prerelease, _type, out errRecord);
-                            tagsAsString = String.Join(", ", _tag);
+                            tagsAsString = $" and tags '{String.Join(", ", _tag)}'";
                         }
 
                         if (errRecord != null)
@@ -750,7 +750,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         else
                         {
                             responses = currentServer.FindNameWithTag(pkgName, _tag, _prerelease, _type, out errRecord);
-                            tagsAsString = String.Join(", ", _tag);
+                            tagsAsString = $" and tags '{String.Join(", ", _tag)}'";
                         }
 
                         if (errRecord != null)
@@ -767,7 +767,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).First();
+                        IEnumerable<PSResourceResult> responseUtilResults = currentResponseUtil.ConvertToPSResourceResult(responses);
+                        if (responseUtilResults.Count() == 0)
+                        {
+                            // This scenario may occur when the package version requested is unlisted.
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new ResourceNotFoundException($"Package with name '{pkgName}'{tagsAsString} could not be found in repository '{repository.Name}'"), 
+                                "PackageNotFound", 
+                                ErrorCategory.ObjectNotFound, 
+                                this));
+                            yield return null;
+                            continue;
+                        }
+
+                        PSResourceResult currentResult = responseUtilResults.First();
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -812,7 +825,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         else
                         {
                             responses = currentServer.FindVersionWithTag(pkgName, _nugetVersion.ToNormalizedString(), _tag, _type, out errRecord);
-                            tagsAsString = String.Join(", ", _tag);
+                            tagsAsString = $" and tags '{String.Join(", ", _tag)}'";
                         }
 
                         if (errRecord != null)
@@ -829,7 +842,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).First();
+                        IEnumerable<PSResourceResult> responseUtilResults = currentResponseUtil.ConvertToPSResourceResult(responses);
+                        if (responseUtilResults.Count() == 0)
+                        {
+                            // This scenario may occur when the package version requested is unlisted.
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new ResourceNotFoundException($"Package with name '{pkgName}, version '{_nugetVersion.ToNormalizedString()}'{tagsAsString} could not be found in repository '{repository.Name}'"), 
+                                "PackageNotFound", 
+                                ErrorCategory.ObjectNotFound, 
+                                this));
+                            yield return null;
+                            continue;
+                        }
+
+                        PSResourceResult currentResult = responseUtilResults.First();
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -1041,8 +1067,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).First();
+                        IEnumerable<PSResourceResult> responseUtilResults = currentResponseUtil.ConvertToPSResourceResult(responses);
+                        if (responseUtilResults.Count() == 0)
+                        {
+                            // This scenario may occur when the package version requested is unlisted.
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'"), 
+                                "DependencyPackageNotFound", 
+                                ErrorCategory.ObjectNotFound, 
+                                this));
+                            yield return null;
+                            continue;
+                        }
 
+                        PSResourceResult currentResult = responseUtilResults.First();
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
