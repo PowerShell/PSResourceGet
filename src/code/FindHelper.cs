@@ -767,8 +767,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceResult[] responseUtilResults = currentResponseUtil.ConvertToPSResourceResult(responses).ToArray();
-                        if (responseUtilResults.Length == 0)
+                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
+                        if (currentResult == null)
                         {
                             // This scenario may occur when the package version requested is unlisted.
                             _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -780,7 +780,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceResult currentResult = responseUtilResults[0];
+                        // PSResourceResult currentResult = responseUtilResults[0];
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -842,12 +842,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceResult[] responseUtilResults = currentResponseUtil.ConvertToPSResourceResult(responses).ToArray();
-                        if (responseUtilResults.Length == 0)
+                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
+                        if (currentResult == null)
                         {
                             // This scenario may occur when the package version requested is unlisted.
                             _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new ResourceNotFoundException($"Package with name '{pkgName}, version '{_nugetVersion.ToNormalizedString()}'{tagsAsString} could not be found in repository '{repository.Name}'"), 
+                                new ResourceNotFoundException($"Package with name '{pkgName}', version '{_nugetVersion.ToNormalizedString()}'{tagsAsString} could not be found in repository '{repository.Name}'"), 
                                 "PackageNotFound", 
                                 ErrorCategory.ObjectNotFound, 
                                 this));
@@ -855,7 +855,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceResult currentResult = responseUtilResults[0];
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -1067,8 +1066,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceResult[] responseUtilResults = currentResponseUtil.ConvertToPSResourceResult(responses).ToArray();
-                        if (responseUtilResults.Length == 0)
+                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
+                        if (currentResult == null)
                         {
                             // This scenario may occur when the package version requested is unlisted.
                             _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -1080,7 +1079,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        PSResourceResult currentResult = responseUtilResults[0];
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                         {
                             _cmdletPassedIn.WriteError(new ErrorRecord(
