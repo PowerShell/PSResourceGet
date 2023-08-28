@@ -12,6 +12,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
     BeforeAll{
         $PSGalleryName = Get-PSGalleryName
         $testModuleName = "test_module"
+        $testModuleName2 = "test_module2"
         $testScriptName = "test_script"
         $commandName = "Get-TargetResource"
         $dscResourceName = "SystemLocale"
@@ -397,6 +398,13 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "2.1.0"
         $err.Count | Should -Be 0
     }
+
+    It "should not find and write error when finding package version that is unlisted" {
+        $res = Find-PSResource -Name $testModuleName2 -Version "1.0.0.0" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -HaveCount 0
+        $err | Should -HaveCount 1
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
 }
 
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidationOnly' {
@@ -426,7 +434,6 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidat
         {
             if ($foundPkgs.Contains($item.Name))
             {
-                write-host "this pkg already found"
                 $duplicatePkgsFound = $true
                 break
             }
