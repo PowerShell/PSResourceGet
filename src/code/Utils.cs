@@ -726,11 +726,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     return false; // TODO: i don't understand what original code was doing here.
                 }
 
-                var result = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Test-SecretVault").AddParameters(
+                var results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Test-SecretVault").AddParameters(
                     new Hashtable() {
                         { "Name", repositoryCredentialInfo.VaultName }
                     }).Invoke<bool>();
 
+                bool result = (results.Count > 0) ? results[0] : false;
                 return result;
             }
             catch (Exception e)
