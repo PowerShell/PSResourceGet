@@ -531,7 +531,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             try
             {
                 System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create();
-                var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru").Invoke<PSModuleInfo>();
+                var module = pwsh.AddCommand("Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru").Invoke<PSModuleInfo>();
                 if (module == null)
                 {
                     cmdletPassedIn.ThrowTerminatingError(
@@ -612,7 +612,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             try
             {
                 System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create();
-                var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru").Invoke<PSModuleInfo>();
+                var module = pwsh.AddCommand("Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru").Invoke<PSModuleInfo>();
                 if (module == null)
                 {
                     cmdletPassedIn.ThrowTerminatingError(
@@ -655,11 +655,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             try
             {
                 System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create();
-                var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Get-Module -Name Microsoft.PowerShell.SecretManagement -ErrorAction Ignore").Invoke<PSModuleInfo>();
+                var module = pwsh.AddCommand("Get-Module -Name Microsoft.PowerShell.SecretManagement -ErrorAction Ignore").Invoke<PSModuleInfo>();
                 if (module == null)
                 {
                     pwsh.Commands.Clear();
-                    module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru -ErrorAction Ignore").Invoke<PSModuleInfo>();
+                    module = pwsh.AddCommand("Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru -ErrorAction Ignore").Invoke<PSModuleInfo>();
                 }
                 
                 if (module == null)
@@ -720,7 +720,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             try
             {
                 System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create();
-                var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru").Invoke<PSModuleInfo>();
+                var module = pwsh.AddCommand("Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru").Invoke<PSModuleInfo>();
                 if (module == null)
                 {
                     return false; // TODO: i don't understand what original code was doing here.
