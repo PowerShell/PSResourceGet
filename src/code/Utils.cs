@@ -528,48 +528,69 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return null;
             }
 
-            var results = PowerShellInvoker.InvokeScriptWithHost<object>(
-                cmdlet: cmdletPassedIn,
-                script: @"
-                    param (
-                        [string] $VaultName,
-                        [string] $SecretName
-                    )
-                    $module = Microsoft.PowerShell.Core\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru
-                    if ($null -eq $module) {
-                        return
-                    }
-                    & $module ""Get-Secret"" -Name $SecretName -Vault $VaultName
-                ",
-                args: new object[] { repositoryCredentialInfo.VaultName, repositoryCredentialInfo.SecretName },
-                out Exception terminatingError);
+            try
+            {
+                System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create();
+                var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru").Invoke<PSModuleInfo>();
+                if (module == null)
+                {
+                    cmdletPassedIn.ThrowTerminatingError(
+                        new ErrorRecord(
+                            new PSInvalidOperationException(
+                                message: $"Microsoft.PowerShell.SecretManagement module could not be imported for PSResourceRepository ({repositoryName}) authentication."),
+                            "RepositoryCredentialCannotLoadSecretManagementModule",
+                            ErrorCategory.InvalidOperation,
+                            cmdletPassedIn));
 
-            var secretValue = (results.Count == 1) ? results[0] : null;
-            if (secretValue == null)
+                    return null;
+                }
+
+                var results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Get-Secret").AddParameters(
+                    new Hashtable() {
+                        { "Vault", repositoryCredentialInfo.VaultName },
+                        { "Name", repositoryCredentialInfo.SecretName }
+                    }).Invoke<Object>();
+
+
+                var secretValue = (results.Count == 1) ? results[0] : null;
+                if (secretValue == null)
+                {
+                    cmdletPassedIn.ThrowTerminatingError(
+                        new ErrorRecord(
+                            new PSInvalidOperationException(
+                                message: $"Microsoft.PowerShell.SecretManagement\\Get-Secret encountered an error while reading secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication."),
+                            "RepositoryCredentialCannotGetSecretFromVault",
+                            ErrorCategory.InvalidOperation,
+                            cmdletPassedIn));
+                }
+
+                if (secretValue is PSCredential secretCredential)
+                {
+                    return secretCredential;
+                }
+
+                cmdletPassedIn.ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSNotSupportedException($"Secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" has an invalid type. The only supported type is PSCredential."),
+                        "RepositoryCredentialInvalidSecretType",
+                        ErrorCategory.InvalidType,
+                        cmdletPassedIn));
+
+                return null;
+            }
+            catch (Exception e)
             {
                 cmdletPassedIn.ThrowTerminatingError(
                     new ErrorRecord(
                         new PSInvalidOperationException(
                             message: $"Microsoft.PowerShell.SecretManagement\\Get-Secret encountered an error while reading secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
-                            innerException: terminatingError),
+                            innerException: e),
                         "RepositoryCredentialCannotGetSecretFromVault",
                         ErrorCategory.InvalidOperation,
                         cmdletPassedIn));
+                
+                return null;
             }
-
-            if (secretValue is PSCredential secretCredential)
-            {
-                return secretCredential;
-            }
-
-            cmdletPassedIn.ThrowTerminatingError(
-                new ErrorRecord(
-                    new PSNotSupportedException($"Secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" has an invalid type. The only supported type is PSCredential."),
-                    "RepositoryCredentialInvalidSecretType",
-                    ErrorCategory.InvalidType,
-                    cmdletPassedIn));
-
-            return null;
         }
 
         public static void SaveRepositoryCredentialToSecretManagementVault(
@@ -588,30 +609,39 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return;
             }
 
-            PowerShellInvoker.InvokeScriptWithHost(
-                cmdlet: cmdletPassedIn,
-                script: @"
-                    param (
-                        [string] $VaultName,
-                        [string] $SecretName,
-                        [object] $SecretValue
-                    )
-                    $module = Microsoft.PowerShell.Core\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru
-                    if ($null -eq $module) {
-                        return
-                    }
-                    & $module ""Set-Secret"" -Name $SecretName -Vault $VaultName -Secret $SecretValue
-                ",
-                args: new object[] { repositoryCredentialInfo.VaultName, repositoryCredentialInfo.SecretName, repositoryCredentialInfo.Credential },
-                out Exception terminatingError);
+            try
+            {
+                System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create();
+                var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru").Invoke<PSModuleInfo>();
+                if (module == null)
+                {
+                    cmdletPassedIn.ThrowTerminatingError(
+                        new ErrorRecord(
+                            new PSInvalidOperationException(
+                                message: $"Microsoft.PowerShell.SecretManagement module could not be imported for PSResourceRepository ({repositoryName}) authentication."),
+                            "RepositoryCredentialCannotLoadSecretManagementModule",
+                            ErrorCategory.InvalidOperation,
+                            cmdletPassedIn));
 
-            if (terminatingError != null)
+                    return;
+                }
+
+                var results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Set-Secret").AddParameters(
+                    new Hashtable() {
+                        { "Secret", repositoryCredentialInfo.Credential},
+                        { "Vault", repositoryCredentialInfo.VaultName },
+                        { "Name", repositoryCredentialInfo.SecretName }
+                    }).Invoke<Object>();
+
+                return;
+            }
+            catch (Exception e)
             {
                 cmdletPassedIn.ThrowTerminatingError(
                     new ErrorRecord(
                         new PSInvalidOperationException(
                             message: $"Microsoft.PowerShell.SecretManagement\\Set-Secret encountered an error while adding secret \"{repositoryCredentialInfo.SecretName}\" to vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
-                            innerException: terminatingError),
+                            innerException: e),
                         "RepositoryCredentialCannotAddSecretToVault",
                         ErrorCategory.InvalidOperation,
                         cmdletPassedIn));
@@ -622,35 +652,64 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             string repositoryName,
             PSCmdlet cmdletPassedIn)
         {
-            var results = PowerShellInvoker.InvokeScriptWithHost<int>(
-                cmdlet: cmdletPassedIn,
-                script: @"
-                    $module = Microsoft.PowerShell.Core\Get-Module -Name Microsoft.PowerShell.SecretManagement -ErrorAction Ignore
-                    if ($null -eq $module) {
-                        $module = Microsoft.PowerShell.Core\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru -ErrorAction Ignore
-                    }
-                    if ($null -eq $module) {
-                        return 1
-                    }
-                    return 0
-                ",
-                args: new object[] {},
-                out Exception terminatingError);
-
-            if (terminatingError != null)
+            try
+            {
+                System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create();
+                var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Get-Module -Name Microsoft.PowerShell.SecretManagement -ErrorAction Ignore").Invoke<PSModuleInfo>();
+                if (module == null)
+                {
+                    pwsh.Commands.Clear();
+                    module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru -ErrorAction Ignore").Invoke<PSModuleInfo>();
+                }
+                
+                if (module == null)
+                {
+                    return false;
+                }
+            }
+            catch (Exception e)
             {
                 cmdletPassedIn.ThrowTerminatingError(
                     new ErrorRecord(
                         new PSInvalidOperationException(
                             message: $"Cannot validate Microsoft.PowerShell.SecretManagement module setup for PSResourceRepository ({repositoryName}) authentication.",
-                            innerException: terminatingError),
+                            innerException: e),
                         "RepositoryCredentialSecretManagementInvalidModule",
                         ErrorCategory.InvalidOperation,
                         cmdletPassedIn));
             }
 
-            int result = (results.Count > 0) ? results[0] : 1;
-            return result == 0;
+            return true;
+
+            // var results = PowerShellInvoker.InvokeScriptWithHosst<int>(
+            //     cmdlet: cmdletPassedIn,
+            //     script: @"
+            //         $module = Microsoft.PowerShell.Core\Get-Module -Name Microsoft.PowerShell.SecretManagement -ErrorAction Ignore
+            //         if ($null -eq $module) {
+            //             $module = Microsoft.PowerShell.Core\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru -ErrorAction Ignore
+            //         }
+            //         if ($null -eq $module) {
+            //             return 1
+            //         }
+            //         return 0
+            //     ",
+            //     args: new object[] {},
+            //     out Exception terminatingError);
+
+            // if (terminatingError != null)
+            // {
+            //     cmdletPassedIn.ThrowTerminatingError(
+            //         new ErrorRecord(
+            //             new PSInvalidOperationException(
+            //                 message: $"Cannot validate Microsoft.PowerShell.SecretManagement module setup for PSResourceRepository ({repositoryName}) authentication.",
+            //                 innerException: terminatingError),
+            //             "RepositoryCredentialSecretManagementInvalidModule",
+            //             ErrorCategory.InvalidOperation,
+            //             cmdletPassedIn));
+            // }
+
+            // int result = (results.Count > 0) ? results[0] : 1;
+            // return result == 0;
         }
 
         public static bool IsSecretManagementVaultAccessible(
@@ -658,35 +717,65 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             PSCredentialInfo repositoryCredentialInfo,
             PSCmdlet cmdletPassedIn)
         {
-            var results = PowerShellInvoker.InvokeScriptWithHost<bool>(
-                cmdlet: cmdletPassedIn,
-                script: @"
-                    param (
-                        [string] $VaultName
-                    )
-                    $module = Microsoft.PowerShell.Core\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru
-                    if ($null -eq $module) {
-                        return
-                    }
-                    & $module ""Test-SecretVault"" -Name $VaultName
-                ",
-                args: new object[] { repositoryCredentialInfo.VaultName },
-                out Exception terminatingError);
+            try
+            {
+                System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create();
+                var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru").Invoke<PSModuleInfo>();
+                if (module == null)
+                {
+                    return false; // TODO: i don't understand what original code was doing here.
+                }
 
-            if (terminatingError != null)
+                var result = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Test-SecretVault").AddParameters(
+                    new Hashtable() {
+                        { "Name", repositoryCredentialInfo.VaultName }
+                    }).Invoke<bool>();
+
+                return result;
+            }
+            catch (Exception e)
             {
                 cmdletPassedIn.ThrowTerminatingError(
                     new ErrorRecord(
                         new PSInvalidOperationException(
                             message: $"Microsoft.PowerShell.SecretManagement\\Test-SecretVault encountered an error while validating the vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
-                            innerException: terminatingError),
+                            innerException: e),
                         "RepositoryCredentialSecretManagementInvalidVault",
                         ErrorCategory.InvalidOperation,
                         cmdletPassedIn));
+
+                return false;
             }
 
-            bool result = (results.Count > 0) ? results[0] : false;
-            return result;
+            // var results = PowerShellInvoker.InvokeScriptWithHosst<bool>(
+            //     cmdlet: cmdletPassedIn,
+            //     script: @"
+            //         param (
+            //             [string] $VaultName
+            //         )
+            //         $module = Microsoft.PowerShell.Core\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru
+            //         if ($null -eq $module) {
+            //             return
+            //         }
+            //         & $module ""Test-SecretVault"" -Name $VaultName
+            //     ",
+            //     args: new object[] { repositoryCredentialInfo.VaultName },
+            //     out Exception terminatingError);
+
+            // if (terminatingError != null)
+            // {
+            //     cmdletPassedIn.ThrowTerminatingError(
+            //         new ErrorRecord(
+            //             new PSInvalidOperationException(
+            //                 message: $"Microsoft.PowerShell.SecretManagement\\Test-SecretVault encountered an error while validating the vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
+            //                 innerException: terminatingError),
+            //             "RepositoryCredentialSecretManagementInvalidVault",
+            //             ErrorCategory.InvalidOperation,
+            //             cmdletPassedIn));
+            // }
+
+            // bool result = (results.Count > 0) ? results[0] : false;
+            // return result;
         }
 
         public static NetworkCredential SetNetworkCredential(
