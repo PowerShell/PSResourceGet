@@ -718,7 +718,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 if (module == null)
                 {
-                    return false; // TODO: i don't understand what original code was doing here.
+                    return false;
                 }
 
                 var results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Test-SecretVault").AddParameters(
