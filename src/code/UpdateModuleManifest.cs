@@ -605,17 +605,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 try
                 {
-                    var results = PowerShellInvoker.InvokeScriptWithHost<object>(
-                          cmdlet: this,
-                          script: @"
-                                param (
-                                    [hashtable] $params
-                                )
-
-                                New-ModuleManifest @params
-                            ",
-                          args: new object[] { parsedMetadata },
-                          out Exception terminatingErrors);
+                    var results = pwsh.AddCommand("Microsoft.PowerShell.Core\\New-ModuleManifest").AddArgument(new object[] { parsedMetadata }).Invoke<Object>();
                 }
                 catch (Exception e)
                 {
