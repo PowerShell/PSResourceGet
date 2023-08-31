@@ -588,7 +588,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 cmdletPassedIn.ThrowTerminatingError(
                     new ErrorRecord(
                         new PSInvalidOperationException(
-                            message: $"Microsoft.PowerShell.SecretManagement\\Get-Secret encountered an error while reading secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
+                            message: $"Microsoft.PowerShell.SecretManagement\\Get-Secret encountered an error while reading secret '{repositoryCredentialInfo.SecretName}' from vault '{repositoryCredentialInfo.VaultName}' for PSResourceRepository '{repositoryName}' authentication.",
                             innerException: e),
                         "RepositoryCredentialCannotGetSecretFromVault",
                         ErrorCategory.InvalidOperation,
