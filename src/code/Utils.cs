@@ -530,58 +530,82 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             try
             {
-                System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create();
-                var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
-                        new Hashtable() {
-                            { "Name", "Microsoft.PowerShell.SecretManagement"},
-                            { "PassThru", true}
-                        }).Invoke<PSModuleInfo>();
-
-                if (module == null)
+                using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
+                    var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
+                            new Hashtable() {
+                                { "Name", "Microsoft.PowerShell.SecretManagement"},
+                                { "PassThru", true}
+                            }).Invoke<PSModuleInfo>();
+
+                    if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
+                    {
+                        foreach (var err in pwsh.Streams.Error)
+                        {
+                            cmdletPassedIn.WriteError(err);
+                        }
+
+                        return null;
+                    }
+
+                    if (module == null)
+                    {
+                        cmdletPassedIn.ThrowTerminatingError(
+                            new ErrorRecord(
+                                new PSInvalidOperationException(
+                                    message: $"Microsoft.PowerShell.SecretManagement module could not be imported for PSResourceRepository '{repositoryName}' authentication."),
+                                "RepositoryCredentialCannotLoadSecretManagementModule",
+                                ErrorCategory.InvalidOperation,
+                                cmdletPassedIn));
+
+                        return null;
+                    }
+
+                    pwsh.Commands.Clear();
+                    var results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Get-Secret").AddParameters(
+                        new Hashtable() {
+                            { "Vault", repositoryCredentialInfo.VaultName },
+                            { "Name", repositoryCredentialInfo.SecretName }
+                        }).Invoke<Object>();
+
+                    if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
+                    {
+                        foreach (var err in pwsh.Streams.Error)
+                        {
+                            cmdletPassedIn.WriteError(err);
+                        }
+
+                        return null;
+                    }
+
+                    var secretValue = (results?.Count == 1) ? results[0] : null;
+                    if (secretValue == null)
+                    {
+                        cmdletPassedIn.ThrowTerminatingError(
+                            new ErrorRecord(
+                                new PSInvalidOperationException(
+                                    message: $"Microsoft.PowerShell.SecretManagement\\Get-Secret encountered an error while reading secret '{repositoryCredentialInfo.SecretName}' from vault '{repositoryCredentialInfo.VaultName}' for PSResourceRepository '{repositoryName}' authentication."),
+                                "RepositoryCredentialCannotGetSecretFromVault",
+                                ErrorCategory.InvalidOperation,
+                                cmdletPassedIn));
+
+                        return null;
+                    }
+
+                    if (secretValue is PSCredential secretCredential)
+                    {
+                        return secretCredential;
+                    }
+
                     cmdletPassedIn.ThrowTerminatingError(
                         new ErrorRecord(
-                            new PSInvalidOperationException(
-                                message: $"Microsoft.PowerShell.SecretManagement module could not be imported for PSResourceRepository '{repositoryName}' authentication."),
-                            "RepositoryCredentialCannotLoadSecretManagementModule",
-                            ErrorCategory.InvalidOperation,
+                            new PSNotSupportedException($"Secret '{repositoryCredentialInfo.SecretName}' from vault '{repositoryCredentialInfo.VaultName}' has an invalid type. The only supported type is PSCredential."),
+                            "RepositoryCredentialInvalidSecretType",
+                            ErrorCategory.InvalidType,
                             cmdletPassedIn));
 
                     return null;
                 }
-
-                var results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Get-Secret").AddParameters(
-                    new Hashtable() {
-                        { "Vault", repositoryCredentialInfo.VaultName },
-                        { "Name", repositoryCredentialInfo.SecretName }
-                    }).Invoke<Object>();
-
-
-                var secretValue = (results.Count == 1) ? results[0] : null;
-                if (secretValue == null)
-                {
-                    cmdletPassedIn.ThrowTerminatingError(
-                        new ErrorRecord(
-                            new PSInvalidOperationException(
-                                message: $"Microsoft.PowerShell.SecretManagement\\Get-Secret encountered an error while reading secret '{repositoryCredentialInfo.SecretName}' from vault '{repositoryCredentialInfo.VaultName}' for PSResourceRepository '{repositoryName}' authentication."),
-                            "RepositoryCredentialCannotGetSecretFromVault",
-                            ErrorCategory.InvalidOperation,
-                            cmdletPassedIn));
-                }
-
-                if (secretValue is PSCredential secretCredential)
-                {
-                    return secretCredential;
-                }
-
-                cmdletPassedIn.ThrowTerminatingError(
-                    new ErrorRecord(
-                        new PSNotSupportedException($"Secret '{repositoryCredentialInfo.SecretName}' from vault '{repositoryCredentialInfo.VaultName}' has an invalid type. The only supported type is PSCredential."),
-                        "RepositoryCredentialInvalidSecretType",
-                        ErrorCategory.InvalidType,
-                        cmdletPassedIn));
-
-                return null;
             }
             catch (Exception e)
             {
@@ -616,34 +640,55 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             try
             {
-                System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create();
-                var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
-                        new Hashtable() {
-                            { "Name", "Microsoft.PowerShell.SecretManagement"},
-                            { "PassThru", true}
-                        }).Invoke<PSModuleInfo>();
-
-                if (module == null)
+                using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
-                    cmdletPassedIn.ThrowTerminatingError(
-                        new ErrorRecord(
-                            new PSInvalidOperationException(
-                                message: $"Microsoft.PowerShell.SecretManagement module could not be imported for PSResourceRepository '{repositoryName}' authentication."),
-                            "RepositoryCredentialCannotLoadSecretManagementModule",
-                            ErrorCategory.InvalidOperation,
-                            cmdletPassedIn));
+                    var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
+                            new Hashtable() {
+                                { "Name", "Microsoft.PowerShell.SecretManagement"},
+                                { "PassThru", true}
+                            }).Invoke<PSModuleInfo>();
+
+                    if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
+                    {
+                        foreach (var err in pwsh.Streams.Error)
+                        {
+                            cmdletPassedIn.WriteError(err);
+                        }
+
+                        return;
+                    }
+
+                    if (module == null)
+                    {
+                        cmdletPassedIn.ThrowTerminatingError(
+                            new ErrorRecord(
+                                new PSInvalidOperationException(
+                                    message: $"Microsoft.PowerShell.SecretManagement module could not be imported for PSResourceRepository '{repositoryName}' authentication."),
+                                "RepositoryCredentialCannotLoadSecretManagementModule",
+                                ErrorCategory.InvalidOperation,
+                                cmdletPassedIn));
+
+                        return;
+                    }
+
+                    pwsh.Commands.Clear();
+                    var results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Set-Secret").AddParameters(
+                        new Hashtable() {
+                            { "Secret", repositoryCredentialInfo.Credential},
+                            { "Vault", repositoryCredentialInfo.VaultName },
+                            { "Name", repositoryCredentialInfo.SecretName }
+                        }).Invoke<Object>();
+
+                    if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
+                    {
+                        foreach (var err in pwsh.Streams.Error)
+                        {
+                            cmdletPassedIn.WriteError(err);
+                        }
+                    }
 
                     return;
                 }
-
-                var results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Set-Secret").AddParameters(
-                    new Hashtable() {
-                        { "Secret", repositoryCredentialInfo.Credential},
-                        { "Vault", repositoryCredentialInfo.VaultName },
-                        { "Name", repositoryCredentialInfo.SecretName }
-                    }).Invoke<Object>();
-
-                return;
             }
             catch (Exception e)
             {
@@ -664,27 +709,29 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             try
             {
-                System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create();
-                var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Get-Module").AddParameters(
-                    new Hashtable() {
-                        { "Name", "Microsoft.PowerShell.SecretManagement"},
-                        { "ErrorAction", "Ignore"}
-                    }).Invoke<PSModuleInfo>();
-
-                if (module == null)
+                using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
-                    pwsh.Commands.Clear();
-                    module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
+                    var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
                         new Hashtable() {
                             { "Name", "Microsoft.PowerShell.SecretManagement"},
                             { "PassThru", true},
                             { "ErrorAction", "Ignore"}
-                        }).Invoke<PSModuleInfo>();    
-                }
-                
-                if (module == null)
-                {
-                    return false;
+                        }).Invoke<PSModuleInfo>();
+
+                    if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
+                    {
+                        foreach (var err in pwsh.Streams.Error)
+                        {
+                            cmdletPassedIn.WriteError(err);
+                        }
+
+                        return false;
+                    }
+
+                    if (module == null)
+                    {
+                        return false;
+                    }
                 }
             }
             catch (Exception e)
@@ -709,25 +756,52 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             try
             {
-                System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create();
-                var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
-                    new Hashtable() {
-                        { "Name", "Microsoft.PowerShell.SecretManagement"},
-                        { "PassThru", true}
-                    }).Invoke<PSModuleInfo>();
-
-                if (module == null)
+                using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
-                    return false;
+                    var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
+                        new Hashtable() {
+                            { "Name", "Microsoft.PowerShell.SecretManagement"},
+                            { "PassThru", true}
+                        }).Invoke<PSModuleInfo>();
+
+                    if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
+                    {
+                        foreach (var err in pwsh.Streams.Error)
+                        {
+                            cmdletPassedIn.WriteError(err);
+                        }
+
+                        return false;
+                    }
+
+                    if (module == null)
+                    {
+                        return false;
+                    }
+
+                    pwsh.Commands.Clear();
+                    var results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Test-SecretVault").AddParameters(
+                        new Hashtable() {
+                            { "Name", repositoryCredentialInfo.VaultName }
+                        }).Invoke<bool>();
+
+                    if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
+                    {
+                        foreach (var err in pwsh.Streams.Error)
+                        {
+                            cmdletPassedIn.WriteError(err);
+                        }
+
+                        return false;
+                    }
+
+                    if (results == null)
+                    {
+                        return false;
+                    }
+
+                    return results.Count > 0 ? results[0] : false;
                 }
-
-                var results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Test-SecretVault").AddParameters(
-                    new Hashtable() {
-                        { "Name", repositoryCredentialInfo.VaultName }
-                    }).Invoke<bool>();
-
-                bool result = (results.Count > 0) ? results[0] : false;
-                return result;
             }
             catch (Exception e)
             {
