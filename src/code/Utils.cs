@@ -734,7 +734,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 cmdletPassedIn.ThrowTerminatingError(
                     new ErrorRecord(
                         new PSInvalidOperationException(
-                            message: $"Microsoft.PowerShell.SecretManagement\\Test-SecretVault encountered an error while validating the vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
+                            message: $"Microsoft.PowerShell.SecretManagement\\Test-SecretVault encountered an error while validating the vault '{repositoryCredentialInfo.VaultName}' for PSResourceRepository '{repositoryName}' authentication.",
                             innerException: e),
                         "RepositoryCredentialSecretManagementInvalidVault",
                         ErrorCategory.InvalidOperation,
