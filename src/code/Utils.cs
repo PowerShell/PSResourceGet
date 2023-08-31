@@ -576,7 +576,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 cmdletPassedIn.ThrowTerminatingError(
                     new ErrorRecord(
-                        new PSNotSupportedException($"Secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" has an invalid type. The only supported type is PSCredential."),
+                        new PSNotSupportedException($"Secret '{repositoryCredentialInfo.SecretName}' from vault '{repositoryCredentialInfo.VaultName}' has an invalid type. The only supported type is PSCredential."),
                         "RepositoryCredentialInvalidSecretType",
                         ErrorCategory.InvalidType,
                         cmdletPassedIn));
