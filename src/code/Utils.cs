@@ -542,7 +542,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     cmdletPassedIn.ThrowTerminatingError(
                         new ErrorRecord(
                             new PSInvalidOperationException(
-                                message: $"Microsoft.PowerShell.SecretManagement module could not be imported for PSResourceRepository ({repositoryName}) authentication."),
+                                message: $"Microsoft.PowerShell.SecretManagement module could not be imported for PSResourceRepository '{repositoryName}' authentication."),
                             "RepositoryCredentialCannotLoadSecretManagementModule",
                             ErrorCategory.InvalidOperation,
                             cmdletPassedIn));
