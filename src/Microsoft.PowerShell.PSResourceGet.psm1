@@ -9,6 +9,8 @@ function Import-PSGetRepository {
         [switch]$Force
     )
 
+    $Runtime = [System.Runtime.InteropServices.RuntimeInformation]
+    $OSPlatform = [System.Runtime.InteropServices.OSPlatform]
     $IsOSWindows = $Runtime::IsOSPlatform($OSPlatform::Windows)
     if ($IsOSWindows) {
         $PSGetAppLocalPath = Microsoft.PowerShell.Management\Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Microsoft\Windows\PowerShell\PowerShellGet\'
