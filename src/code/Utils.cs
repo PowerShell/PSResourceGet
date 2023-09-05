@@ -739,7 +739,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 cmdletPassedIn.ThrowTerminatingError(
                     new ErrorRecord(
                         new PSInvalidOperationException(
-                            message: $"Cannot validate Microsoft.PowerShell.SecretManagement module setup for PSResourceRepository ({repositoryName}) authentication.",
+                            message: $"Cannot validate Microsoft.PowerShell.SecretManagement module setup for PSResourceRepository '{repositoryName}' authentication.",
                             innerException: e),
                         "RepositoryCredentialSecretManagementInvalidModule",
                         ErrorCategory.InvalidOperation,
