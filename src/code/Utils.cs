@@ -695,7 +695,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 cmdletPassedIn.ThrowTerminatingError(
                     new ErrorRecord(
                         new PSInvalidOperationException(
-                            message: $"Microsoft.PowerShell.SecretManagement\\Set-Secret encountered an error while adding secret \"{repositoryCredentialInfo.SecretName}\" to vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
+                            message: $"Microsoft.PowerShell.SecretManagement\\Set-Secret encountered an error while adding secret '{repositoryCredentialInfo.SecretName}' to vault '{repositoryCredentialInfo.VaultName}' for PSResourceRepository '{repositoryName}' authentication.",
                             innerException: e),
                         "RepositoryCredentialCannotAddSecretToVault",
                         ErrorCategory.InvalidOperation,
