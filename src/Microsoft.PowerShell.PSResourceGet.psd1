@@ -45,7 +45,7 @@
         'udres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'rc1'
+            Prerelease   = 'rc'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -55,7 +55,7 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
-## 0.9.0-rc1
+## 0.9.0-rc
 
 ### Bug Fixes
 - Bug fix for using `Import-PSGetRepository` in Windows PowerShell (#1390)
