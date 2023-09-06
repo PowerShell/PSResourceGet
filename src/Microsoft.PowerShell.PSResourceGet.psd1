@@ -4,7 +4,7 @@
 @{
     RootModule             = './Microsoft.PowerShell.PSResourceGet.dll'
     NestedModules          = @('./Microsoft.PowerShell.PSResourceGet.psm1')
-    ModuleVersion          = '0.5.24'
+    ModuleVersion          = '0.9.0'
     CompatiblePSEditions   = @('Core', 'Desktop')
     GUID                   = 'e4e0bda1-0703-44a5-b70d-8fe704cd0643'
     Author                 = 'Microsoft Corporation'
@@ -45,7 +45,7 @@
         'udres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'beta24'
+            Prerelease   = 'rc'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -55,6 +55,18 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 0.9.0-rc
+
+### Bug Fixes
+- Bug fix for using `Import-PSGetRepository` in Windows PowerShell (#1390)
+- Add error handling when searching for unlisted package versions (#1386)
+- Bug fix for deduplicating dependencies found from `Find-PSResource` (#1382)
+- Added support for non-PowerShell Gallery v2 repositories (#1380)
+- Bug fix for setting 'unknown' repository `APIVersion` (#1377)
+- Bug fix for saving a script with `-IncludeXML` parameter (#1375)
+- Bug fix for v3 server logic to properly parse inner @id element (#1374)
+- Bug fix to write warning instead of error when package is already installed (#1367)
+
 ## 0.5.24-beta24
 
 ### Bug Fixes

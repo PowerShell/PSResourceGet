@@ -1,4 +1,16 @@
 # CHANGELOG
+## 0.9.0-rc
+
+### Bug Fixes
+- Bug fix for using `Import-PSGetRepository` in Windows PowerShell (#1390)
+- Add error handling when searching for unlisted package versions (#1386)
+- Bug fix for deduplicating dependencies found from `Find-PSResource` (#1382)
+- Added support for non-PowerShell Gallery v2 repositories (#1380)
+- Bug fix for setting 'unknown' repository `APIVersion` (#1377)
+- Bug fix for saving a script with `-IncludeXML` parameter (#1375)
+- Bug fix for v3 server logic to properly parse inner @id element (#1374)
+- Bug fix to write warning instead of error when package is already installed (#1367)
+
 ## 0.5.24-beta24
 
 ### Bug Fixes
