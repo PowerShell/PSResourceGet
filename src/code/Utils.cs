@@ -592,9 +592,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         return null;
                     }
 
-                    if (secretValue is PSCredential secretCredential)
+                    if (secretValue is PSObject secretObject)
                     {
-                        return secretCredential;
+                        if (secretObject.BaseObject is PSCredential secretCredential)
+                        {
+                            return secretCredential;
+                        }
                     }
 
                     cmdletPassedIn.ThrowTerminatingError(
