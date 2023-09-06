@@ -8,7 +8,12 @@ function Import-PSGetRepository {
         # Use the -Force switch to overwrite existing repositories.
         [switch]$Force
     )
-    if ($IsWindows) {
+
+    $Runtime = [System.Runtime.InteropServices.RuntimeInformation]
+    $OSPlatform = [System.Runtime.InteropServices.OSPlatform]
+    # this checks for WindowsPwsh and Core
+    $IsOSWindows = $Runtime::IsOSPlatform($OSPlatform::Windows)
+    if ($IsOSWindows) {
         $PSGetAppLocalPath = Microsoft.PowerShell.Management\Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Microsoft\Windows\PowerShell\PowerShellGet\'
     }
     else {
