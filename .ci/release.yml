@@ -72,7 +72,7 @@ jobs:
     displayName: 'Capture PSResourceGet module NuGet package path and set environment variable'
 
   - task: ManualValidation@0
-    displayName: Apporove release to PowerShell Gallery
+    displayName: Approve release to PowerShell Gallery
     timeoutInMinutes: 2880 # 2 days
     inputs:
       instructions: Approve if ready to release to PowerShell Gallery
