@@ -5,39 +5,50 @@ parameters:
   displayNameJob2: 'Release PSResourceGet to PSGallery'
 
 jobs:
-#- job: ${{ parameters.jobName1 }}
-#  pool:
-#    name: 1ES
-#    demands:
-#    - ImageOverride -equals PSMMS2019-Secure
-#  displayName: ${{ parameters.displayNameJob1 }}
+- job: ${{ parameters.jobName1 }}
+  pool:
+    name: 1ES
+    demands:
+    - ImageOverride -equals PSMMS2019-Secure
+  displayName: ${{ parameters.displayNameJob1 }}
 
-#  steps:
-#  - task: DownloadPipelineArtifact@2
-#    displayName: 'Download PSResourceGet module artifacts'
-#    inputs:
-#      artifact: nupkg
-#      patterns: '**/*.nupkg'
-#      downloadPath: '$(Pipeline.Workspace)/nuget'
+  steps:
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Download PSResourceGet module artifacts'
+    inputs:
+      artifact: nupkg
+      patterns: '**/*.nupkg'
+      downloadPath: '$(Pipeline.Workspace)/nuget'
 
-  #- powershell: |
-  #    $package = (Get-ChildItem '$(Pipeline.Workspace)/nuget/Microsoft.PowerShell.PSResourceGet.*.nupkg').FullName
-  #    $package
-  #    $vstsCommandString = "vso[task.setvariable variable=NugetPkgPath]${package}"
-  #    Write-Host "sending " + $vstsCommandString
-  #    Write-Host "##$vstsCommandString"
-  #  displayName: 'Capture PSResourceGet module NuGet package path and set environment variable'
+  - powershell: |
+      $package = (Get-ChildItem '$(Pipeline.Workspace)/nuget/Microsoft.PowerShell.PSResourceGet.*.nupkg').FullName
+      $package
+      $vstsCommandString = "vso[task.setvariable variable=NugetPkgPath]${package}"
+      Write-Host "sending " + $vstsCommandString
+      Write-Host "##$vstsCommandString"
+    displayName: 'Capture PSResourceGet module NuGet package path and set environment variable'
 
-  #- task: NuGetCommand@2
-  #  displayName: 'Push PSResourceGet module artifacts to PowerShell ADO feed'
-  #  inputs:
-  #    command: push
-  #    packagesToPush: '$(NugetPkgPath)'
-  #    nuGetFeedType: external
-  #    publishFeedCredentials: PSCoreReleasePush
+  - task: NuGetAuthenticate@1
+    inputs:
+      nuGetServiceConnections: PSCoreReleasePush
+
+  - task: ManualValidation@0
+    displayName: Approve release to PS internal feed
+    timeoutInMinutes: 2880 # 2 days
+    inputs:
+      instructions: Approve if ready to release to PS internal nuget feed
+      onTimeout: reject
+
+  - task: NuGetCommand@2
+    displayName: 'Push PSResourceGet module artifacts to PowerShell ADO feed'
+    inputs:
+      command: push
+      packagesToPush: '$(NugetPkgPath)'
+      nuGetFeedType: external
+      publishFeedCredentials: PSCoreReleasePush
 
 - job: ${{ parameters.jobName2 }}
-  # dependsOn: ${{ parameters.jobName1 }}
+  dependsOn: ${{ parameters.jobName1 }}
   pool:
     name: 1ES
     demands:
@@ -59,6 +70,13 @@ jobs:
       Write-Host "sending " + $vstsCommandString
       Write-Host "##$vstsCommandString"
     displayName: 'Capture PSResourceGet module NuGet package path and set environment variable'
+
+  - task: ManualValidation@0
+    displayName: Approve release to PowerShell Gallery
+    timeoutInMinutes: 2880 # 2 days
+    inputs:
+      instructions: Approve if ready to release to PowerShell Gallery
+      onTimeout: reject
 
   - task: NuGetCommand@2
     displayName: 'Push PSResourceGet module artifacts to PSGallery feed'
