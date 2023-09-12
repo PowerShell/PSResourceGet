@@ -11,7 +11,7 @@ parameters:
   displayNameJob2: 'Release PSResourceGet to PSGallery'
 
 jobs:
-- job: ${{ parameter.validationJob1 }}
+- job: ${{ parameters.validationJob1 }}
   displayName: ${{ parameters.displayValidationJob1 }}
   pool: server
   timeoutInMinutes: 4320 # job times out in 3 days
@@ -24,7 +24,7 @@ jobs:
       onTimeout: reject
 
 - job: ${{ parameters.jobName1 }}
-  dependsOn: ${{ validationJob1 }}
+  dependsOn: ${{ parameters.validationJob1 }}
   pool:
     name: 1ES
     demands:
@@ -59,7 +59,7 @@ jobs:
       nuGetFeedType: external
       publishFeedCredentials: PSCoreReleasePush
 
-- job: ${{ parameter.validationJob2 }}
+- job: ${{ parameters.validationJob2 }}
   dependsOn: ${{ parameters.jobName1 }}
   displayName: ${{ parameters.displayValidationJob2 }}
   pool: server
