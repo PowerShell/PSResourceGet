@@ -1,5 +1,5 @@
 # CHANGELOG
-## 0.9.0-rc
+## 0.9.0-rc1
 
 ### Bug Fixes
 - Bug fix for using `Import-PSGetRepository` in Windows PowerShell (#1390)
