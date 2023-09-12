@@ -292,7 +292,7 @@ stages:
           BuildDropPath: $(signOutPath)
           Build_Repository_Uri: 'https://github.com/powershell/PSResourceGet'
           PackageName: 'Microsoft.PowerShell.PSResourceGet'
-          PackageVersion: '0.9.0-rc'
+          PackageVersion: '0.9.0-rc1'
 
     - pwsh: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
