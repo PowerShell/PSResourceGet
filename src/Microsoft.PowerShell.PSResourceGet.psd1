@@ -45,7 +45,7 @@
         'udres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'rc'
+            Prerelease   = 'rc1'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
