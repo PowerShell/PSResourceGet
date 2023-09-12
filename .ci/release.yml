@@ -60,6 +60,7 @@ jobs:
       publishFeedCredentials: PSCoreReleasePush
 
 - job: ${{ parameter.validationJob2 }}
+  dependsOn: ${{ parameters.jobName1 }}
   displayName: ${{ parameters.displayValidationJob2 }}
   pool: server
   timeoutInMinutes: 4320 # job times out in 3 days
