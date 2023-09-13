@@ -316,29 +316,38 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
-    # It "find all resources with specified tag given Tag property" {
-    #     # FindTag()
-    #     $foundTestModule = $False
-    #     $foundTestScript = $False
-    #     $tagToFind = "Tag2"
-    #     $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName
-    #     foreach ($item in $res) {
-    #         $item.Tags -contains $tagToFind | Should -Be $True
+    It "find all resources with specified tag given Tag property" {
+        # FindTag()
+        $foundTestModule = $False
+        $foundTestScript = $False
+        $tagToFind = "Tag2"
+        $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName
+        foreach ($item in $res) {
+            $item.Tags -contains $tagToFind | Should -Be $True
 
-    #         if ($item.Name -eq $testModuleName)
-    #         {
-    #             $foundTestModule = $True
-    #         }
+            if ($item.Name -eq $testModuleName)
+            {
+                $foundTestModule = $True
+            }
 
-    #         if ($item.Name -eq $testScriptName)
-    #         {
-    #             $foundTestScript = $True
-    #         }
-    #     }
+            if ($item.Name -eq $testScriptName)
+            {
+                $foundTestScript = $True
+            }
+        }
 
-    #     $foundTestModule | Should -Be $True
-    #     $foundTestScript | Should -Be $True
-    # }
+        $foundTestModule | Should -Be $True
+        $foundTestScript | Should -Be $True
+    }
+
+    It "find all resources with specified tag given Tag property, with and without Prerelease property" {
+        $tagToFind = "MyPSTag"
+        $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName
+        $res | Should -HaveCount 1
+
+        $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName -Prerelease
+        $res | Should -HaveCount 2
+    }
 
     It "find resource given CommandName" {
         $res = Find-PSResource -CommandName $commandName -Repository $PSGalleryName

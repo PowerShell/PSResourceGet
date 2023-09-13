@@ -152,7 +152,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
         /// Examples: Search -Tag "JSON" -Repository PSGallery
         /// API call:
-        /// - Include prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsAbsoluteLatestVersion&searchTerm=tag:JSON&includePrerelease=true
+        /// - Include prerelease: https://www.powershellgallery.com/api/v2/Search()?includePrerelease=true&$filter=IsAbsoluteLatestVersion and substringof('PSModule', Tags) eq true and substringof('CrescendoBuilt', Tags) eq true&$orderby=Id desc&$inlinecount=allpages&$skip=0&$top=6000
         /// </summary>
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ErrorRecord errRecord)
         {
