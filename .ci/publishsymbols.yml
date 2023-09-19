@@ -1,0 +1,33 @@
+steps:
+- task: DownloadPipelineArtifact@2
+  displayName: 'Download and publish symbols'
+  inputs:
+    # source: specific
+    # project: PowerShellCore
+    # pipeline: '696'
+    # preferTriggeringPipeline: true
+    # runVersion: latestFromBranch
+    # runBranch: '$(Build.SourceBranch)'
+    artifact: $(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.pdb
+    path: '$(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet'
+
+- pwsh: |
+    Write-Verbose -Verbose "Enumerating $(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet"
+    $symbolsRoot = New-Item -Path "$(Pipeline.Workspace)/symbols" -ItemType Directory -Verbose
+    Copy-Item -Path "$(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.pdb" -Destination $symbolsRoot
+
+    Write-Verbose -Verbose "Enumerating $symbolsRoot"
+    Get-ChildItem -Path $symbolsRoot -Recurse
+    $vstsCommandString = "vso[task.setvariable variable=SymbolsPath]$symbolsRoot"
+    Write-Verbose -Message "$vstsCommandString" -Verbose
+    Write-Host -Object "##$vstsCommandString"
+  displayName: Copy symbol file
+
+- task: PublishSymbols@2
+  inputs:
+    symbolsFolder: '$(SymbolsPath)'
+    searchPattern: '*.pdb'
+    indexSources: false
+    publishSymbols: true
+    symbolServerType: teamServices
+    detailedLog: true

@@ -407,6 +407,12 @@ stages:
       displayName: PowerShell Core on macOS
       imageName: macOS-latest
 
+- stage: PublishSymbols
+  displayName: Publish Symbols
+  condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), eq(variables['Publish'], 'True'))
+  jobs:
+  - template: publishsymbols.yml
+
 - stage: Release
   displayName: Publish Package to PSGallery
   condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), eq(variables['Publish'], 'True'))
