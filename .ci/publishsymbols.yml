@@ -2,12 +2,6 @@ steps:
 - task: DownloadPipelineArtifact@2
   displayName: 'Download and publish symbols'
   inputs:
-    # source: specific
-    # project: PowerShellCore
-    # pipeline: '696'
-    # preferTriggeringPipeline: true
-    # runVersion: latestFromBranch
-    # runBranch: '$(Build.SourceBranch)'
     artifact: $(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.pdb
     path: '$(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet'
 
