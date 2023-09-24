@@ -10,7 +10,7 @@ body:
 
       For PowerShellGet v2 issues, please use [PowerShellGetv2 repo](https://github.com/PowerShell/PowerShellGetv2).
 
-      This repository is **ONLY** for PSResourceGet issues.
+      This repository is **ONLY** for Microsoft.PowerShell.PSResourceGet issues.
 - type: checkboxes
   attributes:
     label: Prerequisites
