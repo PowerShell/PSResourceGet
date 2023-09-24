@@ -139,7 +139,8 @@ function Invoke-ModuleTests {
     $excludeTag = 'ManualValidationOnly'
     $testResultFileName = 'result.pester.xml'
     $testPath = $config.TestPath
-    $moduleToTest = Join-Path -Path $config.BuildOutputPath -ChildPath $config.ModuleName
+    Write-Verbose -Verbose $config.ModuleName
+    $moduleToTest = Join-Path -Path $config.BuildOutputPath -ChildPath "Microsoft.PowerShell.PSResourceGet"
     $command = "Import-Module -Name ${moduleToTest} -Force -Verbose; Set-Location -Path ${testPath}; Invoke-Pester -Path . -OutputFile ${testResultFileName} -Tags '${tags}' -ExcludeTag '${excludeTag}'"
     $pwshExePath = (Get-Process -Id $pid).Path
 
