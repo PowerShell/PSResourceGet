@@ -235,14 +235,6 @@ stages:
         $vstsCommandString = "vso[task.setvariable variable=signOutPathCreated]${signOutPath}"
         Write-Host "sending " + $vstsCommandString
         Write-Host "##$vstsCommandString"
-
-        # Upload symbol pdb file
-        $moduleName = "$($config.ModuleName)"
-        # $symbolFileName = "$moduleName.pdb"
-        $symbolFileName = "Microsoft.PowerShell.PSResourceGet.pdb"
-
-        $symbolFilePath = Join-Path -Path $srcPath -ChildPath $symbolFileName
-        Write-Host "##vso[artifact.upload containerfolder=$moduleName;artifactname=$symbolFileName]$symbolFilePath"
       displayName: Set up for module created files code signing
       condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
