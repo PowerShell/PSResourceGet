@@ -37,7 +37,7 @@ jobs:
 
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-      Write-Verbose -Verbose "Install PSResourceGet to temp module path"
+      Write-Verbose -Verbose "Install Microsoft.PowerShell.PSResourceGet to temp module path"
       Save-Module -Name Microsoft.PowerShell.PSResourceGet -MinimumVersion 0.9.0-rc1 -Path $modulePath -AllowPrerelease -Force
       Write-Verbose -Verbose "Install Pester 4.X to temp module path"
       Save-Module -Name "Pester" -MaximumVersion 4.99 -Path $modulePath -Force
@@ -57,8 +57,11 @@ jobs:
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
       $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
       Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
-      Import-Module -Name (Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1') -Force
+      $impPath = Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1'
+      Write-Verbose -Verbose "path to improt from: $impPath"
+      Import-Module -Name $impPath -Force
       #
+      Write-Verbose -Verbose "about to call Invoke-ModuleTests"
       Invoke-ModuleTests -Type Functional
     env:
       MAPPED_GITHUB_PAT: $(github_pat)
