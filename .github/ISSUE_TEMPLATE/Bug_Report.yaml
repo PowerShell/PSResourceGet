@@ -17,7 +17,7 @@ body:
     options:
     - label: Write a descriptive title.
       required: true
-    - label: Make sure you are able to repro it on the [latest released version](https://www.powershellgallery.com/packages/PSResourceGet)
+    - label: Make sure you are able to repro it on the [latest released version](https://www.powershellgallery.com/packages/Microsoft.PowerShell.PSResourceGet)
       required: true
     - label: Search the existing issues.
       required: true
