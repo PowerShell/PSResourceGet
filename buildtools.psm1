@@ -120,7 +120,7 @@ function Install-ModulePackageForTest {
     }
 
     Write-Verbose -Verbose -Message "Installing module $($config.ModuleName) to build output path $installationPath"
-    Save-PSResource -Name $config.ModuleName -Repository $localRepoName -Path $installationPath -SkipDependencyCheck -Prerelease -Confirm:$false
+    Save-PSResource -Name $config.ModuleName -Repository $localRepoName -Path $installationPath -SkipDependencyCheck -Prerelease -Confirm:$false -TrustRepository
 
     Write-Verbose -Verbose -Message "Unregistering local package repo: $localRepoName"
     Unregister-PSResourceRepository -Name $localRepoName -Confirm:$false
