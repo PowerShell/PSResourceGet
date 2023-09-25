@@ -118,9 +118,9 @@ function Install-ModulePackageForTest {
         $null = New-Item -Path $installationPath -ItemType Directory -Verbose
     }
     Write-Verbose -Verbose -Message "Installing module $($config.ModuleName) to build output path $installationPath"
-    $res = Find-PSResource -Name $config.ModuleName -Repository $localRepoName -Prerelease -Verbose
+    $res = Find-PSResource -Name $config.ModuleName -Repository $localRepoName -Prerelease -Verbose -Debug
     Write-Verbose -Verbose $res.Name
-    Save-PSResource -Name $config.ModuleName -Repository $localRepoName -Path $installationPath -SkipDependencyCheck -Prerelease -Confirm:$false -Verbose
+    Save-PSResource -Name $config.ModuleName -Repository $localRepoName -Path $installationPath -SkipDependencyCheck -Prerelease -Confirm:$false -Verbose -Debug
 
     Write-Verbose -Verbose -Message "Unregistering local package repo: $localRepoName"
     Unregister-PSResourceRepository -Name $localRepoName -Confirm:$false
