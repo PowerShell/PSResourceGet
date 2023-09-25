@@ -109,15 +109,9 @@ function Install-ModulePackageForTest {
     $config = Get-BuildConfiguration
 
     $localRepoName = 'packagebuild-local-repo'
-    Write-Verbose -Verbose -Message "Registering local package repo: $localRepoName to path: $PackagePath"
-    Register-PSResourceRepository -Name $localRepoName -Uri $PackagePath -Trusted -Force
-
-    $repo2Path = Join-Path -Path $PackagePath -ChildPath "nupkg"
-    Register-PSResourceRepository -Name "localRepo2" -Uri $repo2Path -Trusted -Force
-
-    $repo = Get-PSResourceRepository -Name $localRepoName
-    $repoPathWithoutFile = $repo.Uri.ToString().TrimStart("file:///")
-    Get-ChildItem -Path $repoPathWithoutFile -Recurse
+    $packagePathWithNupkg = Join-Path -Path $PackagePath -ChildPath "nupkg"
+    Write-Verbose -Verbose -Message "Registering local package repo: $localRepoName to path: $packagePathWithNupkg"
+    Register-PSResourceRepository -Name $localRepoName -Uri $packagePathWithNupkg -Trusted -Force
 
     $installationPath = $config.BuildOutputPath
     if ( !(Test-Path $installationPath)) {
@@ -125,9 +119,6 @@ function Install-ModulePackageForTest {
         $null = New-Item -Path $installationPath -ItemType Directory -Verbose
     }
 
-    Write-Verbose -Verbose "locate package from repo 2"
-    $res2 = Find-PSResource -Name $config.ModuleName -Repository "localRepo2" -Prerelease -Verbose -Debug
-    Write-Verbose -Verbose $res2.Name
     Write-Verbose -Verbose -Message "Installing module $($config.ModuleName) to build output path $installationPath"
     $res = Find-PSResource -Name $config.ModuleName -Repository $localRepoName -Prerelease -Verbose -Debug
     Write-Verbose -Verbose $res.Name
