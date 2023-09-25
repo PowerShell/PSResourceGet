@@ -5,7 +5,10 @@ parameters:
 jobs:
 - job: ${{ parameters.jobName1 }}
   displayName: ${{ parameters.displayValidationJob1 }}
-  pool: server
+  pool:
+    name: 1ES
+    demands:
+    - ImageOverride -equals PSMMS2019-Secure
   timeoutInMinutes: 2880 # job times out in 2 days
   steps:
   - task: DownloadPipelineArtifact@2
