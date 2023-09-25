@@ -97,7 +97,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ADOPublicRepoName -Credential $correctPublicRepoCred -ErrorAction SilentlyContinue
 
-        $Error[0].FullyQualifiedErrorId | Should -be "400ApiKeyError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        $Error[0].FullyQualifiedErrorId | Should -be "401Error,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
     It "Should not publish module to ADO repository feed (private) when Credentials are incorrect" {
