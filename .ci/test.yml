@@ -49,7 +49,7 @@ jobs:
       Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
       Import-Module -Name (Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1') -Force
       #
-      Install-ModulePackageForTest -PackagePath "$(System.ArtifactsDirectory)".ToString()
+      Install-ModulePackageForTest -PackagePath "$(System.ArtifactsDirectory)"
     displayName: Install module for test from downloaded artifact
     workingDirectory: ${{ parameters.buildDirectory }}
 
@@ -57,11 +57,7 @@ jobs:
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
       $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
       Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
-      $impPath = Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1'
-      Write-Verbose -Verbose "path to improt from: $impPath"
-      Import-Module -Name $impPath -Force
-      #
-      Write-Verbose -Verbose "about to call Invoke-ModuleTests"
+      Import-Module -Name (Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1') -Force
       Invoke-ModuleTests -Type Functional
     env:
       MAPPED_GITHUB_PAT: $(github_pat)
