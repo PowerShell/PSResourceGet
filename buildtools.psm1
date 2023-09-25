@@ -111,9 +111,6 @@ function Install-ModulePackageForTest {
     $localRepoName = 'packagebuild-local-repo'
     Write-Verbose -Verbose -Message "Registering local package repo: $localRepoName to path: $PackagePath"
     Register-PSResourceRepository -Name $localRepoName -Uri $PackagePath -Trusted -Force
-    $repo = Get-PSResourceRepository -Name $localRepoName
-    Write-Verbose $repo.Name $repo.Uri $repo.ApiVersion
-    Get-ChildItem -Path $PackagePath -Recurse
 
     $installationPath = $config.BuildOutputPath
     if ( !(Test-Path $installationPath)) {
