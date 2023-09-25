@@ -1,27 +1,36 @@
-steps:
-- task: DownloadPipelineArtifact@2
-  displayName: 'Download and publish symbols'
-  inputs:
-    artifact: $(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.pdb
-    path: '$(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet'
+parameters:
+  jobName1: publish_symbols_job
+  displayValidationJob1: 'Publish symbol to Microsoft symbol server'
 
-- pwsh: |
-    Write-Verbose -Verbose "Enumerating $(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet"
-    $symbolsRoot = New-Item -Path "$(Pipeline.Workspace)/symbols" -ItemType Directory -Verbose
-    Copy-Item -Path "$(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.pdb" -Destination $symbolsRoot
+jobs:
+- job: ${{ parameters.jobName1 }}
+  displayName: ${{ parameters.displayValidationJob1 }}
+  pool: server
+  timeoutInMinutes: 2880 # job times out in 2 days
+  steps:
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Download and publish symbols'
+    inputs:
+      artifact: $(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.pdb
+      path: '$(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet'
 
-    Write-Verbose -Verbose "Enumerating $symbolsRoot"
-    Get-ChildItem -Path $symbolsRoot -Recurse
-    $vstsCommandString = "vso[task.setvariable variable=SymbolsPath]$symbolsRoot"
-    Write-Verbose -Message "$vstsCommandString" -Verbose
-    Write-Host -Object "##$vstsCommandString"
-  displayName: Copy symbol file
+  - pwsh: |
+      Write-Verbose -Verbose "Enumerating $(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet"
+      $symbolsRoot = New-Item -Path "$(Pipeline.Workspace)/symbols" -ItemType Directory -Verbose
+      Copy-Item -Path "$(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.pdb" -Destination $symbolsRoot
 
-- task: PublishSymbols@2
-  inputs:
-    symbolsFolder: '$(SymbolsPath)'
-    searchPattern: '*.pdb'
-    indexSources: false
-    publishSymbols: true
-    symbolServerType: teamServices
-    detailedLog: true
+      Write-Verbose -Verbose "Enumerating $symbolsRoot"
+      Get-ChildItem -Path $symbolsRoot -Recurse
+      $vstsCommandString = "vso[task.setvariable variable=SymbolsPath]$symbolsRoot"
+      Write-Verbose -Message "$vstsCommandString" -Verbose
+      Write-Host -Object "##$vstsCommandString"
+    displayName: Copy symbol file
+
+  - task: PublishSymbols@2
+    inputs:
+      symbolsFolder: '$(SymbolsPath)'
+      searchPattern: '*.pdb'
+      indexSources: false
+      publishSymbols: true
+      symbolServerType: teamServices
+      detailedLog: true
