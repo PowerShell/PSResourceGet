@@ -111,6 +111,8 @@ function Install-ModulePackageForTest {
     $localRepoName = 'packagebuild-local-repo'
     Write-Verbose -Verbose -Message "Registering local package repo: $localRepoName to path: $PackagePath"
     Register-PSResourceRepository -Name $localRepoName -Uri $PackagePath -Trusted -Force
+    $repo = Get-PSResourceRepository -Name $localRepoName
+    Write-Verbose $repo.Name $repo.Uri $repo.ApiVersion
     Get-ChildItem -Path $PackagePath -Recurse
 
     $installationPath = $config.BuildOutputPath
@@ -121,7 +123,7 @@ function Install-ModulePackageForTest {
     Write-Verbose -Verbose -Message "Installing module $($config.ModuleName) to build output path $installationPath"
     $res = Find-PSResource -Name $config.ModuleName -Repository $localRepoName -Prerelease
     Write-Verbose -Verbose $res.Name
-    Save-PSResource -Name $config.ModuleName -Repository $localRepoName -Path $installationPath -SkipDependencyCheck -Prerelease -Confirm:$false
+    Save-PSResource -Name $config.ModuleName -Repository $localRepoName -Path $installationPath -SkipDependencyCheck -Prerelease -Confirm:$false -Verbose
 
     Write-Verbose -Verbose -Message "Unregistering local package repo: $localRepoName"
     Unregister-PSResourceRepository -Name $localRepoName -Confirm:$false
