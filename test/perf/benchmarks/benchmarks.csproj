@@ -18,8 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.13.7" />
-    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.7"/>
-    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.3.4" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.8" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.8"/>
+    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.3.7" />
   </ItemGroup>
 </Project>
