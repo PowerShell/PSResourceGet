@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 $ConfigurationFileName = 'package.config.json'
-Import-Module -Name PowerShellGet -MinimumVersion 3.0.18
+Import-Module -Name Microsoft.PowerShell.PSResourceGet -MinimumVersion 0.9.0
 
 function Get-BuildConfiguration {
     [CmdletBinding()]
@@ -109,16 +109,18 @@ function Install-ModulePackageForTest {
     $config = Get-BuildConfiguration
 
     $localRepoName = 'packagebuild-local-repo'
-    Write-Verbose -Verbose -Message "Registering local package repo: $localRepoName to path: $PackagePath"
-    Register-PSResourceRepository -Name $localRepoName -Uri $PackagePath -Trusted -Force
+    $packagePathWithNupkg = Join-Path -Path $PackagePath -ChildPath "nupkg"
+    Write-Verbose -Verbose -Message "Registering local package repo: $localRepoName to path: $packagePathWithNupkg"
+    Register-PSResourceRepository -Name $localRepoName -Uri $packagePathWithNupkg -Trusted -Force
 
     $installationPath = $config.BuildOutputPath
     if ( !(Test-Path $installationPath)) {
         Write-Verbose -Verbose -Message "Creating module directory location for tests: $installationPath"
         $null = New-Item -Path $installationPath -ItemType Directory -Verbose
     }
+
     Write-Verbose -Verbose -Message "Installing module $($config.ModuleName) to build output path $installationPath"
-    Save-PSResource -Name $config.ModuleName -Repository $localRepoName -Path $installationPath -SkipDependencyCheck -Prerelease -Confirm:$false
+    Save-PSResource -Name $config.ModuleName -Repository $localRepoName -Path $installationPath -SkipDependencyCheck -Prerelease -Confirm:$false -TrustRepository
 
     Write-Verbose -Verbose -Message "Unregistering local package repo: $localRepoName"
     Unregister-PSResourceRepository -Name $localRepoName -Confirm:$false
@@ -139,7 +141,8 @@ function Invoke-ModuleTests {
     $excludeTag = 'ManualValidationOnly'
     $testResultFileName = 'result.pester.xml'
     $testPath = $config.TestPath
-    $moduleToTest = Join-Path -Path $config.BuildOutputPath -ChildPath $config.ModuleName
+    Write-Verbose -Verbose $config.ModuleName
+    $moduleToTest = Join-Path -Path $config.BuildOutputPath -ChildPath "Microsoft.PowerShell.PSResourceGet"
     $command = "Import-Module -Name ${moduleToTest} -Force -Verbose; Set-Location -Path ${testPath}; Invoke-Pester -Path . -OutputFile ${testResultFileName} -Tags '${tags}' -ExcludeTag '${excludeTag}'"
     $pwshExePath = (Get-Process -Id $pid).Path
 
