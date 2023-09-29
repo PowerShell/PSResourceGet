@@ -426,50 +426,56 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private void RequiredResourceHelper(Hashtable reqResourceHash)
         {
             WriteDebug("In InstallPSResource::RequiredResourceHelper()");
-            var pkgNames = reqResourceHash.Keys;
-
-            foreach (string pkgName in pkgNames)
+            InstallPkgParams pkgParams = new InstallPkgParams();
+            PSCredential pkgCredential = Credential;
+            string pkgVersion = String.Empty;
+            
+            foreach (DictionaryEntry entry in reqResourceHash)
             {
-                var pkgParamInfo = reqResourceHash[pkgName];
-
-                // Format should now be a hashtable, whether the original input format was json or hashtable
-                if (!(pkgParamInfo is Hashtable pkgInstallInfo))
+                // Set package name which will be key for the inner hashtable and is present for all scenarios,
+                // inclding the scenario where only package name is specified
+                // i.e Install-PSResource -RequiredResource @ { MyPackage = @{} }
+                string pkgName = entry.Key.ToString();
+                if (!(entry.Value is Hashtable pkgInstallInfo))
                 {
+                    // possible invalid input: TODO err handle
                     return;
                 }
 
-                InstallPkgParams pkgParams = new InstallPkgParams();
-                var pkgParamNames = pkgInstallInfo.Keys;
-
-                PSCredential pkgCredential = Credential;
-                foreach (string paramName in pkgParamNames)
+                // scenario where only package name and other parameters are provided:
+                // Install-PSResource -RequiredResource @ { MyPackage = @{ version = '1.2.3', repository = 'PSGallery' } }
+                if (pkgInstallInfo.Count != 0)
                 {
-                    if (string.Equals(paramName, "credential", StringComparison.InvariantCultureIgnoreCase))
+                    var pkgParamNames = pkgInstallInfo.Keys;
+
+                    foreach (string paramName in pkgParamNames)
                     {
-                        WriteVerbose("Credential specified for required resource");
-                        pkgCredential = pkgInstallInfo[paramName] as PSCredential;
+                        if (string.Equals(paramName, "credential", StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            WriteVerbose("Credential specified for required resource");
+                            pkgCredential = pkgInstallInfo[paramName] as PSCredential;
+                        }
+
+                        pkgParams.SetProperty(paramName, pkgInstallInfo[paramName] as string, out ErrorRecord IncorrectVersionFormat);
+                        if (IncorrectVersionFormat != null)
+                        {
+                            ThrowTerminatingError(IncorrectVersionFormat);
+                        }
+                    }
+                        
+                    if (pkgParams.Scope == ScopeType.AllUsers)
+                    {
+                        _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, pkgParams.Scope);
                     }
 
-                    pkgParams.SetProperty(paramName, pkgInstallInfo[paramName] as string, out ErrorRecord IncorrectVersionFormat);
-
-                    if (IncorrectVersionFormat != null)
-                    {
-                        ThrowTerminatingError(IncorrectVersionFormat);
-                    }
+                    pkgVersion = pkgInstallInfo["version"] == null ? String.Empty : pkgInstallInfo["version"].ToString();
                 }
-                    
-                if (pkgParams.Scope == ScopeType.AllUsers)
-                {
-                    _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, pkgParams.Scope);
-                }
-
-                string pkgVersion = pkgInstallInfo["version"] == null ? String.Empty : pkgInstallInfo["version"].ToString();
 
                 ProcessInstallHelper(
                     pkgNames: new string[] { pkgName },
                     pkgVersion: pkgVersion,
                     pkgPrerelease: pkgParams.Prerelease,
-                    pkgRepository: new string[] { pkgParams.Repository },
+                    pkgRepository: pkgParams.Repository != null ? new string[] { pkgParams.Repository } : new string[]{},
                     pkgCredential: pkgCredential,
                     reqResourceParams: pkgParams);
             }
