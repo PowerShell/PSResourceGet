@@ -438,7 +438,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string pkgName = entry.Key.ToString();
                 if (!(entry.Value is Hashtable pkgInstallInfo))
                 {
-                    // possible invalid input: TODO err handle
+                    var requiredReourceHashtableInputFormatError = new ErrorRecord(
+                        new ArgumentException($"The RequiredResource input with name {pkgName} does not have a valid value, the value must be a hashtable."),
+                        "RequiredReourceHashtableInputFormatError", 
+                        ErrorCategory.InvalidArgument,
+                        this);
+
+                    WriteError(requiredReourceHashtableInputFormatError);
                     return;
                 }
 
@@ -456,10 +462,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             pkgCredential = pkgInstallInfo[paramName] as PSCredential;
                         }
 
-                        pkgParams.SetProperty(paramName, pkgInstallInfo[paramName] as string, out ErrorRecord IncorrectVersionFormat);
-                        if (IncorrectVersionFormat != null)
+                        // for all parameters found, we try to add it to the InstallPkgParams object if it is valid.
+                        pkgParams.SetProperty(paramName, pkgInstallInfo[paramName] as string, out ErrorRecord ParameterParsingError);
+                        if (ParameterParsingError != null)
                         {
-                            ThrowTerminatingError(IncorrectVersionFormat);
+                            ThrowTerminatingError(ParameterParsingError);
                         }
                     }
                         
