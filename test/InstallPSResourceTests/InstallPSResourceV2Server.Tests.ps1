@@ -389,15 +389,13 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
                repository = $PSGalleryName
             }
 
-             test_module2 = @{
+            test_module2 = @{
                version = "[1.0.0,3.0.0)"
                repository = $PSGalleryName
                prerelease = "true"
             }
 
-             TestModule99 = @{
-                repository = $PSGalleryName
-            }
+            TestModule99 = @{}
           }
 
           Install-PSResource -RequiredResource $rrHash -TrustRepository
