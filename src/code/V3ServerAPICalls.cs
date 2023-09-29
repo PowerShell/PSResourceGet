@@ -1474,11 +1474,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                errRecord = new ErrorRecord(
-                    exception: e, 
-                    "GetResponsesFromRegistrationsResourceFailure", 
+                if (e.Message.Contains("'<' is an invalid start of a value"))
+                {
+                    // scenario where the feed is not active anymore, i.e confirmed for JFrogArtifactory. The default error message is not intuitive.
+                    errRecord = new ErrorRecord(
+                    exception: new Exception($"JSON response from repository {Repository.Name} could not be parsed due to the feed being inactive or invalid, with inner exception: {e.Message}"), 
+                    "FindVersionGlobbingFailure",
                     ErrorCategory.InvalidResult, 
                     this);
+                }
+                else
+                {
+                    errRecord = new ErrorRecord(
+                        exception: e, 
+                        "GetResponsesFromRegistrationsResourceFailure", 
+                        ErrorCategory.InvalidResult, 
+                        this);
+                }
             }
 
             return entries;
