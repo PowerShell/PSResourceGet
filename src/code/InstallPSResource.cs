@@ -442,7 +442,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
-                // scenario where only package name and other parameters are provided:
+                // scenario where package name and other parameters are provided:
                 // Install-PSResource -RequiredResource @ { MyPackage = @{ version = '1.2.3', repository = 'PSGallery' } }
                 if (pkgInstallInfo.Count != 0)
                 {
