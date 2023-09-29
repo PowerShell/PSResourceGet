@@ -496,6 +496,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     var key = child.LocalName;
                     var value = child.InnerText;
 
+                    if (key.Equals("Title"))
+                    {
+                        // For repositories such as JFrog's Artifactory, there is no "Id" property, just "Title" (which contains the Id)
+                        metadata["Id"] = value;
+                    }
                     if (key.Equals("Version"))
                     {
                         metadata[key] = ParseHttpVersion(value, out string prereleaseLabel);

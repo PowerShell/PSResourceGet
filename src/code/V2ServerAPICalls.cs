@@ -39,6 +39,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private HttpClient _sessionClient { get; set; }
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         public FindResponseType v2FindResponseType = FindResponseType.ResponseString;
+        private bool _isJFrogRepo;
 
         #endregion
 
@@ -55,6 +56,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             _sessionClient = new HttpClient(handler);
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
+            _isJFrogRepo = repository.Uri.ToString().ToLower().Contains("jfrog");
         }
 
         #endregion
@@ -316,7 +318,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // This should return the latest stable version or the latest prerelease version (respectively)
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $" and Id eq '{packageName}'";
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            string idFilterPart = _isJFrogRepo ? "": $" and Id eq '{packageName}'";
             string typeFilterPart = GetTypeFilterForRequest(type);
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$inlinecount=allpages&$filter={prerelease}{idFilterPart}{typeFilterPart}";
             string response = HttpRequestCall(requestUrlV2, out errRecord);
@@ -359,7 +364,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // This should return the latest stable version or the latest prerelease version (respectively)
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $" and Id eq '{packageName}'";
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            string idFilterPart = _isJFrogRepo ? "" : $" and Id eq '{packageName}'";
             string typeFilterPart = GetTypeFilterForRequest(type);
             string tagFilterPart = String.Empty;
             foreach (string tag in tags)
@@ -569,7 +577,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true
             // Quotations around package name and version do not matter, same metadata gets returned.
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $" and Id eq '{packageName}'";
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            string idFilterPart = _isJFrogRepo ? "" : $" and Id eq '{packageName}'";
             string typeFilterPart = GetTypeFilterForRequest(type);
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$inlinecount=allpages&$filter= NormalizedVersion eq '{version}'{idFilterPart}{typeFilterPart}";
             string response = HttpRequestCall(requestUrlV2, out errRecord);
@@ -609,7 +620,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindVersionWithTag()");
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $" and Id eq '{packageName}'";
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            string idFilterPart = _isJFrogRepo ? "" : $" and Id eq '{packageName}'";
             string typeFilterPart = GetTypeFilterForRequest(type);
             string tagFilterPart = String.Empty;
             foreach (string tag in tags)
@@ -1085,7 +1099,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string andOperator = " and ";
             string joiningOperator = filterQuery.EndsWith("=") ? String.Empty : andOperator;
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $"{joiningOperator}Id eq '{packageName}'";
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            string idFilterPart = $"{joiningOperator}";
+            idFilterPart += _isJFrogRepo ? "" : $"Id eq '{packageName}'";
             filterQuery += idFilterPart;
             filterQuery += type == ResourceType.Script ? $"{andOperator}substringof('PS{type.ToString()}', Tags) eq true" : String.Empty;
 
