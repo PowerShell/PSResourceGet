@@ -399,7 +399,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Implementation Note:   {repoUri}/Packages(Id='test_local_mod')/Download
         ///                        if prerelease, call into InstallVersion instead. 
         /// </summary>
-        public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
+        public override Stream InstallName(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallName()");
             var requestUrl = $"{Repository.Uri}/Packages/(Id='{packageName}')/Download";

@@ -288,7 +288,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Name: no wildcard support.
         /// Examples: Install "Newtonsoft.json"
         /// </summary>
-        public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
+        public override Stream InstallName(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallName()");
             return InstallHelper(packageName, version: null, out errRecord);

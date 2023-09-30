@@ -116,7 +116,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         ///                        if prerelease, the calling method should first call IFindPSResource.FindName(),
         ///                             then find the exact version to install, then call into install version
         /// </summary>
-        public abstract Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord);
+        public abstract Stream InstallName(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord);
 
 
         /// <summary>

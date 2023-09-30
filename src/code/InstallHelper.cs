@@ -843,7 +843,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (searchVersionType == VersionType.NoVersion && !_prerelease)
                 {
-                    responseStream = currentServer.InstallName(pkgName, _prerelease, out ErrorRecord installNameErrRecord);
+                    responseStream = currentServer.InstallName(pkgName, pkgVersion, _prerelease, out ErrorRecord installNameErrRecord);
                     if (installNameErrRecord != null)
                     {
                         errRecord = installNameErrRecord;

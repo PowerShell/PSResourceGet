@@ -668,12 +668,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
         ///                        if prerelease, call into InstallVersion instead.
         /// </summary>
-        public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
+        public override Stream InstallName(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallName()");
-            var requestUrlV2 = $"{Repository.Uri}/package/{packageName}";
-
+            var requestUrlV2 = _isJFrogRepo ? $"{Repository.Uri}/Download/{packageName}/{packageVersion}" : $"{Repository.Uri}/package/{packageName}";
             var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
+            if (errRecord != null)
+            {
+                return new MemoryStream();
+            }
+
             var responseStream = response.ReadAsStreamAsync().Result;
 
             return responseStream;
@@ -690,9 +694,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallVersion()");
-            var requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
+            var downloadType = _isJFrogRepo ? "Download" : "package";
+            var requestUrlV2 = $"{Repository.Uri}/{downloadType}/{packageName}/{version}";
             var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
             var responseStream = response.ReadAsStreamAsync().Result;
+            if (errRecord != null)
+            {
+                return new MemoryStream();
+            }
 
             return responseStream;
         }
@@ -795,7 +804,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this);
             }
 
-            if (string.IsNullOrEmpty(content.ToString()))
+            if (content == null || string.IsNullOrEmpty(content.ToString()))
             {
                 _cmdletPassedIn.WriteDebug("Response is empty");
             }
