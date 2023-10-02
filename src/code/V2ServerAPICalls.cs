@@ -56,7 +56,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             _sessionClient = new HttpClient(handler);
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
-            _isJFrogRepo = repository.Uri.ToString().ToLower().Contains("jfrog");
+            var repoURL = repository.Uri.ToString().ToLower();
+            _isJFrogRepo = repoURL.Contains("jfrog");
         }
 
         #endregion
@@ -671,7 +672,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override Stream InstallName(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallName()");
-            var requestUrlV2 = _isJFrogRepo ? $"{Repository.Uri}/Download/{packageName}/{packageVersion}" : $"{Repository.Uri}/package/{packageName}";
+            var requestUrlV2 = string.Empty;
+
+            if (_isJFrogRepo)
+            {
+                requestUrlV2 = $"{Repository.Uri}/Download/{packageName}/{packageVersion}";
+            }
+            else {
+                requestUrlV2 = $"{Repository.Uri}/package/{packageName}";
+            }
+
             var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
@@ -694,8 +704,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallVersion()");
-            var downloadType = _isJFrogRepo ? "Download" : "package";
-            var requestUrlV2 = $"{Repository.Uri}/{downloadType}/{packageName}/{version}";
+            var requestUrlV2 = string.Empty;
+
+            if (_isJFrogRepo)
+            {
+                requestUrlV2 = $"{Repository.Uri}/Download/{packageName}/{version}";
+            }
+            else {
+                requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
+            }
+
             var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
             var responseStream = response.ReadAsStreamAsync().Result;
             if (errRecord != null)
