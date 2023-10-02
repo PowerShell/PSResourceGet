@@ -39,6 +39,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private HttpClient _sessionClient { get; set; }
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         public FindResponseType v2FindResponseType = FindResponseType.ResponseString;
+        private bool _isADORepo;
         private bool _isJFrogRepo;
 
         #endregion
@@ -57,6 +58,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _sessionClient = new HttpClient(handler);
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
             var repoURL = repository.Uri.ToString().ToLower();
+            _isADORepo = repoURL.Contains("pkgs.dev.azure.com") || repoURL.Contains("pkgs.visualstudio.com");
             _isJFrogRepo = repoURL.Contains("jfrog");
         }
 
@@ -674,7 +676,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallName()");
             var requestUrlV2 = string.Empty;
 
-            if (_isJFrogRepo)
+            if (_isADORepo)
+            {
+                // eg: https://pkgs.dev.azure.com/<org>/<project>/_packaging/<feed>/nuget/v2?id=test_local_mod&version=5.0.0
+                requestUrlV2 = $"{Repository.Uri}?id={packageName}&version={packageVersion}";
+            }
+            else if (_isJFrogRepo)
             {
                 requestUrlV2 = $"{Repository.Uri}/Download/{packageName}/{packageVersion}";
             }
@@ -706,7 +713,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallVersion()");
             var requestUrlV2 = string.Empty;
 
-            if (_isJFrogRepo)
+            if (_isADORepo)
+            {
+                // eg: https://pkgs.dev.azure.com/<org>/<project>/_packaging/<feed>/nuget/v2?id=test_local_mod&version=5.0.0
+                requestUrlV2 = $"{Repository.Uri}?id={packageName}&version={version}";
+            }
+            else if (_isJFrogRepo)
             {
                 requestUrlV2 = $"{Repository.Uri}/Download/{packageName}/{version}";
             }
