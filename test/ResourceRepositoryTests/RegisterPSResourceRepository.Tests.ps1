@@ -400,7 +400,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $res = Get-PSResourceRepository -Name $TestRepoName1
 
         $res.Name | Should -Be $TestRepoName1
-        $res.Uri.LocalPath | Should -Contain $relativeCurrentPath
+        $res.Uri.LocalPath | Should -Contain $tmpDir1Path
         $res.ApiVersion | Should -Be 'v2'
     }
 }
