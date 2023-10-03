@@ -394,4 +394,13 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $res.Uri.LocalPath | Should -Be "\"
         $res.ApiVersion | Should -Be "local"
     }
+
+    It "should register repository with explicitly provided ApiVersion" {
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -ApiVersion 'v2'
+        $res = Get-PSResourceRepository -Name $TestRepoName1
+
+        $res.Name | Should -Be $TestRepoName1
+        $res.Uri.LocalPath | Should -Contain $relativeCurrentPath
+        $res.ApiVersion | Should -Be 'v2'
+    }
 }
