@@ -663,65 +663,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /**  INSTALL APIS **/
 
         /// <summary>
-        /// Installs specific package.
+        /// Installs a specific package.
         /// Name: no wildcard support.
         /// Examples: Install "PowerShellGet"
-        /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
-        ///                        if prerelease, call into InstallVersion instead.
+        ///           Install "PowerShellGet" -Version "3.0.0"
         /// </summary>
-        public override Stream InstallName(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
+        public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallName()");
-            var requestUrlV2 = string.Empty;
-
-            if (_isJFrogRepo)
+            Stream results = new MemoryStream();
+            if (string.IsNullOrEmpty(packageVersion))
             {
-                requestUrlV2 = $"{Repository.Uri}/Download/{packageName}/{packageVersion}";
+                results = InstallName(packageName, out errRecord);
             }
-            else {
-                requestUrlV2 = $"{Repository.Uri}/package/{packageName}";
-            }
-
-            var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
-            if (errRecord != null)
+            else
             {
-                return new MemoryStream();
+                results = InstallVersion(packageName, packageVersion, out errRecord);
             }
 
-            var responseStream = response.ReadAsStreamAsync().Result;
-
-            return responseStream;
-        }
-
-        /// <summary>
-        /// Installs package with specific name and version.
-        /// Name: no wildcard support.
-        /// Version: no wildcard support.
-        /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
-        ///           Install "PowerShellGet" -Version "3.0.0-beta16"
-        /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
-        /// </summary>
-        public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallVersion()");
-            var requestUrlV2 = string.Empty;
-
-            if (_isJFrogRepo)
-            {
-                requestUrlV2 = $"{Repository.Uri}/Download/{packageName}/{version}";
-            }
-            else {
-                requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
-            }
-
-            var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
-            var responseStream = response.ReadAsStreamAsync().Result;
-            if (errRecord != null)
-            {
-                return new MemoryStream();
-            }
-
-            return responseStream;
+            return results;
         }
 
         /// <summary>
@@ -1149,6 +1108,70 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
             
             return HttpRequestCall(requestUrlV2, out errRecord);
+        }
+
+        /// <summary>
+        /// Installs specific package.
+        /// Name: no wildcard support.
+        /// Examples: Install "PowerShellGet"
+        /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
+        ///                        if prerelease, call into InstallVersion instead.
+        /// </summary>
+        private Stream InstallName(string packageName, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallName()");
+            string requestUrlV2;
+
+            if (_isJFrogRepo)
+            {
+                requestUrlV2 = $"{Repository.Uri}/(Id='{packageName}')/Download";
+            }
+            else
+            {
+                requestUrlV2 = $"{Repository.Uri}/Packages/(Id='{packageName}')/Download";
+            }
+
+            var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
+            if (errRecord != null)
+            {
+                return new MemoryStream();
+            }
+
+            var responseStream = response.ReadAsStreamAsync().Result;
+
+            return responseStream;
+        }
+
+        /// <summary>
+        /// Installs package with specific name and version.
+        /// Name: no wildcard support.
+        /// Version: no wildcard support.
+        /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
+        ///           Install "PowerShellGet" -Version "3.0.0-beta16"
+        /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
+        /// </summary>
+        private Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallVersion()");
+            string requestUrlV2;
+
+            if (_isJFrogRepo)
+            {
+                requestUrlV2 = $"{Repository.Uri}/Download/{packageName}/{version}";
+            }
+            else
+            {
+                requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
+            }
+
+            var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
+            var responseStream = response.ReadAsStreamAsync().Result;
+            if (errRecord != null)
+            {
+                return new MemoryStream();
+            }
+
+            return responseStream;
         }
 
         private string GetTypeFilterForRequest(ResourceType type) {
