@@ -86,6 +86,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public int Priority { get; set; } = DefaultPriority;
 
         /// <summary>
+        /// Specifies the Api version of the repository to be set.
+        /// </sumamry>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        public PSRepositoryInfo.APIVersion ApiVersion { get; set; }
+
+        /// <summary>
         /// Specifies vault and secret names as PSCredentialInfo for the repository.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
@@ -115,6 +121,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             List<PSRepositoryInfo> items = new List<PSRepositoryInfo>();
 
+            PSRepositoryInfo.APIVersion? repoApiVersion = null;
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(ApiVersion)))
+            {
+                repoApiVersion = ApiVersion;
+            }
+
             switch (ParameterSetName)
             {
                 case NameParameterSet:
@@ -128,7 +140,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     try
                     {
-                        items.Add(RepositorySettings.AddRepository(Name, _uri, Priority, Trusted, null, CredentialInfo, Force, this, out string errorMsg));
+                        items.Add(RepositorySettings.AddRepository(Name, _uri, Priority, Trusted, repoApiVersion, CredentialInfo, Force, this, out string errorMsg));
 
                         if (!string.IsNullOrEmpty(errorMsg))
                         {
@@ -325,6 +337,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
+            if (!repo.ContainsKey("ApiVersion") || repo["ApiVersion"] == null || String.IsNullOrEmpty(repo["ApiVersion"].ToString()) ||
+               !(repo["ApiVersion"].ToString().Equals("local") || repo["ApiVersion"].ToString().Equals("v2") || repo["ApiVersion"].ToString().Equals("v3") 
+               || repo["ApiVersion"].ToString().Equals("nugetServer") || repo["ApiVersion"].ToString().Equals("unknown"))
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException("Repository ApiVersion must be either 'local', 'v2', 'v3', 'nugetServer' or 'unknown'"),
+                    "IncorrectApiVersionForRepositoriesParameterSetRegistration",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
+                return null;
+            }
+
             try
             {
                 WriteDebug($"Registering repository '{repo["Name"]}' with uri '{repoUri}'");
@@ -332,7 +357,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     repoUri,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
                     repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : DefaultTrusted,
-                    apiVersion: null,
+                    apiVersion: repo.ContainsKey("Trusted") ? (PSRepositoryInfo.APIVersion?) repo["ApiVersion"] : null,
                     repoCredentialInfo,
                     Force,
                     this,
