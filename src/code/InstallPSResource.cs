@@ -428,7 +428,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WriteDebug("In InstallPSResource::RequiredResourceHelper()");
             InstallPkgParams pkgParams = new InstallPkgParams();
             PSCredential pkgCredential = Credential;
-            string pkgVersion = String.Empty;
             
             foreach (DictionaryEntry entry in reqResourceHash)
             {
@@ -436,6 +435,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // inclding the scenario where only package name is specified
                 // i.e Install-PSResource -RequiredResource @ { MyPackage = @{} }
                 string pkgName = entry.Key.ToString();
+                string pkgVersion = String.Empty;
                 if (!(entry.Value is Hashtable pkgInstallInfo))
                 {
                     var requiredReourceHashtableInputFormatError = new ErrorRecord(
