@@ -426,11 +426,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private void RequiredResourceHelper(Hashtable reqResourceHash)
         {
             WriteDebug("In InstallPSResource::RequiredResourceHelper()");
-            InstallPkgParams pkgParams = new InstallPkgParams();
-            PSCredential pkgCredential = Credential;
-            
             foreach (DictionaryEntry entry in reqResourceHash)
             {
+                InstallPkgParams pkgParams = new InstallPkgParams();
+                PSCredential pkgCredential = Credential;
+
                 // Set package name which will be key for the inner hashtable and is present for all scenarios,
                 // inclding the scenario where only package name is specified
                 // i.e Install-PSResource -RequiredResource @ { MyPackage = @{} }
