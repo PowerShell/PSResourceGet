@@ -444,7 +444,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ErrorCategory.InvalidArgument,
                         this);
 
-                    WriteError(requiredReourceHashtableInputFormatError);
+                    WriteError(requiredResourceHashtableInputFormatError);
                     return;
                 }
 
