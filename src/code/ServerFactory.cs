@@ -24,8 +24,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private static string _psVersion;
         private static string _psResourceGetVersion;
         private static string _distributionChannel;
+        private static string _psGetCompat = InternalHooks.InvokedFromCompat ? "true" : "false";
 
-        internal static string UserAgentString => $"PSResourceGet/{_psResourceGetVersion} PowerShell/{_psVersion} DistributionChannel/{_distributionChannel}";
+        internal static string UserAgentString => $"PSResourceGet/{_psResourceGetVersion} PowerShell/{_psVersion} DistributionChannel/{_distributionChannel} PowerShellGetCompat/{_psGetCompat}";
     }
 
     internal class ServerFactory
