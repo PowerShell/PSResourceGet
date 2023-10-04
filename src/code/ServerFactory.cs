@@ -25,7 +25,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private static string _psResourceGetVersion;
         private static string _distributionChannel;
 
-        internal static string UserAgentString => $"PSResourceGet/{_psResourceGetVersion} PowerShell/{_psVersion} DistributionChannel/{_distributionChannel}";
+        internal static string UserAgentString()
+        {
+            string psGetCompat = InternalHooks.InvokedFromCompat ? "true" : "false";
+            return $"PSResourceGet/{_psResourceGetVersion} PowerShell/{_psVersion} DistributionChannel/{_distributionChannel} PowerShellGetCompat/{psGetCompat}";
+        }
     }
 
     internal class ServerFactory
@@ -34,7 +38,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             PSRepositoryInfo.APIVersion repoApiVersion = repository.ApiVersion;
             ServerApiCall currentServer = null;
-            string userAgentString = UserAgentInfo.UserAgentString;
+            string userAgentString = UserAgentInfo.UserAgentString();
 
             switch (repoApiVersion)
             {
