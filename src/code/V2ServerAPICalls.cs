@@ -1120,17 +1120,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private Stream InstallName(string packageName, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallName()");
-            string requestUrlV2;
-
-            if (_isJFrogRepo)
-            {
-                requestUrlV2 = $"{Repository.Uri}/(Id='{packageName}')/Download";
-            }
-            else
-            {
-                requestUrlV2 = $"{Repository.Uri}/Packages/(Id='{packageName}')/Download";
-            }
-
+            var requestUrlV2 = $"{Repository.Uri}/package/{packageName}";
             var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
