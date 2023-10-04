@@ -21,7 +21,7 @@ jobs:
   - pwsh: |
       Write-Verbose -Verbose "Enumerating $(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet"
       $symbolsRoot = New-Item -Path "$(Pipeline.Workspace)/symbols" -ItemType Directory -Verbose
-      Copy-Item -Path "$(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.pdb" -Destination $symbolsRoot
+      Move-Item -Path "$(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.pdb" -Destination $symbolsRoot
 
       Write-Verbose -Verbose "Enumerating $symbolsRoot"
       Get-ChildItem -Path $symbolsRoot -Recurse
