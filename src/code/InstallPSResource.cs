@@ -245,6 +245,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private const string InputObjectParameterSet = "InputObjectParameterSet";
         private const string RequiredResourceFileParameterSet = "RequiredResourceFileParameterSet";
         private const string RequiredResourceParameterSet = "RequiredResourceParameterSet";
+        private const string CredentialKey = "credential";
         List<string> _pathsToInstallPkg;
         private string _requiredResourceFile;
         private string _requiredResourceJson;
@@ -435,6 +436,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // including the scenario where only package name is specified
                 // i.e Install-PSResource -RequiredResource @ { MyPackage = @{} }
                 string pkgName = entry.Key.ToString();
+                // check if pkgName is empty or whitespace
+                if (String.IsNullOrEmpty(pkgName.Trim()))
+                {
+                    var pkgNameEmptyOrWhitespaceError = new ErrorRecord(
+                        new ArgumentException($"The package name '{pkgName}' provided cannot be an empty string or whitespace."),
+                        "pkgNameEmptyOrWhitespaceError", 
+                        ErrorCategory.InvalidArgument,
+                        this);
+
+                    WriteError(pkgNameEmptyOrWhitespaceError);
+                    return;
+                }
+
                 string pkgVersion = String.Empty;
                 if (!(entry.Value is Hashtable pkgInstallInfo))
                 {
@@ -456,7 +470,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     foreach (string paramName in pkgParamNames)
                     {
-                        if (string.Equals(paramName, "credential", StringComparison.InvariantCultureIgnoreCase))
+                        if (string.Equals(paramName, CredentialKey, StringComparison.InvariantCultureIgnoreCase))
                         {
                             WriteVerbose("Credential specified for required resource");
                             pkgCredential = pkgInstallInfo[paramName] as PSCredential;
