@@ -439,7 +439,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (!(entry.Value is Hashtable pkgInstallInfo))
                 {
                     var requiredResourceHashtableInputFormatError = new ErrorRecord(
-                        new ArgumentException($"The RequiredResource input with name {pkgName} does not have a valid value, the value must be a hashtable."),
+                        new ArgumentException($"The RequiredResource input with name '{pkgName}' does not have a valid value, the value must be a hashtable."),
                         "RequiredResourceHashtableInputFormatError", 
                         ErrorCategory.InvalidArgument,
                         this);
