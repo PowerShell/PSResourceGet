@@ -284,38 +284,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /**  INSTALL APIS **/
 
         /// <summary>
-        /// Installs specific package.
+        /// Installs a specific package.
         /// Name: no wildcard support.
-        /// Examples: Install "Newtonsoft.json"
+        /// Examples: Install "PowerShellGet"
+        ///           Install "PowerShellGet" -Version "3.0.0"
         /// </summary>
-        public override Stream InstallName(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
+        public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallName()");
-            return InstallHelper(packageName, version: null, out errRecord);
-        }
-
-        /// <summary>
-        /// Installs package with specific name and version.
-        /// Name: no wildcard support.
-        /// Version: no wildcard support.
-        /// Examples: Install "Newtonsoft.json" -Version "1.0.0.0"
-        ///           Install "Newtonsoft.json" -Version "2.5.0-beta"
-        /// </summary>
-        public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallVersion()");
-            if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
+            Stream results = new MemoryStream();
+            if (string.IsNullOrEmpty(packageVersion))
             {
-                errRecord = new ErrorRecord(
-                    new ArgumentException($"Version {version} to be installed is not a valid NuGet version."), 
-                    "InstallVersionFailure", 
-                    ErrorCategory.InvalidArgument, 
-                    this);
-
-                return null;
+                results = InstallName(packageName, out errRecord);
+            }
+            else
+            {
+                results = InstallVersion(packageName, packageVersion, out errRecord);
             }
 
-            return InstallHelper(packageName, requiredVersion, out errRecord);
+            return results;
         }
 
         #endregion
@@ -670,6 +656,41 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             return new FindResults(stringResponse: new string[] { latestVersionResponse }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+        }
+
+        /// <summary>
+        /// Installs specific package.
+        /// Name: no wildcard support.
+        /// Examples: Install "Newtonsoft.json"
+        /// </summary>
+        private Stream InstallName(string packageName, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallName()");
+            return InstallHelper(packageName, version: null, out errRecord);
+        }
+
+        /// <summary>
+        /// Installs package with specific name and version.
+        /// Name: no wildcard support.
+        /// Version: no wildcard support.
+        /// Examples: Install "Newtonsoft.json" -Version "1.0.0.0"
+        ///           Install "Newtonsoft.json" -Version "2.5.0-beta"
+        /// </summary>
+        private Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallVersion()");
+            if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
+            {
+                errRecord = new ErrorRecord(
+                    new ArgumentException($"Version {version} to be installed is not a valid NuGet version."),
+                    "InstallVersionFailure",
+                    ErrorCategory.InvalidArgument,
+                    this);
+
+                return null;
+            }
+
+            return InstallHelper(packageName, requiredVersion, out errRecord);
         }
 
         /// <summary>

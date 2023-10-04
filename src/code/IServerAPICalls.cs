@@ -83,16 +83,7 @@ public interface IServerAPICalls
     /// Name: no wildcard support.
     /// Examples: Install "PowerShellGet"
     /// </summary>
-    Stream InstallName(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord);
-
-    /// <summary>
-    /// Installs package with specific name and version.
-    /// Name: no wildcard support.
-    /// Version: no wildcard support.
-    /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
-    ///           Install "PowerShellGet" -Version "3.0.0-beta16"
-    /// </summary>    
-    Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord);
+    Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord);
 
     #endregion
 }
