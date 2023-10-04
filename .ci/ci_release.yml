@@ -239,7 +239,9 @@ stages:
         # Upload symbol pdb file
         $moduleName = "$($config.ModuleName)"
         $symbolFilePath = Join-Path -Path $srcPath -ChildPath "$moduleName.pdb"
-        Write-Host "##vso[artifact.upload containerfolder=$moduleName;artifactname=$moduleName]$symbolFilePath"
+        $vstsCommandString = "vso[artifact.upload containerfolder=${moduleName};artifactname=${moduleName}]${symbolFilePath}"
+        Write-Host "sending " + $vstsCommandString
+        Write-Host "##$vstsCommandString"
       displayName: Set up for module created files code signing
       condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
