@@ -43,6 +43,7 @@ function Import-PSGetRepository {
                             Trusted = $_.Trusted
                             PassThru = $true
                             Force = $Force
+                            ApiVersion = 'v2'
                         }
                         Register-PSResourceRepository @registerPSResourceRepositorySplat
                     }
