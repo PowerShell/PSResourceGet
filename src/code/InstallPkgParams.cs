@@ -28,6 +28,15 @@ public class InstallPkgParams
     public void SetProperty(string propertyName, string propertyValue, out ErrorRecord ParameterParsingError)
     {
         ParameterParsingError = null;
+        if (String.IsNullOrEmpty(propertyName.Trim()))
+        {
+            ParameterParsingError = new ErrorRecord(
+                new ArgumentException("Argument for parameter cannot be null or whitespace."),
+                "EmptyOrWhitespaceParameterKey", 
+                ErrorCategory.InvalidArgument,
+                this);
+        }
+
         switch (propertyName.ToLower())
         {
             case "name":
