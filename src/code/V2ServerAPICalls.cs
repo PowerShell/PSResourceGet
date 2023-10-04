@@ -1150,7 +1150,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (_isADORepo)
             {
                 // eg: https://pkgs.dev.azure.com/<org>/<project>/_packaging/<feed>/nuget/v2?id=test_module&version=5.0.0
-                requestUrlV2 = $"{Repository.Uri}?id={packageName}&version={packageVersion}";
+                requestUrlV2 = $"{Repository.Uri}?id={packageName}&version={version}";
             }
             if (_isJFrogRepo)
             {
