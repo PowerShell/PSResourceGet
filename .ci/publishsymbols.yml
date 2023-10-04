@@ -14,7 +14,7 @@ jobs:
   - task: DownloadPipelineArtifact@2
     displayName: 'Download and publish symbols'
     inputs:
-      artifact: $(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.pdb
+      artifact: Microsoft.PowerShell.PSResourceGet.pdb
       path: '$(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet'
 
   - pwsh: |
