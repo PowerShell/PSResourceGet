@@ -14,8 +14,9 @@ jobs:
   - task: DownloadPipelineArtifact@2
     displayName: 'Download and publish symbols'
     inputs:
-      artifact: Microsoft.PowerShell.PSResourceGet.pdb
+      artifact: Microsoft.PowerShell.PSResourceGet
       path: '$(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet'
+      pattern: '**/*.pdb'
 
   - pwsh: |
       Write-Verbose -Verbose "Enumerating $(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet"
