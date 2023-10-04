@@ -393,38 +393,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /**  INSTALL APIS **/
 
         /// <summary>
-        /// Installs specific package.
+        /// Installs a specific package.
         /// Name: no wildcard support.
         /// Examples: Install "PowerShellGet"
-        /// Implementation Note:   {repoUri}/Packages(Id='test_local_mod')/Download
-        ///                        if prerelease, call into InstallVersion instead. 
+        ///           Install "PowerShellGet" -Version "3.0.0"
         /// </summary>
-        public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
+        public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallName()");
-            var requestUrl = $"{Repository.Uri}/Packages/(Id='{packageName}')/Download";
-            var response = HttpRequestCallForContent(requestUrl, out errRecord);
-            var responseStream = response.ReadAsStreamAsync().Result;
+            Stream results = new MemoryStream();
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                results = InstallName(packageName, out errRecord);
+            }
+            else {
+                results = InstallVersion(packageName, packageVersion, out errRecord);
+            }
 
-            return responseStream;
-        }
-
-        /// <summary>
-        /// Installs package with specific name and version.
-        /// Name: no wildcard support.
-        /// Version: no wildcard support.
-        /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
-        ///           Install "PowerShellGet" -Version "3.0.0-beta16"
-        /// API Call: {repoUri}/Packages(Id='Castle.Core',Version='5.1.1')/Download
-        /// </summary>    
-        public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallVersion()");
-            var requestUrl = $"{Repository.Uri}/Packages(Id='{packageName}',Version='{version}')/Download";
-            var response = HttpRequestCallForContent(requestUrl, out errRecord);
-            var responseStream = response.ReadAsStreamAsync().Result;
-
-            return responseStream;
+            return results;
         }
 
         /// <summary>
@@ -788,6 +773,41 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var requestUrl = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
 
             return HttpRequestCall(requestUrl, out errRecord);
+        }
+
+        /// <summary>
+        /// Installs specific package.
+        /// Name: no wildcard support.
+        /// Examples: Install "PowerShellGet"
+        /// Implementation Note:   {repoUri}/Packages(Id='test_local_mod')/Download
+        ///                        if prerelease, call into InstallVersion instead. 
+        /// </summary>
+        private Stream InstallName(string packageName, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallName()");
+            var requestUrl = $"{Repository.Uri}/Packages/(Id='{packageName}')/Download";
+            var response = HttpRequestCallForContent(requestUrl, out errRecord);
+            var responseStream = response.ReadAsStreamAsync().Result;
+
+            return responseStream;
+        }
+
+        /// <summary>
+        /// Installs package with specific name and version.
+        /// Name: no wildcard support.
+        /// Version: no wildcard support.
+        /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
+        ///           Install "PowerShellGet" -Version "3.0.0-beta16"
+        /// API Call: {repoUri}/Packages(Id='Castle.Core',Version='5.1.1')/Download
+        /// </summary>    
+        private Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallVersion()");
+            var requestUrl = $"{Repository.Uri}/Packages(Id='{packageName}',Version='{version}')/Download";
+            var response = HttpRequestCallForContent(requestUrl, out errRecord);
+            var responseStream = response.ReadAsStreamAsync().Result;
+
+            return responseStream;
         }
 
         /// <summary>

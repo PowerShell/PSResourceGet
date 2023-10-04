@@ -496,6 +496,27 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     var key = child.LocalName;
                     var value = child.InnerText;
 
+                    if (key.Equals("Title"))
+                    {
+                        // For repositories such as JFrog's Artifactory, there is no 'Id' property, just 'Title' (which contains the name of the pkg).
+                        // However, other repos, like PSGallery include the name of the pkg in the 'Id' property and leave 'Title' empty.
+
+                        // First check to see that both 'Title' and 'Id' exist in the child nodes. 
+                        // If both exist, take 'Id', otherwise just take 'Title'. 
+                        bool containsID = false;
+                        foreach (XmlElement childNode in childNodes)
+                        {
+                            if (childNode.LocalName == "Id")
+                            {
+                                containsID = true;
+                            }
+                        }
+
+                        if (!containsID)
+                        {
+                            metadata["Id"] = value;
+                        }
+                    }
                     if (key.Equals("Version"))
                     {
                         metadata[key] = ParseHttpVersion(value, out string prereleaseLabel);

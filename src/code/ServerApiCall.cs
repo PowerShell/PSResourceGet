@@ -112,21 +112,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Installs specific package.
         /// Name: no wildcard support.
         /// Examples: Install "PowerShellGet"
+        ///           Install "PowerShellGet" -Version "3.0.0"
+        ///           Install "PowerShellGet" -Version "3.0.0-beta24"
         /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
         ///                        if prerelease, the calling method should first call IFindPSResource.FindName(),
         ///                             then find the exact version to install, then call into install version
         /// </summary>
-        public abstract Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord);
-
-
-        /// <summary>
-        /// Installs package with specific name and version.
-        /// Name: no wildcard support.
-        /// Version: no wildcard support.
-        /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
-        ///           Install "PowerShellGet" -Version "3.0.0-beta16"
-        /// </summary>
-        public abstract Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord);
+        public abstract Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord);
 
         #endregion
 

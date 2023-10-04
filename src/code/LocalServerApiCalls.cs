@@ -217,157 +217,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /**  INSTALL APIS **/
 
         /// <summary>
-        /// Installs specific package.
+        /// Installs a specific package.
         /// Name: no wildcard support.
         /// Examples: Install "PowerShellGet"
-        /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
-        ///                        if prerelease, call into InstallVersion instead.
+        ///           Install "PowerShellGet" -Version "3.0.0"
         /// </summary>
-        public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
+        public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::InstallName()");
-            FileStream fs = null;
-            errRecord = null;
-            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
-            NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
-            String latestVersionPath = String.Empty;
-
-            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
+            Stream results = new MemoryStream();
+            if (string.IsNullOrEmpty(packageVersion))
             {
-                string packageFullName = Path.GetFileName(path);
-
-                if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
-                {
-                    _cmdletPassedIn.WriteDebug($"'{packageName}' found in '{path}'");
-                    string[] packageWithoutName = packageFullName.ToLower().Split(new string[]{ $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
-                    string packageVersionAndExtension = packageWithoutName[0];
-                    int extensionDot = packageVersionAndExtension.LastIndexOf('.');
-                    string version = packageVersionAndExtension.Substring(0, extensionDot);
-                    _cmdletPassedIn.WriteDebug($"Parsing version '{version}' of package '{packageName}'");
-                    NuGetVersion.TryParse(version, out NuGetVersion nugetVersion);
-
-                    if ((!nugetVersion.IsPrerelease || includePrerelease) && (nugetVersion > latestVersion))
-                    {
-                        latestVersion = nugetVersion;
-                        latestVersionPath = path;
-                    }
-                }
+                results = InstallName(packageName, includePrerelease, out errRecord);
+            }
+            else {
+                results = InstallVersion(packageName, packageVersion, out errRecord);
             }
 
-            if (String.IsNullOrEmpty(latestVersionPath))
-            {
-                errRecord = new ErrorRecord(
-                    new LocalResourceEmpty($"'{packageName}' is not present in repository"), 
-                    "InstallNameFailure", 
-                    ErrorCategory.ResourceUnavailable, 
-                    this);
-
-                return fs;
-            }
-
-            try
-            {
-                _cmdletPassedIn.WriteDebug($"Reading file '{latestVersionPath}'");
-                fs = new FileStream(latestVersionPath, FileMode.Open, FileAccess.Read);
-                if (fs == null)
-                {
-                    errRecord = new ErrorRecord(
-                        new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"), 
-                        "InstallNameFailure", 
-                        ErrorCategory.ResourceUnavailable, 
-                        this);
-                }
-            }
-            catch (Exception e)
-            {
-                errRecord = new ErrorRecord(
-                    exception: e, 
-                    "InstallNameFailure", 
-                    ErrorCategory.ReadError, 
-                    this);
-            }
-
-            return fs;
-        }
-
-        /// <summary>
-        /// Installs package with specific name and version.
-        /// Name: no wildcard support.
-        /// Version: no wildcard support.
-        /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
-        ///           Install "PowerShellGet" -Version "3.0.0-beta16"
-        /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
-        /// </summary>
-        public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::InstallVersion()");
-            errRecord = null;
-            FileStream fs = null;
-
-            // if 4 digits and last is 0, create 3 digit equiv string
-            // 4 digit version (where last is 0) is always passed in.
-            NuGetVersion.TryParse(version, out NuGetVersion pkgVersion);
-            _cmdletPassedIn.WriteDebug($"Version parsed as '{pkgVersion}'");
-
-            if (pkgVersion.Revision == 0)
-            {
-                version = pkgVersion.ToNormalizedString();
-            }
-
-            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.{version}.nupkg*", WildcardOptions.IgnoreCase);
-            String pkgVersionPath = String.Empty;
-
-            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
-            {
-                string packageFullName = Path.GetFileName(path);
-
-                if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
-                {
-                    _cmdletPassedIn.WriteDebug($"Found match with '{path}'");
-                    pkgVersionPath = path;
-                }
-            }
-
-            if (String.IsNullOrEmpty(pkgVersionPath))
-            {
-                errRecord = new ErrorRecord(
-                    new LocalResourceEmpty($"'{packageName}' is not present in repository"), 
-                    "InstallNameFailure", 
-                    ErrorCategory.ResourceUnavailable, 
-                    this);
-
-                return fs;
-            }
-
-            try
-            {
-                _cmdletPassedIn.WriteDebug($"Reading file '{pkgVersionPath}'");
-                fs = new FileStream(pkgVersionPath, FileMode.Open, FileAccess.Read);
-
-                if (fs == null)
-                {
-                    errRecord = new ErrorRecord(
-                        new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"), 
-                        "InstallNameFailure", 
-                        ErrorCategory.ResourceUnavailable, 
-                        this);
-                }
-            }
-            catch (Exception e)
-            {
-                errRecord = new ErrorRecord(
-                    exception: e, 
-                    "InstallVersionFailure", 
-                    ErrorCategory.ReadError, 
-                    this);
-            }
-
-            return fs;
+            return results;
         }
 
         #endregion
 
-        #region LocalRepo Specific Methods
+        #region Private Methods
 
         /// <summary>
         /// Helper method called by FindName() and FindNameWithTag()
@@ -590,6 +461,155 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: pkgsFound.ToArray(), responseType: _localServerFindResponseType);
 
             return findResponse;
+        }
+
+        /// <summary>
+        /// Installs specific package.
+        /// Name: no wildcard support.
+        /// Examples: Install "PowerShellGet"
+        /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
+        ///                        if prerelease, call into InstallVersion instead.
+        /// </summary>
+        private Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::InstallName()");
+            FileStream fs = null;
+            errRecord = null;
+            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
+            NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
+            String latestVersionPath = String.Empty;
+
+            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
+            {
+                string packageFullName = Path.GetFileName(path);
+
+                if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
+                {
+                    _cmdletPassedIn.WriteDebug($"'{packageName}' found in '{path}'");
+                    string[] packageWithoutName = packageFullName.ToLower().Split(new string[] { $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
+                    string packageVersionAndExtension = packageWithoutName[0];
+                    int extensionDot = packageVersionAndExtension.LastIndexOf('.');
+                    string version = packageVersionAndExtension.Substring(0, extensionDot);
+                    _cmdletPassedIn.WriteDebug($"Parsing version '{version}' of package '{packageName}'");
+                    NuGetVersion.TryParse(version, out NuGetVersion nugetVersion);
+
+                    if ((!nugetVersion.IsPrerelease || includePrerelease) && (nugetVersion > latestVersion))
+                    {
+                        latestVersion = nugetVersion;
+                        latestVersionPath = path;
+                    }
+                }
+            }
+
+            if (String.IsNullOrEmpty(latestVersionPath))
+            {
+                errRecord = new ErrorRecord(
+                    new LocalResourceEmpty($"'{packageName}' is not present in repository"),
+                    "InstallNameFailure",
+                    ErrorCategory.ResourceUnavailable,
+                    this);
+
+                return fs;
+            }
+
+            try
+            {
+                _cmdletPassedIn.WriteDebug($"Reading file '{latestVersionPath}'");
+                fs = new FileStream(latestVersionPath, FileMode.Open, FileAccess.Read);
+                if (fs == null)
+                {
+                    errRecord = new ErrorRecord(
+                        new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"),
+                        "InstallNameFailure",
+                        ErrorCategory.ResourceUnavailable,
+                        this);
+                }
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "InstallNameFailure",
+                    ErrorCategory.ReadError,
+                    this);
+            }
+
+            return fs;
+        }
+
+        /// <summary>
+        /// Installs package with specific name and version.
+        /// Name: no wildcard support.
+        /// Version: no wildcard support.
+        /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
+        ///           Install "PowerShellGet" -Version "3.0.0-beta16"
+        /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
+        /// </summary>
+        private Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::InstallVersion()");
+            errRecord = null;
+            FileStream fs = null;
+
+            // if 4 digits and last is 0, create 3 digit equiv string
+            // 4 digit version (where last is 0) is always passed in.
+            NuGetVersion.TryParse(version, out NuGetVersion pkgVersion);
+            _cmdletPassedIn.WriteDebug($"Version parsed as '{pkgVersion}'");
+
+            if (pkgVersion.Revision == 0)
+            {
+                version = pkgVersion.ToNormalizedString();
+            }
+
+            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.{version}.nupkg*", WildcardOptions.IgnoreCase);
+            String pkgVersionPath = String.Empty;
+
+            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
+            {
+                string packageFullName = Path.GetFileName(path);
+
+                if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
+                {
+                    _cmdletPassedIn.WriteDebug($"Found match with '{path}'");
+                    pkgVersionPath = path;
+                }
+            }
+
+            if (String.IsNullOrEmpty(pkgVersionPath))
+            {
+                errRecord = new ErrorRecord(
+                    new LocalResourceEmpty($"'{packageName}' is not present in repository"),
+                    "InstallNameFailure",
+                    ErrorCategory.ResourceUnavailable,
+                    this);
+
+                return fs;
+            }
+
+            try
+            {
+                _cmdletPassedIn.WriteDebug($"Reading file '{pkgVersionPath}'");
+                fs = new FileStream(pkgVersionPath, FileMode.Open, FileAccess.Read);
+
+                if (fs == null)
+                {
+                    errRecord = new ErrorRecord(
+                        new LocalResourceEmpty("The contents of the package file for specified resource was empty or invalid"),
+                        "InstallNameFailure",
+                        ErrorCategory.ResourceUnavailable,
+                        this);
+                }
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "InstallVersionFailure",
+                    ErrorCategory.ReadError,
+                    this);
+            }
+
+            return fs;
         }
 
         /// <summary>

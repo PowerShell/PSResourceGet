@@ -549,7 +549,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // and value as a Hashtable of specific package info:
                     //     packageName, { version = "", isScript = "", isModule = "", pkg = "", etc. }
                     // Install parent package to the temp directory.
-                    Hashtable packagesHash = InstallPackage(
+                    Hashtable packagesHash = BeginPackageInstall(
                                                         searchVersionType: _versionType,
                                                         specificVersion: _nugetVersion,
                                                         versionRange: _versionRange,
@@ -617,7 +617,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                     }
                                 }
 
-                                packagesHash = InstallPackage(
+                                packagesHash = BeginPackageInstall(
                                             searchVersionType: VersionType.SpecificVersion,
                                             specificVersion: depVersion,
                                             versionRange: null,
@@ -683,7 +683,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Installs a single package to the temporary path.
         /// </summary>
-        private Hashtable InstallPackage(
+        private Hashtable BeginPackageInstall(
             VersionType searchVersionType,
             NuGetVersion specificVersion,
             VersionRange versionRange,
@@ -839,25 +839,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 // Download the package.
                 string pkgName = pkgToInstall.Name;
-                Stream responseStream;
-
-                if (searchVersionType == VersionType.NoVersion && !_prerelease)
+                Stream responseStream = currentServer.InstallPackage(pkgName, pkgVersion, _prerelease, out ErrorRecord installNameErrRecord);
+                if (installNameErrRecord != null)
                 {
-                    responseStream = currentServer.InstallName(pkgName, _prerelease, out ErrorRecord installNameErrRecord);
-                    if (installNameErrRecord != null)
-                    {
-                        errRecord = installNameErrRecord;
-                        return packagesHash;
-                    }
-                }
-                else
-                {
-                    responseStream = currentServer.InstallVersion(pkgName, pkgVersion, out ErrorRecord installVersionErrRecord);
-                    if (installVersionErrRecord != null)
-                    {
-                        errRecord = installVersionErrRecord;
-                        return packagesHash;
-                    }
+                    errRecord = installNameErrRecord;
+                    return packagesHash;
                 }
 
                 bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :

@@ -39,6 +39,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private HttpClient _sessionClient { get; set; }
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         public FindResponseType v2FindResponseType = FindResponseType.ResponseString;
+        private bool _isJFrogRepo;
 
         #endregion
 
@@ -55,6 +56,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             _sessionClient = new HttpClient(handler);
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
+            var repoURL = repository.Uri.ToString().ToLower();
+            _isJFrogRepo = repoURL.Contains("jfrog");
         }
 
         #endregion
@@ -316,7 +319,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // This should return the latest stable version or the latest prerelease version (respectively)
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $" and Id eq '{packageName}'";
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            string idFilterPart = _isJFrogRepo ? "": $" and Id eq '{packageName}'";
             string typeFilterPart = GetTypeFilterForRequest(type);
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$inlinecount=allpages&$filter={prerelease}{idFilterPart}{typeFilterPart}";
             string response = HttpRequestCall(requestUrlV2, out errRecord);
@@ -359,7 +365,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // This should return the latest stable version or the latest prerelease version (respectively)
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $" and Id eq '{packageName}'";
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            string idFilterPart = _isJFrogRepo ? "" : $" and Id eq '{packageName}'";
             string typeFilterPart = GetTypeFilterForRequest(type);
             string tagFilterPart = String.Empty;
             foreach (string tag in tags)
@@ -569,7 +578,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true
             // Quotations around package name and version do not matter, same metadata gets returned.
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $" and Id eq '{packageName}'";
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            string idFilterPart = _isJFrogRepo ? "" : $" and Id eq '{packageName}'";
             string typeFilterPart = GetTypeFilterForRequest(type);
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$inlinecount=allpages&$filter= NormalizedVersion eq '{version}'{idFilterPart}{typeFilterPart}";
             string response = HttpRequestCall(requestUrlV2, out errRecord);
@@ -609,7 +621,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindVersionWithTag()");
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $" and Id eq '{packageName}'";
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            string idFilterPart = _isJFrogRepo ? "" : $" and Id eq '{packageName}'";
             string typeFilterPart = GetTypeFilterForRequest(type);
             string tagFilterPart = String.Empty;
             foreach (string tag in tags)
@@ -648,39 +663,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /**  INSTALL APIS **/
 
         /// <summary>
-        /// Installs specific package.
+        /// Installs a specific package.
         /// Name: no wildcard support.
         /// Examples: Install "PowerShellGet"
-        /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
-        ///                        if prerelease, call into InstallVersion instead.
+        ///           Install "PowerShellGet" -Version "3.0.0"
         /// </summary>
-        public override Stream InstallName(string packageName, bool includePrerelease, out ErrorRecord errRecord)
+        public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallName()");
-            var requestUrlV2 = $"{Repository.Uri}/package/{packageName}";
+            Stream results = new MemoryStream();
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                results = InstallName(packageName, out errRecord);
+            }
+            else
+            {
+                results = InstallVersion(packageName, packageVersion, out errRecord);
+            }
 
-            var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
-            var responseStream = response.ReadAsStreamAsync().Result;
-
-            return responseStream;
-        }
-
-        /// <summary>
-        /// Installs package with specific name and version.
-        /// Name: no wildcard support.
-        /// Version: no wildcard support.
-        /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
-        ///           Install "PowerShellGet" -Version "3.0.0-beta16"
-        /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
-        /// </summary>
-        public override Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallVersion()");
-            var requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
-            var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
-            var responseStream = response.ReadAsStreamAsync().Result;
-
-            return responseStream;
+            return results;
         }
 
         /// <summary>
@@ -781,7 +781,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this);
             }
 
-            if (string.IsNullOrEmpty(content.ToString()))
+            if (content == null || string.IsNullOrEmpty(content.ToString()))
             {
                 _cmdletPassedIn.WriteDebug("Response is empty");
             }
@@ -1085,7 +1085,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string andOperator = " and ";
             string joiningOperator = filterQuery.EndsWith("=") ? String.Empty : andOperator;
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $"{joiningOperator}Id eq '{packageName}'";
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            string idFilterPart = $"{joiningOperator}";
+            idFilterPart += _isJFrogRepo ? "" : $"Id eq '{packageName}'";
             filterQuery += idFilterPart;
             filterQuery += type == ResourceType.Script ? $"{andOperator}substringof('PS{type.ToString()}', Tags) eq true" : String.Empty;
 
@@ -1104,6 +1108,60 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
             
             return HttpRequestCall(requestUrlV2, out errRecord);
+        }
+
+        /// <summary>
+        /// Installs specific package.
+        /// Name: no wildcard support.
+        /// Examples: Install "PowerShellGet"
+        /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
+        ///                        if prerelease, call into InstallVersion instead.
+        /// </summary>
+        private Stream InstallName(string packageName, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallName()");
+            var requestUrlV2 = $"{Repository.Uri}/package/{packageName}";
+            var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
+            if (errRecord != null)
+            {
+                return new MemoryStream();
+            }
+
+            var responseStream = response.ReadAsStreamAsync().Result;
+
+            return responseStream;
+        }
+
+        /// <summary>
+        /// Installs package with specific name and version.
+        /// Name: no wildcard support.
+        /// Version: no wildcard support.
+        /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
+        ///           Install "PowerShellGet" -Version "3.0.0-beta16"
+        /// API Call: https://www.powershellgallery.com/api/v2/package/Id/version (version can be prerelease)
+        /// </summary>
+        private Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallVersion()");
+            string requestUrlV2;
+
+            if (_isJFrogRepo)
+            {
+                requestUrlV2 = $"{Repository.Uri}/Download/{packageName}/{version}";
+            }
+            else
+            {
+                requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
+            }
+
+            var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
+            var responseStream = response.ReadAsStreamAsync().Result;
+            if (errRecord != null)
+            {
+                return new MemoryStream();
+            }
+
+            return responseStream;
         }
 
         private string GetTypeFilterForRequest(ResourceType type) {
