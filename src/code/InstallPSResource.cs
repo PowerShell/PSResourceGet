@@ -431,7 +431,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 InstallPkgParams pkgParams = new InstallPkgParams();
                 PSCredential pkgCredential = Credential;
 
-                // Set package name which will be key for the inner hashtable and is present for all scenarios,
+                // The package name which will be the key for the inner hashtable and is present for all scenarios,
                 // including the scenario where only package name is specified
                 // i.e Install-PSResource -RequiredResource @ { MyPackage = @{} }
                 string pkgName = entry.Key.ToString();
