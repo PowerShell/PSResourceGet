@@ -291,6 +291,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallPackage()");
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
             {
