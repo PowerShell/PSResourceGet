@@ -415,7 +415,7 @@ stages:
 
 - stage: PublishSymbols
   displayName: Publish Symbols
-  condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), eq(variables['Publish'], 'True'))
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
   jobs:
   - template: publishsymbols.yml
 
