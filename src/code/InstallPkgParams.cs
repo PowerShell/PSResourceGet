@@ -25,9 +25,18 @@ public class InstallPkgParams
 
     #region Private methods
 
-    public void SetProperty(string propertyName, string propertyValue, out ErrorRecord IncorrectVersionFormat)
+    public void SetProperty(string propertyName, string propertyValue, out ErrorRecord ParameterParsingError)
     {
-        IncorrectVersionFormat = null;
+        ParameterParsingError = null;
+        if (String.IsNullOrEmpty(propertyName.Trim()))
+        {
+            ParameterParsingError = new ErrorRecord(
+                new ArgumentException("Argument for parameter cannot be null or whitespace."),
+                "EmptyOrWhitespaceParameterKey", 
+                ErrorCategory.InvalidArgument,
+                this);
+        }
+
         switch (propertyName.ToLower())
         {
             case "name":
@@ -44,7 +53,7 @@ public class InstallPkgParams
                 }
                 else if (!Utils.TryParseVersionOrVersionRange(propertyValue, out versionTmp))
                 {
-                    IncorrectVersionFormat = new ErrorRecord(
+                    ParameterParsingError = new ErrorRecord(
                         new ArgumentException("Argument for Version parameter is not in the proper format."),
                         "IncorrectVersionFormat", 
                         ErrorCategory.InvalidArgument,
@@ -98,7 +107,11 @@ public class InstallPkgParams
                 break;
 
             default:
-                // write error
+                ParameterParsingError = new ErrorRecord(
+                    new ArgumentException($"The parameter '{propertyName}' provided is not a recognized or valid parameter. Allowed values include: Name, Version, Repository, AcceptLicense, Prerelease, Scope, Quiet, Reinstall, TrustRepository, NoClobber, and SkipDependencyCheck."),
+                    "IncorrectParameterError", 
+                    ErrorCategory.InvalidArgument,
+                    this);
                 break;
         }
     }
