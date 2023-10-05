@@ -19,7 +19,7 @@ jobs:
       pattern: '**/*.pdb'
 
   - pwsh: |
-      Write-Verbose -Verbose "Enumerating $(Pipeline.Workspace)\Microsoft.PowerShell.PSResourceGet"
+      Write-Verbose -Verbose "Enumerating $(Pipeline.Workspace)\symbolResult"
       $symbolsRoot = New-Item -Path "$(Pipeline.Workspace)/symbols" -ItemType Directory -Verbose
       Move-Item -Path "$(Pipeline.Workspace)\symbolResult\Microsoft.PowerShell.PSResourceGet.pdb" -Destination $symbolsRoot
 
@@ -28,7 +28,7 @@ jobs:
       $vstsCommandString = "vso[task.setvariable variable=SymbolsPath]$symbolsRoot"
       Write-Verbose -Message "$vstsCommandString" -Verbose
       Write-Host -Object "##$vstsCommandString"
-    displayName: Copy symbol file
+    displayName: Move symbol file
 
   - task: PublishSymbols@2
     inputs:
