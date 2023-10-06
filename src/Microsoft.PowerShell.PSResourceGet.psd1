@@ -4,7 +4,7 @@
 @{
     RootModule             = './Microsoft.PowerShell.PSResourceGet.dll'
     NestedModules          = @('./Microsoft.PowerShell.PSResourceGet.psm1')
-    ModuleVersion          = '0.9.0'
+    ModuleVersion          = '1.0.0'
     CompatiblePSEditions   = @('Core', 'Desktop')
     GUID                   = 'e4e0bda1-0703-44a5-b70d-8fe704cd0643'
     Author                 = 'Microsoft Corporation'
@@ -45,7 +45,7 @@
         'udres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'rc1'
+            #Prerelease   = ''
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -55,6 +55,19 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.0.0
+
+### New Features
+- Add `ApiVersion` parameter for `Register-PSResourceRepository` (#1431)
+
+### Bug Fixes
+- Automatically set the ApiVersion to v2 for repositories imported from PowerShellGet (#1430)
+- Bug fix ADO v2 feed installation failures (#1429)
+- Bug fix Artifactory v2 endpoint failures (#1428)
+- Bug fix Artifactory v3 endpoint failures (#1427)
+- Bug fix `-RequiredResource` silent failures (#1426)
+- Bug fix for v2 repository returning extra packages for `-Tag` based search with `-Prerelease` (#1405) 
+
 ## 0.9.0-rc1
 
 ### Bug Fixes

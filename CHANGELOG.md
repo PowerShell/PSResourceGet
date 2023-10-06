@@ -1,4 +1,17 @@
 # CHANGELOG
+## 1.0.0
+
+### New Features
+- Add `ApiVersion` parameter for `Register-PSResourceRepository` (#1431)
+
+### Bug Fixes
+- Automatically set the ApiVersion to v2 for repositories imported from PowerShellGet (#1430)
+- Bug fix ADO v2 feed installation failures (#1429)
+- Bug fix Artifactory v2 endpoint failures (#1428)
+- Bug fix Artifactory v3 endpoint failures (#1427)
+- Bug fix `-RequiredResource` silent failures (#1426)
+- Bug fix for v2 repository returning extra packages for `-Tag` based search with `-Prerelease` (#1405) 
+
 ## 0.9.0-rc1
 
 ### Bug Fixes
