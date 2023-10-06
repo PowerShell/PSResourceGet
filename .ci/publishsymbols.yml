@@ -1,0 +1,39 @@
+parameters:
+  jobName1: publish_symbols_job
+  displayValidationJob1: 'Publish symbol to Microsoft symbol server'
+
+jobs:
+- job: ${{ parameters.jobName1 }}
+  displayName: ${{ parameters.displayValidationJob1 }}
+  pool:
+    name: 1ES
+    demands:
+    - ImageOverride -equals PSMMS2019-Secure
+  timeoutInMinutes: 2880 # job times out in 2 days
+  steps:
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Download and publish symbols'
+    inputs:
+      artifact: symbolfile
+      path: '$(Pipeline.Workspace)\symbolResult'
+      pattern: '**/*.pdb'
+
+  - pwsh: |
+      $symbolsRoot = New-Item -Path "$(Pipeline.Workspace)/symbols" -ItemType Directory -Verbose
+      Copy-Item -Path "$(Pipeline.Workspace)\symbolResult\Microsoft.PowerShell.PSResourceGet.pdb" -Destination $symbolsRoot
+
+      Write-Verbose -Verbose "Enumerating $symbolsRoot"
+      Get-ChildItem -Path $symbolsRoot -Recurse
+      $vstsCommandString = "vso[task.setvariable variable=SymbolsPath]$symbolsRoot"
+      Write-Verbose -Message "$vstsCommandString" -Verbose
+      Write-Host -Object "##$vstsCommandString"
+    displayName: Copy symbol file to path for task
+
+  - task: PublishSymbols@2
+    inputs:
+      symbolsFolder: '$(SymbolsPath)'
+      searchPattern: '*.pdb'
+      indexSources: false
+      publishSymbols: true
+      symbolServerType: teamServices
+      detailedLog: true

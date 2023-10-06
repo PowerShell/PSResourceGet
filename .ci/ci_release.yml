@@ -5,6 +5,7 @@ pr: none
 variables:
   - group: ESRP
   - group: GithubTestingFeedCreds
+  - group: PSGetSymbol
   # Prevents auto-injection of nuget-security-analysis (not needed for open source projects)
   - name: skipNugetSecurityAnalysis
     value: true
@@ -235,6 +236,15 @@ stages:
         $vstsCommandString = "vso[task.setvariable variable=signOutPathCreated]${signOutPath}"
         Write-Host "sending " + $vstsCommandString
         Write-Host "##$vstsCommandString"
+        
+        # Upload symbol pdb file
+        $moduleName = "$($config.ModuleName)"
+        $symbolFilePath = Join-Path -Path $srcPath -ChildPath "$moduleName.pdb"
+        $folderName = "symbolResult"
+        $artifactName = "symbolfile"
+        $vstsCommandString = "vso[artifact.upload containerfolder=${folderName};artifactname=${artifactName}]${symbolFilePath}"
+        Write-Host "sending " + $vstsCommandString
+        Write-Host "##$vstsCommandString"
       displayName: Set up for module created files code signing
       condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
@@ -406,6 +416,12 @@ stages:
       jobName: TestPkgWinMacOS
       displayName: PowerShell Core on macOS
       imageName: macOS-latest
+
+- stage: PublishSymbols
+  displayName: Publish Symbols
+  condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), eq(variables['Publish'], 'True'))
+  jobs:
+  - template: publishsymbols.yml
 
 - stage: Release
   displayName: Publish Package to PSGallery
