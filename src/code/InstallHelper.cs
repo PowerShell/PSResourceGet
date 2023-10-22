@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
@@ -936,7 +937,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var pkgVersion = pkgToInstall.Version.ToString();
                 var tempDirNameVersion = Path.Combine(tempInstallPath, pkgName.ToLower(), pkgVersion);
                 Directory.CreateDirectory(tempDirNameVersion);
-                System.IO.Compression.ZipFile.ExtractToDirectory(pathToFile, tempDirNameVersion);
+
+                if (!TryExtractToDirectory(pathToFile, tempDirNameVersion, out error))
+                {
+                    return false;
+                }
 
                 File.Delete(pathToFile);
 
@@ -1144,6 +1149,65 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Extracts files from .nupkg
+        /// Similar functionality as System.IO.Compression.ZipFile.ExtractToDirectory, 
+        /// but while ExtractToDirectory cannot overwrite files, this method can.
+        /// </summary>
+        private bool TryExtractToDirectory(string zipPath, string extractPath, out ErrorRecord error)
+        {
+            error = null;
+            // Normalize the path
+            extractPath = Path.GetFullPath(extractPath);
+
+            // Ensures that the last character on the extraction path is the directory separator char.
+            // Without this, a malicious zip file could try to traverse outside of the expected extraction path.
+            if (!extractPath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal))
+            {
+                extractPath += Path.DirectorySeparatorChar;
+            }
+
+            try
+            {
+                using (ZipArchive archive = ZipFile.OpenRead(zipPath))
+                {
+                    foreach (ZipArchiveEntry entry in archive.Entries)
+                    {
+                        // If a file has one or more parent directories.
+                        if (entry.FullName.Contains(Path.DirectorySeparatorChar) || entry.FullName.Contains(Path.AltDirectorySeparatorChar))
+                        {
+                            // Create the parent directories if they do not already exist
+                            var lastPathSeparatorIdx = entry.FullName.Contains(Path.DirectorySeparatorChar) ?
+                                entry.FullName.LastIndexOf(Path.DirectorySeparatorChar) : entry.FullName.LastIndexOf(Path.AltDirectorySeparatorChar);
+                            var parentDirs = entry.FullName.Substring(0, lastPathSeparatorIdx);
+                            var destinationDirectory = Path.Combine(extractPath, parentDirs);
+                            if (!Directory.Exists(destinationDirectory))
+                            {
+                                Directory.CreateDirectory(destinationDirectory);
+                            }
+                        }
+
+                        // Gets the full path to ensure that relative segments are removed.
+                        string destinationPath = Path.GetFullPath(Path.Combine(extractPath, entry.FullName));
+
+                        entry.ExtractToFile(destinationPath, overwrite:true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                error = new ErrorRecord(
+                    new Exception($"Error occured while extracting .nupkg: '{e.Message}'"),
+                    "ErrorExtractingNupkg",
+                    ErrorCategory.OperationStopped,
+                    _cmdletPassedIn);
+
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
