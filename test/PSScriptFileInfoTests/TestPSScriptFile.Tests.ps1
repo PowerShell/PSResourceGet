@@ -88,4 +88,11 @@ Describe "Test Test-PSScriptFileInfo" -tags 'CI' {
 
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
+
+    It "determine script with whitespace before closing comment is valid" {
+        $scriptName = "ScriptWithWhitespaceBeforeClosingComment.ps1"
+        $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
+
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
+    }
 }
