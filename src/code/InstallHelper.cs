@@ -1175,13 +1175,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     foreach (ZipArchiveEntry entry in archive.Entries)
                     {
+                        // Sanitize the filename to remove any potentially harmful characters
+                        string sanitizedFileName = Path.GetFileName(entry.FullName);
+
+                        // Create a new entry in the archive
+                        ZipArchiveEntry sanitizedEntry = archive.CreateEntry(sanitizedFileName);
+
                         // If a file has one or more parent directories.
-                        if (entry.FullName.Contains(Path.DirectorySeparatorChar) || entry.FullName.Contains(Path.AltDirectorySeparatorChar))
+                        if (sanitizedEntry.FullName.Contains(Path.DirectorySeparatorChar) || sanitizedEntry.FullName.Contains(Path.AltDirectorySeparatorChar))
                         {
                             // Create the parent directories if they do not already exist
                             var lastPathSeparatorIdx = entry.FullName.Contains(Path.DirectorySeparatorChar) ?
-                                entry.FullName.LastIndexOf(Path.DirectorySeparatorChar) : entry.FullName.LastIndexOf(Path.AltDirectorySeparatorChar);
-                            var parentDirs = entry.FullName.Substring(0, lastPathSeparatorIdx);
+                                sanitizedEntry.FullName.LastIndexOf(Path.DirectorySeparatorChar) : sanitizedEntry.FullName.LastIndexOf(Path.AltDirectorySeparatorChar);
+                            var parentDirs = sanitizedEntry.FullName.Substring(0, lastPathSeparatorIdx);
                             var destinationDirectory = Path.Combine(extractPath, parentDirs);
                             if (!Directory.Exists(destinationDirectory))
                             {
@@ -1190,9 +1196,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
 
                         // Gets the full path to ensure that relative segments are removed.
-                        string destinationPath = Path.GetFullPath(Path.Combine(extractPath, entry.FullName));
+                        string destinationPath = Path.GetFullPath(Path.Combine(extractPath, sanitizedEntry.FullName));
 
-                        entry.ExtractToFile(destinationPath, overwrite:true);
+                        sanitizedEntry.ExtractToFile(destinationPath, overwrite:true);
                     }
                 }
             }
