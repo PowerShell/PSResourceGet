@@ -12,7 +12,7 @@ If you were familiar with the PowerShellGet 3.0 project, we renamed the module t
 If you would like to open a PR please open an issue first so that necessary discussion can take place.
 Please open an issue for any feature requests, bug reports, or questions for PSResourceGet.
 Please note, the repository for PowerShellGet v2 is available at [PowerShell/PowerShellGetv2](https://github.com/PowerShell/PowerShellGetv2).
-The repository for the PowerShellGet, which will act as the Compat layer, is available at [PowerShell/PowerShellGet](https://github.com/PowerShell/PowerShellGet).
+The repository for the PowerShellGet v3, the compatibility layer between PowerShellGet v2 and PSResourceGet, is available at [PowerShell/PowerShellGet](https://github.com/PowerShell/PowerShellGet).
 
 Introduction
 ============
