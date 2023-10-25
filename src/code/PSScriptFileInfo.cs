@@ -127,7 +127,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 string line = fileContents[i];
                 
-                if (line.StartsWith("<#PSScriptInfo"))
+                if (line.Trim().StartsWith("<#PSScriptInfo"))
                 {
                     int j = i + 1; // start at the next line
                     // keep grabbing lines until we get to closing #>
@@ -135,7 +135,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     {
                         string blockLine = fileContents[j];
                         psScriptInfoCommentContent.Add(blockLine);
-                        if (blockLine.StartsWith("#>"))
+                        if (blockLine.Trim().StartsWith("#>"))
                         {
 
                             reachedPSScriptInfoCommentEnd = true;
@@ -157,7 +157,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         return false;
                     }
                 }
-                else if (line.StartsWith("<#"))
+                else if (line.Trim().StartsWith("<#"))
                 {
                     // The next comment block must be the help comment block (containing description)
                     // keep grabbing lines until we get to closing #>
@@ -166,7 +166,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     {
                         string blockLine = fileContents[j];
 
-                        if (blockLine.StartsWith("#>"))
+                        if (blockLine.Trim().StartsWith("#>"))
                         {
                             reachedHelpInfoCommentEnd = true;
                             i = j + 1;
