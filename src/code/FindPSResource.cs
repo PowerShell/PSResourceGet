@@ -41,6 +41,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         [SupportsWildcards]
         [Parameter(Position = 0, 
                    ValueFromPipeline = true,
+                   ValueFromPipelineByPropertyName = true,
                    ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
@@ -91,7 +92,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Specifies one or more repository names to search. If not specified, search will include all currently registered repositories.
         /// </summary>
         [SupportsWildcards]
-        [Parameter()]
+        [Parameter(ValueFromPipelineByPropertyName = true)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
         public string[] Repository { get; set; }
