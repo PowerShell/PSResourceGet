@@ -1175,18 +1175,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     foreach (ZipArchiveEntry entry in archive.Entries)
                     {
-                        // Sanitize the filename to remove any potentially harmful characters (ie '..').
-                        if (entry.Name.Equals(".."))
-                        {
-                            error = new ErrorRecord(
-                                new Exception($"Error occured while extracting .nupkg.  File contains a potentially malicious file path."),
-                                "FileNameErrorWhenExtractingNupkg",
-                                ErrorCategory.InvalidArgument,
-                                _cmdletPassedIn);
-
-                            return false;
-                        }
-
                         // If a file has one or more parent directories.
                         if (entry.FullName.Contains(Path.DirectorySeparatorChar) || entry.FullName.Contains(Path.AltDirectorySeparatorChar))
                         {
@@ -1204,7 +1192,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Gets the full path to ensure that relative segments are removed.
                         string destinationPath = Path.GetFullPath(Path.Combine(extractPath, entry.FullName));
 
-                        entry.ExtractToFile(destinationPath, overwrite:true);
+                        // Validate that the resolved output path starts with the resolved destination directory.
+                        // For example, if a zip file contains a file entry ..\sneaky-file, and the zip file is extracted to the directory c:\output,
+                        // then naively combining the paths would result in an output file path of c:\output\..\sneaky-file, which would cause the file to be written to c:\sneaky-file.
+                        if (destinationPath.StartsWith(extractPath, StringComparison.Ordinal))
+                        {
+                            entry.ExtractToFile(destinationPath, overwrite: true);
+                        }
                     }
                 }
             }
