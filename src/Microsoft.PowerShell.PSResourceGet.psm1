@@ -25,7 +25,8 @@ function Import-PSGetRepository {
     Microsoft.PowerShell.Utility\Write-Verbose ('Found {0} registered PowerShellGet repositories.' -f $PSGetRepositories.Count)
 
     if ($PSGetRepositories.Count) {
-        $repos = @( $PSGetRepositories.Values |
+        $repos = @(
+            $PSGetRepositories.Values |
             Microsoft.PowerShell.Core\Where-Object {$_.PackageManagementProvider -eq 'NuGet'-and $_.Name -ne 'PSGallery'} |
             Microsoft.PowerShell.Utility\Select-Object Name, Trusted, SourceLocation
         )
