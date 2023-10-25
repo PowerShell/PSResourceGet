@@ -31,7 +31,7 @@ function Import-PSGetRepository {
 
         Microsoft.PowerShell.Utility\Write-Verbose ('Selected {0} NuGet repositories.' -f $repos.Count)
 
-        if ($repos.Count) {
+        if ($repos -ne $null) {
             $repos | Microsoft.PowerShell.Core\ForEach-Object {
                 try {
                     $message = 'Registering {0} at {1} -Trusted:${2} -Force:${3}.' -f $_.Name,
