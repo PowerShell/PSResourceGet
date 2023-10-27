@@ -16,6 +16,7 @@ using System.Runtime.InteropServices;
 using Microsoft.PowerShell.Commands;
 using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Net.Http;
+using System.Globalization;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -80,6 +81,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             $customObject = Microsoft.PowerShell.Utility\ConvertFrom-Json -InputObject $json
             return ConvertToHash $customObject
         ";
+
+        #endregion
+
+        #region Path fields
+
+        private static string s_tempHome = null;
 
         #endregion
 
@@ -976,23 +983,53 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return installationPaths;
         }
 
+        private static string GetHomeOrCreateTempHome()
+        {
+            const string tempHomeFolderName = "psresourceget-{0}-98288ff9-5712-4a14-9a11-23693b9cd91a";
+
+            string envHome = Environment.GetEnvironmentVariable("HOME") ?? s_tempHome;
+            if (envHome is not null)
+            {
+                return envHome;
+            }
+
+            try
+            {
+                var s_tempHome = Path.Combine(Path.GetTempPath(), string.Format(CultureInfo.CurrentCulture, tempHomeFolderName, Environment.UserName));
+                Directory.CreateDirectory(s_tempHome);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Directory creation may fail if the account doesn't have filesystem permission such as some service accounts.
+                // Return an empty string in this case so the process working directory will be used.
+                s_tempHome = string.Empty;
+            }
+
+            return s_tempHome;
+        }
+
         private readonly static Version PSVersion6 = new Version(6, 0);
         private static void GetStandardPlatformPaths(
             PSCmdlet psCmdlet,
-            out string myDocumentsPath,
-            out string programFilesPath)
+            out string localUserDir,
+            out string allUsersDir)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 string powerShellType = (psCmdlet.Host.Version >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
-                myDocumentsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), powerShellType);
-                programFilesPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), powerShellType);
+                localUserDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), powerShellType);
+                allUsersDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), powerShellType);
             }
             else
             {
                 // paths are the same for both Linux and macOS
-                myDocumentsPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "powershell");
-                programFilesPath = System.IO.Path.Combine("/usr", "local", "share", "powershell");
+                localUserDir = Path.Combine(GetHomeOrCreateTempHome(), ".local", "share", "powershell");
+                // Create the default data directory if it doesn't exist.
+                if (!Directory.Exists(localUserDir)) {
+                    Directory.CreateDirectory(localUserDir);
+                }
+
+                allUsersDir = System.IO.Path.Combine("/usr", "local", "share", "powershell");
             }
         }
 
