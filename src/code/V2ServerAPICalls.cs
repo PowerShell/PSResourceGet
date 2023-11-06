@@ -1104,7 +1104,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 filterQuery +=  $"{andOperator}{versionFilterParts}";
             }
 
-            string paginationParam = $"$inlinecount=allpages&$skip={skip}";
+            string paginationParam = getOnlyLatest ? $"$inlinecount=allpages&$skip={skip}&$top=1" : $"$inlinecount=allpages&$skip={skip}";
 
             filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
