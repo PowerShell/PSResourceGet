@@ -1118,7 +1118,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
-            Console.WriteLine(requestUrlV2);
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
