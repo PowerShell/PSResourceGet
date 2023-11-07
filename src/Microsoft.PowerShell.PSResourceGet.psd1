@@ -4,7 +4,7 @@
 @{
     RootModule             = './Microsoft.PowerShell.PSResourceGet.dll'
     NestedModules          = @('./Microsoft.PowerShell.PSResourceGet.psm1')
-    ModuleVersion          = '1.0.0'
+    ModuleVersion          = '1.0.1'
     CompatiblePSEditions   = @('Core', 'Desktop')
     GUID                   = 'e4e0bda1-0703-44a5-b70d-8fe704cd0643'
     Author                 = 'Microsoft Corporation'
@@ -55,6 +55,15 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.0.1
+
+### Bug Fixes
+- Bugfix to update Unix local user installation paths to be compatible with .NET 7 and .NET 8 (#1464)
+- Bugfix for Import-PSGetRepository in Windows PowerShell (#1460)
+- Bugfix for Test-PSScriptFileInfo to be less sensitive to whitespace (#1457)
+- Bugfix to overwrite rels/rels directory on net472 when extracting nupkg to directory (#1456)
+- Bugfix to add pipeline by property name support for Name and Repository properties for Find-PSResource (#1451 Thanks @ThomasNieto!)
+
 ## 1.0.0
 
 ### New Features
