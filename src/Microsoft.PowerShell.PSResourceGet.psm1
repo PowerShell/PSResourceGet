@@ -45,7 +45,7 @@ function Import-PSGetRepository {
                             Trusted = $_.Trusted
                             PassThru = $true
                             Force = $Force
-                            ApiVersion = $(if ([Uri]::new($_.SourceLocation).IsUnc) {'local'} else {'v2'})
+                            ApiVersion = if ([Uri]::new($_.SourceLocation).Scheme -eq 'file') {'local'} else {'v2'}
                         }
                         Register-PSResourceRepository @registerPSResourceRepositorySplat
                     }
