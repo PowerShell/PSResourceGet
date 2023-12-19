@@ -435,6 +435,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         node.Attribute(PSCredentialInfo.SecretNameAttribute).Value);
                 }
 
+                RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
                 updatedRepo = new PSRepositoryInfo(repoName,
                     thisUrl,
                     Int32.Parse(node.Attribute("Priority").Value),
@@ -519,6 +520,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 string attributeUrlUriName = urlAttributeExists ? "Url" : "Uri";
+                Uri repoUri = new Uri(node.Attribute(attributeUrlUriName).Value);
+                RepositoryProviderType repositoryProvider= GetRepositoryProviderType(repoUri);
                 removedRepos.Add(
                     new PSRepositoryInfo(repo,
                         new Uri(node.Attribute(attributeUrlUriName).Value),
@@ -649,6 +652,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         continue;
                     }
 
+                    RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
                     PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(repo.Attribute("Name").Value,
                         thisUrl,
                         Int32.Parse(repo.Attribute("Priority").Value),
@@ -752,6 +756,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             continue;
                         }
 
+                        RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
                         PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(node.Attribute("Name").Value,
                             thisUrl,
                             Int32.Parse(node.Attribute("Priority").Value),
