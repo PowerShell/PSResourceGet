@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Xml;
 
-namespace Microsoft.PowerShell.PSResourceGet
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     internal class ACRResponseUtil : ResponseUtil
     {
