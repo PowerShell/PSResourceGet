@@ -3,6 +3,7 @@
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System.Management.Automation;
+using System.Management.Automation.Runspaces;
 using System.Net;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
