@@ -846,6 +846,22 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
+        private static RepositoryProviderType GetRepositoryProviderType(Uri repoUri)
+        {
+            string absoluteUri = repoUri.AbsoluteUri;
+            // We want to use contains instead of EndsWith to accomodate for trailing '/'
+            if (absoluteUri.Contains("azurecr.io")){
+                return RepositoryProviderType.ACR;
+            }
+            // TODO: add a regex for this match
+            // eg: *pkgs.*/_packaging/*
+            else if (absoluteUri.Contains("pkgs.")){
+                return RepositoryProviderType.AzureDevOps;
+            }
+            else {
+                return RepositoryProviderType.None;
+            }
+        }
         #endregion
     }
 }
