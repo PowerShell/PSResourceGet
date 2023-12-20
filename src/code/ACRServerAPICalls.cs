@@ -17,6 +17,8 @@ using System.Collections.ObjectModel;
 using System.Net.Http.Headers;
 using System.Linq;
 using Microsoft.PowerShell.PSResourceGet.Cmdlets;
+using System.Text;
+using System.Security.Cryptography;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
@@ -759,6 +761,195 @@ namespace Microsoft.PowerShell.PSResourceGet
                     new KeyValuePair<string, string>("Authorization", acrAccessToken),
                     new KeyValuePair<string, string>("Accept", "application/vnd.oci.image.manifest.v1+json")
                 };
+        }
+
+        private bool PushNupkgACR(string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, out ErrorRecord error)
+        {
+            error = null;
+            // Push the nupkg to the appropriate repository
+            var fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, pkgName + "." + pkgVersion.ToNormalizedString() + ".nupkg");
+
+            string accessToken = string.Empty;
+            string tenantID = string.Empty;
+
+            // Need to set up secret management vault before hand
+            var repositoryCredentialInfo = repository.CredentialInfo;
+            if (repositoryCredentialInfo != null)
+            {
+                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
+                    repository.Name,
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
+
+                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
+
+                tenantID = Utils.GetSecretInfoFromSecretManagement(
+                    repository.Name,
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
+            }
+
+            // Call asynchronous network methods in a try/catch block to handle exceptions.
+            string registry = repository.Uri.Host;
+
+            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
+            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
+            _cmdletPassedIn.WriteVerbose("Getting acr access token");
+            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
+
+            _cmdletPassedIn.WriteVerbose("Start uploading blob");
+            var moduleLocation = GetStartUploadBlobLocation(registry, pkgName, acrAccessToken).Result;
+
+            _cmdletPassedIn.WriteVerbose("Computing digest for .nupkg file");
+            bool digestCreated = CreateDigest(fullNupkgFile, out string digest, out ErrorRecord digestError);
+            if (!digestCreated)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(digestError);
+            }
+
+            _cmdletPassedIn.WriteVerbose("Finish uploading blob");
+            bool moduleUploadSuccess = EndUploadBlob(registry, moduleLocation, fullNupkgFile, digest, false, acrAccessToken).Result;
+
+            _cmdletPassedIn.WriteVerbose("Create an empty file");
+            string emptyFileName = "empty.txt";
+            var emptyFilePath = System.IO.Path.Combine(outputNupkgDir, emptyFileName);
+            // Rename the empty file in case such a file already exists in the temp folder (although highly unlikely)
+            while (File.Exists(emptyFilePath))
+            {
+                emptyFilePath = Guid.NewGuid().ToString() + ".txt";
+            }
+            FileStream emptyStream = File.Create(emptyFilePath);
+            emptyStream.Close();
+
+            _cmdletPassedIn.WriteVerbose("Start uploading an empty file");
+            var emptyLocation = GetStartUploadBlobLocation(registry, pkgName, acrAccessToken).Result;
+
+            _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
+            bool emptyDigestCreated = CreateDigest(emptyFilePath, out string emptyDigest, out ErrorRecord emptyDigestError);
+            if (!emptyDigestCreated)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(emptyDigestError);
+            }
+
+            _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
+            bool emptyFileUploadSuccess = EndUploadBlob(registry, emptyLocation, emptyFilePath, emptyDigest, false, acrAccessToken).Result;
+
+            _cmdletPassedIn.WriteVerbose("Create the config file");
+            string configFileName = "config.json";
+            var configFilePath = System.IO.Path.Combine(outputNupkgDir, configFileName);
+            while (File.Exists(configFilePath))
+            {
+                configFilePath = Guid.NewGuid().ToString() + ".json";
+            }
+            FileStream configStream = File.Create(configFilePath);
+            configStream.Close();
+
+            FileInfo nupkgFile = new FileInfo(fullNupkgFile);
+            var fileSize = nupkgFile.Length;
+            var fileName = System.IO.Path.GetFileName(fullNupkgFile);
+            string fileContent = CreateJsonContent(digest, emptyDigest, fileSize, fileName);
+            File.WriteAllText(configFilePath, fileContent);
+
+            _cmdletPassedIn.WriteVerbose("Create the manifest layer");
+            bool manifestCreated = CreateManifest(registry, pkgName, pkgVersion.OriginalVersion, configFilePath, true, acrAccessToken).Result;
+
+            if (manifestCreated)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        private string CreateJsonContent(string digest, string emptyDigest, long fileSize, string fileName)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            StringWriter stringWriter = new StringWriter(stringBuilder);
+            JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter);
+
+            jsonWriter.Formatting = Newtonsoft.Json.Formatting.Indented;
+
+            jsonWriter.WriteStartObject();
+
+            jsonWriter.WritePropertyName("schemaVersion");
+            jsonWriter.WriteValue(2);
+
+            jsonWriter.WritePropertyName("config");
+            jsonWriter.WriteStartObject();
+            jsonWriter.WritePropertyName("mediaType");
+            jsonWriter.WriteValue("application/vnd.unknown.config.v1+json");
+            jsonWriter.WritePropertyName("digest");
+            jsonWriter.WriteValue($"sha256:{emptyDigest}");
+            jsonWriter.WritePropertyName("size");
+            jsonWriter.WriteValue(0);
+            jsonWriter.WriteEndObject();
+
+            jsonWriter.WritePropertyName("layers");
+            jsonWriter.WriteStartArray();
+            jsonWriter.WriteStartObject();
+
+            jsonWriter.WritePropertyName("mediaType");
+            jsonWriter.WriteValue("application/vnd.oci.image.layer.nondistributable.v1.tar+gzip'");
+            jsonWriter.WritePropertyName("digest");
+            jsonWriter.WriteValue($"sha256:{digest}");
+            jsonWriter.WritePropertyName("size");
+            jsonWriter.WriteValue(fileSize);
+            jsonWriter.WritePropertyName("annotations");
+
+            jsonWriter.WriteStartObject();
+            jsonWriter.WritePropertyName("org.opencontainers.image.title");
+            jsonWriter.WriteValue(fileName);
+            jsonWriter.WriteEndObject();
+
+            jsonWriter.WriteEndObject();
+            jsonWriter.WriteEndArray();
+
+            jsonWriter.WriteEndObject();
+
+            return stringWriter.ToString();
+        }
+
+
+
+        // ACR method
+        private bool CreateDigest(string fileName, out string digest, out ErrorRecord error)
+        {
+            FileInfo fileInfo = new FileInfo(fileName);
+            SHA256 mySHA256 = SHA256.Create();
+            FileStream fileStream = fileInfo.Open(FileMode.Open, FileAccess.Read);
+            digest = string.Empty;
+
+            try
+            {
+                // Create a fileStream for the file.
+                // Be sure it's positioned to the beginning of the stream.
+                fileStream.Position = 0;
+                // Compute the hash of the fileStream.
+                byte[] hashValue = mySHA256.ComputeHash(fileStream);
+                StringBuilder stringBuilder = new StringBuilder();
+                foreach (byte b in hashValue)
+                    stringBuilder.AppendFormat("{0:x2}", b);
+                digest = stringBuilder.ToString();
+                // Write the name and hash value of the file to the console.
+                _cmdletPassedIn.WriteVerbose($"{fileInfo.Name}: {hashValue}");
+                error = null;
+            }
+            catch (IOException ex)
+            {
+                var IOError = new ErrorRecord(ex, $"IOException for .nupkg file: {ex.Message}", ErrorCategory.InvalidOperation, null);
+                error = IOError;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                var AuthorizationError = new ErrorRecord(ex, $"UnauthorizedAccessException for .nupkg file: {ex.Message}", ErrorCategory.PermissionDenied, null);
+                error = AuthorizationError;
+            }
+
+            fileStream.Close();
+            if (error != null)
+            {
+                return false;
+            }
+            return true;
         }
 
         #endregion
