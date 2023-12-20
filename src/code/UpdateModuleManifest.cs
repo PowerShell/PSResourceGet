@@ -9,7 +9,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Reflection;
 
-namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet
 {
     /// <summary>
     /// Updates the module manifest (.psd1) for a resource.

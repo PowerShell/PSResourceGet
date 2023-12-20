@@ -6,7 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet
 {
     internal class LocalResponseUtil : ResponseUtil
     {

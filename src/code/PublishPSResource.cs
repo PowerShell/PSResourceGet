@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using NuGet.Commands;
 using NuGet.Common;
@@ -18,7 +19,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Xml;
 
-namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet
 {
     /// <summary>
     /// Publishes a module, script, or nupkg to a designated repository.

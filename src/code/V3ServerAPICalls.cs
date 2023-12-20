@@ -13,8 +13,9 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections;
 using System.Management.Automation;
+using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 
-namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet
 {
     internal class V3ServerAPICalls : ServerApiCall
     {

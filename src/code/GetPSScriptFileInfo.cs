@@ -3,9 +3,8 @@
 
 using System;
 using System.Management.Automation;
-using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 
-namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet
 {
     /// <summary>
     /// Retrieve the contents of a .ps1 file

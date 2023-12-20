@@ -6,7 +6,7 @@ using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Net;
 
-namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet
 {
     internal static class UserAgentInfo
     {

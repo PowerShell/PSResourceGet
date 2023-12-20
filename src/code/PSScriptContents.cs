@@ -2,8 +2,9 @@
 // Licensed under the MIT License.
 
 using System;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 
-namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
+namespace Microsoft.PowerShell.PSResourceGet
 {
     /// <summary>
     /// This class contains information for a PSScriptFileInfo (representing a .ps1 file contents).

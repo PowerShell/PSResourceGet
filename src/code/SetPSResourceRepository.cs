@@ -9,7 +9,7 @@ using System.Management.Automation;
 
 using Dbg = System.Diagnostics.Debug;
 
-namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet
 {
     /// <summary>
     /// The Set-PSResourceRepository cmdlet is used to set information for a repository.

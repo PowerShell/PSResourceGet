@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Xml;
 
-namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet
 {
     internal class NuGetServerResponseUtil : ResponseUtil
     {

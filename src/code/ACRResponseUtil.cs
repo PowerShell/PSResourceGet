@@ -8,7 +8,7 @@ using System.Xml;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
-    internal class V2ResponseUtil : ResponseUtil
+    internal class ACRResponseUtil : ResponseUtil
     {
         #region Members
 
@@ -18,9 +18,9 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         #region Constructor
 
-        public V2ResponseUtil(PSRepositoryInfo repository) : base(repository)
+        public ACRResponseUtil(PSRepositoryInfo repository) : base(repository)
         {
-            this.Repository = repository;
+            Repository = repository;
         }
 
         #endregion
@@ -69,18 +69,19 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         #region V2 Specific Methods
 
-        public XmlNode[] ConvertResponseToXML(string httpResponse) {
+        public XmlNode[] ConvertResponseToXML(string httpResponse)
+        {
 
             //Create the XmlDocument.
             XmlDocument doc = new XmlDocument();
             doc.LoadXml(httpResponse);
 
             XmlNodeList elemList = doc.GetElementsByTagName("m:properties");
-            
-            XmlNode[] nodes = new XmlNode[elemList.Count]; 
-            for (int i = 0; i < elemList.Count; i++) 
+
+            XmlNode[] nodes = new XmlNode[elemList.Count];
+            for (int i = 0; i < elemList.Count; i++)
             {
-                nodes[i] = elemList[i]; 
+                nodes[i] = elemList[i];
             }
 
             return nodes;

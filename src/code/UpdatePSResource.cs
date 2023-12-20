@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using NuGet.Versioning;
 using System;
@@ -10,7 +11,7 @@ using System.Management.Automation;
 using System.Net;
 using System.Threading;
 
-namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
+namespace Microsoft.PowerShell.PSResourceGet
 {
     /// <summary>
     /// The Update-PSResource cmdlet replaces the Update-Module and Update-Script cmdlets from V2.
