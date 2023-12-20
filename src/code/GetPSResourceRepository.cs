@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 
-namespace Microsoft.PowerShell.PSResourceGet
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// The Get-PSResourceRepository cmdlet replaces the Get-PSRepository cmdlet from V2.

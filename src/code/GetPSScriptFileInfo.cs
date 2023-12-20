@@ -4,7 +4,7 @@
 using System;
 using System.Management.Automation;
 
-namespace Microsoft.PowerShell.PSResourceGet
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Retrieve the contents of a .ps1 file

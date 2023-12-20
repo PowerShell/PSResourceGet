@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using NuGet.Versioning;
 using System;
@@ -9,7 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 
-namespace Microsoft.PowerShell.PSResourceGet
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// It retrieves a resource that was installed with Install-PSResource

@@ -8,7 +8,7 @@ using System.Management.Automation;
 using Microsoft.PowerShell.Commands;
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 
-namespace Microsoft.PowerShell.PSResourceGet
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Creates a new .ps1 file with script information required for publishing a script.
