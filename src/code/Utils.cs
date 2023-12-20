@@ -17,6 +17,7 @@ using Microsoft.PowerShell.Commands;
 using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Net.Http;
 using System.Globalization;
+using System.Security;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
