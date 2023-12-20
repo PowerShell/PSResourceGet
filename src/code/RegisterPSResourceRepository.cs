@@ -9,7 +9,7 @@ using System.Management.Automation;
 
 using Dbg = System.Diagnostics.Debug;
 
-namespace Microsoft.PowerShell.PSResourceGet
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// The Register-PSResourceRepository cmdlet replaces the Register-PSRepository from V2.

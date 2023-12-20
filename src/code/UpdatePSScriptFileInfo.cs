@@ -8,7 +8,7 @@ using System.Management.Automation;
 using Microsoft.PowerShell.Commands;
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 
-namespace Microsoft.PowerShell.PSResourceGet
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Updates a .ps1 file with specified properties.

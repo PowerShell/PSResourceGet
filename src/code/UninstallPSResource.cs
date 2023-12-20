@@ -10,9 +10,8 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Collections;
-using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 
-namespace Microsoft.PowerShell.PSResourceGet
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Uninstall-PSResource uninstalls a package found in a module or script installation path.

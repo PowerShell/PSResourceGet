@@ -15,9 +15,8 @@ using System.Runtime.ExceptionServices;
 using System.Management.Automation;
 using System.Reflection;
 using System.Data.Common;
-using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 
-namespace Microsoft.PowerShell.PSResourceGet
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     internal class V2ServerAPICalls : ServerApiCall
     {

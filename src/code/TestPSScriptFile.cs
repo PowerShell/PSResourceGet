@@ -4,8 +4,9 @@
 using System;
 using System.IO;
 using System.Management.Automation;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 
-namespace Microsoft.PowerShell.PSResourceGet
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// Tests the contents of a .ps1 file to see if it has all properties and is in correct format

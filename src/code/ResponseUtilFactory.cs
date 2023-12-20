@@ -6,7 +6,7 @@ using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
-    internal class ResponseUtilFactory
+    internal class ResponseUtilFactory.Cmdlets
     {
         public static ResponseUtil GetResponseUtil(PSRepositoryInfo repository)
         {

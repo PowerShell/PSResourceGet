@@ -13,7 +13,6 @@ using System.Xml;
 using System.Net;
 using System.Management.Automation;
 using System.Runtime.ExceptionServices;
-using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {

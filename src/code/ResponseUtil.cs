@@ -4,7 +4,7 @@
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System.Collections.Generic;
 
-namespace Microsoft.PowerShell.PSResourceGet
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     internal abstract class ResponseUtil
     {

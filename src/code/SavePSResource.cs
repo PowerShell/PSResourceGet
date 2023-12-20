@@ -11,7 +11,7 @@ using System.Management.Automation;
 using System.Net;
 using Dbg = System.Diagnostics.Debug;
 
-namespace Microsoft.PowerShell.PSResourceGet
+namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// The Save-PSResource cmdlet saves a resource to a machine.
