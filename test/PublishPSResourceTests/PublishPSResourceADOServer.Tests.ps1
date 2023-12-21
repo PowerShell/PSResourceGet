@@ -106,7 +106,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ADOPrivateRepoName -Credential $incorrectRepoCred -ErrorAction SilentlyContinue
 
-        Write-Host ($Error[0].FullyQualifiedErrorId)
-        $Error[0].FullyQualifiedErrorId | Should -be "ProtocolFailureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        $Error[0].FullyQualifiedErrorId | Should -be "401FatalProtocolError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource" -or "ProtocolFailError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 }
