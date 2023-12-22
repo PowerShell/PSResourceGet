@@ -19,7 +19,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             v2,
             v3,
             local,
-            nugetServer
+            nugetServer,
+            acr
         }
 
         #endregion

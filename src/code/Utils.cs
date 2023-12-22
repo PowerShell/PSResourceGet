@@ -684,6 +684,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 string password = new NetworkCredential(string.Empty, secretSecureString).Password;
                 return password;
             }
+            else if(secretValue is PSCredential psCredSecret)
+            {
+                string password = new NetworkCredential(string.Empty, psCredSecret.Password).Password;
+                return password;
+            }
 
             cmdletPassedIn.ThrowTerminatingError(
                 new ErrorRecord(

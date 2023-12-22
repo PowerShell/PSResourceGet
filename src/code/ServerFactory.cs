@@ -58,6 +58,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     currentServer = new NuGetServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
                     break;
 
+                case PSRepositoryInfo.APIVersion.acr:
+                    currentServer = new ACRServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
+                    break;
+
                 case PSRepositoryInfo.APIVersion.unknown:
                     break;
             }
