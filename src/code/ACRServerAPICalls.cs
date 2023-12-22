@@ -130,12 +130,53 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            errRecord = null;
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindName()");
-            errRecord = new ErrorRecord(
-                new InvalidOperationException($"Find name is not supported for the ACR server protocol repository '{Repository.Name}'"),
-                "FindNameFailure",
-                ErrorCategory.InvalidOperation,
-                this);
+            string accessToken = string.Empty;
+            string tenantID = string.Empty;
+
+            // Need to set up secret management vault before hand
+            var repositoryCredentialInfo = Repository.CredentialInfo;
+            if (repositoryCredentialInfo != null)
+            {
+                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
+                    Repository.Name,
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
+
+                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
+
+                tenantID = Utils.GetSecretInfoFromSecretManagement(
+                    Repository.Name,
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
+            }
+
+            // Call asynchronous network methods in a try/catch block to handle exceptions.
+            string registry = Repository.Uri.Host;
+
+            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
+            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
+            _cmdletPassedIn.WriteVerbose("Getting acr access token");
+            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
+
+            _cmdletPassedIn.WriteVerbose("Getting tags");
+            var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken).Result;
+            Console.WriteLine(foundTags.ToString(Formatting.None));
+
+            if (foundTags != null)
+            {
+                foreach (var item in foundTags["tags"])
+                {
+                    // digest: {item["digest"]";
+                    string tagVersion = item["name"].ToString();
+                    Console.WriteLine("tag version: " + tagVersion);
+
+                    /*
+                    foundPkgs.Add(new PSResourceInfo(name: pkgName, version: tagVersion, repository: repo.Name));
+                    */
+                }
+            }
 
             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
@@ -227,13 +268,49 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord)
         {
-
+            errRecord = null;
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindVersion()");
-            errRecord = new ErrorRecord(
-                new InvalidOperationException($"Find version is not supported for the ACR server protocol repository '{Repository.Name}'"),
-                "FindVersionFailure",
-                ErrorCategory.InvalidOperation,
-                this);
+            string accessToken = string.Empty;
+            string tenantID = string.Empty;
+
+            // Need to set up secret management vault before hand
+            var repositoryCredentialInfo = Repository.CredentialInfo;
+            if (repositoryCredentialInfo != null)
+            {
+                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
+                    Repository.Name,
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
+
+                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
+
+                tenantID = Utils.GetSecretInfoFromSecretManagement(
+                    Repository.Name,
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
+            }
+
+            // Call asynchronous network methods in a try/catch block to handle exceptions.
+            string registry = Repository.Uri.Host;
+
+            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
+            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
+            _cmdletPassedIn.WriteVerbose("Getting acr access token");
+            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
+
+            _cmdletPassedIn.WriteVerbose("Getting tags");
+            var foundTags = FindAcrImageTags(registry, packageName, version, acrAccessToken).Result;
+
+            if (foundTags != null)
+            {
+                var digest = foundTags["tag"]["digest"];
+                Console.WriteLine("digest: " + digest);
+                // pkgVersion was used in the API call (same as foundTags["name"])
+                // digest: foundTags["tag"]["digest"]";
+                /*
+                foundPkgs.Add(new PSResourceInfo(name: pkgName, version: pkgVersion, repository: repo.Name));
+                */
+            }
 
             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }

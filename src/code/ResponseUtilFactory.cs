@@ -30,6 +30,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     currentResponseUtil = new NuGetServerResponseUtil(repository);
                     break;
 
+                case PSRepositoryInfo.APIVersion.acr:
+                    currentResponseUtil = new ACRResponseUtil(repository);
+                    break;
+
                 case PSRepositoryInfo.APIVersion.unknown:
                     break;
             }
