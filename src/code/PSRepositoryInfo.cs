@@ -38,6 +38,17 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         #endregion
 
+        #region Enum
+
+        public enum RepositoryProviderType
+        {
+            None,
+            ACR,
+            AzureDevOps
+        }
+
+        #endregion
+
         #region Properties
 
         /// <summary>
@@ -60,6 +71,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// </summary>
         [ValidateRange(0, 100)]
         public int Priority { get; }
+
+        /// <summary>
+        /// the type of repository provider (eg, AzureDevOps, ACR, etc.)
+        /// </summary>
+        public RepositoryProviderType RepositoryProvider { get; }
 
         /// <summary>
         /// the credential information for repository authentication

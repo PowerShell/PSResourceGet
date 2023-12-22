@@ -15,6 +15,8 @@ using System.Linq;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Xml;
 
@@ -480,12 +482,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 string repositoryUri = repository.Uri.AbsoluteUri;
 
-                // This call does not throw any exceptions, but it will write unsuccessful responses to the console
-                if (!PushNupkg(outputNupkgDir, repository.Name, repositoryUri, out ErrorRecord pushNupkgError))
+                if (repository.RepositoryProvider == PSRepositoryInfo.RepositoryProviderType.ACR)
                 {
-                    WriteError(pushNupkgError);
-                    // exit out of processing
-                    return;
+                    // TODO: Create instance of ACR server class and call PushNupkgACR
+                   /*
+                    if (!PushNupkgACR(outputNupkgDir, repository, out ErrorRecord pushNupkgACRError))
+                    {
+                        WriteError(pushNupkgACRError);
+                        return;
+                    }
+                   */
+                }
+                else
+                {
+                    // This call does not throw any exceptions, but it will write unsuccessful responses to the console
+                    if (!PushNupkg(outputNupkgDir, repository.Name, repository.Uri.ToString(), out ErrorRecord pushNupkgError))
+                    {
+                        WriteError(pushNupkgError);
+                        // exit out of processing
+                        return;
+                    }
                 }
             }
             finally
