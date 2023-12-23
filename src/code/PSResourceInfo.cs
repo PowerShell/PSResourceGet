@@ -12,6 +12,8 @@ using System.Xml;
 using Microsoft.PowerShell.Commands;
 
 using Dbg = System.Diagnostics.Debug;
+using System.IdentityModel.Protocols.WSTrust;
+using NuGet.Protocol.Core.Types;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -782,6 +784,99 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     updatedDate: null,
                     version: metadata["Version"] as Version);
                     
+                return true;
+                
+            }
+            catch (Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryConvertFromJson: Cannot parse PSResourceInfo from json object with error: {0}",
+                    ex.Message);
+                    
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Converts ACR JsonDocument entry to PSResourceInfo instance
+        /// used for ACR Server API call find response conversion to PSResourceInfo object
+        /// </summary>
+        public static bool TryConvertFromACRJson(
+          string packageName,
+          JsonDocument packageMetadata,
+          out PSResourceInfo psGetInfo,
+          PSRepositoryInfo repository, 
+          out string errorMsg)
+        {
+            psGetInfo = null;
+            errorMsg = String.Empty;
+
+            if (packageMetadata == null)
+            {
+                errorMsg = "TryConvertJsonToPSResourceInfo: Invalid json object. Object cannot be null.";
+                return false;
+            }
+
+            try
+            {
+                Hashtable metadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+                JsonElement rootDom = packageMetadata.RootElement;
+
+                // Version
+                if (rootDom.TryGetProperty("name", out JsonElement versionElement))
+                {
+                    string versionValue = versionElement.ToString();
+                    metadata["Version"] = ParseHttpVersion(versionValue, out string prereleaseLabel);
+                    metadata["Prerelease"] = prereleaseLabel;
+                    metadata["IsPrerelease"] = !String.IsNullOrEmpty(prereleaseLabel);
+
+                    if (!NuGetVersion.TryParse(versionValue, out NuGetVersion parsedNormalizedVersion))
+                    {
+                        errorMsg = string.Format(
+                            CultureInfo.InvariantCulture,
+                            @"TryReadPSGetInfo: Cannot parse NormalizedVersion");
+
+                        parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
+                    }
+
+                    metadata["NormalizedVersion"] = parsedNormalizedVersion;
+                }
+
+                // PublishedDate
+                if (rootDom.TryGetProperty("lastUpdateTime", out JsonElement publishedElement))
+                {
+                    metadata["PublishedDate"] = ParseHttpDateTime(publishedElement.ToString());
+                }
+
+                var additionalMetadataHashtable = new Dictionary<string, string> { };
+
+                psGetInfo = new PSResourceInfo(
+                    additionalMetadata: additionalMetadataHashtable,
+                    author: string.Empty,
+                    companyName: string.Empty,
+                    copyright: string.Empty,
+                    dependencies: new Dependency[] { },
+                    description: string.Empty,
+                    iconUri: null,
+                    includes: null,
+                    installedDate: null,
+                    installedLocation: null,
+                    isPrerelease: (bool)metadata["IsPrerelease"],
+                    licenseUri: null,
+                    name: packageName,
+                    powershellGetFormatVersion: null,
+                    prerelease: metadata["Prerelease"] as String,
+                    projectUri: null,
+                    publishedDate: metadata["PublishedDate"] as DateTime?,
+                    releaseNotes: string.Empty,
+                    repository: repository.Name,
+                    repositorySourceLocation: repository.Uri.ToString(),
+                    tags: new string[] { },
+                    type: ResourceType.None,
+                    updatedDate: null,
+                    version: metadata["Version"] as Version);
+
                 return true;
                 
             }
