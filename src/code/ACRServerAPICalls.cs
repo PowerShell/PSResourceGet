@@ -19,6 +19,8 @@ using System.Linq;
 using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Text;
 using System.Security.Cryptography;
+using System.Text.Json;
+using NuGet.Packaging;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
@@ -162,21 +164,67 @@ namespace Microsoft.PowerShell.PSResourceGet
             var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken).Result;
             Console.WriteLine(foundTags.ToString(Formatting.None));
 
-            if (foundTags != null)
+            if (foundTags == null)
             {
-                foreach (var item in foundTags["tags"])
-                {
-                    // digest: {item["digest"]";
-                    string tagVersion = item["name"].ToString();
-                    Console.WriteLine("tag version: " + tagVersion);
+                // RETURN
+            }
 
-                    /*
-                    foundPkgs.Add(new PSResourceInfo(name: pkgName, version: tagVersion, repository: repo.Name));
-                    */
+            /* response returned looks something like:
+             *   "registry": "myregistry.azurecr.io"
+             *   "imageName": "hello-world"
+             *   "tags": [
+             *     {
+             *       ""name"": ""1.0.0"",
+             *       ""digest"": ""sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a"",
+             *       ""createdTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""lastUpdateTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""signed"": false,
+             *       ""changeableAttributes"": {
+             *         ""deleteEnabled"": true,
+             *         ""writeEnabled"": true,
+             *         ""readEnabled"": true,
+             *         ""listEnabled"": true
+             *       }
+             *     }]
+             */
+            List<Hashtable> latestVersionResponse = new List<Hashtable>();
+            var allVersions = foundTags["tags"];
+            // TODO if all versions is empty early out
+            List<JToken> allVersionsList = allVersions.ToList();
+            allVersionsList.Reverse();
+
+            foreach (var packageVersion in allVersionsList)
+            {
+                var packageVersionStr = packageVersion.ToString();
+                using (JsonDocument pkgVersionEntry = JsonDocument.Parse(packageVersionStr))
+                {
+                    JsonElement rootDom = pkgVersionEntry.RootElement;
+                    if (!rootDom.TryGetProperty("name", out JsonElement pkgVersionElement))
+                    {
+                        errRecord = new ErrorRecord(
+                            new InvalidOrEmptyResponse($"Response does not contain version element ('name') for package '{packageName}' in '{Repository.Name}'."),
+                            "FindNameFailure",
+                            ErrorCategory.InvalidResult,
+                            this);
+
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                    }
+
+                    if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                    {
+                        _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+                        if (!pkgVersion.IsPrerelease || includePrerelease)
+                        {
+                            // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
+                            latestVersionResponse.Add(new Hashtable() { { packageName, packageVersionStr } });
+
+                            break;
+                        }
+                    }
                 }
             }
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: new string[] {}, hashtableResponse: latestVersionResponse.ToArray(), responseType: v3FindResponseType);
         }
 
         /// <summary>
