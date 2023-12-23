@@ -3,7 +3,9 @@
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Xml;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
@@ -26,67 +28,52 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         #endregion
 
         #region Overriden Methods
+
         public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults)
         {
             // in FindHelper:
             // serverApi.FindName() -> return responses, and out errRecord
             // check outErrorRecord
             // 
-            // v2Converter.ConvertToPSResourceInfo(responses) -> return PSResourceResult
+            // acrConverter.ConvertToPSResourceInfo(responses) -> return PSResourceResult
             // check resourceResult for error, write if needed
-            string[] responses = responseResults.StringResponse;
-
-            foreach (string response in responses)
+            Hashtable[] responses = responseResults.HashtableResponse;
+            foreach (Hashtable response in responses)
             {
-                var elemList = ConvertResponseToXML(response);
-                if (elemList.Length == 0)
-                {
-                    // this indicates we got a non-empty, XML response (as noticed for V2 server) but it's not a response that's meaningful (contains 'properties')
-                    Exception notFoundException = new ResourceNotFoundException("Package does not exist on the server");
+                string responseConversionError = String.Empty;
+                PSResourceInfo pkg = null;
 
-                    yield return new PSResourceResult(returnedObject: null, exception: notFoundException, isTerminatingError: false);
+                string packageName = string.Empty;
+                string packageMetadata = null;
+
+                foreach (DictionaryEntry entry in response)
+                {
+                    packageName = (string)entry.Key;
+                    packageMetadata = (string)entry.Value;
                 }
 
-                foreach (var element in elemList)
+                try
                 {
-                    if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
+                    using (JsonDocument pkgVersionEntry = JsonDocument.Parse(packageMetadata))
                     {
-                        Exception parseException = new XmlParsingException(errorMsg);
-
-                        yield return new PSResourceResult(returnedObject: null, exception: parseException, isTerminatingError: false);
-                    }
-
-                    // Unlisted versions will have a published year as 1900 or earlier.
-                    if (!psGetInfo.PublishedDate.HasValue || psGetInfo.PublishedDate.Value.Year > 1900)
-                    {
-                        yield return new PSResourceResult(returnedObject: psGetInfo, exception: null, isTerminatingError: false);
+                        PSResourceInfo.TryConvertFromACRJson(packageName, pkgVersionEntry, out pkg, Repository, out responseConversionError);
                     }
                 }
+                catch (Exception e)
+                {
+                    responseConversionError = e.Message;
+                }
+
+                if (!String.IsNullOrEmpty(responseConversionError))
+                {
+                    yield return new PSResourceResult(returnedObject: null, new ConvertToPSResourceException(responseConversionError), isTerminatingError: false);
+                }
+
+                yield return new PSResourceResult(returnedObject: pkg, exception: null, isTerminatingError: false);
             }
         }
 
         #endregion
 
-        #region V2 Specific Methods
-
-        public XmlNode[] ConvertResponseToXML(string httpResponse)
-        {
-
-            //Create the XmlDocument.
-            XmlDocument doc = new XmlDocument();
-            doc.LoadXml(httpResponse);
-
-            XmlNodeList elemList = doc.GetElementsByTagName("m:properties");
-
-            XmlNode[] nodes = new XmlNode[elemList.Count];
-            for (int i = 0; i < elemList.Count; i++)
-            {
-                nodes[i] = elemList[i];
-            }
-
-            return nodes;
-        }
-
-        #endregion
     }
 }
