@@ -316,6 +316,19 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             errRecord = null;
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindVersion()");
+
+            if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
+            {
+                errRecord = new ErrorRecord(
+                    new ArgumentException($"Version {version} to be found is not a valid NuGet version."),
+                    "FindNameFailure",
+                    ErrorCategory.InvalidArgument,
+                    this);
+
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            }
+            _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{requiredVersion}'");
+
             string accessToken = string.Empty;
             string tenantID = string.Empty;
 
@@ -343,20 +356,67 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
 
             _cmdletPassedIn.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(registry, packageName, version, acrAccessToken).Result;
+            var foundTags = FindAcrImageTags(registry, packageName, requiredVersion.ToString(), acrAccessToken).Result;
+            Console.WriteLine(foundTags.ToString(Formatting.None));
 
-            if (foundTags != null)
+            if (foundTags == null)
             {
-                var digest = foundTags["tag"]["digest"];
-                Console.WriteLine("digest: " + digest);
-                // pkgVersion was used in the API call (same as foundTags["name"])
-                // digest: foundTags["tag"]["digest"]";
-                /*
-                foundPkgs.Add(new PSResourceInfo(name: pkgName, version: pkgVersion, repository: repo.Name));
-                */
+                errRecord = new ErrorRecord(
+                    new InvalidOrEmptyResponse($"Could not find version '{requiredVersion}' of package '{packageName}' in '{Repository.Name}'."),
+                    "FindVersionFailure",
+                    ErrorCategory.ObjectNotFound,
+                    this);
+
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            /* response returned looks something like:
+             *   "registry": "myregistry.azurecr.io"
+             *   "imageName": "hello-world"
+             *   "tags": [
+             *     {
+             *       ""name"": ""1.0.0"",
+             *       ""digest"": ""sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a"",
+             *       ""createdTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""lastUpdateTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""signed"": false,
+             *       ""changeableAttributes"": {
+             *         ""deleteEnabled"": true,
+             *         ""writeEnabled"": true,
+             *         ""readEnabled"": true,
+             *         ""listEnabled"": true
+             *       }
+             *     }]
+             */
+            List<Hashtable> requiredVersionResponse = new List<Hashtable>();
+
+            var packageVersionStr = foundTags.ToString();
+            using (JsonDocument pkgVersionEntry = JsonDocument.Parse(packageVersionStr))
+            {
+                JsonElement rootDom = pkgVersionEntry.RootElement;
+                if (!rootDom.TryGetProperty("name", out JsonElement pkgVersionElement))
+                {
+                    errRecord = new ErrorRecord(
+                        new InvalidOrEmptyResponse($"Response does not contain version element ('name') for package '{packageName}' in '{Repository.Name}'."),
+                        "FindNameFailure",
+                        ErrorCategory.InvalidResult,
+                        this);
+
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                }
+
+                if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                {
+                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+
+                    if (pkgVersion == requiredVersion)
+                    {
+                        requiredVersionResponse.Add(new Hashtable() { { packageName, packageVersionStr } });
+                    }
+                }
+            }
+
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: requiredVersionResponse.ToArray(), responseType: v3FindResponseType);
         }
 
         /// <summary>
