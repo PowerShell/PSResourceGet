@@ -296,13 +296,94 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindVersionGlobbing()");
-            errRecord = new ErrorRecord(
-                new InvalidOperationException($"Find version globbing is not supported for the ACR server protocol repository '{Repository.Name}'"),
-                "FindVersionGlobbingFailure",
-                ErrorCategory.InvalidOperation,
-                this);
+            errRecord = null;
+            string accessToken = string.Empty;
+            string tenantID = string.Empty;
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            // Need to set up secret management vault before hand
+            var repositoryCredentialInfo = Repository.CredentialInfo;
+            if (repositoryCredentialInfo != null)
+            {
+                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
+                    Repository.Name,
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
+
+                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
+
+                tenantID = repositoryCredentialInfo.SecretName;
+                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
+            }
+
+            // Call asynchronous network methods in a try/catch block to handle exceptions.
+            string registry = Repository.Uri.Host;
+
+            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
+            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
+            _cmdletPassedIn.WriteVerbose("Getting acr access token");
+            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
+
+            _cmdletPassedIn.WriteVerbose("Getting tags");
+            var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken).Result;
+            Console.WriteLine(foundTags.ToString(Formatting.None));
+
+            if (foundTags == null)
+            {
+                // RETURN
+            }
+
+            /* response returned looks something like:
+             *   "registry": "myregistry.azurecr.io"
+             *   "imageName": "hello-world"
+             *   "tags": [
+             *     {
+             *       ""name"": ""1.0.0"",
+             *       ""digest"": ""sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a"",
+             *       ""createdTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""lastUpdateTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""signed"": false,
+             *       ""changeableAttributes"": {
+             *         ""deleteEnabled"": true,
+             *         ""writeEnabled"": true,
+             *         ""readEnabled"": true,
+             *         ""listEnabled"": true
+             *       }
+             *     }]
+             */
+            List<Hashtable> latestVersionResponse = new List<Hashtable>();
+            var allVersions = foundTags["tags"];
+            // TODO if all versions is empty early out
+            List<JToken> allVersionsList = allVersions.ToList();
+
+            foreach (var packageVersion in allVersionsList)
+            {
+                var packageVersionStr = packageVersion.ToString();
+                using (JsonDocument pkgVersionEntry = JsonDocument.Parse(packageVersionStr))
+                {
+                    JsonElement rootDom = pkgVersionEntry.RootElement;
+                    if (!rootDom.TryGetProperty("name", out JsonElement pkgVersionElement))
+                    {
+                        errRecord = new ErrorRecord(
+                            new InvalidOrEmptyResponse($"Response does not contain version element ('name') for package '{packageName}' in '{Repository.Name}'."),
+                            "FindNameFailure",
+                            ErrorCategory.InvalidResult,
+                            this);
+
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                    }
+
+                    if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                    {
+                        _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+                        if (versionRange.Satisfies(pkgVersion))
+                        {
+                            latestVersionResponse.Add(new Hashtable() { { packageName, packageVersionStr } });
+                        }
+                    }
+                }
+            }
+
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: v3FindResponseType);
         }
 
         /// <summary>
