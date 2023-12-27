@@ -146,10 +146,8 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                 _cmdletPassedIn.WriteVerbose("Access token retrieved.");
 
-                tenantID = Utils.GetSecretInfoFromSecretManagement(
-                    Repository.Name,
-                    repositoryCredentialInfo,
-                    _cmdletPassedIn);
+                tenantID = repositoryCredentialInfo.SecretName;
+                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
             }
 
             // Call asynchronous network methods in a try/catch block to handle exceptions.
@@ -284,10 +282,8 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                 _cmdletPassedIn.WriteVerbose("Access token retrieved.");
 
-                tenantID = Utils.GetSecretInfoFromSecretManagement(
-                    Repository.Name,
-                    repositoryCredentialInfo,
-                    _cmdletPassedIn);
+                tenantID = repositoryCredentialInfo.SecretName;
+                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
             }
 
             // Call asynchronous network methods in a try/catch block to handle exceptions.
@@ -405,10 +401,8 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                 callingCmdlet.WriteVerbose("Access token retrieved.");
 
-                tenantID = Utils.GetSecretInfoFromSecretManagement(
-                    repo.Name,
-                    repositoryCredentialInfo,
-                    callingCmdlet);
+                tenantID = repositoryCredentialInfo.SecretName;
+                callingCmdlet.WriteVerbose($"Tenant ID: {tenantID}");
             }
 
             // Call asynchronous network methods in a try/catch block to handle exceptions.
@@ -534,10 +528,8 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                 callingCmdlet.WriteVerbose("Access token retrieved.");
 
-                tenantID = Utils.GetSecretInfoFromSecretManagement(
-                    repo.Name,
-                    repositoryCredentialInfo,
-                    callingCmdlet);
+                tenantID = repositoryCredentialInfo.SecretName;
+                callingCmdlet.WriteVerbose($"Tenant ID: {tenantID}");
             }
 
             // Call asynchronous network methods in a try/catch block to handle exceptions.
@@ -860,10 +852,8 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                 _cmdletPassedIn.WriteVerbose("Access token retrieved.");
 
-                tenantID = Utils.GetSecretInfoFromSecretManagement(
-                    repository.Name,
-                    repositoryCredentialInfo,
-                    _cmdletPassedIn);
+                tenantID = repositoryCredentialInfo.SecretName;
+                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
             }
 
             // Call asynchronous network methods in a try/catch block to handle exceptions.
