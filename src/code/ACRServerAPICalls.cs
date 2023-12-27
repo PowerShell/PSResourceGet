@@ -597,6 +597,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         #endregion
 
         #region Private Methods
+
         internal string GetAcrRefreshToken(string registry, string tenant, string accessToken, out ErrorRecord errRecord)
         {
             string content = string.Format(acrRefreshTokenTemplate, registry, tenant, accessToken);
