@@ -12,8 +12,6 @@ using System.Xml;
 using Microsoft.PowerShell.Commands;
 
 using Dbg = System.Diagnostics.Debug;
-using System.IdentityModel.Protocols.WSTrust;
-using NuGet.Protocol.Core.Types;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
