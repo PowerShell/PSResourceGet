@@ -41,17 +41,6 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res | Should -BeNullOrEmpty
     }
 
-<#  TODO: wildcard name NOT IMPLEMENTED YET
-    It "find resource(s) given wildcard Name" {
-        # FindNameGlobbing
-        $wildcardName = "test_local_m*"
-        $res = Find-PSResource -Name $wildcardName -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
-        $res | Should -BeNullOrEmpty
-        $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameGlobbingFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
-        $res | Should -BeNullOrEmpty
-    }
-#>
     $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0");                              Reason="validate version, exact match"},
                   @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0");                              Reason="validate version, exact match without bracket syntax"},
                   @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, exact range inclusive"},

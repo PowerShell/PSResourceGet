@@ -20,8 +20,6 @@ using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
-using NuGet.Packaging;
-using NuGet.Protocol.Core.Types;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
@@ -43,11 +41,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         const string acrOAuthTokenUrlTemplate = "https://{0}/oauth2/token"; // 0 - registry
         const string acrManifestUrlTemplate = "https://{0}/v2/{1}/manifests/{2}"; // 0 - registry, 1 - repo(modulename), 2 - tag(version)
         const string acrBlobDownloadUrlTemplate = "https://{0}/v2/{1}/blobs/{2}"; // 0 - registry, 1 - repo(modulename), 2 - layer digest
-        /// <summary>
-        ///   GET {url}/v2/{name}/blobs/{digest}
-        ///   GET acrapi.azurecr-test.io/v2/prod/bash/blobs/sha256:16463e0c481e161aabb735437d30b3c9c7391c2747cc564bb927e843b73dcb39
-
-        /// </summary>
         const string acrFindImageVersionUrlTemplate = "https://{0}/acr/v1/{1}/_tags{2}"; // 0 - registry, 1 - repo(modulename), 2 - /tag(version)
         const string acrStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads/"; // 0 - registry, 1 - packagename
         const string acrEndUploadTemplate = "https://{0}{1}&digest=sha256:{2}"; // 0 - registry, 1 - location, 2 - digest
@@ -69,7 +62,6 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             _sessionClient = new HttpClient(handler);
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
-            var repoURL = repository.Uri.ToString().ToLower();
         }
 
         #endregion
@@ -176,16 +168,9 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             _cmdletPassedIn.WriteVerbose("Getting tags");
             var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken, out errRecord);
-            if (errRecord != null)
+            if (errRecord != null || foundTags == null)
             {
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            Console.WriteLine(foundTags.ToString(Formatting.None));
-
-            if (foundTags == null)
-            {
-                // RETURN
             }
 
             /* response returned looks something like:
@@ -207,9 +192,7 @@ namespace Microsoft.PowerShell.PSResourceGet
              *     }]
              */
             List<Hashtable> latestVersionResponse = new List<Hashtable>();
-            var allVersions = foundTags["tags"];
-            // TODO if all versions is empty early out
-            List<JToken> allVersionsList = allVersions.ToList();
+            List<JToken> allVersionsList = foundTags["tags"].ToList();
             allVersionsList.Reverse();
 
             foreach (var packageVersion in allVersionsList)
@@ -315,11 +298,10 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindVersionGlobbing()");
-            errRecord = null;
             string accessToken = string.Empty;
             string tenantID = string.Empty;
 
-            // Need to set up secret management vault before hand
+            // Need to set up secret management vault beforehand
             var repositoryCredentialInfo = Repository.CredentialInfo;
             if (repositoryCredentialInfo != null)
             {
@@ -334,7 +316,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                 _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
             }
 
-            // Call asynchronous network methods in a try/catch block to handle exceptions.
             string registry = Repository.Uri.Host;
 
             _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
@@ -353,16 +334,9 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             _cmdletPassedIn.WriteVerbose("Getting tags");
             var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken, out errRecord);
-            if (errRecord != null)
+            if (errRecord != null || foundTags == null)
             {
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            Console.WriteLine(foundTags.ToString(Formatting.None));
-
-            if (foundTags == null)
-            {
-                // RETURN
             }
 
             /* response returned looks something like:
@@ -384,10 +358,7 @@ namespace Microsoft.PowerShell.PSResourceGet
              *     }]
              */
             List<Hashtable> latestVersionResponse = new List<Hashtable>();
-            var allVersions = foundTags["tags"];
-            // TODO if all versions is empty early out
-            List<JToken> allVersionsList = allVersions.ToList();
-
+            List<JToken> allVersionsList = foundTags["tags"].ToList();
             foreach (var packageVersion in allVersionsList)
             {
                 var packageVersionStr = packageVersion.ToString();
@@ -434,9 +405,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord)
         {
-            errRecord = null;
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindVersion()");
-
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
                 errRecord = new ErrorRecord(
@@ -452,7 +421,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string accessToken = string.Empty;
             string tenantID = string.Empty;
 
-            // Need to set up secret management vault before hand
+            // Need to set up secret management vault beforehand
             var repositoryCredentialInfo = Repository.CredentialInfo;
             if (repositoryCredentialInfo != null)
             {
@@ -467,7 +436,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                 _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
             }
 
-            // Call asynchronous network methods in a try/catch block to handle exceptions.
             string registry = Repository.Uri.Host;
 
             _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
@@ -486,22 +454,9 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             _cmdletPassedIn.WriteVerbose("Getting tags");
             var foundTags = FindAcrImageTags(registry, packageName, requiredVersion.ToString(), acrAccessToken, out errRecord);
-            if (errRecord != null)
+            if (errRecord != null || foundTags == null)
             {
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            Console.WriteLine(foundTags.ToString(Formatting.None));
-
-            if (foundTags == null)
-            {
-                errRecord = new ErrorRecord(
-                    new InvalidOrEmptyResponse($"Could not find version '{requiredVersion}' of package '{packageName}' in '{Repository.Name}'."),
-                    "FindVersionFailure",
-                    ErrorCategory.ObjectNotFound,
-                    this);
-
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
             /* response returned looks something like:
