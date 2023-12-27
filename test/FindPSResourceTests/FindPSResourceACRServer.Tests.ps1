@@ -26,13 +26,13 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "3.0.0"
     }
 
-    # TODO: Failing needs better error handling
+    # Passing
     It "should not find resource given nonexistant Name" {
         # FindName()
         $res = Find-PSResource -Name NonExistantModule -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ACRPackageNotFoundFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 

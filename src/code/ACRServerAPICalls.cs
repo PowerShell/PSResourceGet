@@ -21,6 +21,7 @@ using System.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
 using NuGet.Packaging;
+using NuGet.Protocol.Core.Types;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
@@ -34,7 +35,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         private readonly PSCmdlet _cmdletPassedIn;
         private HttpClient _sessionClient { get; set; }
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[] { };
-        public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
+        public FindResponseType acrFindResponseType = FindResponseType.ResponseString;
 
         const string acrRefreshTokenTemplate = "grant_type=access_token&service={0}&tenant={1}&access_token={2}"; // 0 - registry, 1 - tenant, 2 - access token
         const string acrAccessTokenTemplate = "grant_type=refresh_token&service={0}&scope=repository:*:*&refresh_token={1}"; // 0 - registry, 1 - refresh token
@@ -42,6 +43,11 @@ namespace Microsoft.PowerShell.PSResourceGet
         const string acrOAuthTokenUrlTemplate = "https://{0}/oauth2/token"; // 0 - registry
         const string acrManifestUrlTemplate = "https://{0}/v2/{1}/manifests/{2}"; // 0 - registry, 1 - repo(modulename), 2 - tag(version)
         const string acrBlobDownloadUrlTemplate = "https://{0}/v2/{1}/blobs/{2}"; // 0 - registry, 1 - repo(modulename), 2 - layer digest
+        /// <summary>
+        ///   GET {url}/v2/{name}/blobs/{digest}
+        ///   GET acrapi.azurecr-test.io/v2/prod/bash/blobs/sha256:16463e0c481e161aabb735437d30b3c9c7391c2747cc564bb927e843b73dcb39
+
+        /// </summary>
         const string acrFindImageVersionUrlTemplate = "https://{0}/acr/v1/{1}/_tags{2}"; // 0 - registry, 1 - repo(modulename), 2 - /tag(version)
         const string acrStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads/"; // 0 - registry, 1 - packagename
         const string acrEndUploadTemplate = "https://{0}{1}&digest=sha256:{2}"; // 0 - registry, 1 - location, 2 - digest
@@ -85,7 +91,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -103,7 +109,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -118,7 +124,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -207,7 +213,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                             ErrorCategory.InvalidResult,
                             this);
 
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
                     }
 
                     if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
@@ -224,7 +230,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 }
             }
 
-            return new FindResults(stringResponse: new string[] {}, hashtableResponse: latestVersionResponse.ToArray(), responseType: v3FindResponseType);
+            return new FindResults(stringResponse: new string[] {}, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -242,7 +248,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
 
         }
 
@@ -263,7 +269,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -281,7 +287,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -369,7 +375,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                             ErrorCategory.InvalidResult,
                             this);
 
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
                     }
 
                     if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
@@ -377,13 +383,18 @@ namespace Microsoft.PowerShell.PSResourceGet
                         _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
                         if (versionRange.Satisfies(pkgVersion))
                         {
+                            if (!includePrerelease && pkgVersion.IsPrerelease == true)
+                            {
+                                _cmdletPassedIn.WriteDebug($"Prerelease version '{pkgVersion}' found, but not included.");
+                            }
+
                             latestVersionResponse.Add(new Hashtable() { { packageName, packageVersionStr } });
                         }
                     }
                 }
             }
 
-            return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: v3FindResponseType);
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -406,7 +417,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     ErrorCategory.InvalidArgument,
                     this);
 
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
             _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{requiredVersion}'");
 
@@ -448,7 +459,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     ErrorCategory.ObjectNotFound,
                     this);
 
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
             /* response returned looks something like:
@@ -471,7 +482,7 @@ namespace Microsoft.PowerShell.PSResourceGet
              */
             List<Hashtable> requiredVersionResponse = new List<Hashtable>();
 
-            var packageVersionStr = foundTags.ToString();
+            var packageVersionStr = foundTags["tag"].ToString();
             using (JsonDocument pkgVersionEntry = JsonDocument.Parse(packageVersionStr))
             {
                 JsonElement rootDom = pkgVersionEntry.RootElement;
@@ -483,7 +494,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                         ErrorCategory.InvalidResult,
                         this);
 
-                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
                 }
 
                 if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
@@ -497,7 +508,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 }
             }
 
-            return new FindResults(stringResponse: new string[] { }, hashtableResponse: requiredVersionResponse.ToArray(), responseType: v3FindResponseType);
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: requiredVersionResponse.ToArray(), responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -515,7 +526,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
         }
 
         /**  INSTALL APIS **/
@@ -528,236 +539,65 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallPackage()");
             Stream results = new MemoryStream();
-            errRecord = null;
-
-            _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::InstallPackage()");
-            errRecord = new ErrorRecord(
-                new InvalidOperationException($"Install is not supported for the ACR server protocol repository '{Repository.Name}'"),
-                "InstallFailure",
-                ErrorCategory.InvalidOperation,
-                this);
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                results = InstallName(packageName, packageVersion, out errRecord);
+            }
+            else
+            {
+                results = InstallName(packageName, packageVersion, out errRecord);
+            }
 
             return results;
         }
 
-        /// <summary>
-        /// Helper method that makes the HTTP request for the V2 server protocol url passed in for find APIs.
-        /// </summary>
-        private string HttpRequestCall(string requestUrlV2, out ErrorRecord errRecord)
-        {
-            string response = string.Empty;
-            errRecord = null;
 
-            return response;
-        }
-
-        /// <summary>
-        /// Helper method that makes the HTTP request for the V2 server protocol url passed in for install APIs.
-        /// </summary>
-        private HttpContent HttpRequestCallForContent(string requestUrlV2, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCallForContent()");
-            errRecord = null;
-            HttpContent content = null;
-
-            return content;
-        }
-
-
-        internal static PSResourceInfo Install(
-            PSRepositoryInfo repo,
+        private Stream InstallName(
             string moduleName,
             string moduleVersion,
-            bool savePkg,
-            bool asZip,
-            List<string> installPath,
-            PSCmdlet callingCmdlet)
+            out ErrorRecord errRecord)
         {
+            errRecord = null;
             string accessToken = string.Empty;
             string tenantID = string.Empty;
             string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempPath);
 
             // Need to set up secret management vault before hand
-            var repositoryCredentialInfo = repo.CredentialInfo;
+            var repositoryCredentialInfo = Repository.CredentialInfo;
             if (repositoryCredentialInfo != null)
             {
                 accessToken = Utils.GetACRAccessTokenFromSecretManagement(
-                    repo.Name,
+                    Repository.Name,
                     repositoryCredentialInfo,
-                    callingCmdlet);
+                    _cmdletPassedIn);
 
-                callingCmdlet.WriteVerbose("Access token retrieved.");
+                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
 
                 tenantID = repositoryCredentialInfo.SecretName;
-                callingCmdlet.WriteVerbose($"Tenant ID: {tenantID}");
+                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
             }
 
             // Call asynchronous network methods in a try/catch block to handle exceptions.
-            string registry = repo.Uri.Host;
+            string registry = Repository.Uri.Host;
 
-            callingCmdlet.WriteVerbose("Getting acr refresh token");
+            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
             var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
-            callingCmdlet.WriteVerbose("Getting acr access token");
+            _cmdletPassedIn.WriteVerbose("Getting acr access token");
             var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
-            callingCmdlet.WriteVerbose($"Getting manifest for {moduleName} - {moduleVersion}");
+            _cmdletPassedIn.WriteVerbose($"Getting manifest for {moduleName} - {moduleVersion}");
             var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken).Result;
-            var digest = manifest["layers"].FirstOrDefault()["digest"].ToString();
-            callingCmdlet.WriteVerbose($"Downloading blob for {moduleName} - {moduleVersion}");
+            var digest = "sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a";
+            _cmdletPassedIn.WriteVerbose($"Downloading blob for {moduleName} - {moduleVersion}");
             var responseContent = GetAcrBlobAsync(registry, moduleName, digest, acrAccessToken).Result;
 
-            callingCmdlet.WriteVerbose($"Writing module zip to temp path: {tempPath}");
 
-            // download the module
-            var pathToFile = Path.Combine(tempPath, $"{moduleName}.{moduleVersion}.zip");
-            using var content = responseContent.ReadAsStreamAsync().Result;
-            using var fs = File.Create(pathToFile);
-            content.Seek(0, SeekOrigin.Begin);
-            content.CopyTo(fs);
-            fs.Close();
-
-            PSResourceInfo pkgInfo = null;
-            /*
-			var pkgInfo = new PSResourceInfo(
-							additionalMetadata: new Hashtable { },
-							author: string.Empty,
-							companyName: string.Empty,
-							copyright: string.Empty,
-							dependencies: new Dependency[] { },
-							description: string.Empty,
-							iconUri: string.Empty,
-							includes: new ResourceIncludes(),
-							installedDate: null,
-							installedLocation: null,
-							isPrerelease: false,
-							licenseUri: string.Empty,
-							name: moduleName,
-							powershellGetFormatVersion: null,
-							prerelease: string.Empty,
-							projectUri: string.Empty,
-							publishedDate: null,
-							releaseNotes: string.Empty,
-							repository: string.Empty,
-							repositorySourceLocation: repo.Name,
-							tags: new string[] { },
-							type: ResourceType.Module,
-							updatedDate: null,
-							version: moduleVersion);
-			*/
-
-            // If saving the package as a zip
-            if (savePkg && asZip)
-            {
-                // Just move to the zip to the proper path
-                Utils.MoveFiles(pathToFile, Path.Combine(installPath.FirstOrDefault(), $"{moduleName}.{moduleVersion}.zip"));
-
-            }
-            // If saving the package and unpacking OR installing the package
-            else
-            {
-                string expandedPath = Path.Combine(tempPath, moduleName.ToLower(), moduleVersion);
-                Directory.CreateDirectory(expandedPath);
-                callingCmdlet.WriteVerbose($"Expanding module to temp path: {expandedPath}");
-                // Expand the zip file
-                System.IO.Compression.ZipFile.ExtractToDirectory(pathToFile, expandedPath);
-                Utils.DeleteExtraneousFiles(callingCmdlet, moduleName, expandedPath);
-
-                callingCmdlet.WriteVerbose("Expanding completed");
-                File.Delete(pathToFile);
-
-                Utils.MoveFilesIntoInstallPath(
-                            pkgInfo,
-                            isModule: true,
-                            isLocalRepo: false,
-                            savePkg,
-                            moduleVersion,
-                            tempPath,
-                            installPath.FirstOrDefault(),
-                            moduleVersion,
-                            moduleVersion,
-                            scriptPath: null,
-                            callingCmdlet);
-
-                if (Directory.Exists(tempPath))
-                {
-                    try
-                    {
-                        Utils.DeleteDirectory(tempPath);
-                        callingCmdlet.WriteVerbose(string.Format("Successfully deleted '{0}'", tempPath));
-                    }
-                    catch (Exception e)
-                    {
-                        ErrorRecord TempDirCouldNotBeDeletedError = new ErrorRecord(e, "errorDeletingTempInstallPath", ErrorCategory.InvalidResult, null);
-                        callingCmdlet.WriteError(TempDirCouldNotBeDeletedError);
-                    }
-                }
-            }
-
-            return pkgInfo;
+            return responseContent.ReadAsStreamAsync().Result;
         }
-
 
         #endregion
-
-        internal static List<PSResourceInfo> Find(PSRepositoryInfo repo, string pkgName, string pkgVersion, PSCmdlet callingCmdlet)
-        {
-            List<PSResourceInfo> foundPkgs = new List<PSResourceInfo>();
-            string accessToken = string.Empty;
-            string tenantID = string.Empty;
-
-            // Need to set up secret management vault before hand
-            var repositoryCredentialInfo = repo.CredentialInfo;
-            if (repositoryCredentialInfo != null)
-            {
-                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
-                    repo.Name,
-                    repositoryCredentialInfo,
-                    callingCmdlet);
-
-                callingCmdlet.WriteVerbose("Access token retrieved.");
-
-                tenantID = repositoryCredentialInfo.SecretName;
-                callingCmdlet.WriteVerbose($"Tenant ID: {tenantID}");
-            }
-
-            // Call asynchronous network methods in a try/catch block to handle exceptions.
-            string registry = repo.Uri.Host;
-
-            callingCmdlet.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
-            callingCmdlet.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
-
-            callingCmdlet.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(registry, pkgName, pkgVersion, acrAccessToken).Result;
-
-            if (foundTags != null)
-            {
-                if (string.Equals(pkgVersion, "*", StringComparison.OrdinalIgnoreCase))
-                {
-                    foreach (var item in foundTags["tags"])
-                    {
-                        // digest: {item["digest"]";
-                        string tagVersion = item["name"].ToString();
-
-                        /*
-						foundPkgs.Add(new PSResourceInfo(name: pkgName, version: tagVersion, repository: repo.Name));
-						*/
-                    }
-                }
-                else
-                {
-                    // pkgVersion was used in the API call (same as foundTags["name"])
-                    // digest: foundTags["tag"]["digest"]";
-                    /*
-					foundPkgs.Add(new PSResourceInfo(name: pkgName, version: pkgVersion, repository: repo.Name));
-					*/
-                }
-            }
-
-            return foundPkgs;
-        }
 
         #region Private Methods
         internal static async Task<string> GetAcrRefreshTokenAsync(string registry, string tenant, string accessToken)
@@ -779,6 +619,13 @@ namespace Microsoft.PowerShell.PSResourceGet
         internal static async Task<JObject> GetAcrRepositoryManifestAsync(string registry, string repositoryName, string version, string acrAccessToken)
         {
             string manifestUrl = string.Format(acrManifestUrlTemplate, registry, repositoryName, version);
+
+            // GET acrapi.azurecr-test.io/v2/prod/bash/blobs/sha256:16463e0c481e161aabb735437d30b3c9c7391c2747cc564bb927e843b73dcb39
+            manifestUrl = "https://psgetregistry.azurecr.io/hello-world:3.0.0"; //https://psgetregistry.azurecr.io/hello-world@sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a";
+            //   Address by digest: [loginServerUrl]/ [repository@sha256][:digest]
+
+            // eg: myregistry.azurecr.io/acr-helloworld@sha256:0a2e01852872580b2c2fea9380ff8d7b637d3928783c55beb3f21a6e58d5d108
+
             var defaultHeaders = GetDefaultHeaders(acrAccessToken);
             return await GetHttpResponseJObject(manifestUrl, HttpMethod.Get, defaultHeaders);
         }
@@ -960,7 +807,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
-                response.EnsureSuccessStatusCode();
                 return JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
             }
             catch (HttpRequestException e)
