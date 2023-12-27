@@ -138,7 +138,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            errRecord = null;
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindName()");
             string accessToken = string.Empty;
             string tenantID = string.Empty;
@@ -162,12 +161,26 @@ namespace Microsoft.PowerShell.PSResourceGet
             string registry = Repository.Uri.Host;
 
             _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
+            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+
             _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
+            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
 
             _cmdletPassedIn.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken).Result;
+            var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+
             Console.WriteLine(foundTags.ToString(Formatting.None));
 
             if (foundTags == null)
@@ -325,12 +338,26 @@ namespace Microsoft.PowerShell.PSResourceGet
             string registry = Repository.Uri.Host;
 
             _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
+            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+
             _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
+            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
 
             _cmdletPassedIn.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken).Result;
+            var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+
             Console.WriteLine(foundTags.ToString(Formatting.None));
 
             if (foundTags == null)
@@ -443,12 +470,26 @@ namespace Microsoft.PowerShell.PSResourceGet
             string registry = Repository.Uri.Host;
 
             _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
+            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+
             _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
+            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
 
             _cmdletPassedIn.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(registry, packageName, requiredVersion.ToString(), acrAccessToken).Result;
+            var foundTags = FindAcrImageTags(registry, packageName, requiredVersion.ToString(), acrAccessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+
             Console.WriteLine(foundTags.ToString(Formatting.None));
 
             if (foundTags == null)
@@ -584,11 +625,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             string registry = Repository.Uri.Host;
 
             _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
+            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
             _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
+            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
             _cmdletPassedIn.WriteVerbose($"Getting manifest for {moduleName} - {moduleVersion}");
-            var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken).Result;
+            var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken, out errRecord);
             var digest = "sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a";
             _cmdletPassedIn.WriteVerbose($"Downloading blob for {moduleName} - {moduleVersion}");
             var responseContent = GetAcrBlobAsync(registry, moduleName, digest, acrAccessToken).Result;
@@ -600,51 +641,66 @@ namespace Microsoft.PowerShell.PSResourceGet
         #endregion
 
         #region Private Methods
-        internal static async Task<string> GetAcrRefreshTokenAsync(string registry, string tenant, string accessToken)
+        internal string GetAcrRefreshToken(string registry, string tenant, string accessToken, out ErrorRecord errRecord)
         {
             string content = string.Format(acrRefreshTokenTemplate, registry, tenant, accessToken);
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
             string exchangeUrl = string.Format(acrOAuthExchangeUrlTemplate, registry);
-            return (await GetHttpResponseJObject(exchangeUrl, HttpMethod.Post, content, contentHeaders))["refresh_token"].ToString();
+            var results = GetHttpResponseJObjectUsingContentHeaders(exchangeUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
+            
+            if (results != null && results["refresh_token"] != null)
+            {
+                return results["refresh_token"].ToString();
+            }
+
+            return string.Empty;
         }
 
-        internal static async Task<string> GetAcrAccessTokenAsync(string registry, string refreshToken)
+        internal string GetAcrAccessToken(string registry, string refreshToken, out ErrorRecord errRecord)
         {
             string content = string.Format(acrAccessTokenTemplate, registry, refreshToken);
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
             string tokenUrl = string.Format(acrOAuthTokenUrlTemplate, registry);
-            return (await GetHttpResponseJObject(tokenUrl, HttpMethod.Post, content, contentHeaders))["access_token"].ToString();
+            var results = GetHttpResponseJObjectUsingContentHeaders(tokenUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
+
+            if (results != null && results["access_token"] != null)
+            { 
+                return results["access_token"].ToString();
+            }
+
+            return string.Empty;
         }
 
-        internal static async Task<JObject> GetAcrRepositoryManifestAsync(string registry, string repositoryName, string version, string acrAccessToken)
+        internal JObject GetAcrRepositoryManifestAsync(string registry, string repositoryName, string version, string acrAccessToken, out ErrorRecord errRecord)
         {
             string manifestUrl = string.Format(acrManifestUrlTemplate, registry, repositoryName, version);
 
             // GET acrapi.azurecr-test.io/v2/prod/bash/blobs/sha256:16463e0c481e161aabb735437d30b3c9c7391c2747cc564bb927e843b73dcb39
-            manifestUrl = "https://psgetregistry.azurecr.io/hello-world:3.0.0"; //https://psgetregistry.azurecr.io/hello-world@sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a";
+            manifestUrl = "https://psgetregistry.azurecr.io/hello-world:3.0.0"; 
+            //https://psgetregistry.azurecr.io/hello-world@sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a";
             //   Address by digest: [loginServerUrl]/ [repository@sha256][:digest]
 
             // eg: myregistry.azurecr.io/acr-helloworld@sha256:0a2e01852872580b2c2fea9380ff8d7b637d3928783c55beb3f21a6e58d5d108
 
             var defaultHeaders = GetDefaultHeaders(acrAccessToken);
-            return await GetHttpResponseJObject(manifestUrl, HttpMethod.Get, defaultHeaders);
+            return GetHttpResponseJObjectUsingDefaultHeaders(manifestUrl, HttpMethod.Get, defaultHeaders, out errRecord);
         }
 
-        internal static async Task<HttpContent> GetAcrBlobAsync(string registry, string repositoryName, string digest, string acrAccessToken)
+        internal async Task<HttpContent> GetAcrBlobAsync(string registry, string repositoryName, string digest, string acrAccessToken)
         {
             string blobUrl = string.Format(acrBlobDownloadUrlTemplate, registry, repositoryName, digest);
             var defaultHeaders = GetDefaultHeaders(acrAccessToken);
             return await GetHttpContentResponseJObject(blobUrl, defaultHeaders);
         }
 
-        internal static async Task<JObject> FindAcrImageTags(string registry, string repositoryName, string version, string acrAccessToken)
+        internal JObject FindAcrImageTags(string registry, string repositoryName, string version, string acrAccessToken, out ErrorRecord errRecord)
         {
             try
             {
                 string resolvedVersion = string.Equals(version, "*", StringComparison.OrdinalIgnoreCase) ? null : $"/{version}";
                 string findImageUrl = string.Format(acrFindImageVersionUrlTemplate, registry, repositoryName, resolvedVersion);
                 var defaultHeaders = GetDefaultHeaders(acrAccessToken);
-                return await GetHttpResponseJObject(findImageUrl, HttpMethod.Get, defaultHeaders);
+                return GetHttpResponseJObjectUsingDefaultHeaders(findImageUrl, HttpMethod.Get, defaultHeaders, out errRecord);
             }
             catch (HttpRequestException e)
             {
@@ -652,7 +708,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal static async Task<string> GetStartUploadBlobLocation(string registry, string pkgName, string acrAccessToken)
+        internal async Task<string> GetStartUploadBlobLocation(string registry, string pkgName, string acrAccessToken)
         {
             try
             {
@@ -666,7 +722,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal static async Task<bool> EndUploadBlob(string registry, string location, string filePath, string digest, bool isManifest, string acrAccessToken)
+        internal async Task<bool> EndUploadBlob(string registry, string location, string filePath, string digest, bool isManifest, string acrAccessToken)
         {
             try
             {
@@ -680,7 +736,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal static async Task<bool> CreateManifest(string registry, string pkgName, string pkgVersion, string configPath, bool isManifest, string acrAccessToken)
+        internal async Task<bool> CreateManifest(string registry, string pkgName, string pkgVersion, string configPath, bool isManifest, string acrAccessToken)
         {
             try
             {
@@ -694,7 +750,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal static async Task<HttpContent> GetHttpContentResponseJObject(string url, Collection<KeyValuePair<string, string>> defaultHeaders)
+        internal async Task<HttpContent> GetHttpContentResponseJObject(string url, Collection<KeyValuePair<string, string>> defaultHeaders)
         {
             try
             {
@@ -708,24 +764,57 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal static async Task<JObject> GetHttpResponseJObject(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders)
+        internal JObject GetHttpResponseJObjectUsingDefaultHeaders(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders, out ErrorRecord errRecord)
         {
             try
             {
+                errRecord = null;
                 HttpRequestMessage request = new HttpRequestMessage(method, url);
                 SetDefaultHeaders(defaultHeaders);
-                return await SendRequestAsync(request);
+
+                return SendRequestAsync(request).GetAwaiter().GetResult();
+            }
+            catch (ResourceNotFoundException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "ResourceNotFound",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+            }
+            catch (UnauthorizedException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "UnauthorizedRequest",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestCallFailure",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
             }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestCallFailure",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+            }
+
+            return null;
         }
 
-        internal static async Task<JObject> GetHttpResponseJObject(string url, HttpMethod method, string content, Collection<KeyValuePair<string, string>> contentHeaders)
+        internal JObject GetHttpResponseJObjectUsingContentHeaders(string url, HttpMethod method, string content, Collection<KeyValuePair<string, string>> contentHeaders, out ErrorRecord errRecord)
         {
             try
             {
+                errRecord = null;
                 HttpRequestMessage request = new HttpRequestMessage(method, url);
 
                 if (string.IsNullOrEmpty(content))
@@ -743,12 +832,42 @@ namespace Microsoft.PowerShell.PSResourceGet
                     }
                 }
 
-                return await SendRequestAsync(request);
+                return SendRequestAsync(request).GetAwaiter().GetResult();
+            }
+            catch (ResourceNotFoundException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "ResourceNotFound",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+            }
+            catch (UnauthorizedException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "UnauthorizedRequest",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestCallFailure",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
             }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestCallFailure",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+            }
+
+            return null;
         }
 
         internal static async Task<HttpResponseHeaders> GetHttpResponseHeader(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders)
@@ -807,6 +926,23 @@ namespace Microsoft.PowerShell.PSResourceGet
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
+
+                switch (response.StatusCode)
+                {
+                    case HttpStatusCode.OK:
+                        break;
+
+                    case HttpStatusCode.Unauthorized:
+                        throw new UnauthorizedException($"Response unauthorized: {response.ReasonPhrase}.");
+
+                    case HttpStatusCode.NotFound:
+                        throw new ResourceNotFoundException($"Package not found: {response.ReasonPhrase}.");
+
+                    // all other errors
+                    default:
+                        throw new HttpRequestException($"Response returned error with status code {response.StatusCode}: {response.ReasonPhrase}.");
+                }
+
                 return JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
             }
             catch (HttpRequestException e)
@@ -867,9 +1003,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                 };
         }
 
-        private bool PushNupkgACR(string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, out ErrorRecord error)
+        private bool PushNupkgACR(string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, out ErrorRecord errRecord)
         {
-            error = null;
+            errRecord = null;
             // Push the nupkg to the appropriate repository
             var fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, pkgName + "." + pkgVersion.ToNormalizedString() + ".nupkg");
 
@@ -895,9 +1031,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             string registry = repository.Uri.Host;
 
             _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
+            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
             _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
+            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
 
             _cmdletPassedIn.WriteVerbose("Start uploading blob");
             var moduleLocation = GetStartUploadBlobLocation(registry, pkgName, acrAccessToken).Result;
