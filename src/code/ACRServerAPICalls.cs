@@ -413,6 +413,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                             if (!includePrerelease && pkgVersion.IsPrerelease == true)
                             {
                                 _cmdletPassedIn.WriteDebug($"Prerelease version '{pkgVersion}' found, but not included.");
+                                continue;
                             }
 
                             latestVersionResponse.Add(new Hashtable() { { packageName, packageVersionStr } });
