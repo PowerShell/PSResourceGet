@@ -482,8 +482,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 string repositoryUri = repository.Uri.AbsoluteUri;
 
-                //if (repository.RepositoryProvider == PSRepositoryInfo.RepositoryProviderType.ACR)
-                if (repositoryUri.EndsWith(".azurecr.io/"))
+                if (repository.ApiVersion == PSRepositoryInfo.APIVersion.acr)
                 {
                     ACRServerAPICalls acrServer = new ACRServerAPICalls(repository, this, _networkCredential, userAgentString);
 
