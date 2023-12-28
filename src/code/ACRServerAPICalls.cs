@@ -960,7 +960,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 };
         }
 
-        private bool PushNupkgACR(string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, out ErrorRecord errRecord)
+        internal bool PushNupkgACR(string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, out ErrorRecord errRecord)
         {
             errRecord = null;
             // Push the nupkg to the appropriate repository
