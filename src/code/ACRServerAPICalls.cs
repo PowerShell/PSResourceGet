@@ -19,6 +19,7 @@ using System.Linq;
 using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Text;
 using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
@@ -32,7 +33,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         private readonly PSCmdlet _cmdletPassedIn;
         private HttpClient _sessionClient { get; set; }
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[] { };
-        public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
+        public FindResponseType acrFindResponseType = FindResponseType.ResponseString;
 
         const string acrRefreshTokenTemplate = "grant_type=access_token&service={0}&tenant={1}&access_token={2}"; // 0 - registry, 1 - tenant, 2 - access token
         const string acrAccessTokenTemplate = "grant_type=refresh_token&service={0}&scope=repository:*:*&refresh_token={1}"; // 0 - registry, 1 - refresh token
@@ -61,7 +62,6 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             _sessionClient = new HttpClient(handler);
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
-            var repoURL = repository.Uri.ToString().ToLower();
         }
 
         #endregion
@@ -83,7 +83,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -130,7 +130,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            errRecord = null;
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindName()");
             string accessToken = string.Empty;
             string tenantID = string.Empty;
@@ -154,29 +153,80 @@ namespace Microsoft.PowerShell.PSResourceGet
             string registry = Repository.Uri.Host;
 
             _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
+            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+
             _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
+            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
 
             _cmdletPassedIn.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken).Result;
-            Console.WriteLine(foundTags.ToString(Formatting.None));
-
-            if (foundTags != null)
+            var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken, out errRecord);
+            if (errRecord != null || foundTags == null)
             {
-                foreach (var item in foundTags["tags"])
-                {
-                    // digest: {item["digest"]";
-                    string tagVersion = item["name"].ToString();
-                    Console.WriteLine("tag version: " + tagVersion);
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
 
-                    /*
-                    foundPkgs.Add(new PSResourceInfo(name: pkgName, version: tagVersion, repository: repo.Name));
-                    */
+            /* response returned looks something like:
+             *   "registry": "myregistry.azurecr.io"
+             *   "imageName": "hello-world"
+             *   "tags": [
+             *     {
+             *       ""name"": ""1.0.0"",
+             *       ""digest"": ""sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a"",
+             *       ""createdTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""lastUpdateTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""signed"": false,
+             *       ""changeableAttributes"": {
+             *         ""deleteEnabled"": true,
+             *         ""writeEnabled"": true,
+             *         ""readEnabled"": true,
+             *         ""listEnabled"": true
+             *       }
+             *     }]
+             */
+            List<Hashtable> latestVersionResponse = new List<Hashtable>();
+            List<JToken> allVersionsList = foundTags["tags"].ToList();
+            allVersionsList.Reverse();
+
+            foreach (var packageVersion in allVersionsList)
+            {
+                var packageVersionStr = packageVersion.ToString();
+                using (JsonDocument pkgVersionEntry = JsonDocument.Parse(packageVersionStr))
+                {
+                    JsonElement rootDom = pkgVersionEntry.RootElement;
+                    if (!rootDom.TryGetProperty("name", out JsonElement pkgVersionElement))
+                    {
+                        errRecord = new ErrorRecord(
+                            new InvalidOrEmptyResponse($"Response does not contain version element ('name') for package '{packageName}' in '{Repository.Name}'."),
+                            "FindNameFailure",
+                            ErrorCategory.InvalidResult,
+                            this);
+
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+                    }
+
+                    if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                    {
+                        _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+                        if (!pkgVersion.IsPrerelease || includePrerelease)
+                        {
+                            // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
+                            latestVersionResponse.Add(new Hashtable() { { packageName, packageVersionStr } });
+
+                            break;
+                        }
+                    }
                 }
             }
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: new string[] {}, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -194,7 +244,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
 
         }
 
@@ -215,7 +265,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -233,7 +283,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -248,13 +298,102 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindVersionGlobbing()");
-            errRecord = new ErrorRecord(
-                new InvalidOperationException($"Find version globbing is not supported for the ACR server protocol repository '{Repository.Name}'"),
-                "FindVersionGlobbingFailure",
-                ErrorCategory.InvalidOperation,
-                this);
+            string accessToken = string.Empty;
+            string tenantID = string.Empty;
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            // Need to set up secret management vault beforehand
+            var repositoryCredentialInfo = Repository.CredentialInfo;
+            if (repositoryCredentialInfo != null)
+            {
+                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
+                    Repository.Name,
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
+
+                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
+
+                tenantID = repositoryCredentialInfo.SecretName;
+                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
+            }
+
+            string registry = Repository.Uri.Host;
+
+            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
+            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+
+            _cmdletPassedIn.WriteVerbose("Getting acr access token");
+            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+
+            _cmdletPassedIn.WriteVerbose("Getting tags");
+            var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken, out errRecord);
+            if (errRecord != null || foundTags == null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+
+            /* response returned looks something like:
+             *   "registry": "myregistry.azurecr.io"
+             *   "imageName": "hello-world"
+             *   "tags": [
+             *     {
+             *       ""name"": ""1.0.0"",
+             *       ""digest"": ""sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a"",
+             *       ""createdTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""lastUpdateTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""signed"": false,
+             *       ""changeableAttributes"": {
+             *         ""deleteEnabled"": true,
+             *         ""writeEnabled"": true,
+             *         ""readEnabled"": true,
+             *         ""listEnabled"": true
+             *       }
+             *     }]
+             */
+            List<Hashtable> latestVersionResponse = new List<Hashtable>();
+            List<JToken> allVersionsList = foundTags["tags"].ToList();
+            foreach (var packageVersion in allVersionsList)
+            {
+                var packageVersionStr = packageVersion.ToString();
+                using (JsonDocument pkgVersionEntry = JsonDocument.Parse(packageVersionStr))
+                {
+                    JsonElement rootDom = pkgVersionEntry.RootElement;
+                    if (!rootDom.TryGetProperty("name", out JsonElement pkgVersionElement))
+                    {
+                        errRecord = new ErrorRecord(
+                            new InvalidOrEmptyResponse($"Response does not contain version element ('name') for package '{packageName}' in '{Repository.Name}'."),
+                            "FindNameFailure",
+                            ErrorCategory.InvalidResult,
+                            this);
+
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+                    }
+
+                    if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                    {
+                        _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+                        if (versionRange.Satisfies(pkgVersion))
+                        {
+                            if (!includePrerelease && pkgVersion.IsPrerelease == true)
+                            {
+                                _cmdletPassedIn.WriteDebug($"Prerelease version '{pkgVersion}' found, but not included.");
+                                continue;
+                            }
+
+                            latestVersionResponse.Add(new Hashtable() { { packageName, packageVersionStr } });
+                        }
+                    }
+                }
+            }
+
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -266,10 +405,162 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord)
         {
-            errRecord = null;
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindVersion()");
+            if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
+            {
+                errRecord = new ErrorRecord(
+                    new ArgumentException($"Version {version} to be found is not a valid NuGet version."),
+                    "FindNameFailure",
+                    ErrorCategory.InvalidArgument,
+                    this);
+
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+            _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{requiredVersion}'");
+
             string accessToken = string.Empty;
             string tenantID = string.Empty;
+
+            // Need to set up secret management vault beforehand
+            var repositoryCredentialInfo = Repository.CredentialInfo;
+            if (repositoryCredentialInfo != null)
+            {
+                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
+                    Repository.Name,
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
+
+                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
+
+                tenantID = repositoryCredentialInfo.SecretName;
+                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
+            }
+
+            string registry = Repository.Uri.Host;
+
+            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
+            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+
+            _cmdletPassedIn.WriteVerbose("Getting acr access token");
+            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+
+            _cmdletPassedIn.WriteVerbose("Getting tags");
+            var foundTags = FindAcrImageTags(registry, packageName, requiredVersion.ToString(), acrAccessToken, out errRecord);
+            if (errRecord != null || foundTags == null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+            }
+
+            /* response returned looks something like:
+             *   "registry": "myregistry.azurecr.io"
+             *   "imageName": "hello-world"
+             *   "tags": [
+             *     {
+             *       ""name"": ""1.0.0"",
+             *       ""digest"": ""sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a"",
+             *       ""createdTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""lastUpdateTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""signed"": false,
+             *       ""changeableAttributes"": {
+             *         ""deleteEnabled"": true,
+             *         ""writeEnabled"": true,
+             *         ""readEnabled"": true,
+             *         ""listEnabled"": true
+             *       }
+             *     }]
+             */
+            List<Hashtable> requiredVersionResponse = new List<Hashtable>();
+
+            var packageVersionStr = foundTags["tag"].ToString();
+            using (JsonDocument pkgVersionEntry = JsonDocument.Parse(packageVersionStr))
+            {
+                JsonElement rootDom = pkgVersionEntry.RootElement;
+                if (!rootDom.TryGetProperty("name", out JsonElement pkgVersionElement))
+                {
+                    errRecord = new ErrorRecord(
+                        new InvalidOrEmptyResponse($"Response does not contain version element ('name') for package '{packageName}' in '{Repository.Name}'."),
+                        "FindNameFailure",
+                        ErrorCategory.InvalidResult,
+                        this);
+
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+                }
+
+                if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                {
+                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+
+                    if (pkgVersion == requiredVersion)
+                    {
+                        requiredVersionResponse.Add(new Hashtable() { { packageName, packageVersionStr } });
+                    }
+                }
+            }
+
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: requiredVersionResponse.ToArray(), responseType: acrFindResponseType);
+        }
+
+        /// <summary>
+        /// Find method which allows for searching for single name with specific version and tag.
+        /// Name: no wildcard support
+        /// Version: no wildcard support
+        /// Examples: Search "PowerShellGet" "2.2.5" -Tag "Provider"
+        /// </summary>
+        public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindVersionWithTag()");
+            errRecord = new ErrorRecord(
+                new InvalidOperationException($"Find version with tag(s) is not supported for the ACR server protocol repository '{Repository.Name}'"),
+                "FindVersionWithTagFailure",
+                ErrorCategory.InvalidOperation,
+                this);
+
+            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+        }
+
+        /**  INSTALL APIS **/
+
+        /// <summary>
+        /// Installs a specific package.
+        /// Name: no wildcard support.
+        /// Examples: Install "PowerShellGet"
+        ///           Install "PowerShellGet" -Version "3.0.0"
+        /// </summary>
+        public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallPackage()");
+            Stream results = new MemoryStream();
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                results = InstallName(packageName, packageVersion, out errRecord);
+            }
+            else
+            {
+                results = InstallName(packageName, packageVersion, out errRecord);
+            }
+
+            return results;
+        }
+
+
+        private Stream InstallName(
+            string moduleName,
+            string moduleVersion,
+            out ErrorRecord errRecord)
+        {
+            errRecord = null;
+            string accessToken = string.Empty;
+            string tenantID = string.Empty;
+            string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempPath);
 
             // Need to set up secret management vault before hand
             var repositoryCredentialInfo = Repository.CredentialInfo;
@@ -290,325 +581,83 @@ namespace Microsoft.PowerShell.PSResourceGet
             string registry = Repository.Uri.Host;
 
             _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
+            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
             _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
-
-            _cmdletPassedIn.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(registry, packageName, version, acrAccessToken).Result;
-
-            if (foundTags != null)
-            {
-                var digest = foundTags["tag"]["digest"];
-                Console.WriteLine("digest: " + digest);
-                // pkgVersion was used in the API call (same as foundTags["name"])
-                // digest: foundTags["tag"]["digest"]";
-                /*
-                foundPkgs.Add(new PSResourceInfo(name: pkgName, version: pkgVersion, repository: repo.Name));
-                */
-            }
-
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-        }
-
-        /// <summary>
-        /// Find method which allows for searching for single name with specific version and tag.
-        /// Name: no wildcard support
-        /// Version: no wildcard support
-        /// Examples: Search "PowerShellGet" "2.2.5" -Tag "Provider"
-        /// </summary>
-        public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindVersionWithTag()");
-            errRecord = new ErrorRecord(
-                new InvalidOperationException($"Find version with tag(s) is not supported for the ACR server protocol repository '{Repository.Name}'"),
-                "FindVersionWithTagFailure",
-                ErrorCategory.InvalidOperation,
-                this);
-
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
-        }
-
-        /**  INSTALL APIS **/
-
-        /// <summary>
-        /// Installs a specific package.
-        /// Name: no wildcard support.
-        /// Examples: Install "PowerShellGet"
-        ///           Install "PowerShellGet" -Version "3.0.0"
-        /// </summary>
-        public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
-        {
-            Stream results = new MemoryStream();
-            errRecord = null;
-
-            _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::InstallPackage()");
-            errRecord = new ErrorRecord(
-                new InvalidOperationException($"Install is not supported for the ACR server protocol repository '{Repository.Name}'"),
-                "InstallFailure",
-                ErrorCategory.InvalidOperation,
-                this);
-
-            return results;
-        }
-
-        /// <summary>
-        /// Helper method that makes the HTTP request for the V2 server protocol url passed in for find APIs.
-        /// </summary>
-        private string HttpRequestCall(string requestUrlV2, out ErrorRecord errRecord)
-        {
-            string response = string.Empty;
-            errRecord = null;
-
-            return response;
-        }
-
-        /// <summary>
-        /// Helper method that makes the HTTP request for the V2 server protocol url passed in for install APIs.
-        /// </summary>
-        private HttpContent HttpRequestCallForContent(string requestUrlV2, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCallForContent()");
-            errRecord = null;
-            HttpContent content = null;
-
-            return content;
-        }
-
-
-        internal static PSResourceInfo Install(
-            PSRepositoryInfo repo,
-            string moduleName,
-            string moduleVersion,
-            bool savePkg,
-            bool asZip,
-            List<string> installPath,
-            PSCmdlet callingCmdlet)
-        {
-            string accessToken = string.Empty;
-            string tenantID = string.Empty;
-            string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            Directory.CreateDirectory(tempPath);
-
-            // Need to set up secret management vault before hand
-            var repositoryCredentialInfo = repo.CredentialInfo;
-            if (repositoryCredentialInfo != null)
-            {
-                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
-                    repo.Name,
-                    repositoryCredentialInfo,
-                    callingCmdlet);
-
-                callingCmdlet.WriteVerbose("Access token retrieved.");
-
-                tenantID = repositoryCredentialInfo.SecretName;
-                callingCmdlet.WriteVerbose($"Tenant ID: {tenantID}");
-            }
-
-            // Call asynchronous network methods in a try/catch block to handle exceptions.
-            string registry = repo.Uri.Host;
-
-            callingCmdlet.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
-            callingCmdlet.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
-            callingCmdlet.WriteVerbose($"Getting manifest for {moduleName} - {moduleVersion}");
-            var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken).Result;
-            var digest = manifest["layers"].FirstOrDefault()["digest"].ToString();
-            callingCmdlet.WriteVerbose($"Downloading blob for {moduleName} - {moduleVersion}");
+            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
+            _cmdletPassedIn.WriteVerbose($"Getting manifest for {moduleName} - {moduleVersion}");
+            var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken, out errRecord);
+            var digest = "sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a";
+            _cmdletPassedIn.WriteVerbose($"Downloading blob for {moduleName} - {moduleVersion}");
             var responseContent = GetAcrBlobAsync(registry, moduleName, digest, acrAccessToken).Result;
 
-            callingCmdlet.WriteVerbose($"Writing module zip to temp path: {tempPath}");
 
-            // download the module
-            var pathToFile = Path.Combine(tempPath, $"{moduleName}.{moduleVersion}.zip");
-            using var content = responseContent.ReadAsStreamAsync().Result;
-            using var fs = File.Create(pathToFile);
-            content.Seek(0, SeekOrigin.Begin);
-            content.CopyTo(fs);
-            fs.Close();
-
-            PSResourceInfo pkgInfo = null;
-            /*
-			var pkgInfo = new PSResourceInfo(
-							additionalMetadata: new Hashtable { },
-							author: string.Empty,
-							companyName: string.Empty,
-							copyright: string.Empty,
-							dependencies: new Dependency[] { },
-							description: string.Empty,
-							iconUri: string.Empty,
-							includes: new ResourceIncludes(),
-							installedDate: null,
-							installedLocation: null,
-							isPrerelease: false,
-							licenseUri: string.Empty,
-							name: moduleName,
-							powershellGetFormatVersion: null,
-							prerelease: string.Empty,
-							projectUri: string.Empty,
-							publishedDate: null,
-							releaseNotes: string.Empty,
-							repository: string.Empty,
-							repositorySourceLocation: repo.Name,
-							tags: new string[] { },
-							type: ResourceType.Module,
-							updatedDate: null,
-							version: moduleVersion);
-			*/
-
-            // If saving the package as a zip
-            if (savePkg && asZip)
-            {
-                // Just move to the zip to the proper path
-                Utils.MoveFiles(pathToFile, Path.Combine(installPath.FirstOrDefault(), $"{moduleName}.{moduleVersion}.zip"));
-
-            }
-            // If saving the package and unpacking OR installing the package
-            else
-            {
-                string expandedPath = Path.Combine(tempPath, moduleName.ToLower(), moduleVersion);
-                Directory.CreateDirectory(expandedPath);
-                callingCmdlet.WriteVerbose($"Expanding module to temp path: {expandedPath}");
-                // Expand the zip file
-                System.IO.Compression.ZipFile.ExtractToDirectory(pathToFile, expandedPath);
-                Utils.DeleteExtraneousFiles(callingCmdlet, moduleName, expandedPath);
-
-                callingCmdlet.WriteVerbose("Expanding completed");
-                File.Delete(pathToFile);
-
-                Utils.MoveFilesIntoInstallPath(
-                            pkgInfo,
-                            isModule: true,
-                            isLocalRepo: false,
-                            savePkg,
-                            moduleVersion,
-                            tempPath,
-                            installPath.FirstOrDefault(),
-                            moduleVersion,
-                            moduleVersion,
-                            scriptPath: null,
-                            callingCmdlet);
-
-                if (Directory.Exists(tempPath))
-                {
-                    try
-                    {
-                        Utils.DeleteDirectory(tempPath);
-                        callingCmdlet.WriteVerbose(string.Format("Successfully deleted '{0}'", tempPath));
-                    }
-                    catch (Exception e)
-                    {
-                        ErrorRecord TempDirCouldNotBeDeletedError = new ErrorRecord(e, "errorDeletingTempInstallPath", ErrorCategory.InvalidResult, null);
-                        callingCmdlet.WriteError(TempDirCouldNotBeDeletedError);
-                    }
-                }
-            }
-
-            return pkgInfo;
+            return responseContent.ReadAsStreamAsync().Result;
         }
-
 
         #endregion
 
-        internal static List<PSResourceInfo> Find(PSRepositoryInfo repo, string pkgName, string pkgVersion, PSCmdlet callingCmdlet)
-        {
-            List<PSResourceInfo> foundPkgs = new List<PSResourceInfo>();
-            string accessToken = string.Empty;
-            string tenantID = string.Empty;
-
-            // Need to set up secret management vault before hand
-            var repositoryCredentialInfo = repo.CredentialInfo;
-            if (repositoryCredentialInfo != null)
-            {
-                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
-                    repo.Name,
-                    repositoryCredentialInfo,
-                    callingCmdlet);
-
-                callingCmdlet.WriteVerbose("Access token retrieved.");
-
-                tenantID = repositoryCredentialInfo.SecretName;
-                callingCmdlet.WriteVerbose($"Tenant ID: {tenantID}");
-            }
-
-            // Call asynchronous network methods in a try/catch block to handle exceptions.
-            string registry = repo.Uri.Host;
-
-            callingCmdlet.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
-            callingCmdlet.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
-
-            callingCmdlet.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(registry, pkgName, pkgVersion, acrAccessToken).Result;
-
-            if (foundTags != null)
-            {
-                if (string.Equals(pkgVersion, "*", StringComparison.OrdinalIgnoreCase))
-                {
-                    foreach (var item in foundTags["tags"])
-                    {
-                        // digest: {item["digest"]";
-                        string tagVersion = item["name"].ToString();
-
-                        /*
-						foundPkgs.Add(new PSResourceInfo(name: pkgName, version: tagVersion, repository: repo.Name));
-						*/
-                    }
-                }
-                else
-                {
-                    // pkgVersion was used in the API call (same as foundTags["name"])
-                    // digest: foundTags["tag"]["digest"]";
-                    /*
-					foundPkgs.Add(new PSResourceInfo(name: pkgName, version: pkgVersion, repository: repo.Name));
-					*/
-                }
-            }
-
-            return foundPkgs;
-        }
-
         #region Private Methods
-        internal static async Task<string> GetAcrRefreshTokenAsync(string registry, string tenant, string accessToken)
+
+        internal string GetAcrRefreshToken(string registry, string tenant, string accessToken, out ErrorRecord errRecord)
         {
             string content = string.Format(acrRefreshTokenTemplate, registry, tenant, accessToken);
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
             string exchangeUrl = string.Format(acrOAuthExchangeUrlTemplate, registry);
-            return (await GetHttpResponseJObject(exchangeUrl, HttpMethod.Post, content, contentHeaders))["refresh_token"].ToString();
+            var results = GetHttpResponseJObjectUsingContentHeaders(exchangeUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
+            
+            if (results != null && results["refresh_token"] != null)
+            {
+                return results["refresh_token"].ToString();
+            }
+
+            return string.Empty;
         }
 
-        internal static async Task<string> GetAcrAccessTokenAsync(string registry, string refreshToken)
+        internal string GetAcrAccessToken(string registry, string refreshToken, out ErrorRecord errRecord)
         {
             string content = string.Format(acrAccessTokenTemplate, registry, refreshToken);
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
             string tokenUrl = string.Format(acrOAuthTokenUrlTemplate, registry);
-            return (await GetHttpResponseJObject(tokenUrl, HttpMethod.Post, content, contentHeaders))["access_token"].ToString();
+            var results = GetHttpResponseJObjectUsingContentHeaders(tokenUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
+
+            if (results != null && results["access_token"] != null)
+            { 
+                return results["access_token"].ToString();
+            }
+
+            return string.Empty;
         }
 
-        internal static async Task<JObject> GetAcrRepositoryManifestAsync(string registry, string repositoryName, string version, string acrAccessToken)
+        internal JObject GetAcrRepositoryManifestAsync(string registry, string repositoryName, string version, string acrAccessToken, out ErrorRecord errRecord)
         {
             string manifestUrl = string.Format(acrManifestUrlTemplate, registry, repositoryName, version);
+
+            // GET acrapi.azurecr-test.io/v2/prod/bash/blobs/sha256:16463e0c481e161aabb735437d30b3c9c7391c2747cc564bb927e843b73dcb39
+            manifestUrl = "https://psgetregistry.azurecr.io/hello-world:3.0.0"; 
+            //https://psgetregistry.azurecr.io/hello-world@sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a";
+            //   Address by digest: [loginServerUrl]/ [repository@sha256][:digest]
+
+            // eg: myregistry.azurecr.io/acr-helloworld@sha256:0a2e01852872580b2c2fea9380ff8d7b637d3928783c55beb3f21a6e58d5d108
+
             var defaultHeaders = GetDefaultHeaders(acrAccessToken);
-            return await GetHttpResponseJObject(manifestUrl, HttpMethod.Get, defaultHeaders);
+            return GetHttpResponseJObjectUsingDefaultHeaders(manifestUrl, HttpMethod.Get, defaultHeaders, out errRecord);
         }
 
-        internal static async Task<HttpContent> GetAcrBlobAsync(string registry, string repositoryName, string digest, string acrAccessToken)
+        internal async Task<HttpContent> GetAcrBlobAsync(string registry, string repositoryName, string digest, string acrAccessToken)
         {
             string blobUrl = string.Format(acrBlobDownloadUrlTemplate, registry, repositoryName, digest);
             var defaultHeaders = GetDefaultHeaders(acrAccessToken);
             return await GetHttpContentResponseJObject(blobUrl, defaultHeaders);
         }
 
-        internal static async Task<JObject> FindAcrImageTags(string registry, string repositoryName, string version, string acrAccessToken)
+        internal JObject FindAcrImageTags(string registry, string repositoryName, string version, string acrAccessToken, out ErrorRecord errRecord)
         {
             try
             {
                 string resolvedVersion = string.Equals(version, "*", StringComparison.OrdinalIgnoreCase) ? null : $"/{version}";
                 string findImageUrl = string.Format(acrFindImageVersionUrlTemplate, registry, repositoryName, resolvedVersion);
                 var defaultHeaders = GetDefaultHeaders(acrAccessToken);
-                return await GetHttpResponseJObject(findImageUrl, HttpMethod.Get, defaultHeaders);
+                return GetHttpResponseJObjectUsingDefaultHeaders(findImageUrl, HttpMethod.Get, defaultHeaders, out errRecord);
             }
             catch (HttpRequestException e)
             {
@@ -616,7 +665,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal static async Task<string> GetStartUploadBlobLocation(string registry, string pkgName, string acrAccessToken)
+        internal async Task<string> GetStartUploadBlobLocation(string registry, string pkgName, string acrAccessToken)
         {
             try
             {
@@ -630,7 +679,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal static async Task<bool> EndUploadBlob(string registry, string location, string filePath, string digest, bool isManifest, string acrAccessToken)
+        internal async Task<bool> EndUploadBlob(string registry, string location, string filePath, string digest, bool isManifest, string acrAccessToken)
         {
             try
             {
@@ -644,7 +693,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal static async Task<bool> CreateManifest(string registry, string pkgName, string pkgVersion, string configPath, bool isManifest, string acrAccessToken)
+        internal async Task<bool> CreateManifest(string registry, string pkgName, string pkgVersion, string configPath, bool isManifest, string acrAccessToken)
         {
             try
             {
@@ -658,7 +707,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal static async Task<HttpContent> GetHttpContentResponseJObject(string url, Collection<KeyValuePair<string, string>> defaultHeaders)
+        internal async Task<HttpContent> GetHttpContentResponseJObject(string url, Collection<KeyValuePair<string, string>> defaultHeaders)
         {
             try
             {
@@ -672,24 +721,57 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal static async Task<JObject> GetHttpResponseJObject(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders)
+        internal JObject GetHttpResponseJObjectUsingDefaultHeaders(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders, out ErrorRecord errRecord)
         {
             try
             {
+                errRecord = null;
                 HttpRequestMessage request = new HttpRequestMessage(method, url);
                 SetDefaultHeaders(defaultHeaders);
-                return await SendRequestAsync(request);
+
+                return SendRequestAsync(request).GetAwaiter().GetResult();
+            }
+            catch (ResourceNotFoundException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "ResourceNotFound",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+            }
+            catch (UnauthorizedException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "UnauthorizedRequest",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestCallFailure",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
             }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestCallFailure",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+            }
+
+            return null;
         }
 
-        internal static async Task<JObject> GetHttpResponseJObject(string url, HttpMethod method, string content, Collection<KeyValuePair<string, string>> contentHeaders)
+        internal JObject GetHttpResponseJObjectUsingContentHeaders(string url, HttpMethod method, string content, Collection<KeyValuePair<string, string>> contentHeaders, out ErrorRecord errRecord)
         {
             try
             {
+                errRecord = null;
                 HttpRequestMessage request = new HttpRequestMessage(method, url);
 
                 if (string.IsNullOrEmpty(content))
@@ -707,12 +789,42 @@ namespace Microsoft.PowerShell.PSResourceGet
                     }
                 }
 
-                return await SendRequestAsync(request);
+                return SendRequestAsync(request).GetAwaiter().GetResult();
+            }
+            catch (ResourceNotFoundException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "ResourceNotFound",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+            }
+            catch (UnauthorizedException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "UnauthorizedRequest",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestCallFailure",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
             }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestCallFailure",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+            }
+
+            return null;
         }
 
         internal static async Task<HttpResponseHeaders> GetHttpResponseHeader(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders)
@@ -771,7 +883,23 @@ namespace Microsoft.PowerShell.PSResourceGet
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
-                response.EnsureSuccessStatusCode();
+
+                switch (response.StatusCode)
+                {
+                    case HttpStatusCode.OK:
+                        break;
+
+                    case HttpStatusCode.Unauthorized:
+                        throw new UnauthorizedException($"Response unauthorized: {response.ReasonPhrase}.");
+
+                    case HttpStatusCode.NotFound:
+                        throw new ResourceNotFoundException($"Package not found: {response.ReasonPhrase}.");
+
+                    // all other errors
+                    default:
+                        throw new HttpRequestException($"Response returned error with status code {response.StatusCode}: {response.ReasonPhrase}.");
+                }
+
                 return JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
             }
             catch (HttpRequestException e)
@@ -832,9 +960,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                 };
         }
 
-        private bool PushNupkgACR(string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, out ErrorRecord error)
+        private bool PushNupkgACR(string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, out ErrorRecord errRecord)
         {
-            error = null;
+            errRecord = null;
             // Push the nupkg to the appropriate repository
             var fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, pkgName + "." + pkgVersion.ToNormalizedString() + ".nupkg");
 
@@ -860,9 +988,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             string registry = repository.Uri.Host;
 
             _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshTokenAsync(registry, tenantID, accessToken).Result;
+            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
             _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessTokenAsync(registry, acrRefreshToken).Result;
+            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
 
             _cmdletPassedIn.WriteVerbose("Start uploading blob");
             var moduleLocation = GetStartUploadBlobLocation(registry, pkgName, acrAccessToken).Result;
