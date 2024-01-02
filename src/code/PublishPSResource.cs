@@ -15,8 +15,6 @@ using System.Linq;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Xml;
 
@@ -138,6 +136,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string pathToModuleDirToPublish = string.Empty;
         private ResourceType resourceType = ResourceType.None;
         private NetworkCredential _networkCredential;
+        string userAgentString = UserAgentInfo.UserAgentString();
+
         #endregion
 
         #region Method overrides
@@ -482,16 +482,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 string repositoryUri = repository.Uri.AbsoluteUri;
 
-                if (repository.RepositoryProvider == PSRepositoryInfo.RepositoryProviderType.ACR)
+                if (repository.ApiVersion == PSRepositoryInfo.APIVersion.acr)
                 {
-                    // TODO: Create instance of ACR server class and call PushNupkgACR
-                   /*
-                    if (!PushNupkgACR(outputNupkgDir, repository, out ErrorRecord pushNupkgACRError))
+                    ACRServerAPICalls acrServer = new ACRServerAPICalls(repository, this, _networkCredential, userAgentString);
+
+                    if (!acrServer.PushNupkgACR(outputNupkgDir, _pkgName, _pkgVersion, repository, out ErrorRecord pushNupkgACRError))
                     {
                         WriteError(pushNupkgACRError);
+                        // exit out of processing
                         return;
                     }
-                   */
                 }
                 else
                 {
