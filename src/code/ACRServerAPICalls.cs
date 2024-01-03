@@ -604,7 +604,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempPath);
 
-            // Need to set up secret management vault before hand
             var repositoryCredentialInfo = Repository.CredentialInfo;
             if (repositoryCredentialInfo != null)
             {
@@ -624,15 +623,34 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
             var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
             _cmdletPassedIn.WriteVerbose("Getting acr access token");
             var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
             _cmdletPassedIn.WriteVerbose($"Getting manifest for {moduleName} - {moduleVersion}");
             var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken, out errRecord);
-            string digest = GetDigestFromManifest(manifest, out errRecord);
-            // var digest = "sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a";
-            _cmdletPassedIn.WriteVerbose($"Downloading blob for {moduleName} - {moduleVersion}");
-            var responseContent = GetAcrBlobAsync(registry, moduleName, digest, acrAccessToken).Result;
+            if (errRecord != null)
+            {
+                return null;
+            }
 
+            string digest = GetDigestFromManifest(manifest, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
+            _cmdletPassedIn.WriteVerbose($"Downloading blob for {moduleName} - {moduleVersion}");
+            // TODO: error handling here?
+            var responseContent = GetAcrBlobAsync(registry, moduleName, digest, acrAccessToken).Result;
 
             return responseContent.ReadAsStreamAsync().Result;
         }
@@ -641,20 +659,31 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         #region Private Methods
 
-        private string GetDigestFromManifest(JObject manifest, out ErrorRecord errorRecord)
+        private string GetDigestFromManifest(JObject manifest, out ErrorRecord errRecord)
         {
-            errorRecord = null;
+            errRecord = null;
             string digest = String.Empty;
 
             if (manifest == null)
             {
-                // TODO: err handle
+                errRecord = new ErrorRecord(
+                    exception: new ArgumentNullException("Manifest (passed in to determine digest) is null."),
+                    "ManifestNullError",
+                    ErrorCategory.InvalidArgument,
+                    _cmdletPassedIn);
+
+                return digest;
             }
 
             JToken layers = manifest["layers"];
             if (layers == null || !layers.HasValues)
             {
-                // TODO: err handle
+                errRecord = new ErrorRecord(
+                    exception: new ArgumentNullException("Manifest 'layers' property (passed in to determine digest) is null or does not have values."),
+                    "ManifestLayersNullOrEmptyError",
+                    ErrorCategory.InvalidArgument,
+                    _cmdletPassedIn);
+
                 return digest;
             }
 
@@ -666,6 +695,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     break;
                 }
             }
+
             return digest;
         }
 
