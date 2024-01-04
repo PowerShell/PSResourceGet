@@ -537,24 +537,22 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallPackage()");
+            _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::InstallPackage()");
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
             {
-                results = InstallName(packageName, packageVersion, out errRecord);
+                results = InstallName(packageName, out errRecord);
             }
             else
             {
-                results = InstallName(packageName, packageVersion, out errRecord);
+                results = InstallVersion(packageName, packageVersion, out errRecord);
             }
 
             return results;
         }
 
-
         private Stream InstallName(
             string moduleName,
-            string moduleVersion,
             out ErrorRecord errRecord)
         {
             errRecord = null;
@@ -562,8 +560,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             string tenantID = string.Empty;
             string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempPath);
+            string moduleVersion = String.Empty;
 
-            // Need to set up secret management vault before hand
             var repositoryCredentialInfo = Repository.CredentialInfo;
             if (repositoryCredentialInfo != null)
             {
@@ -583,14 +581,96 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
             var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
             _cmdletPassedIn.WriteVerbose("Getting acr access token");
             var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
             _cmdletPassedIn.WriteVerbose($"Getting manifest for {moduleName} - {moduleVersion}");
             var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken, out errRecord);
-            var digest = "sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a";
+            if (errRecord != null)
+            {
+                return null;
+            }
+
+            string digest = GetDigestFromManifest(manifest, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
             _cmdletPassedIn.WriteVerbose($"Downloading blob for {moduleName} - {moduleVersion}");
+            // TODO: error handling here?
             var responseContent = GetAcrBlobAsync(registry, moduleName, digest, acrAccessToken).Result;
 
+            return responseContent.ReadAsStreamAsync().Result;
+        }
+
+        private Stream InstallVersion(
+            string moduleName,
+            string moduleVersion,
+            out ErrorRecord errRecord)
+        {
+            errRecord = null;
+            string accessToken = string.Empty;
+            string tenantID = string.Empty;
+            string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempPath);
+
+            var repositoryCredentialInfo = Repository.CredentialInfo;
+            if (repositoryCredentialInfo != null)
+            {
+                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
+                    Repository.Name,
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
+
+                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
+
+                tenantID = repositoryCredentialInfo.SecretName;
+                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
+            }
+
+            // Call asynchronous network methods in a try/catch block to handle exceptions.
+            string registry = Repository.Uri.Host;
+
+            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
+            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
+            _cmdletPassedIn.WriteVerbose("Getting acr access token");
+            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
+            _cmdletPassedIn.WriteVerbose($"Getting manifest for {moduleName} - {moduleVersion}");
+            var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
+            string digest = GetDigestFromManifest(manifest, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
+            _cmdletPassedIn.WriteVerbose($"Downloading blob for {moduleName} - {moduleVersion}");
+            // TODO: error handling here?
+            var responseContent = GetAcrBlobAsync(registry, moduleName, digest, acrAccessToken).Result;
 
             return responseContent.ReadAsStreamAsync().Result;
         }
@@ -598,6 +678,46 @@ namespace Microsoft.PowerShell.PSResourceGet
         #endregion
 
         #region Private Methods
+
+        private string GetDigestFromManifest(JObject manifest, out ErrorRecord errRecord)
+        {
+            errRecord = null;
+            string digest = String.Empty;
+
+            if (manifest == null)
+            {
+                errRecord = new ErrorRecord(
+                    exception: new ArgumentNullException("Manifest (passed in to determine digest) is null."),
+                    "ManifestNullError",
+                    ErrorCategory.InvalidArgument,
+                    _cmdletPassedIn);
+
+                return digest;
+            }
+
+            JToken layers = manifest["layers"];
+            if (layers == null || !layers.HasValues)
+            {
+                errRecord = new ErrorRecord(
+                    exception: new ArgumentNullException("Manifest 'layers' property (passed in to determine digest) is null or does not have values."),
+                    "ManifestLayersNullOrEmptyError",
+                    ErrorCategory.InvalidArgument,
+                    _cmdletPassedIn);
+
+                return digest;
+            }
+
+            foreach (JObject item in layers)
+            {
+                if (item.ContainsKey("digest"))
+                {
+                    digest = item.GetValue("digest").ToString();
+                    break;
+                }
+            }
+
+            return digest;
+        }
 
         internal string GetAcrRefreshToken(string registry, string tenant, string accessToken, out ErrorRecord errRecord)
         {
@@ -629,16 +749,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             return string.Empty;
         }
 
-        internal JObject GetAcrRepositoryManifestAsync(string registry, string repositoryName, string version, string acrAccessToken, out ErrorRecord errRecord)
+        internal JObject GetAcrRepositoryManifestAsync(string registry, string packageName, string version, string acrAccessToken, out ErrorRecord errRecord)
         {
-            string manifestUrl = string.Format(acrManifestUrlTemplate, registry, repositoryName, version);
-
-            // GET acrapi.azurecr-test.io/v2/prod/bash/blobs/sha256:16463e0c481e161aabb735437d30b3c9c7391c2747cc564bb927e843b73dcb39
-            manifestUrl = "https://psgetregistry.azurecr.io/hello-world:3.0.0"; 
-            //https://psgetregistry.azurecr.io/hello-world@sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a";
-            //   Address by digest: [loginServerUrl]/ [repository@sha256][:digest]
-
-            // eg: myregistry.azurecr.io/acr-helloworld@sha256:0a2e01852872580b2c2fea9380ff8d7b637d3928783c55beb3f21a6e58d5d108
+            // the packageName parameter here maps to repositoryName in ACR, but to not conflict with PSGet definition of repository we will call it packageName
+            // example of manifestUrl: https://psgetregistry.azurecr.io/hello-world:3.0.0
+            string manifestUrl = string.Format(acrManifestUrlTemplate, registry, packageName, version);
 
             var defaultHeaders = GetDefaultHeaders(acrAccessToken);
             return GetHttpResponseJObjectUsingDefaultHeaders(manifestUrl, HttpMethod.Get, defaultHeaders, out errRecord);
