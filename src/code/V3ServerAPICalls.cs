@@ -295,13 +295,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
             {
-                results = InstallName(packageName, out errRecord);
-            }
-            else
-            {
-                results = InstallVersion(packageName, packageVersion, out errRecord);
+                errRecord = new ErrorRecord(
+                    exception: new ArgumentNullException($"Package version could not be found for {packageName}"),
+                    "PackageVersionNullOrEmptyError",
+                    ErrorCategory.InvalidArgument,
+                    _cmdletPassedIn);
+
+                return results;
             }
 
+            results = InstallVersion(packageName, packageVersion, out errRecord);
             return results;
         }
 
