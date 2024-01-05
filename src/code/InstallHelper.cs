@@ -842,7 +842,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 // Download the package.
                 string pkgName = pkgToInstall.Name;
-                Console.WriteLine($"ANAM package version: {pkgVersion}");
                 Stream responseStream = currentServer.InstallPackage(pkgName, pkgVersion, _prerelease, out ErrorRecord installNameErrRecord);
                 if (installNameErrRecord != null)
                 {
