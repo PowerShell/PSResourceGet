@@ -1340,8 +1340,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         // Otherwise read LicenseFile
                         string licenseText = System.IO.File.ReadAllText(LicenseFilePath);
-                        var acceptanceLicenseQuery = $"Do you accept the license terms for module '{p.Name}'.";
-                        var message = licenseText + "`r`n" + acceptanceLicenseQuery;
+                        var acceptanceLicenseQuery = $"Do you accept the license terms for module '{p.Name}'?";
+                        var message = licenseText + "\r\n" + acceptanceLicenseQuery;
 
                         var title = "License Acceptance";
                         var yesToAll = false;
