@@ -1045,45 +1045,53 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string format = "NormalizedVersion {0} {1}";
             string minPart = String.Empty;
             string maxPart = String.Empty;
-
-            if (versionRange.MinVersion != null)
-            {
-                string operation = versionRange.IsMinInclusive ? "ge" : "gt";
-                minPart = String.Format(format, operation, $"'{versionRange.MinVersion.ToNormalizedString()}'");
-            }
-
-            if (versionRange.MaxVersion != null)
-            {
-                string operation = versionRange.IsMaxInclusive ? "le" : "lt";
-                // Adding '9' as a digit to the end of the patch portion of the version
-                // because we want to retrieve all the prerelease versions for the upper end of the range
-                // and PSGallery views prerelease as higher than its stable.
-                // eg 3.0.0-prerelease > 3.0.0
-                // If looking for versions within '[1.9.9,1.9.9]' including prerelease values, this will change it to search for '[1.9.9,1.9.99]' 
-                // and find any pkg versions that are 1.9.9-prerelease.
-                string maxString = includePrerelease ? $"{versionRange.MaxVersion.Major}.{versionRange.MaxVersion.Minor}.{versionRange.MaxVersion.Patch.ToString() + "9"}" :
-                                 $"{versionRange.MaxVersion.ToNormalizedString()}";
-                if (NuGetVersion.TryParse(maxString, out NuGetVersion maxVersion))
-                {
-                    maxPart = String.Format(format, operation, $"'{maxVersion.ToNormalizedString()}'");
-                }
-                else { 
-                    maxPart = String.Format(format, operation, $"'{versionRange.MaxVersion.ToNormalizedString()}'");
-                }
-            }
-
             string versionFilterParts = String.Empty;
-            if (!String.IsNullOrEmpty(minPart) && !String.IsNullOrEmpty(maxPart))
+
+            if (versionRange.MinVersion != null && versionRange.MaxVersion != null && versionRange.MinVersion.ToNormalizedString().Equals(versionRange.MaxVersion.ToNormalizedString()))
             {
-                versionFilterParts += minPart + " and " + maxPart;
+                // for dependency packages, the version range may look like: [1.2.0, 1.2.0] which is actually a required version. We don't want MaxVersion +9 code to be hit and mess up this range
+                string requiredVersionPart = String.Format(format, "eq", $"'{versionRange.MinVersion.ToNormalizedString()}'");
+                versionFilterParts = requiredVersionPart;
             }
-            else if (!String.IsNullOrEmpty(minPart))
-            {
-                versionFilterParts += minPart;
-            }
-            else if (!String.IsNullOrEmpty(maxPart))
-            {
-                versionFilterParts += maxPart;
+            else {
+                if (versionRange.MinVersion != null)
+                {
+                    string operation = versionRange.IsMinInclusive ? "ge" : "gt";
+                    minPart = String.Format(format, operation, $"'{versionRange.MinVersion.ToNormalizedString()}'");
+                }
+
+                if (versionRange.MaxVersion != null)
+                {
+                    string operation = versionRange.IsMaxInclusive ? "le" : "lt";
+                    // Adding '9' as a digit to the end of the patch portion of the version
+                    // because we want to retrieve all the prerelease versions for the upper end of the range
+                    // and PSGallery views prerelease as higher than its stable.
+                    // eg 3.0.0-prerelease > 3.0.0
+                    // If looking for versions within '[1.9.9,1.9.9]' including prerelease values, this will change it to search for '[1.9.9,1.9.99]' 
+                    // and find any pkg versions that are 1.9.9-prerelease.
+                    string maxString = includePrerelease ? $"{versionRange.MaxVersion.Major}.{versionRange.MaxVersion.Minor}.{versionRange.MaxVersion.Patch.ToString() + "9"}" :
+                                    $"{versionRange.MaxVersion.ToNormalizedString()}";
+                    if (NuGetVersion.TryParse(maxString, out NuGetVersion maxVersion))
+                    {
+                        maxPart = String.Format(format, operation, $"'{maxVersion.ToNormalizedString()}'");
+                    }
+                    else { 
+                        maxPart = String.Format(format, operation, $"'{versionRange.MaxVersion.ToNormalizedString()}'");
+                    }
+                }
+
+                if (!String.IsNullOrEmpty(minPart) && !String.IsNullOrEmpty(maxPart))
+                {
+                    versionFilterParts += minPart + " and " + maxPart;
+                }
+                else if (!String.IsNullOrEmpty(minPart))
+                {
+                    versionFilterParts += minPart;
+                }
+                else if (!String.IsNullOrEmpty(maxPart))
+                {
+                    versionFilterParts += maxPart;
+                }
             }
 
             string filterQuery = "&$filter=";
@@ -1098,6 +1106,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string idFilterPart = $"{joiningOperator}";
             idFilterPart += _isJFrogRepo ? "" : $"Id eq '{packageName}'";
             filterQuery += idFilterPart;
+            // since unlisted versions can be returned and this can influence getOnlyLatest $top = 1 determined later, disallow unlisted versions
+            filterQuery += $"{andOperator}year(Published) gt 1900";
             filterQuery += type == ResourceType.Script ? $"{andOperator}substringof('PS{type.ToString()}', Tags) eq true" : String.Empty;
 
             if (!String.IsNullOrEmpty(versionFilterParts))
@@ -1109,11 +1119,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 filterQuery +=  $"{andOperator}{versionFilterParts}";
             }
 
-            string paginationParam = $"$inlinecount=allpages&$skip={skip}";
+            string paginationParam = getOnlyLatest ? $"$inlinecount=allpages&$skip={skip}&$top=1" : $"$inlinecount=allpages&$skip={skip}";
 
             filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
-            
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
