@@ -1343,7 +1343,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         var acceptanceLicenseQuery = $"Do you accept the license terms for module '{p.Name}'?";
                         var message = licenseText + "\r\n" + acceptanceLicenseQuery;
 
-                        var title = "License Acceptance\r\n";
+                        var title = "License Acceptance";
                         var yesToAll = false;
                         var noToAll = false;
                         var shouldContinueResult = _cmdletPassedIn.ShouldContinue(message, title, true, ref yesToAll, ref noToAll);
