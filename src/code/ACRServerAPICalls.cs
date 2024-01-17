@@ -1108,6 +1108,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteVerbose("Getting acr access token");
             var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
 
+            /* Uploading .nupkg */
             _cmdletPassedIn.WriteVerbose("Start uploading blob");
             var moduleLocation = GetStartUploadBlobLocation(registry, pkgName, acrAccessToken).Result;
 
@@ -1121,60 +1122,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteVerbose("Finish uploading blob");
             bool moduleUploadSuccess = EndUploadBlob(registry, moduleLocation, fullNupkgFile, nupkgDigest, false, acrAccessToken).Result;
 
-            _cmdletPassedIn.WriteVerbose("Create an empty file");
-            string emptyFileName = "empty.txt";
-            var emptyFilePath = System.IO.Path.Combine(outputNupkgDir, emptyFileName);
-            // Rename the empty file in case such a file already exists in the temp folder (although highly unlikely)
-            while (File.Exists(emptyFilePath))
-            {
-                emptyFilePath = Guid.NewGuid().ToString() + ".txt";
-            }
-            FileStream emptyStream = File.Create(emptyFilePath);
-            emptyStream.Close();
-
-            _cmdletPassedIn.WriteVerbose("Start uploading an empty file");
-            var emptyLocation = GetStartUploadBlobLocation(registry, pkgName, acrAccessToken).Result;
-
-            _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
-            bool emptyDigestCreated = CreateDigest(emptyFilePath, out string emptyDigest, out ErrorRecord emptyDigestError);
-            if (!emptyDigestCreated)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(emptyDigestError);
-            }
-
-            _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
-            bool emptyFileUploadSuccess = EndUploadBlob(registry, emptyLocation, emptyFilePath, emptyDigest, false, acrAccessToken).Result;
-
-            // Create metadata json
-            _cmdletPassedIn.WriteVerbose("Create package version metadata file");
-            string metadataFileName = "metadata.json";
-            var metadataFilePath = System.IO.Path.Combine(outputNupkgDir, metadataFileName);
-            // Rename the empty file in case such a file already exists in the temp folder (although highly unlikely)
-            while (File.Exists(metadataFilePath))
-            {
-                // throw error
-            }
-
-            _cmdletPassedIn.WriteVerbose("Populating contents of metadata file");
-            bool metadataContentCreated = CreateMetadataContent(psd1OrPs1File, metadataFilePath, parsedMetadataHash, out string metadataContent, out ErrorRecord metadataCreationError);
-            if (!metadataContentCreated)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(metadataCreationError);
-            }
-
-            _cmdletPassedIn.WriteVerbose("Start uploading a metadata file");
-            var metadataLocation = GetStartUploadBlobLocation(registry, pkgName, acrAccessToken).Result;
-
-            _cmdletPassedIn.WriteVerbose("Computing digest for .nupkg file");
-            bool metadataDigestCreated = CreateDigest(metadataFilePath, out string metadataDigest, out ErrorRecord metadataDigestError);
-            if (!metadataDigestCreated)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(metadataDigestError);
-            }
-
-            _cmdletPassedIn.WriteVerbose("Finish uploading metadata file");
-            bool metadataFileUploadSuccess = EndUploadBlob(registry, metadataLocation, metadataFilePath, metadataDigest, isManifest:false, acrAccessToken).Result;
-
             _cmdletPassedIn.WriteVerbose("Create the config file");
             string configFileName = "config.json";
             var configFilePath = System.IO.Path.Combine(outputNupkgDir, configFileName);
@@ -1184,20 +1131,25 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             FileStream configStream = File.Create(configFilePath);
             configStream.Close();
-            _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
+            _cmdletPassedIn.WriteVerbose("Computing digest for config");
             bool configDigestCreated = CreateDigest(configFilePath, out string configDigest, out ErrorRecord configDigestError);
             if (!configDigestCreated)
             {
                 _cmdletPassedIn.ThrowTerminatingError(configDigestError);
             }
 
+            /* Create manifest layer */
+            _cmdletPassedIn.WriteVerbose("Create package version metadata as JSON string");
+            string jsonString = CreateMetadataContent(psd1OrPs1File, parsedMetadataHash, out ErrorRecord metadataCreationError);
+            if (metadataCreationError != null)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(metadataCreationError);
+            }
 
             FileInfo nupkgFile = new FileInfo(fullNupkgFile);
             var fileSize = nupkgFile.Length;
-            FileInfo metadataFile = new FileInfo(metadataFilePath);
-            var metadataFileSize = metadataFile.Length;
             var fileName = System.IO.Path.GetFileName(fullNupkgFile);
-            string fileContent = CreateJsonContent(nupkgDigest, configDigest, configDigest, fileSize, metadataFileSize, fileName, metadataFileName);
+            string fileContent = CreateJsonContent(nupkgDigest, configDigest, configDigest, fileSize, fileName, jsonString);
             File.WriteAllText(configFilePath, fileContent);
 
             _cmdletPassedIn.WriteVerbose("Create the manifest layer");
@@ -1215,9 +1167,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             string configDigest, 
             string metadataDigest, 
             long nupkgFileSize, 
-            long metadataFileSize, 
             string fileName, 
-            string metadataFileName)
+            string jsonString)
         {
             StringBuilder stringBuilder = new StringBuilder();
             StringWriter stringWriter = new StringWriter(stringBuilder);
@@ -1254,23 +1205,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName("org.opencontainers.image.title");
             jsonWriter.WriteValue(fileName);
+            jsonWriter.WritePropertyName("metadata");
+            jsonWriter.WriteValue(jsonString);
             jsonWriter.WriteEndObject();
             jsonWriter.WriteEndObject();
 
-            jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("application/vnd.psresource.metadata.v1+json");
-            jsonWriter.WritePropertyName("digest");
-            jsonWriter.WriteValue($"sha256:{metadataDigest}");
-            jsonWriter.WritePropertyName("size");
-            jsonWriter.WriteValue(metadataFileSize);
-            jsonWriter.WritePropertyName("annotations");
-            jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName("org.opencontainers.image.title");
-            jsonWriter.WriteValue(metadataFileName);
-            jsonWriter.WriteEndObject();
-
-            jsonWriter.WriteEndObject();
             jsonWriter.WriteEndArray();
             jsonWriter.WriteEndObject();
 
@@ -1321,11 +1260,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             return true;
         }
 
-        private bool CreateMetadataContent(string manifestFilePath, string metadataFilePath, Hashtable parsedMetadata, out string metadataContent, out ErrorRecord metadataCreationError)
+        private string CreateMetadataContent(string manifestFilePath, Hashtable parsedMetadata, out ErrorRecord metadataCreationError)
         {
-            metadataContent = string.Empty;
             metadataCreationError = null;
             Hashtable parsedMetadataHash = null;
+            string jsonString = string.Empty;
 
             // A script will already have the metadata parsed into the parsedMetadatahash,
             // a module will still need the module manifest to be parsed.
@@ -1343,7 +1282,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                         ErrorCategory.ReadError,
                         _cmdletPassedIn);
 
-                    return false;
+                    return jsonString;
                 }
             }
 
@@ -1355,16 +1294,13 @@ namespace Microsoft.PowerShell.PSResourceGet
                     ErrorCategory.InvalidData,
                     _cmdletPassedIn);
 
-                return false;
+                return jsonString;
             }
 
-            _cmdletPassedIn.WriteVerbose("Writing JSON string to file.");
-            string jsonString = System.Text.Json.JsonSerializer.Serialize(parsedMetadataHash, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(metadataFilePath, jsonString);
+            _cmdletPassedIn.WriteVerbose("Serialize JSON into string.");
+            jsonString = System.Text.Json.JsonSerializer.Serialize(parsedMetadataHash, new JsonSerializerOptions { WriteIndented = true });
 
-            _cmdletPassedIn.WriteVerbose("JSON metadata file created successfully.");
-
-            return true;
+            return jsonString;
         }
 
         #endregion
