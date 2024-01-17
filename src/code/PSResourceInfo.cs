@@ -571,7 +571,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 };
 
                 var additionalMetadataHashtable = new Dictionary<string, string>();
-                additionalMetadataHashtable.Add("NormalizedVersion", metadata["NormalizedVersion"].ToString());
+
+                // Only add NormalizedVersion to additionalMetadata if server response included it
+                if (metadata.ContainsKey("NormalizedVersion")) {
+                    additionalMetadataHashtable.Add("NormalizedVersion", metadata["NormalizedVersion"].ToString());
+                }
 
                 var includes = new ResourceIncludes(resourceHashtable);
 

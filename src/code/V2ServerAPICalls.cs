@@ -666,6 +666,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Installs a specific package.
+        /// User may request to install package with or without providing version (as seen in examples below), but prior to calling this method the package is located and package version determined.
+        /// Therefore, package version should not be null in this method.
         /// Name: no wildcard support.
         /// Examples: Install "PowerShellGet"
         ///           Install "PowerShellGet" -Version "3.0.0"
@@ -675,13 +677,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
             {
-                results = InstallName(packageName, out errRecord);
-            }
-            else
-            {
-                results = InstallVersion(packageName, packageVersion, out errRecord);
+                errRecord = new ErrorRecord(
+                    exception: new ArgumentNullException($"Package version could not be found for {packageName}"),
+                    "PackageVersionNullOrEmptyError",
+                    ErrorCategory.InvalidArgument,
+                    _cmdletPassedIn);
+
+                return results;
             }
 
+            results = InstallVersion(packageName, packageVersion, out errRecord);
             return results;
         }
 
@@ -1110,28 +1115,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
             
             return HttpRequestCall(requestUrlV2, out errRecord);
-        }
-
-        /// <summary>
-        /// Installs specific package.
-        /// Name: no wildcard support.
-        /// Examples: Install "PowerShellGet"
-        /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
-        ///                        if prerelease, call into InstallVersion instead.
-        /// </summary>
-        private Stream InstallName(string packageName, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallName()");
-            var requestUrlV2 = $"{Repository.Uri}/package/{packageName}";
-            var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
-            if (errRecord != null)
-            {
-                return new MemoryStream();
-            }
-
-            var responseStream = response.ReadAsStreamAsync().Result;
-
-            return responseStream;
         }
 
         /// <summary>

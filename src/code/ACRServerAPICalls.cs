@@ -531,6 +531,8 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Installs a specific package.
+        /// User may request to install package with or without providing version (as seen in examples below), but prior to calling this method the package is located and package version determined.
+        /// Therefore, package version should not be null in this method.
         /// Name: no wildcard support.
         /// Examples: Install "PowerShellGet"
         ///           Install "PowerShellGet" -Version "3.0.0"
@@ -541,17 +543,20 @@ namespace Microsoft.PowerShell.PSResourceGet
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
             {
-                results = InstallName(packageName, out errRecord);
-            }
-            else
-            {
-                results = InstallVersion(packageName, packageVersion, out errRecord);
+                errRecord = new ErrorRecord(
+                    exception: new ArgumentNullException($"Package version could not be found for {packageName}"),
+                    "PackageVersionNullOrEmptyError",
+                    ErrorCategory.InvalidArgument,
+                    _cmdletPassedIn);
+
+                return results;
             }
 
+            results = InstallVersion(packageName, packageVersion, out errRecord);
             return results;
         }
 
-        private Stream InstallName(
+        private Stream InstallVersion(
             string moduleName,
             out ErrorRecord errRecord)
         {
@@ -599,69 +604,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 return null;
             }
-
-            string digest = GetDigestFromManifest(manifest, out errRecord);
-            if (errRecord != null)
-            {
-                return null;
-            }
-
-            _cmdletPassedIn.WriteVerbose($"Downloading blob for {moduleName} - {moduleVersion}");
-            // TODO: error handling here?
-            var responseContent = GetAcrBlobAsync(registry, moduleName, digest, acrAccessToken).Result;
-
-            return responseContent.ReadAsStreamAsync().Result;
-        }
-
-        private Stream InstallVersion(
-            string moduleName,
-            string moduleVersion,
-            out ErrorRecord errRecord)
-        {
-            errRecord = null;
-            string accessToken = string.Empty;
-            string tenantID = string.Empty;
-            string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            Directory.CreateDirectory(tempPath);
-
-            var repositoryCredentialInfo = Repository.CredentialInfo;
-            if (repositoryCredentialInfo != null)
-            {
-                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
-                    Repository.Name,
-                    repositoryCredentialInfo,
-                    _cmdletPassedIn);
-
-                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
-
-                tenantID = repositoryCredentialInfo.SecretName;
-                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
-            }
-
-            // Call asynchronous network methods in a try/catch block to handle exceptions.
-            string registry = Repository.Uri.Host;
-
-            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
-            if (errRecord != null)
-            {
-                return null;
-            }
-
-            _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
-            if (errRecord != null)
-            {
-                return null;
-            }
-
-            _cmdletPassedIn.WriteVerbose($"Getting manifest for {moduleName} - {moduleVersion}");
-            var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken, out errRecord);
-            if (errRecord != null)
-            {
-                return null;
-            }
-
             string digest = GetDigestFromManifest(manifest, out errRecord);
             if (errRecord != null)
             {
