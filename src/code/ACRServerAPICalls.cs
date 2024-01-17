@@ -20,7 +20,6 @@ using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
-using NuGet.Packaging;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
@@ -558,6 +557,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         private Stream InstallVersion(
             string moduleName,
+            string moduleVersion,
             out ErrorRecord errRecord)
         {
             errRecord = null;
@@ -565,7 +565,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             string tenantID = string.Empty;
             string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempPath);
-            string moduleVersion = String.Empty;
 
             var repositoryCredentialInfo = Repository.CredentialInfo;
             if (repositoryCredentialInfo != null)
