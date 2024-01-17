@@ -778,9 +778,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            pkgStream = content.ReadAsStreamAsync().Result;
-
-            return pkgStream;
+            return content.ReadAsStreamAsync().Result;
         }
 
         /// <summary>
