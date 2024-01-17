@@ -1239,7 +1239,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             _cmdletPassedIn.WriteVerbose("Serialize JSON into string.");
-            jsonString = System.Text.Json.JsonSerializer.Serialize(parsedMetadataHash, new JsonSerializerOptions { WriteIndented = true });
+            jsonString = System.Text.Json.JsonSerializer.Serialize(parsedMetadataHash);
 
             return jsonString;
         }
