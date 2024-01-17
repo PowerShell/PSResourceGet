@@ -41,6 +41,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public FindResponseType v2FindResponseType = FindResponseType.ResponseString;
         private bool _isADORepo;
         private bool _isJFrogRepo;
+        private bool _isPSGalleryRepo;
 
         #endregion
 
@@ -60,6 +61,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var repoURL = repository.Uri.ToString().ToLower();
             _isADORepo = repoURL.Contains("pkgs.dev.azure.com") || repoURL.Contains("pkgs.visualstudio.com");
             _isJFrogRepo = repoURL.Contains("jfrog");
+            _isPSGalleryRepo = repoURL.Contains("powershellgallery.com/api/v2");
         }
 
         #endregion
@@ -806,7 +808,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string FindAllFromTypeEndPoint(bool includePrerelease, bool isSearchingModule, int skip, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindAllFromTypeEndPoint()");
-            string typeEndpoint = isSearchingModule ? String.Empty : "/items/psscript";
+            string typeEndpoint = _isPSGalleryRepo && !isSearchingModule ? "/items/psscript" : String.Empty;
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
             var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
 
@@ -826,7 +828,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // type: S -> just search Scripts end point
             // type: DSCResource -> just search Modules
             // type: Command -> just search Modules
-            string typeEndpoint = isSearchingModule ? String.Empty : "/items/psscript";
+            string typeEndpoint = _isPSGalleryRepo && !isSearchingModule ? "/items/psscript" : String.Empty;
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
             var prereleaseFilter = includePrerelease ? "includePrerelease=true&$filter=IsAbsoluteLatestVersion" : "$filter=IsLatestVersion";
             string typeFilterPart = isSearchingModule ?  $" and substringof('PSModule', Tags) eq true" : $" and substringof('PSScript', Tags) eq true";
