@@ -1090,7 +1090,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             FileInfo nupkgFile = new FileInfo(fullNupkgFile);
             var fileSize = nupkgFile.Length;
             var fileName = System.IO.Path.GetFileName(fullNupkgFile);
-            string fileContent = CreateJsonContent(nupkgDigest, configDigest, configDigest, fileSize, fileName, jsonString);
+            string fileContent = CreateJsonContent(nupkgDigest, configDigest, fileSize, fileName, jsonString);
             File.WriteAllText(configFilePath, fileContent);
 
             _cmdletPassedIn.WriteVerbose("Create the manifest layer");
@@ -1106,7 +1106,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         private string CreateJsonContent(
             string nupkgDigest, 
             string configDigest, 
-            string metadataDigest, 
             long nupkgFileSize, 
             string fileName, 
             string jsonString)
