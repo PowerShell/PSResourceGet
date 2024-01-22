@@ -136,6 +136,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string pathToModuleDirToPublish = string.Empty;
         private ResourceType resourceType = ResourceType.None;
         private NetworkCredential _networkCredential;
+        string userAgentString = UserAgentInfo.UserAgentString();
+
         #endregion
 
         #region Method overrides
@@ -480,12 +482,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 string repositoryUri = repository.Uri.AbsoluteUri;
 
-                // This call does not throw any exceptions, but it will write unsuccessful responses to the console
-                if (!PushNupkg(outputNupkgDir, repository.Name, repositoryUri, out ErrorRecord pushNupkgError))
+                if (repository.ApiVersion == PSRepositoryInfo.APIVersion.acr)
                 {
-                    WriteError(pushNupkgError);
-                    // exit out of processing
-                    return;
+                    ACRServerAPICalls acrServer = new ACRServerAPICalls(repository, this, _networkCredential, userAgentString);
+
+                    if (!acrServer.PushNupkgACR(outputNupkgDir, _pkgName.ToLower(), _pkgVersion, repository, out ErrorRecord pushNupkgACRError))
+                    {
+                        WriteError(pushNupkgACRError);
+                        // exit out of processing
+                        return;
+                    }
+                }
+                else
+                {
+                    // This call does not throw any exceptions, but it will write unsuccessful responses to the console
+                    if (!PushNupkg(outputNupkgDir, repository.Name, repository.Uri.ToString(), out ErrorRecord pushNupkgError))
+                    {
+                        WriteError(pushNupkgError);
+                        // exit out of processing
+                        return;
+                    }
                 }
             }
             finally

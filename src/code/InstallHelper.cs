@@ -779,7 +779,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
             pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
-
+            if (pkgVersion == null) {
+                pkgVersion = pkgToInstall.Version.ToString();
+            }
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {

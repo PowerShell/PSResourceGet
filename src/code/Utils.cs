@@ -17,6 +17,7 @@ using Microsoft.PowerShell.Commands;
 using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Net.Http;
 using System.Globalization;
+using System.Security;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -41,6 +42,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public static readonly string[] EmptyStrArray = Array.Empty<string>();
         public static readonly char[] WhitespaceSeparator = new char[]{' '};
         public const string PSDataFileExt = ".psd1";
+        public const string PSScriptFileExt = ".ps1";
         private const string ConvertJsonToHashtableScript = @"
             param (
                 [string] $json
@@ -605,6 +607,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         {
                             return secretCredential;
                         }
+                        else if (secretObject.BaseObject is SecureString secretString)
+                        {
+                            return new PSCredential(repositoryCredentialInfo.SecretName, secretString);
+                        }
                     }
 
                     cmdletPassedIn.ThrowTerminatingError(
@@ -630,6 +636,72 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 
                 return null;
             }
+        }
+
+        public static string GetACRAccessTokenFromSecretManagement(
+            string repositoryName,
+            PSCredentialInfo repositoryCredentialInfo,
+            PSCmdlet cmdletPassedIn)
+        {
+            if (!IsSecretManagementVaultAccessible(repositoryName, repositoryCredentialInfo, cmdletPassedIn))
+            {
+                cmdletPassedIn.ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException($"Cannot access Microsoft.PowerShell.SecretManagement vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication."),
+                        "RepositoryCredentialSecretManagementInaccessibleVault",
+                        ErrorCategory.ResourceUnavailable,
+                        cmdletPassedIn));
+                return null;
+            }
+
+            var results = PowerShellInvoker.InvokeScriptWithHost<object>(
+                cmdlet: cmdletPassedIn,
+                script: @"
+                    param (
+                        [string] $VaultName,
+                        [string] $SecretName
+                    )
+                    $module = Microsoft.PowerShell.Core\Import-Module -Name Microsoft.PowerShell.SecretManagement -PassThru
+                    if ($null -eq $module) {
+                        return
+                    }
+                    & $module ""Get-Secret"" -Name $SecretName -Vault $VaultName
+                ",
+                args: new object[] { repositoryCredentialInfo.VaultName, repositoryCredentialInfo.SecretName },
+                out Exception terminatingError);
+
+            var secretValue = (results.Count == 1) ? results[0] : null;
+            if (secretValue == null)
+            {
+                cmdletPassedIn.ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException(
+                            message: $"Microsoft.PowerShell.SecretManagement\\Get-Secret encountered an error while reading secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
+                            innerException: terminatingError),
+                        "ACRRepositoryCannotGetSecretFromVault",
+                        ErrorCategory.InvalidOperation,
+                        cmdletPassedIn));
+            }
+
+            if (secretValue is SecureString secretSecureString)
+            {
+                string password = new NetworkCredential(string.Empty, secretSecureString).Password;
+                return password;
+            }
+            else if(secretValue is PSCredential psCredSecret)
+            {
+                string password = new NetworkCredential(string.Empty, psCredSecret.Password).Password;
+                return password;
+            }
+
+            cmdletPassedIn.ThrowTerminatingError(
+                new ErrorRecord(
+                    new PSNotSupportedException($"Secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" has an invalid type. The only supported type is PSCredential."),
+                    "ACRRepositoryTokenIsInvalidSecretType",
+                    ErrorCategory.InvalidType,
+                    cmdletPassedIn));
+
+            return null;
         }
 
         public static void SaveRepositoryCredentialToSecretManagementVault(
@@ -1504,6 +1576,117 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 var destSubDirPath = Path.Combine(destDirPath, Path.GetFileName(srcSubDirPath));
                 CopyDirContents(srcSubDirPath, destSubDirPath, overwrite);
+            }
+        }
+
+        public static void DeleteExtraneousFiles(PSCmdlet callingCmdlet, string pkgName, string dirNameVersion)
+        {
+            // Deleting .nupkg SHA file, .nuspec, and .nupkg after unpacking the module
+            var nuspecToDelete = Path.Combine(dirNameVersion, pkgName + ".nuspec");
+            var contentTypesToDelete = Path.Combine(dirNameVersion, "[Content_Types].xml");
+            var relsDirToDelete = Path.Combine(dirNameVersion, "_rels");
+            var packageDirToDelete = Path.Combine(dirNameVersion, "package");
+
+            // Unforunately have to check if each file exists because it may or may not be there
+            if (File.Exists(nuspecToDelete))
+            {
+                callingCmdlet.WriteVerbose(string.Format("Deleting '{0}'", nuspecToDelete));
+                File.Delete(nuspecToDelete);
+            }
+            if (File.Exists(contentTypesToDelete))
+            {
+                callingCmdlet.WriteVerbose(string.Format("Deleting '{0}'", contentTypesToDelete));
+                File.Delete(contentTypesToDelete);
+            }
+            if (Directory.Exists(relsDirToDelete))
+            {
+                callingCmdlet.WriteVerbose(string.Format("Deleting '{0}'", relsDirToDelete));
+                Utils.DeleteDirectory(relsDirToDelete);
+            }
+            if (Directory.Exists(packageDirToDelete))
+            {
+                callingCmdlet.WriteVerbose(string.Format("Deleting '{0}'", packageDirToDelete));
+                Utils.DeleteDirectory(packageDirToDelete);
+            }
+        }
+
+        public static void MoveFilesIntoInstallPath(
+            PSResourceInfo pkgInfo,
+            bool isModule,
+            bool isLocalRepo,
+            bool savePkg,
+            string dirNameVersion,
+            string tempInstallPath,
+            string installPath,
+            string newVersion,
+            string moduleManifestVersion,
+            string scriptPath,
+            PSCmdlet cmdletPassedIn)
+        {
+            // Creating the proper installation path depending on whether pkg is a module or script
+            var newPathParent = isModule ? Path.Combine(installPath, pkgInfo.Name) : installPath;
+            var finalModuleVersionDir = isModule ? Path.Combine(installPath, pkgInfo.Name, moduleManifestVersion) : installPath;
+
+            // If script, just move the files over, if module, move the version directory over
+            var tempModuleVersionDir = (!isModule || isLocalRepo) ? dirNameVersion
+                : Path.Combine(tempInstallPath, pkgInfo.Name.ToLower(), newVersion);
+
+            cmdletPassedIn.WriteVerbose(string.Format("Installation source path is: '{0}'", tempModuleVersionDir));
+            cmdletPassedIn.WriteVerbose(string.Format("Installation destination path is: '{0}'", finalModuleVersionDir));
+
+            if (isModule)
+            {
+                // If new path does not exist
+                if (!Directory.Exists(newPathParent))
+                {
+                    cmdletPassedIn.WriteVerbose(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
+                    Directory.CreateDirectory(newPathParent);
+                    Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
+                }
+                else
+                {
+                    cmdletPassedIn.WriteVerbose(string.Format("Temporary module version directory is: '{0}'", tempModuleVersionDir));
+
+                    if (Directory.Exists(finalModuleVersionDir))
+                    {
+                        // Delete the directory path before replacing it with the new module.
+                        // If deletion fails (usually due to binary file in use), then attempt restore so that the currently
+                        // installed module is not corrupted.
+                        cmdletPassedIn.WriteVerbose(string.Format("Attempting to delete with restore on failure.'{0}'", finalModuleVersionDir));
+                        Utils.DeleteDirectoryWithRestore(finalModuleVersionDir);
+                    }
+
+                    cmdletPassedIn.WriteVerbose(string.Format("Attempting to move '{0}' to '{1}'", tempModuleVersionDir, finalModuleVersionDir));
+                    Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
+                }
+            }
+            else
+            {
+                if (!savePkg)
+                {
+                    // Need to delete old xml files because there can only be 1 per script
+                    var scriptXML = pkgInfo.Name + "_InstalledScriptInfo.xml";
+                    cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(installPath, "InstalledScriptInfos", scriptXML))));
+                    if (File.Exists(Path.Combine(installPath, "InstalledScriptInfos", scriptXML)))
+                    {
+                        cmdletPassedIn.WriteVerbose(string.Format("Deleting script metadata XML"));
+                        File.Delete(Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
+                    }
+
+                    cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML)));
+                    Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
+
+                    // Need to delete old script file, if that exists
+                    cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt))));
+                    if (File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)))
+                    {
+                        cmdletPassedIn.WriteVerbose(string.Format("Deleting script file"));
+                        File.Delete(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
+                    }
+                }
+
+                cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)));
+                Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
             }
         }
 

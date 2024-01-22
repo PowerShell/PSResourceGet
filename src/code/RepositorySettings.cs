@@ -7,8 +7,11 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Security.Cryptography;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using static Microsoft.PowerShell.PSResourceGet.UtilClasses.PSRepositoryInfo;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -435,6 +438,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         node.Attribute(PSCredentialInfo.SecretNameAttribute).Value);
                 }
 
+                RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
                 updatedRepo = new PSRepositoryInfo(repoName,
                     thisUrl,
                     Int32.Parse(node.Attribute("Priority").Value),
@@ -519,6 +523,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 string attributeUrlUriName = urlAttributeExists ? "Url" : "Uri";
+                Uri repoUri = new Uri(node.Attribute(attributeUrlUriName).Value);
+                RepositoryProviderType repositoryProvider= GetRepositoryProviderType(repoUri);
                 removedRepos.Add(
                     new PSRepositoryInfo(repo,
                         new Uri(node.Attribute(attributeUrlUriName).Value),
@@ -649,6 +655,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         continue;
                     }
 
+                    RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
                     PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(repo.Attribute("Name").Value,
                         thisUrl,
                         Int32.Parse(repo.Attribute("Priority").Value),
@@ -752,6 +759,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             continue;
                         }
 
+                        RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
                         PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(node.Attribute("Name").Value,
                             thisUrl,
                             Int32.Parse(node.Attribute("Priority").Value),
@@ -832,12 +840,32 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // repositories with Uri Scheme "temp" may have PSPath Uri's like: "Temp:\repo" and we should consider them as local repositories.
                 return PSRepositoryInfo.APIVersion.local;
             }
+            else if (repoUri.AbsoluteUri.EndsWith(".azurecr.io") || repoUri.AbsoluteUri.EndsWith(".azurecr.io/"))
+            {
+                return PSRepositoryInfo.APIVersion.acr;
+            }
             else
             {
                 return PSRepositoryInfo.APIVersion.unknown;
             }
         }
 
+        private static RepositoryProviderType GetRepositoryProviderType(Uri repoUri)
+        {
+            string absoluteUri = repoUri.AbsoluteUri;
+            // We want to use contains instead of EndsWith to accomodate for trailing '/'
+            if (absoluteUri.Contains("azurecr.io")){
+                return RepositoryProviderType.ACR;
+            }
+            // TODO: add a regex for this match
+            // eg: *pkgs.*/_packaging/*
+            else if (absoluteUri.Contains("pkgs.")){
+                return RepositoryProviderType.AzureDevOps;
+            }
+            else {
+                return RepositoryProviderType.None;
+            }
+        }
         #endregion
     }
 }
