@@ -603,7 +603,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 return null;
             }
-
             string digest = GetDigestFromManifest(manifest, out errRecord);
             if (errRecord != null)
             {
@@ -1018,7 +1017,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 };
         }
 
-        internal bool PushNupkgACR(string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, out ErrorRecord errRecord)
+        internal bool PushNupkgACR(string psd1OrPs1File, string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, Hashtable parsedMetadataHash, out ErrorRecord errRecord)
         {
             errRecord = null;
             // Push the nupkg to the appropriate repository
@@ -1050,42 +1049,19 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteVerbose("Getting acr access token");
             var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
 
+            /* Uploading .nupkg */
             _cmdletPassedIn.WriteVerbose("Start uploading blob");
             var moduleLocation = GetStartUploadBlobLocation(registry, pkgName, acrAccessToken).Result;
 
             _cmdletPassedIn.WriteVerbose("Computing digest for .nupkg file");
-            bool digestCreated = CreateDigest(fullNupkgFile, out string digest, out ErrorRecord digestError);
-            if (!digestCreated)
+            bool nupkgDigestCreated = CreateDigest(fullNupkgFile, out string nupkgDigest, out ErrorRecord nupkgDigestError);
+            if (!nupkgDigestCreated)
             {
-                _cmdletPassedIn.ThrowTerminatingError(digestError);
+                _cmdletPassedIn.ThrowTerminatingError(nupkgDigestError);
             }
 
             _cmdletPassedIn.WriteVerbose("Finish uploading blob");
-            bool moduleUploadSuccess = EndUploadBlob(registry, moduleLocation, fullNupkgFile, digest, false, acrAccessToken).Result;
-
-            _cmdletPassedIn.WriteVerbose("Create an empty file");
-            string emptyFileName = "empty.txt";
-            var emptyFilePath = System.IO.Path.Combine(outputNupkgDir, emptyFileName);
-            // Rename the empty file in case such a file already exists in the temp folder (although highly unlikely)
-            while (File.Exists(emptyFilePath))
-            {
-                emptyFilePath = Guid.NewGuid().ToString() + ".txt";
-            }
-            FileStream emptyStream = File.Create(emptyFilePath);
-            emptyStream.Close();
-
-            _cmdletPassedIn.WriteVerbose("Start uploading an empty file");
-            var emptyLocation = GetStartUploadBlobLocation(registry, pkgName, acrAccessToken).Result;
-
-            _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
-            bool emptyDigestCreated = CreateDigest(emptyFilePath, out string emptyDigest, out ErrorRecord emptyDigestError);
-            if (!emptyDigestCreated)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(emptyDigestError);
-            }
-
-            _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
-            bool emptyFileUploadSuccess = EndUploadBlob(registry, emptyLocation, emptyFilePath, emptyDigest, false, acrAccessToken).Result;
+            bool moduleUploadSuccess = EndUploadBlob(registry, moduleLocation, fullNupkgFile, nupkgDigest, false, acrAccessToken).Result;
 
             _cmdletPassedIn.WriteVerbose("Create the config file");
             string configFileName = "config.json";
@@ -1096,11 +1072,25 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             FileStream configStream = File.Create(configFilePath);
             configStream.Close();
+            _cmdletPassedIn.WriteVerbose("Computing digest for config");
+            bool configDigestCreated = CreateDigest(configFilePath, out string configDigest, out ErrorRecord configDigestError);
+            if (!configDigestCreated)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(configDigestError);
+            }
+
+            /* Create manifest layer */
+            _cmdletPassedIn.WriteVerbose("Create package version metadata as JSON string");
+            string jsonString = CreateMetadataContent(psd1OrPs1File, parsedMetadataHash, out ErrorRecord metadataCreationError);
+            if (metadataCreationError != null)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(metadataCreationError);
+            }
 
             FileInfo nupkgFile = new FileInfo(fullNupkgFile);
             var fileSize = nupkgFile.Length;
             var fileName = System.IO.Path.GetFileName(fullNupkgFile);
-            string fileContent = CreateJsonContent(digest, emptyDigest, fileSize, fileName);
+            string fileContent = CreateJsonContent(nupkgDigest, configDigest, fileSize, fileName, jsonString);
             File.WriteAllText(configFilePath, fileContent);
 
             _cmdletPassedIn.WriteVerbose("Create the manifest layer");
@@ -1113,7 +1103,12 @@ namespace Microsoft.PowerShell.PSResourceGet
             return false;
         }
 
-        private string CreateJsonContent(string digest, string emptyDigest, long fileSize, string fileName)
+        private string CreateJsonContent(
+            string nupkgDigest, 
+            string configDigest, 
+            long nupkgFileSize, 
+            string fileName, 
+            string jsonString)
         {
             StringBuilder stringBuilder = new StringBuilder();
             StringWriter stringWriter = new StringWriter(stringBuilder);
@@ -1131,31 +1126,31 @@ namespace Microsoft.PowerShell.PSResourceGet
             jsonWriter.WritePropertyName("mediaType");
             jsonWriter.WriteValue("application/vnd.unknown.config.v1+json");
             jsonWriter.WritePropertyName("digest");
-            jsonWriter.WriteValue($"sha256:{emptyDigest}");
+            jsonWriter.WriteValue($"sha256:{configDigest}");
             jsonWriter.WritePropertyName("size");
             jsonWriter.WriteValue(0);
             jsonWriter.WriteEndObject();
 
             jsonWriter.WritePropertyName("layers");
             jsonWriter.WriteStartArray();
-            jsonWriter.WriteStartObject();
 
+            jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName("mediaType");
             jsonWriter.WriteValue("application/vnd.oci.image.layer.nondistributable.v1.tar+gzip'");
             jsonWriter.WritePropertyName("digest");
-            jsonWriter.WriteValue($"sha256:{digest}");
+            jsonWriter.WriteValue($"sha256:{nupkgDigest}");
             jsonWriter.WritePropertyName("size");
-            jsonWriter.WriteValue(fileSize);
+            jsonWriter.WriteValue(nupkgFileSize);
             jsonWriter.WritePropertyName("annotations");
-
             jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName("org.opencontainers.image.title");
             jsonWriter.WriteValue(fileName);
+            jsonWriter.WritePropertyName("metadata");
+            jsonWriter.WriteValue(jsonString);
+            jsonWriter.WriteEndObject();
             jsonWriter.WriteEndObject();
 
-            jsonWriter.WriteEndObject();
             jsonWriter.WriteEndArray();
-
             jsonWriter.WriteEndObject();
 
             return stringWriter.ToString();
@@ -1203,6 +1198,49 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return false;
             }
             return true;
+        }
+
+        private string CreateMetadataContent(string manifestFilePath, Hashtable parsedMetadata, out ErrorRecord metadataCreationError)
+        {
+            metadataCreationError = null;
+            Hashtable parsedMetadataHash = null;
+            string jsonString = string.Empty;
+
+            // A script will already have the metadata parsed into the parsedMetadatahash,
+            // a module will still need the module manifest to be parsed.
+            if (parsedMetadata == null || parsedMetadata.Count == 0)
+            {
+                // Use the parsed module manifest data as 'parsedMetadataHash' instead of the passed-in data.
+                if (!Utils.TryReadManifestFile(
+                    manifestFilePath: manifestFilePath,
+                    manifestInfo: out parsedMetadataHash,
+                    error: out Exception manifestReadError))
+                {
+                    metadataCreationError = new ErrorRecord(
+                        manifestReadError,
+                        "ManifestFileReadParseForACRPublishError",
+                        ErrorCategory.ReadError,
+                        _cmdletPassedIn);
+
+                    return jsonString;
+                }
+            }
+
+            if (parsedMetadataHash == null)
+            {
+                metadataCreationError = new ErrorRecord(
+                    new InvalidOperationException("Error parsing package metadata into hashtable."),
+                    "PackageMetadataHashEmptyError",
+                    ErrorCategory.InvalidData,
+                    _cmdletPassedIn);
+
+                return jsonString;
+            }
+
+            _cmdletPassedIn.WriteVerbose("Serialize JSON into string.");
+            jsonString = System.Text.Json.JsonSerializer.Serialize(parsedMetadataHash);
+
+            return jsonString;
         }
 
         #endregion

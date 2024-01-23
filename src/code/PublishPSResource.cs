@@ -486,7 +486,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     ACRServerAPICalls acrServer = new ACRServerAPICalls(repository, this, _networkCredential, userAgentString);
 
-                    if (!acrServer.PushNupkgACR(outputNupkgDir, _pkgName.ToLower(), _pkgVersion, repository, out ErrorRecord pushNupkgACRError))
+                    var pkgMetadataFile = (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish;
+                    if (!acrServer.PushNupkgACR(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, repository, parsedMetadata, out ErrorRecord pushNupkgACRError))
                     {
                         WriteError(pushNupkgACRError);
                         // exit out of processing
