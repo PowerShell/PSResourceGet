@@ -60,7 +60,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
             var repoURL = repository.Uri.ToString().ToLower();
             _isADORepo = repoURL.Contains("pkgs.dev.azure.com") || repoURL.Contains("pkgs.visualstudio.com");
-            _isJFrogRepo = repoURL.Contains("jfrog");
+            _isJFrogRepo = repoURL.Contains("jfrog") || repoURL.Contains("artifactory");
             _isPSGalleryRepo = repoURL.Contains("powershellgallery.com/api/v2");
         }
 
