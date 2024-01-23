@@ -8,7 +8,7 @@ Import-Module $modPath -Force -Verbose
 $buildModule = "$psscriptroot/../../out/Microsoft.PowerShell.PSResourceGet"
 Import-Module $buildModule -Force -Verbose
 
-Describe 'Test Update-PSModuleManifest' {
+Describe 'Test Update-PSModuleManifest' -tags 'CI' {
 
     BeforeEach {
         # Create temp module manifest to be updated
