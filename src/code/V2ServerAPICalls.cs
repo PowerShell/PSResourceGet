@@ -805,9 +805,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindAllFromTypeEndPoint()");
             string typeEndpoint = _isPSGalleryRepo && !isSearchingModule ? "/items/psscript" : String.Empty;
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
+            // JFrog/Artifactory requires an empty search term to enumerate all packages in the feed
+            string searchTerm = _isJFrogRepo ? "&searchTerm=''" : "";
             var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
 
-            var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?$filter={prereleaseFilter}{paginationParam}";
+            var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?$filter={prereleaseFilter}{searchTerm}{paginationParam}";
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
@@ -825,6 +827,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // type: Command -> just search Modules
             string typeEndpoint = _isPSGalleryRepo && !isSearchingModule ? "/items/psscript" : String.Empty;
             string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
+            // JFrog/Artifactory requires an empty search term to enumerate all packages in the feed
+            string searchTerm = _isJFrogRepo ? "&searchTerm=''" : "";
             var prereleaseFilter = includePrerelease ? "includePrerelease=true&$filter=IsAbsoluteLatestVersion" : "$filter=IsLatestVersion";
             string typeFilterPart = isSearchingModule ?  $" and substringof('PSModule', Tags) eq true" : $" and substringof('PSScript', Tags) eq true";
 
@@ -834,7 +838,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 tagFilterPart += $" and substringof('{tag}', Tags) eq true";
             }
 
-            var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?{prereleaseFilter}{typeFilterPart}{tagFilterPart}{paginationParam}";
+            var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?{prereleaseFilter}{searchTerm}{typeFilterPart}{tagFilterPart}{paginationParam}";
 
             return HttpRequestCall(requestUrlV2: requestUrlV2, out errRecord);
         }
