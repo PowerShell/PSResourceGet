@@ -605,7 +605,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 try
                 {
-                    var results = pwsh.AddCommand("Microsoft.PowerShell.Core\\New-ModuleManifest").AddArgument(new object[] { parsedMetadata }).Invoke<Object>();
+                    pwsh.AddCommand("Microsoft.PowerShell.Core\\New-ModuleManifest");
+                    foreach (var arg in parsedMetadata)
+                    {
+                        pwsh.AddArgument(arg);
+                    }
+
+                    var results = pwsh.Invoke<Object>();
                     if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
                     {
                         foreach (var err in pwsh.Streams.Error)
