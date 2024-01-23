@@ -143,9 +143,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override FindResults FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, out ErrorRecord errRecord)
         {
             errRecord = new ErrorRecord(
-                new InvalidOperationException($"Find by CommandName or DSCResource is not supported for the repository '{Repository.Name}'"), 
-                "FindCommandOrDscResourceFailure", 
-                ErrorCategory.InvalidOperation, 
+                new InvalidOperationException($"Find by CommandName or DSCResource is not supported for the repository '{Repository.Name}'"),
+                "FindCommandOrDscResourceFailure",
+                ErrorCategory.InvalidOperation,
                 this);
 
             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
@@ -437,25 +437,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (HttpRequestException e)
             {
                 errRecord = new ErrorRecord(
-                    exception: e, 
-                    "HttpRequestFallFailure", 
-                    ErrorCategory.ConnectionError, 
+                    exception: e,
+                    "HttpRequestFallFailure",
+                    ErrorCategory.ConnectionError,
                     this);
             }
             catch (ArgumentNullException e)
             {
                 errRecord = new ErrorRecord(
-                    exception: e, 
-                    "HttpRequestFallFailure", 
+                    exception: e,
+                    "HttpRequestFallFailure",
                     ErrorCategory.ConnectionError,
                     this);
             }
             catch (InvalidOperationException e)
             {
                 errRecord = new ErrorRecord(
-                    exception: e, 
-                    "HttpRequestFallFailure", 
-                    ErrorCategory.ConnectionError, 
+                    exception: e,
+                    "HttpRequestFallFailure",
+                    ErrorCategory.ConnectionError,
                     this);
             }
 
@@ -486,25 +486,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (HttpRequestException e)
             {
                 errRecord = new ErrorRecord(
-                    exception: e, 
-                    "HttpRequestFailure", 
-                    ErrorCategory.ConnectionError , 
+                    exception: e,
+                    "HttpRequestFailure",
+                    ErrorCategory.ConnectionError ,
                     this);
             }
             catch (ArgumentNullException e)
             {
                 errRecord = new ErrorRecord(
-                    exception: e, 
-                    "HttpRequestFailure", 
-                    ErrorCategory.InvalidData, 
+                    exception: e,
+                    "HttpRequestFailure",
+                    ErrorCategory.InvalidData,
                     this);
             }
             catch (InvalidOperationException e)
             {
                 errRecord = new ErrorRecord(
-                    exception: e, 
-                    "HttpRequestFailure", 
-                    ErrorCategory.InvalidOperation, 
+                    exception: e,
+                    "HttpRequestFailure",
+                    ErrorCategory.InvalidOperation,
                     this);
             }
 
@@ -571,9 +571,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (names.Length == 0)
             {
                 errRecord = new ErrorRecord(
-                    new ArgumentException("-Name '*' for NuGet.Server hosted feed repository is not supported"), 
-                    "FindNameGlobbingFailure", 
-                    ErrorCategory.InvalidArgument, 
+                    new ArgumentException("-Name '*' for NuGet.Server hosted feed repository is not supported"),
+                    "FindNameGlobbingFailure",
+                    ErrorCategory.InvalidArgument,
                     this);
 
                 return string.Empty;
@@ -607,9 +607,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             else
             {
                 errRecord = new ErrorRecord(
-                    new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."), 
-                    "FindNameGlobbingFailure", 
-                    ErrorCategory.InvalidArgument, 
+                    new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."),
+                    "FindNameGlobbingFailure",
+                    ErrorCategory.InvalidArgument,
                     this);
 
                 return string.Empty;
@@ -638,9 +638,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (names.Length == 0)
             {
                 errRecord = new ErrorRecord(
-                    new ArgumentException("-Name '*' for NuGet.Server hosted feed repository  is not supported"), 
-                    "FindNameGlobbingFailure", 
-                    ErrorCategory.InvalidArgument, 
+                    new ArgumentException("-Name '*' for NuGet.Server hosted feed repository  is not supported"),
+                    "FindNameGlobbingFailure",
+                    ErrorCategory.InvalidArgument,
                     this);
 
                 return string.Empty;
@@ -674,9 +674,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             else
             {
                 errRecord = new ErrorRecord(
-                    new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."), 
-                    "FindNameGlobbing", 
-                    ErrorCategory.InvalidArgument, 
+                    new ArgumentException("-Name with wildcards is only supported for scenarios similar to the following examples: PowerShell*, *ShellGet, *Shell*."),
+                    "FindNameGlobbing",
+                    ErrorCategory.InvalidArgument,
                     this);
 
                 return string.Empty;
@@ -786,16 +786,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Name: no wildcard support.
         /// Examples: Install "PowerShellGet"
         /// Implementation Note:   {repoUri}/Packages(Id='test_local_mod')/Download
-        ///                        if prerelease, call into InstallVersion instead. 
+        ///                        if prerelease, call into InstallVersion instead.
         /// </summary>
         private Stream InstallName(string packageName, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallName()");
             var requestUrl = $"{Repository.Uri}/Packages/(Id='{packageName}')/Download";
             var response = HttpRequestCallForContent(requestUrl, out errRecord);
-            var responseStream = response.ReadAsStreamAsync().Result;
 
-            return responseStream;
+            if (response is null)
+            {
+                errRecord = new ErrorRecord(
+                    new Exception($"No content was returned by repository '{Repository.Name}'"),
+                    "InstallFailureContentNullNuGetServer",
+                    ErrorCategory.InvalidResult,
+                    this);
+
+                return null;
+            }
+
+            return response.ReadAsStreamAsync().Result;
         }
 
         /// <summary>
@@ -805,15 +815,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Examples: Install "PowerShellGet" -Version "3.0.0.0"
         ///           Install "PowerShellGet" -Version "3.0.0-beta16"
         /// API Call: {repoUri}/Packages(Id='Castle.Core',Version='5.1.1')/Download
-        /// </summary>    
+        /// </summary>
         private Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallVersion()");
             var requestUrl = $"{Repository.Uri}/Packages(Id='{packageName}',Version='{version}')/Download";
             var response = HttpRequestCallForContent(requestUrl, out errRecord);
-            var responseStream = response.ReadAsStreamAsync().Result;
 
-            return responseStream;
+            if (response is null)
+            {
+                errRecord = new ErrorRecord(
+                    new Exception($"No content was returned by repository '{Repository.Name}'"),
+                    "InstallFailureContentNullNuGetServer",
+                    ErrorCategory.InvalidResult,
+                    this);
+
+                return null;
+            }
+
+            return response.ReadAsStreamAsync().Result;
         }
 
         /// <summary>
@@ -835,9 +855,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (XmlException e)
             {
                 errRecord = new ErrorRecord(
-                    exception: e, 
-                    "GetCountFromResponse", 
-                    ErrorCategory.InvalidData, 
+                    exception: e,
+                    "GetCountFromResponse",
+                    ErrorCategory.InvalidData,
                     this);
             }
             if (errRecord != null)
@@ -892,7 +912,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
                 response.EnsureSuccessStatusCode();
-                
+
                 return response.Content;
             }
             catch (HttpRequestException e)
