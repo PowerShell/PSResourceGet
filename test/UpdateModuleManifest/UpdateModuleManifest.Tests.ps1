@@ -3,11 +3,6 @@
 
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
-# Explicitly import build module because in CI PowerShell can autoload PSGetv2
-# This ensures the build module is always being tested
-$buildModule = "$psscriptroot/../../out/Microsoft.PowerShell.PSResourceGet"
-Import-Module $buildModule -Force -Verbose
-
 $IsWindowsPowerShell = ($PSVersionTable.PSVersion.Major -eq 5)
 
 Describe 'Test Update-PSModuleManifest' -tags 'CI' {
