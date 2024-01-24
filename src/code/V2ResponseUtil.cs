@@ -75,12 +75,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             XmlDocument doc = new XmlDocument();
             doc.LoadXml(httpResponse);
 
-            XmlNodeList elemList = doc.GetElementsByTagName("m:properties");
-            
-            XmlNode[] nodes = new XmlNode[elemList.Count]; 
-            for (int i = 0; i < elemList.Count; i++) 
+            XmlNodeList entryNode = doc.GetElementsByTagName("entry");
+
+            XmlNode[] nodes = new XmlNode[entryNode.Count];
+            for (int i = 0; i < entryNode.Count; i++) 
             {
-                nodes[i] = elemList[i]; 
+                nodes[i] = entryNode[i];
             }
 
             return nodes;
