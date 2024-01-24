@@ -494,7 +494,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (!_savePkg)
                 {
                     // Need to ensure "InstalledScriptInfos directory exists
-                    if (!Directory.Exists(Path.Combine(installPath, "InstalledScriptInfos")))
+                    if (!Directory.Exists(scriptInfoFolderPath))
+
                     {
                         _cmdletPassedIn.WriteVerbose($"Created '{scriptInfoFolderPath}' path for scripts");
                         Directory.CreateDirectory(scriptInfoFolderPath);
