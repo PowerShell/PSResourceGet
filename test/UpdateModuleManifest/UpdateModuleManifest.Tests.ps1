@@ -102,7 +102,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $ModuleVersion = "1.0.0"
         $Prerelease = "  "
         New-ModuleManifest -Path $script:testManifestPath -Description $Description -ModuleVersion $ModuleVersion
-        {Update-PSModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease} | Should -Throw -ErrorId "PrereleaseValueCannotOrBeWhiteSpace,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+        {Update-PSModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease} | Should -Throw -ErrorId "PrereleaseValueCannotBeWhiteSpace,Microsoft.PowerShell.PSResourceGet.Cmdlets.UpdateModuleManifest"
     }
 
     It "Update module manifest given ReleaseNotes parameter" {
