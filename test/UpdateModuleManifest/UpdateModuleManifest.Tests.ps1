@@ -88,7 +88,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         }
     }
 
-    It "Update module manifest given Prerelease parameter"  {
+    It "Update module manifest given Prerelease parameter" -Skip:$IsWindowsPowerShell {
         $Description = "Test Description"
         $ModuleVersion = "1.0.0"
         $Prerelease = "preview"
@@ -413,7 +413,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $results.Contains($CmdletToExport2) | Should -Be $true
     }
 
-    It "Update module manifest should not overwrite over old data unless explcitly specified" {
+    It "Update module manifest should not overwrite over old data unless explcitly specified" -Skip:$IsWindowsPowerShell {
         $Description = "Test Description"
         $ModuleVersion = "2.0.0"
         $Author = "Leto Atriedes"
