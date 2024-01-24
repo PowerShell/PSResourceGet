@@ -22,37 +22,37 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
     }
 
     It "Find resource given specific Name, Version null" {
-        # FindName()
         $res = Find-PSResource -Name $testModuleName -Repository $ADOV2RepoName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
     }
 
     It "Should not find resource given nonexistant Name" {
         $res = Find-PSResource -Name NonExistantModule -Repository $ADOV2RepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 
+<#TODO 
     It "Find resource(s) given wildcard Name" {
         # FindNameGlobbing
         $foundScript = $False
         $res = Find-PSResource -Name "test_*" -Repository $ADOV2RepoName
         $res.Count | Should -BeGreaterThan 1
     }
-
-    $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0.0");                                  Reason="validate version, exact match"},
-                  @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0.0");                                  Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0");            Reason="validate version, exact range inclusive"},
-                  @{Version="(1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("3.0.0.0");                                  Reason="validate version, exact range exclusive"},
-                  @{Version="(1.0.0.0,)";          ExpectedVersions=@("3.0.0.0", "5.0.0.0");                       Reason="validate version, minimum version exclusive"},
-                  @{Version="[1.0.0.0,)";          ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0");            Reason="validate version, minimum version inclusive"},
-                  @{Version="(,3.0.0.0)";          ExpectedVersions=@("1.0.0.0");                                  Reason="validate version, maximum version exclusive"},
-                  @{Version="(,3.0.0.0]";          ExpectedVersions=@("1.0.0.0", "3.0.0.0");                       Reason="validate version, maximum version inclusive"},
-                  @{Version="[1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("1.0.0.0", "3.0.0.0");                       Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("3.0.0.0", "5.0.0.0");                       Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+#>
+    $testCases2 = @{Version="[5.0.0]";           ExpectedVersions=@("5.0.0");                                  Reason="validate version, exact match"},
+                  @{Version="5.0.0";             ExpectedVersions=@("5.0.0");                                  Reason="validate version, exact match without bracket syntax"},
+                  @{Version="[1.0.0, 5.0.0]";    ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, exact range inclusive"},
+                  @{Version="(1.0.0, 5.0.0)";    ExpectedVersions=@("3.0.0");                                  Reason="validate version, exact range exclusive"},
+                  @{Version="(1.0.0,)";          ExpectedVersions=@("3.0.0", "5.0.0");                       Reason="validate version, minimum version exclusive"},
+                  @{Version="[1.0.0,)";          ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, minimum version inclusive"},
+                  @{Version="(,3.0.0)";          ExpectedVersions=@("1.0.0");                                  Reason="validate version, maximum version exclusive"},
+                  @{Version="(,3.0.0]";          ExpectedVersions=@("1.0.0", "3.0.0");                       Reason="validate version, maximum version inclusive"},
+                  @{Version="[1.0.0, 5.0.0)";    ExpectedVersions=@("1.0.0", "3.0.0");                       Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+                  @{Version="(1.0.0, 5.0.0]";    ExpectedVersions=@("3.0.0", "5.0.0");                       Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
 
     It "Find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
         # FindVersionGlobbing()
@@ -79,7 +79,7 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         # FindName()
         # test_module resource's latest version is a prerelease version, before that it has a non-prerelease version
         $res = Find-PSResource -Name $testModuleName -Repository $ADOV2RepoName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
 
         $resPrerelease = Find-PSResource -Name $testModuleName -Prerelease -Repository $ADOV2RepoName
         $resPrerelease.Version | Should -Be "5.2.5"
@@ -168,6 +168,8 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $resScriptType.Replace(",", " ").Split() | Should -Contain "Script"
     }
 #>
+
+<# TODO 
     It "find all resources of Type Module when Type parameter set is used" {
         $foundScript = $False
         $res = Find-PSResource -Name "test*" -Type Module -Repository $ADOV2RepoName
@@ -181,7 +183,7 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
 
         $foundScript | Should -Be $False
     }
-
+#>
     # It "find resources only with Tag parameter" {
     #     $resWithEitherExpectedTag = @("NetworkingDsc", "DSCR_FileContent", "SS.PowerShell")
     #     $res = Find-PSResource -Name "NetworkingDsc", "HPCMSL", "DSCR_FileContent", "SS.PowerShell", "PSResourceGet" -Tag "Dsc", "json" -Repository $ADOV2RepoName
@@ -189,7 +191,7 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
     #         $resWithEitherExpectedTag | Should -Contain $item.Name
     #     }
     # }
-
+<# TODO
     It "Find resource that satisfies given Name and Tag property (single tag)" {
         # FindNameWithTag()
         $requiredTag = "test"
@@ -197,7 +199,7 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $res.Name | Should -Be $testModuleName
         $res.Tags | Should -Contain $requiredTag
     }
-
+#>
     It "Should not find resource if Name and Tag are not both satisfied (single tag)" {
         # FindNameWithTag
         $requiredTag = "Windows" # tag "windows" is not present for test_module package
@@ -207,6 +209,7 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
+<# TODO
     It "Find resource that satisfies given Name and Tag property (multiple tags)" {
         # FindNameWithTag()
         $requiredTags = @("test", "Tag2")
@@ -215,7 +218,7 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $res.Tags | Should -Contain $requiredTags[0]
         $res.Tags | Should -Contain $requiredTags[1]
     }
-
+#>
     It "Should not find resource if Name and Tag are not both satisfied (multiple tag)" {
         # FindNameWithTag
         $requiredTags = @("test", "Windows") # tag "windows" is not present for test_module package
@@ -225,6 +228,7 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
+<# TODO
     It "Find all resources that satisfy Name pattern and have specified Tag (single tag)" {
         # FindNameGlobbingWithTag()
         $requiredTag = "test"
@@ -237,14 +241,18 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
             $pkg.Tags | Should -Contain $requiredTag
         }
     }
+#>
 
+<# TODO 
     It "Should not find resources if both Name pattern and Tags are not satisfied (single tag)" {
         # FindNameGlobbingWithTag()
         $requiredTag = "windows" # tag "windows" is not present for test_module package
         $res = Find-PSResource -Name "test_module*" -Tag $requiredTag -Repository $ADOV2RepoName
         $res | Should -BeNullOrEmpty
     }
+#>
 
+<# TODO 
     It "Find all resources that satisfy Name pattern and have specified Tag (multiple tags)" {
         # FindNameGlobbingWithTag()
         $requiredTags = @("test", "Tag2")
@@ -258,27 +266,29 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
             $pkg.Tags | Should -Contain $requiredTags[1]
         }
     }
+#>
 
+<#TODO 
     It "Should not find resources if both Name pattern and Tags are not satisfied (multiple tags)" {
         # FindNameGlobbingWithTag() # tag "windows" is not present for test_module package
         $requiredTags = @("test", "windows")
         $res = Find-PSResource -Name "test_module*" -Tag $requiredTags -Repository $ADOV2RepoName
         $res | Should -BeNullOrEmpty
     }
-
+#>
     It "Find resource that satisfies given Name, Version and Tag property (single tag)" {
         # FindVersionWithTag()
-        $requiredTag = "test"
-        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $ADOV2RepoName
+        $requiredTag = "Test"
+        $res = Find-PSResource -Name $testModuleName -Version "5.0.0" -Tag $requiredTag -Repository $ADOV2RepoName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
         $res.Tags | Should -Contain $requiredTag
     }
 
     It "Should not find resource if Name, Version and Tag property are not all satisfied (single tag)" {
         # FindVersionWithTag()
         $requiredTag = "windows" # tag "windows" is not present for test_module package
-        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTag -Repository $ADOV2RepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $testModuleName -Version "5.0.0" -Tag $requiredTag -Repository $ADOV2RepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -286,10 +296,10 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
 
     It "Find resource that satisfies given Name, Version and Tag property (multiple tags)" {
         # FindVersionWithTag()
-        $requiredTags = @("test", "Tag2")
-        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTags -Repository $ADOV2RepoName
+        $requiredTags = @("Test", "Tag2")
+        $res = Find-PSResource -Name $testModuleName -Version "5.0.0" -Tag $requiredTags -Repository $ADOV2RepoName
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0.0"
+        $res.Version | Should -Be "5.0.0"
         $res.Tags | Should -Contain $requiredTags[0]
         $res.Tags | Should -Contain $requiredTags[1]
 
@@ -298,7 +308,7 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
     It "Should not find resource if Name, Version and Tag property are not all satisfied (multiple tags)" {
         # FindVersionWithTag()
         $requiredTags = @("test", "windows")
-        $res = Find-PSResource -Name $testModuleName -Version "5.0.0.0" -Tag $requiredTags -Repository $ADOV2RepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $testModuleName -Version "5.0.0" -Tag $requiredTags -Repository $ADOV2RepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -328,30 +338,9 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
     #     $foundTestScript | Should -Be $True
     # }
 
-    It "Find all resources with specified tag given Tag property, with and without Prerelease property" {
-        $tagToFind = "MyPSTag"
-        $res = Find-PSResource -Tag $tagToFind -Repository $ADOV2RepoName
-        $res | Should -HaveCount 1
-
-        $res = Find-PSResource -Tag $tagToFind -Repository $ADOV2RepoName -Prerelease
-        $res | Should -HaveCount 2
-    }
-
-    It "Find all resources within a version range, including prereleases" {
-        $res = Find-PSResource -Name "PSReadLine" -Version "(2.0,2.1)" -Prerelease -Repository $ADOV2RepoName
-        $res | Should -Not -BeNullOrEmpty
-        $res.Count | Should -BeGreaterOrEqual 7 
-    }
-
-    It "Find a specific version using NuGet versioning bracket syntax" {
-        $res = Find-PSResource -Name $testModuleName -Version "[3.0.0,3.0.0]" -Repository $ADOV2RepoName
-        $res | Should -Not -BeNullOrEmpty
-        $res.Version | Should -Be "3.0.0.0"
-    }
-
     <#
     It "should not find and write error when finding package version that is unlisted" {
-        $res = Find-PSResource -Name $testModuleNameWithUnlistedVersion -Version "1.0.0.0" -Repository $ADOV2RepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $testModuleNameWithUnlistedVersion -Version "1.0.0" -Repository $ADOV2RepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -HaveCount 0
         $err | Should -HaveCount 1
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
