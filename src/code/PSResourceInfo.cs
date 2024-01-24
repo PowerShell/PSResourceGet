@@ -490,76 +490,79 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 Hashtable metadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
 
-                var childNodes = entry.ChildNodes;
-                foreach (XmlElement child in childNodes)
+                var entryChildNodes = entry.ChildNodes;
+                foreach (XmlElement entryChild in entryChildNodes)
                 {
-                    var key = child.LocalName;
-                    var value = child.InnerText;
+                    var entryKey = entryChild.LocalName;
 
-                    if (key.Equals("Title"))
+                    // For repositories such as JFrog's Artifactory, there is no 'Id' property, just 'title' (which contains the name of the pkg).
+                    // However, other repos, like PSGallery include the name of the pkg in the 'Id' property and leave 'title' empty.
+                    // In JFrog's Artifactory, 'title' exists both as a child of the 'entry' node and as a child of the 'properties' node,
+                    // though sometimes 'title' under the 'properties' node can be empty (so default to using the former).
+                    if (entryKey.Equals("title"))
                     {
-                        // For repositories such as JFrog's Artifactory, there is no 'Id' property, just 'Title' (which contains the name of the pkg).
-                        // However, other repos, like PSGallery include the name of the pkg in the 'Id' property and leave 'Title' empty.
-
-                        // First check to see that both 'Title' and 'Id' exist in the child nodes. 
-                        // If both exist, take 'Id', otherwise just take 'Title'. 
-                        bool containsID = false;
-                        foreach (XmlElement childNode in childNodes)
+                        metadata["Id"] = entryChild.InnerText;
+                    }
+                    else if (entryKey.Equals("properties"))
+                    {
+                        var propertyChildNodes = entryChild.ChildNodes;
+                        foreach (XmlElement propertyChild in propertyChildNodes)
                         {
-                            if (childNode.LocalName == "Id")
+                            var propertyKey = propertyChild.LocalName;
+                            var propertyValue = propertyChild.InnerText;
+
+                            if (propertyKey.Equals("Title"))
                             {
-                                containsID = true;
+                                if (!metadata.ContainsKey("Id"))
+                                {
+                                    metadata["Id"] = propertyValue;
+                                }
+                            }
+                            if (propertyKey.Equals("Version"))
+                            {
+                                metadata[propertyKey] = ParseHttpVersion(propertyValue, out string prereleaseLabel);
+                                metadata["Prerelease"] = prereleaseLabel;
+                            }
+                            else if (propertyKey.EndsWith("Url"))
+                            {
+                                metadata[propertyKey] = ParseHttpUrl(propertyValue) as Uri;
+                            }
+                            else if (propertyKey.Equals("Tags"))
+                            {
+                                metadata[propertyKey] = propertyValue.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            }
+                            else if (propertyKey.Equals("Published"))
+                            {
+                                metadata[propertyKey] = ParseHttpDateTime(propertyValue);
+                            }
+                            else if (propertyKey.Equals("Dependencies"))
+                            {
+                                metadata[propertyKey] = ParseHttpDependencies(propertyValue);
+                            }
+                            else if (propertyKey.Equals("IsPrerelease"))
+                            {
+                                bool.TryParse(propertyValue, out bool isPrerelease);
+
+                                metadata[propertyKey] = isPrerelease;
+                            }
+                            else if (propertyKey.Equals("NormalizedVersion"))
+                            {
+                                if (!NuGetVersion.TryParse(propertyValue, out NuGetVersion parsedNormalizedVersion))
+                                {
+                                    errorMsg = string.Format(
+                                        CultureInfo.InvariantCulture,
+                                        @"TryReadPSGetInfo: Cannot parse NormalizedVersion");
+
+                                    parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
+                                }
+
+                                metadata[propertyKey] = parsedNormalizedVersion;
+                            }
+                            else
+                            {
+                                metadata[propertyKey] = propertyValue;
                             }
                         }
-
-                        if (!containsID)
-                        {
-                            metadata["Id"] = value;
-                        }
-                    }
-                    if (key.Equals("Version"))
-                    {
-                        metadata[key] = ParseHttpVersion(value, out string prereleaseLabel);
-                        metadata["Prerelease"] = prereleaseLabel;
-                    }
-                    else if (key.EndsWith("Url"))
-                    {
-                        metadata[key] = ParseHttpUrl(value) as Uri;
-                    }
-                    else if (key.Equals("Tags"))
-                    {
-                        metadata[key] = value.Split(new char[]{' '}, StringSplitOptions.RemoveEmptyEntries);
-                    }
-                    else if (key.Equals("Published"))
-                    {
-                        metadata[key] = ParseHttpDateTime(value);
-                    }
-                    else if (key.Equals("Dependencies")) 
-                    {
-                        metadata[key] = ParseHttpDependencies(value);
-                    }
-                    else if (key.Equals("IsPrerelease")) 
-                    {
-                        bool.TryParse(value, out bool isPrerelease);
-
-                        metadata[key] = isPrerelease;
-                    }
-                    else if (key.Equals("NormalizedVersion"))
-                    {
-                        if (!NuGetVersion.TryParse(value, out NuGetVersion parsedNormalizedVersion))
-                        {
-                            errorMsg = string.Format(
-                                CultureInfo.InvariantCulture,
-                                @"TryReadPSGetInfo: Cannot parse NormalizedVersion");
-
-                            parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
-                        }
-
-                        metadata[key] = parsedNormalizedVersion;
-                    }
-                    else 
-                    {
-                        metadata[key] = value;
                     }
                 }
 
