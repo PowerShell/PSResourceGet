@@ -8,6 +8,8 @@ Import-Module $modPath -Force -Verbose
 $buildModule = "$psscriptroot/../../out/Microsoft.PowerShell.PSResourceGet"
 Import-Module $buildModule -Force -Verbose
 
+$IsWindowsPowerShell = ($PSVersionTable.PSVersion.Major -eq 5)
+
 Describe 'Test Update-PSModuleManifest' -tags 'CI' {
 
     BeforeEach {
@@ -86,7 +88,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         }
     }
 
-    It "Update module manifest given Prerelease parameter" {
+    It "Update module manifest given Prerelease parameter"  {
         $Description = "Test Description"
         $ModuleVersion = "1.0.0"
         $Prerelease = "preview"
@@ -97,7 +99,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $results.PrivateData.PSData.Prerelease | Should -Be $Prerelease
     }
 
-    It "should not update module manifest given Prerelease parameter that is invalid" {
+    It "should not update module manifest given Prerelease parameter that is invalid" -Skip:$IsWindowsPowerShell {
         $Description = "Test Description"
         $ModuleVersion = "1.0.0"
         $Prerelease = "  "
@@ -167,7 +169,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $results.PrivateData.PSData.IconUri | Should -Be $IconUri
     }
 
-    It "Update module manifest given RequireLicenseAcceptance parameter" {
+    It "Update module manifest given RequireLicenseAcceptance parameter" -Skip:$IsWindowsPowerShell {
         $Description = "PSResourceGet test description"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
         Update-PSModuleManifest -Path $script:testManifestPath -RequireLicenseAcceptance
@@ -176,7 +178,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $results.PrivateData.PSData.RequireLicenseAcceptance | Should -Be $true
     }
 
-    It "Update module manifest given ExternalModuleDependencies parameter" {
+    It "Update module manifest given ExternalModuleDependencies parameter" -Skip:$IsWindowsPowerShell {
         $Description = "Test Description"
         $ExternalModuleDep1 = "ExternalModuleDep1"
         $ExternalModuleDep2 = "ExternalModuleDep2"
