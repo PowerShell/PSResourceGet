@@ -488,12 +488,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                var scriptXML = pkgInfo.Name + "_InstalledScriptInfo.xml";
+                string scriptInfoFolderPath = Path.Combine(installPath, "InstalledScriptInfos");
+                string scriptXML = pkgInfo.Name + "_InstalledScriptInfo.xml";
+                string scriptXmlFilePath = Path.Combine(scriptInfoFolderPath, scriptXML);
                 if (!_savePkg)
                 {
+                    // Need to ensure "InstalledScriptInfos directory exists
+                    if (!Directory.Exists(Path.Combine(installPath, "InstalledScriptInfos")))
+                    {
+                        _cmdletPassedIn.WriteVerbose($"Created '{scriptInfoFolderPath}' path for scripts");
+                        Directory.CreateDirectory(scriptInfoFolderPath);
+                    }
+
                     // Need to delete old xml files because there can only be 1 per script
-                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(installPath, "InstalledScriptInfos", scriptXML))));
-                    if (File.Exists(Path.Combine(installPath, "InstalledScriptInfos", scriptXML)))
+                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: '{1}'", scriptXmlFilePath, File.Exists(scriptXmlFilePath)));
+                    if (File.Exists(scriptXmlFilePath))
                     {
                         _cmdletPassedIn.WriteVerbose("Deleting script metadata XML");
                         File.Delete(Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
