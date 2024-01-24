@@ -605,7 +605,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 try
                 {
-                    object[] metadata = new object[] {parsedMetadata};
                     var results = pwsh.AddCommand("Microsoft.PowerShell.Core\\New-ModuleManifest").AddParameters(parsedMetadata).Invoke<Object>();
                     if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
                     {
