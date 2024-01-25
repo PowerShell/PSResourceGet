@@ -35,14 +35,13 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $res | Should -BeNullOrEmpty
     }
 
-<#TODO 
     It "Find resource(s) given wildcard Name" {
         # FindNameGlobbing
         $foundScript = $False
         $res = Find-PSResource -Name "test_*" -Repository $ADOV2RepoName
         $res.Count | Should -BeGreaterThan 1
     }
-#>
+
     $testCases2 = @{Version="[5.0.0]";           ExpectedVersions=@("5.0.0");                                  Reason="validate version, exact match"},
                   @{Version="5.0.0";             ExpectedVersions=@("5.0.0");                                  Reason="validate version, exact match without bracket syntax"},
                   @{Version="[1.0.0, 5.0.0]";    ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, exact range inclusive"},
@@ -93,7 +92,7 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $resWithPrerelease.Count | Should -BeGreaterOrEqual $resWithoutPrerelease.Count
     }
 
-<# TODO
+<# LATER
     It "Find resource and its dependency resources with IncludeDependencies parameter" {
         # FindName() with deps
         $resWithoutDependencies = Find-PSResource -Name "TestModuleWithDependencyE" -Repository $ADOV2RepoName
@@ -169,37 +168,22 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
     }
 #>
 
-<# TODO 
-    It "find all resources of Type Module when Type parameter set is used" {
-        $foundScript = $False
-        $res = Find-PSResource -Name "test*" -Type Module -Repository $ADOV2RepoName
-        $res.Count | Should -BeGreaterThan 1
-        foreach ($item in $res) {
-            if ($item.Type -eq "Script")
-            {
-                $foundScript = $True
-            }
-        }
 
-        $foundScript | Should -Be $False
+    It "Find all resources of Type Module when Type parameter set is used" {
+        $res = Find-PSResource -Name "test*" -Type Module -Repository $ADOV2RepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -BeGreaterThan 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameGlobbingNotSupportedForRepo,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
-#>
-    # It "find resources only with Tag parameter" {
-    #     $resWithEitherExpectedTag = @("NetworkingDsc", "DSCR_FileContent", "SS.PowerShell")
-    #     $res = Find-PSResource -Name "NetworkingDsc", "HPCMSL", "DSCR_FileContent", "SS.PowerShell", "PSResourceGet" -Tag "Dsc", "json" -Repository $ADOV2RepoName
-    #     foreach ($item in $res) {
-    #         $resWithEitherExpectedTag | Should -Contain $item.Name
-    #     }
-    # }
-<# TODO
+
     It "Find resource that satisfies given Name and Tag property (single tag)" {
         # FindNameWithTag()
-        $requiredTag = "test"
+        $requiredTag = "Test"
         $res = Find-PSResource -Name $testModuleName -Tag $requiredTag -Repository $ADOV2RepoName
         $res.Name | Should -Be $testModuleName
         $res.Tags | Should -Contain $requiredTag
     }
-#>
+
     It "Should not find resource if Name and Tag are not both satisfied (single tag)" {
         # FindNameWithTag
         $requiredTag = "Windows" # tag "windows" is not present for test_module package
@@ -209,16 +193,15 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
-<# TODO
     It "Find resource that satisfies given Name and Tag property (multiple tags)" {
         # FindNameWithTag()
-        $requiredTags = @("test", "Tag2")
+        $requiredTags = @("Test", "Tag2")
         $res = Find-PSResource -Name $testModuleName -Tag $requiredTags -Repository $ADOV2RepoName
         $res.Name | Should -Be $testModuleName
         $res.Tags | Should -Contain $requiredTags[0]
         $res.Tags | Should -Contain $requiredTags[1]
     }
-#>
+
     It "Should not find resource if Name and Tag are not both satisfied (multiple tag)" {
         # FindNameWithTag
         $requiredTags = @("test", "Windows") # tag "windows" is not present for test_module package
@@ -228,54 +211,24 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
-<# TODO
     It "Find all resources that satisfy Name pattern and have specified Tag (single tag)" {
         # FindNameGlobbingWithTag()
         $requiredTag = "test"
         $nameWithWildcard = "test_module*"
-        $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTag -Repository $ADOV2RepoName
-        $res.Count | Should -BeGreaterThan 1
-        foreach ($pkg in $res)
-        {
-            $pkg.Name | Should -BeLike $nameWithWildcard
-            $pkg.Tags | Should -Contain $requiredTag
-        }
-    }
-#>
-
-<# TODO 
-    It "Should not find resources if both Name pattern and Tags are not satisfied (single tag)" {
-        # FindNameGlobbingWithTag()
-        $requiredTag = "windows" # tag "windows" is not present for test_module package
-        $res = Find-PSResource -Name "test_module*" -Tag $requiredTag -Repository $ADOV2RepoName
+        $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTag -Repository $ADOV2RepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
-    }
-#>
+        $err.Count | Should -BeGreaterThan 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindNameGlobbingAndTagFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
 
-<# TODO 
-    It "Find all resources that satisfy Name pattern and have specified Tag (multiple tags)" {
-        # FindNameGlobbingWithTag()
-        $requiredTags = @("test", "Tag2")
-        $nameWithWildcard = "test_module*"
-        $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTags -Repository $ADOV2RepoName
-        $res.Count | Should -BeGreaterThan 1
-        foreach ($pkg in $res)
-        {
-            $pkg.Name | Should -BeLike $nameWithWildcard
-            $pkg.Tags | Should -Contain $requiredTags[0]
-            $pkg.Tags | Should -Contain $requiredTags[1]
-        }
     }
-#>
 
-<#TODO 
     It "Should not find resources if both Name pattern and Tags are not satisfied (multiple tags)" {
         # FindNameGlobbingWithTag() # tag "windows" is not present for test_module package
-        $requiredTags = @("test", "windows")
-        $res = Find-PSResource -Name "test_module*" -Tag $requiredTags -Repository $ADOV2RepoName
+        $requiredTags = @("Test", "windows")
+        $res = Find-PSResource -Name $testModuleName -Tag $requiredTags -Repository $ADOV2RepoName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
-#>
+
     It "Find resource that satisfies given Name, Version and Tag property (single tag)" {
         # FindVersionWithTag()
         $requiredTag = "Test"
@@ -313,37 +266,4 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
-
-    # It "find all resources with specified tag given Tag property" {
-    #     # FindTag()
-    #     $foundTestModule = $False
-    #     $foundTestScript = $False
-    #     $tagToFind = "Tag2"
-    #     $res = Find-PSResource -Tag $tagToFind -Repository $ADOV2RepoName
-    #     foreach ($item in $res) {
-    #         $item.Tags -contains $tagToFind | Should -Be $True
-
-    #         if ($item.Name -eq $testModuleName)
-    #         {
-    #             $foundTestModule = $True
-    #         }
-
-    #         if ($item.Name -eq $testScriptName)
-    #         {
-    #             $foundTestScript = $True
-    #         }
-    #     }
-
-    #     $foundTestModule | Should -Be $True
-    #     $foundTestScript | Should -Be $True
-    # }
-
-    <#
-    It "should not find and write error when finding package version that is unlisted" {
-        $res = Find-PSResource -Name $testModuleNameWithUnlistedVersion -Version "1.0.0" -Repository $ADOV2RepoName -ErrorVariable err -ErrorAction SilentlyContinue
-        $res | Should -HaveCount 0
-        $err | Should -HaveCount 1
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
-    }
-    #>
 }
