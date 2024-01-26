@@ -995,7 +995,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             try
             {
-                var s_tempHome = Path.Combine(Path.GetTempPath(), string.Format(CultureInfo.CurrentCulture, tempHomeFolderName, Environment.UserName));
+                s_tempHome = Path.Combine(Path.GetTempPath(), string.Format(CultureInfo.CurrentCulture, tempHomeFolderName, Environment.UserName));
                 Directory.CreateDirectory(s_tempHome);
             }
             catch (UnauthorizedAccessException)
