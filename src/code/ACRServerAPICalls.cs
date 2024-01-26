@@ -986,21 +986,23 @@ namespace Microsoft.PowerShell.PSResourceGet
                 SetDefaultHeaders(contentHeaders);
 
                 FileInfo fileInfo = new FileInfo(filePath);
-                FileStream fileStream = fileInfo.Open(FileMode.Open, FileAccess.Read);
-                HttpContent httpContent = new StreamContent(fileStream);
-                if (isManifest)
+                using (FileStream fileStream = fileInfo.Open(FileMode.Open, FileAccess.Read))
                 {
-                    httpContent.Headers.Add("Content-Type", "application/vnd.oci.image.manifest.v1+json");
-                }
-                else
-                {
-                    httpContent.Headers.Add("Content-Type", "application/octet-stream");
-                }
+                    HttpContent httpContent = new StreamContent(fileStream);
+                    if (isManifest)
+                    {
+                        httpContent.Headers.Add("Content-Type", "application/vnd.oci.image.manifest.v1+json");
+                    }
+                    else
+                    {
+                        httpContent.Headers.Add("Content-Type", "application/octet-stream");
+                    }
 
-                HttpResponseMessage response = await s_client.PutAsync(url, httpContent);
-                response.EnsureSuccessStatusCode();
-                fileStream.Close();
-                return response.IsSuccessStatusCode;
+                    HttpResponseMessage response = await s_client.PutAsync(url, httpContent);
+                    response.EnsureSuccessStatusCode();
+
+                    return response.IsSuccessStatusCode;
+                }
             }
             catch (HttpRequestException e)
             {
@@ -1063,6 +1065,28 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteVerbose("Finish uploading blob");
             bool moduleUploadSuccess = EndUploadBlob(registry, moduleLocation, fullNupkgFile, nupkgDigest, false, acrAccessToken).Result;
 
+            /* Upload an empty file-- needed by ACR server */
+            _cmdletPassedIn.WriteVerbose("Create an empty file");
+            string emptyFileName = "empty.txt";
+            var emptyFilePath = System.IO.Path.Combine(outputNupkgDir, emptyFileName);
+            // Rename the empty file in case such a file already exists in the temp folder (although highly unlikely)
+            while (File.Exists(emptyFilePath))
+            {
+                emptyFilePath = Guid.NewGuid().ToString() + ".txt";
+            }
+            using (FileStream configStream = new FileStream(emptyFilePath, FileMode.Create)){ }
+            _cmdletPassedIn.WriteVerbose("Start uploading an empty file");
+            var emptyLocation = GetStartUploadBlobLocation(registry, pkgName, acrAccessToken).Result;
+            _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
+            bool emptyDigestCreated = CreateDigest(emptyFilePath, out string emptyDigest, out ErrorRecord emptyDigestError);
+            if (!emptyDigestCreated)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(emptyDigestError);
+            }
+            _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
+            bool emptyFileUploadSuccess = EndUploadBlob(registry, emptyLocation, emptyFilePath, emptyDigest, false, acrAccessToken).Result;
+
+            /* Create config layer */
             _cmdletPassedIn.WriteVerbose("Create the config file");
             string configFileName = "config.json";
             var configFilePath = System.IO.Path.Combine(outputNupkgDir, configFileName);
@@ -1070,8 +1094,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 configFilePath = Guid.NewGuid().ToString() + ".json";
             }
-            FileStream configStream = File.Create(configFilePath);
-            configStream.Close();
+            using (FileStream configStream = new FileStream(configFilePath, FileMode.Create)){ }
             _cmdletPassedIn.WriteVerbose("Computing digest for config");
             bool configDigestCreated = CreateDigest(configFilePath, out string configDigest, out ErrorRecord configDigestError);
             if (!configDigestCreated)
@@ -1163,36 +1186,36 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             FileInfo fileInfo = new FileInfo(fileName);
             SHA256 mySHA256 = SHA256.Create();
-            FileStream fileStream = fileInfo.Open(FileMode.Open, FileAccess.Read);
-            digest = string.Empty;
+            using (FileStream fileStream = fileInfo.Open(FileMode.Open, FileAccess.Read))
+            {
+                digest = string.Empty;
 
-            try
-            {
-                // Create a fileStream for the file.
-                // Be sure it's positioned to the beginning of the stream.
-                fileStream.Position = 0;
-                // Compute the hash of the fileStream.
-                byte[] hashValue = mySHA256.ComputeHash(fileStream);
-                StringBuilder stringBuilder = new StringBuilder();
-                foreach (byte b in hashValue)
-                    stringBuilder.AppendFormat("{0:x2}", b);
-                digest = stringBuilder.ToString();
-                // Write the name and hash value of the file to the console.
-                _cmdletPassedIn.WriteVerbose($"{fileInfo.Name}: {hashValue}");
-                error = null;
+                try
+                {
+                    // Create a fileStream for the file.
+                    // Be sure it's positioned to the beginning of the stream.
+                    fileStream.Position = 0;
+                    // Compute the hash of the fileStream.
+                    byte[] hashValue = mySHA256.ComputeHash(fileStream);
+                    StringBuilder stringBuilder = new StringBuilder();
+                    foreach (byte b in hashValue)
+                        stringBuilder.AppendFormat("{0:x2}", b);
+                    digest = stringBuilder.ToString();
+                    // Write the name and hash value of the file to the console.
+                    _cmdletPassedIn.WriteVerbose($"{fileInfo.Name}: {hashValue}");
+                    error = null;
+                }
+                catch (IOException ex)
+                {
+                    var IOError = new ErrorRecord(ex, $"IOException for .nupkg file: {ex.Message}", ErrorCategory.InvalidOperation, null);
+                    error = IOError;
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    var AuthorizationError = new ErrorRecord(ex, $"UnauthorizedAccessException for .nupkg file: {ex.Message}", ErrorCategory.PermissionDenied, null);
+                    error = AuthorizationError;
+                }
             }
-            catch (IOException ex)
-            {
-                var IOError = new ErrorRecord(ex, $"IOException for .nupkg file: {ex.Message}", ErrorCategory.InvalidOperation, null);
-                error = IOError;
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                var AuthorizationError = new ErrorRecord(ex, $"UnauthorizedAccessException for .nupkg file: {ex.Message}", ErrorCategory.PermissionDenied, null);
-                error = AuthorizationError;
-            }
-
-            fileStream.Close();
             if (error != null)
             {
                 return false;
