@@ -343,89 +343,53 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             //         } # End of PSData hashtable
             //
             // } # End of PrivateData hashtable
+            var PrivateData = parsedMetadata["PrivateData"] as Hashtable;
+            var PSData = PrivateData["PSData"] as Hashtable;
 
-            bool isWinPS = Utils.GetIsWindowsPowerShell(this);
-            if (PrivateData == null || PrivateData.Count == 0)
+            if (PSData.ContainsKey("Prerelease"))
             {
-                var privateData = parsedMetadata["PrivateData"] as Hashtable;
-                var privateDataCopy = privateData.Clone() as Hashtable;
-
-                var psData = privateData["PSData"] as Hashtable;
-                var psDataCopy = psData.Clone() as Hashtable;
-
-                if (Prerelease != null && isWinPS)
-                {
-                    psDataCopy["Prerelease"] = Prerelease;
-                }
-
-                if (psData.ContainsKey("Prerelease") && !isWinPS)
-                {
-                    parsedMetadata["Prerelease"] = psData["Prerelease"];
-                }
-
-                if (psData.ContainsKey("ReleaseNotes"))
-                {
-                    parsedMetadata["ReleaseNotes"] = psData["ReleaseNotes"];
-                }
-
-                if (psData.ContainsKey("Tags"))
-                {
-                    parsedMetadata["Tags"] = psData["Tags"];
-                }
-
-                if (psData.ContainsKey("ProjectUri"))
-                {
-                    parsedMetadata["ProjectUri"] = psData["ProjectUri"];
-                }
-
-                if (psData.ContainsKey("LicenseUri"))
-                {
-                    parsedMetadata["LicenseUri"] = psData["LicenseUri"];
-                }
-
-                if (psData.ContainsKey("IconUri"))
-                {
-                    parsedMetadata["IconUri"] = psData["IconUri"];
-                }
-
-                if (RequireLicenseAcceptance != null && isWinPS)
-                {
-                    psDataCopy["RequireLicenseAcceptance"] = RequireLicenseAcceptance;
-                }
-
-                if (psData.ContainsKey("RequireLicenseAcceptance") && !isWinPS)
-                {
-                    parsedMetadata["RequireLicenseAcceptance"] = psData["RequireLicenseAcceptance"];
-                }
-
-                if (ExternalModuleDependencies != null && isWinPS)
-                {
-                    psDataCopy["ExternalModuleDependencies"] = ExternalModuleDependencies;
-                }
-
-                if (psData.ContainsKey("ExternalModuleDependencies") && !isWinPS)
-                {
-                    parsedMetadata["ExternalModuleDependencies"] = psData["ExternalModuleDependencies"];
-                }
-
-                // Now we need to remove 'PSData' becaues if we leave this value in the hashtable,
-                // New-ModuleManifest will keep this value and also attempt to create a new value for 'PSData'
-                // and then complain that there's two keys within the PrivateData hashtable.
-
-                privateDataCopy["PSData"] = psDataCopy;
-                if (!isWinPS)
-                {
-                    privateDataCopy.Remove("PSData"); // needed for non-WinPS
-                }
-
-                PrivateData = privateDataCopy;
+                parsedMetadata["Prerelease"] = PSData["Prerelease"];
             }
-            
-            
-            if (PrivateData != null)
+
+            if (PSData.ContainsKey("ReleaseNotes"))
             {
-                parsedMetadata["PrivateData"] = PrivateData;
+                parsedMetadata["ReleaseNotes"] = PSData["ReleaseNotes"];
             }
+
+            if (PSData.ContainsKey("Tags"))
+            {
+                parsedMetadata["Tags"] = PSData["Tags"];
+            }
+
+            if (PSData.ContainsKey("ProjectUri"))
+            {
+                parsedMetadata["ProjectUri"] = PSData["ProjectUri"];
+            }
+
+            if (PSData.ContainsKey("LicenseUri"))
+            {
+                parsedMetadata["LicenseUri"] = PSData["LicenseUri"];
+            }
+
+            if (PSData.ContainsKey("IconUri"))
+            {
+                parsedMetadata["IconUri"] = PSData["IconUri"];
+            }
+
+            if (PSData.ContainsKey("RequireLicenseAcceptance"))
+            {
+                parsedMetadata["RequireLicenseAcceptance"] = PSData["RequireLicenseAcceptance"];
+            }
+
+            if (PSData.ContainsKey("ExternalModuleDependencies"))
+            {
+                parsedMetadata["ExternalModuleDependencies"] = PSData["ExternalModuleDependencies"];
+            }
+
+            // Now we need to remove 'PSData' becaues if we leave this value in the hashtable,
+            // New-ModuleManifest will keep this value and also attempt to create a new value for 'PSData'
+            // and then complain that there's two keys within the PrivateData hashtable.
+            PrivateData.Remove("PSData");
 
             // After getting the original module manifest contents, migrate all the fields to the new module manifest,
 
@@ -603,17 +567,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 parsedMetadata["ReleaseNotes"] = ReleaseNotes;
             }
 
-            if (Prerelease != null && !isWinPS)
+            if (Prerelease != null)
             {
                 parsedMetadata["Prerelease"] = Prerelease;
             }
 
-            if (RequireLicenseAcceptance != null && RequireLicenseAcceptance.IsPresent && !isWinPS)
+            if (RequireLicenseAcceptance != null && RequireLicenseAcceptance.IsPresent)
             {
                 parsedMetadata["RequireLicenseAcceptance"] = RequireLicenseAcceptance;
             }
 
-            if (ExternalModuleDependencies != null && !isWinPS)
+            if (ExternalModuleDependencies != null)
             {
                 parsedMetadata["ExternalModuleDependencies"] = ExternalModuleDependencies;
             }
