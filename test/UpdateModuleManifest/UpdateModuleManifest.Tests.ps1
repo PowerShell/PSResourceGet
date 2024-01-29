@@ -3,7 +3,6 @@
 
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
-$IsWindowsPowerShell = ($PSVersionTable.PSVersion.Major -eq 5)
 
 Describe 'Test Update-PSModuleManifest' -tags 'CI' {
 
@@ -83,7 +82,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         }
     }
 
-    It "Update module manifest given Prerelease parameter" -Skip:$IsWindowsPowerShell {
+    It "Update module manifest given Prerelease parameter" {
         $Description = "Test Description"
         $ModuleVersion = "1.0.0"
         $Prerelease = "preview"
@@ -94,7 +93,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $results.PrivateData.PSData.Prerelease | Should -Be $Prerelease
     }
 
-    It "should not update module manifest given Prerelease parameter that is invalid" -Skip:$IsWindowsPowerShell {
+    It "should not update module manifest given Prerelease parameter that is invalid" {
         $Description = "Test Description"
         $ModuleVersion = "1.0.0"
         $Prerelease = "  "
@@ -164,7 +163,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $results.PrivateData.PSData.IconUri | Should -Be $IconUri
     }
 
-    It "Update module manifest given RequireLicenseAcceptance parameter" -Skip:$IsWindowsPowerShell {
+    It "Update module manifest given RequireLicenseAcceptance parameter" {
         $Description = "PSResourceGet test description"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
         Update-PSModuleManifest -Path $script:testManifestPath -RequireLicenseAcceptance
@@ -173,7 +172,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $results.PrivateData.PSData.RequireLicenseAcceptance | Should -Be $true
     }
 
-    It "Update module manifest given ExternalModuleDependencies parameter" -Skip:$IsWindowsPowerShell {
+    It "Update module manifest given ExternalModuleDependencies parameter" {
         $Description = "Test Description"
         $ExternalModuleDep1 = "ExternalModuleDep1"
         $ExternalModuleDep2 = "ExternalModuleDep2"
@@ -408,7 +407,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $results.Contains($CmdletToExport2) | Should -Be $true
     }
 
-    It "Update module manifest should not overwrite over old data unless explcitly specified" -Skip:$IsWindowsPowerShell {
+    It "Update module manifest should not overwrite over old data unless explcitly specified" {
         $Description = "Test Description"
         $ModuleVersion = "2.0.0"
         $Author = "Leto Atriedes"
