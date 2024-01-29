@@ -804,7 +804,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindAllFromTypeEndPoint()");
             string typeEndpoint = _isPSGalleryRepo && !isSearchingModule ? "/items/psscript" : String.Empty;
-            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
+            string paginationParam = _isPSGalleryRepo ? $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000" : $"&$inlinecount=allpages&$skip={skip}&$top=6000";
             // JFrog/Artifactory requires an empty search term to enumerate all packages in the feed
             string searchTerm = _isJFrogRepo ? "&searchTerm=''" : "";
             var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
@@ -826,7 +826,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // type: DSCResource -> just search Modules
             // type: Command -> just search Modules
             string typeEndpoint = _isPSGalleryRepo && !isSearchingModule ? "/items/psscript" : String.Empty;
-            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
+            string paginationParam = _isPSGalleryRepo ? $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000" : $"&$inlinecount=allpages&$skip={skip}&$top=6000";
             // JFrog/Artifactory requires an empty search term to enumerate all packages in the feed
             string searchTerm = _isJFrogRepo ? "&searchTerm=''" : "";
             var prereleaseFilter = includePrerelease ? "includePrerelease=true&$filter=IsAbsoluteLatestVersion" : "$filter=IsLatestVersion";
@@ -850,7 +850,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindCommandOrDscResource()");
             // can only find from Modules endpoint
-            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
+            string paginationParam = _isPSGalleryRepo ? $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000" : $"&$inlinecount=allpages&$skip={skip}&$top=6000";
             var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
 
             var tagPrefix = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
@@ -879,7 +879,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
 
-            string extraParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=100";
+            string extraParam = _isPSGalleryRepo ? $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=100" : $"&$inlinecount=allpages&$skip={skip}&$top=100";
             var prerelease = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
             string nameFilter;
 
@@ -932,6 +932,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return string.Empty;
             }
 
+            if (!_isPSGalleryRepo && type != ResourceType.None)
+            {
+                errRecord = new ErrorRecord(
+                    new ArgumentException("-Name with wildcards with -Type is not supported for this repository."),
+                        "FindNameGlobbingNotSupportedForRepo",
+                        ErrorCategory.InvalidArgument,
+                        this);
+
+                return string.Empty;
+            }
             string typeFilterPart = GetTypeFilterForRequest(type);
             var requestUrlV2 = $"{Repository.Uri}/Search()?$filter={nameFilter}{typeFilterPart} and {prerelease}{extraParam}";
 
@@ -947,12 +957,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
 
-            string extraParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=100";
+            string extraParam = _isPSGalleryRepo ? $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=100" : $"&$inlinecount=allpages&$skip={skip}&$top=100";
             var prerelease = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
             string nameFilter;
 
             var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
 
+            if (!_isPSGalleryRepo)
+            {
+                errRecord = new ErrorRecord(
+                    new ArgumentException("Name globbing with tags is not supported for V2 server protocol repositories."),
+                    "FindNameGlobbingAndTagFailure",
+                    ErrorCategory.InvalidArgument,
+                    this);
+
+                return string.Empty;
+            }
             if (names.Length == 0)
             {
                 errRecord = new ErrorRecord(
