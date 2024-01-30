@@ -321,6 +321,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 latestInstalledIsPrerelease = true;
             }
 
+            // Update from the repository where the package was previously installed from.
+            // If user explicitly specifies a repository to update from, use that instead.
+            if (Repository == null)
+            {
+                Repository = new String[] { installedPackages.First().Value.Repository };
+
+                WriteDebug($"Updating from repository '{string.Join(", ", Repository)}");
+            }
+
             // Find all packages selected for updating in provided repositories.
             var repositoryPackages = new Dictionary<string, PSResourceInfo>(StringComparer.InvariantCultureIgnoreCase);
             foreach (var foundResource in _findHelper.FindByResourceName(
