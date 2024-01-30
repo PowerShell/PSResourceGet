@@ -10,6 +10,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
 
     BeforeAll {
         $localRepo = "psgettestlocal"
+        $localRepo2 = "psgettestlocal2"
         $moduleName = "test_local_mod"
         $moduleName2 = "test_local_mod2"
         Get-NewPSResourceRepositoryFile
@@ -20,6 +21,9 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $localRepo "5.0.0"
         Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName2 $localRepo "1.0.0"
         Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName2 $localRepo "5.0.0"
+
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $localRepo2 "1.0.0"
+        Get-ModuleResourcePublishedToLocalRepoTestDrive $moduleName $localRepo2 "5.0.0"
     }
 
     AfterEach {
@@ -46,6 +50,31 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         }
 
         $isPkgUpdated | Should -Be $true
+    }
+
+    It "Update resource from the repository which package was previously from" {
+        Install-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo2 -TrustRepository
+
+        Update-PSResource -Name $moduleName -TrustRepository
+        $res = Get-InstalledPSResource -Name $moduleName
+
+        $isPkgUpdated = $false
+        $isCorrectRepo = $false
+        foreach ($pkg in $res)
+        {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0")
+            {
+                $isPkgUpdated = $true
+
+                if ($pkg.Repository -eq $localRepo2)
+                {
+                    $isCorrectRepo = $true
+                }
+            }
+        }
+
+        $isPkgUpdated | Should -Be $true
+        $isCorrectRepo | Should -Be $true
     }
 
     It "Update resources installed given Name (with wildcard) parameter" {
