@@ -829,7 +829,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 JsonElement rootDom = packageMetadata.RootElement;
 
                 // Version
-                if (rootDom.TryGetProperty("name", out JsonElement versionElement))
+                if (rootDom.TryGetProperty("ModuleVersion", out JsonElement versionElement))
                 {
                     string versionValue = versionElement.ToString();
                     metadata["Version"] = ParseHttpVersion(versionValue, out string prereleaseLabel);
@@ -848,36 +848,119 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     metadata["NormalizedVersion"] = parsedNormalizedVersion;
                 }
 
+                // License Url
+                if (rootDom.TryGetProperty("LicenseUrl", out JsonElement licenseUrlElement))
+                {
+                    metadata["LicenseUrl"] = ParseHttpUrl(licenseUrlElement.ToString()) as Uri;
+                }
+
+                // Project Url
+                if (rootDom.TryGetProperty("ProjectUrl", out JsonElement projectUrlElement))
+                {
+                    metadata["ProjectUrl"] = ParseHttpUrl(projectUrlElement.ToString()) as Uri;
+                }
+
+                // Icon Url
+                if (rootDom.TryGetProperty("IconUrl", out JsonElement iconUrlElement))
+                {
+                    metadata["IconUrl"] = ParseHttpUrl(iconUrlElement.ToString()) as Uri;
+                }
+
+                // Tags
+                if (rootDom.TryGetProperty("Tags", out JsonElement tagsElement))
+                {
+                    string[] pkgTags = Utils.EmptyStrArray;
+                    if (tagsElement.ValueKind == JsonValueKind.Array)
+                    {
+                        var arrayLength = tagsElement.GetArrayLength();
+                        List<string> tags = new List<string>(arrayLength);
+                        foreach (var tag in tagsElement.EnumerateArray())
+                        {
+                            tags.Add(tag.ToString());
+                        }
+
+                        pkgTags = tags.ToArray();
+                    }
+                    else if (tagsElement.ValueKind == JsonValueKind.String)
+                    {
+                        string tagStr = tagsElement.ToString();
+                        pkgTags = tagStr.Split(Utils.WhitespaceSeparator, StringSplitOptions.RemoveEmptyEntries);
+                    }
+
+                    metadata["Tags"] = pkgTags;
+                }
+
                 // PublishedDate
-                if (rootDom.TryGetProperty("lastUpdateTime", out JsonElement publishedElement))
+                if (rootDom.TryGetProperty("Published", out JsonElement publishedElement))
                 {
                     metadata["PublishedDate"] = ParseHttpDateTime(publishedElement.ToString());
                 }
 
-                var additionalMetadataHashtable = new Dictionary<string, string> { };
+                // Dependencies
+                // TODO
+
+                // IsPrerelease
+                if (rootDom.TryGetProperty("IsPrerelease", out JsonElement isPrereleaseElement))
+                {
+                    metadata["IsPrerelease"] = isPrereleaseElement.GetBoolean();
+                }
+
+                // Author
+                if (rootDom.TryGetProperty("Authors", out JsonElement authorsElement))
+                {
+                    metadata["Authors"] = authorsElement.ToString();
+
+                    // CompanyName
+                    // CompanyName is not provided in v3 pkg metadata response, so we've just set it to the author,
+                    // which is often the company
+                    metadata["CompanyName"] = authorsElement.ToString();
+                }
+
+                // Copyright
+                if (rootDom.TryGetProperty("Copyright", out JsonElement copyrightElement))
+                {
+                    metadata["Copyright"] = copyrightElement.ToString();
+                }
+
+                // Description
+                if (rootDom.TryGetProperty("Description", out JsonElement descriptiontElement))
+                {
+                    metadata["Description"] = descriptiontElement.ToString();
+                }
+
+                // ReleaseNotes
+                if (rootDom.TryGetProperty("ReleaseNotes", out JsonElement releaseNotesElement))
+                {
+                    metadata["ReleaseNotes"] = releaseNotesElement.ToString();
+                }
+
+                var additionalMetadataHashtable = new Dictionary<string, string>
+                {
+                    { "NormalizedVersion", metadata["NormalizedVersion"].ToString() }
+                };
 
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: additionalMetadataHashtable,
-                    author: string.Empty,
-                    companyName: string.Empty,
-                    copyright: string.Empty,
-                    dependencies: new Dependency[] { },
-                    description: string.Empty,
+                    author: metadata["Authors"] as String,
+                    companyName: metadata["CompanyName"] as String,
+                    copyright: metadata["Copyright"] as String,
+                    dependencies: metadata["Dependencies"] as Dependency[],
+                    description: metadata["Description"] as String,
                     iconUri: null,
                     includes: null,
                     installedDate: null,
                     installedLocation: null,
                     isPrerelease: (bool)metadata["IsPrerelease"],
-                    licenseUri: null,
+                    licenseUri: metadata["LicenseUrl"] as Uri,
                     name: packageName,
                     powershellGetFormatVersion: null,
                     prerelease: metadata["Prerelease"] as String,
-                    projectUri: null,
+                    projectUri: metadata["ProjectUrl"] as Uri,
                     publishedDate: metadata["PublishedDate"] as DateTime?,
-                    releaseNotes: string.Empty,
+                    releaseNotes: metadata["ReleaseNotes"] as String,
                     repository: repository.Name,
                     repositorySourceLocation: repository.Uri.ToString(),
-                    tags: new string[] { },
+                    tags: metadata["Tags"] as string[],
                     type: ResourceType.None,
                     updatedDate: null,
                     version: metadata["Version"] as Version);
