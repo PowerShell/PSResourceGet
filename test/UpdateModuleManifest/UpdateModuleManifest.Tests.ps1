@@ -108,6 +108,8 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         Update-PSModuleManifest -Path $script:testManifestPath -ReleaseNotes $ReleaseNotes
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
+        Write-Verbose -Verbose "release notes are: $($results.PrivateData.PSData.ReleaseNotes)"
+        Write-Verbose -Verbose "release notes should be: $ReleaseNotes"
         $results.PrivateData.PSData.ReleaseNotes | Should -Be $ReleaseNotes
     }
 
@@ -418,6 +420,8 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.Author | Should -Be $Author
+        Write-Verbose -Verbose "Project Uri was: $($results.PrivateData.PSData.ProjectUri)"
+        Write-Verbose -Verbose "Project Uri should be: $ProjectUri"
         $results.PrivateData.PSData.ProjectUri | Should -Be $ProjectUri
         $results.PrivateData.PSData.Prerelease | Should -Be $Prerelease
     }
