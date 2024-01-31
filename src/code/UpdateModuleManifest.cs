@@ -330,43 +330,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private void CreateModuleManifestForWinPSHelper(Hashtable parsedMetadata, string resolvedManifestPath)
         {
-            // Prerelease, ReleaseNotes, Tags, ProjectUri, LicenseUri, IconUri, RequireLicenseAcceptance,
-            // and ExternalModuleDependencies are all properties within a hashtable property called 'PSData'
-            // which is within another hashtable property called 'PrivateData'
-            // All of the properties mentioned above have their own parameter in 'New-ModuleManifest', so
-            // we will parse out these values from the parsedMetadata and create entries for each one in individualy.
-            // This way any values that were previously specified here will get transfered over to the new manifest.
-            // Example of the contents of PSData:
-            // PrivateData = @{
-            //         PSData = @{
-            //                  # Tags applied to this module. These help with module discovery in online galleries.
-            //                  Tags = @('Tag1', 'Tag2')
-            //
-            //                  # A URL to the license for this module.
-            //                  LicenseUri = 'https://www.licenseurl.com/'
-            //
-            //                  # A URL to the main website for this project.
-            //                  ProjectUri = 'https://www.projecturi.com/'
-            //
-            //                  # A URL to an icon representing this module.
-            //                  IconUri = 'https://iconuri.com/'
-            //
-            //                  # ReleaseNotes of this module.
-            //                  ReleaseNotes = 'These are the release notes of this module.'
-            //
-            //                  # Prerelease string of this module.
-            //                  Prerelease = 'preview'
-            //
-            //                  # Flag to indicate whether the module requires explicit user acceptance for install/update/save.
-            //                  RequireLicenseAcceptance = $false
-            //
-            //                  # External dependent modules of this module
-            //                  ExternalModuleDependencies = @('ModuleDep1, 'ModuleDep2')
-            //
-            //         } # End of PSData hashtable
-            //
-            // } # End of PrivateData hashtable
-
             // create vars for all of the PrivateData keys: tags, licenseUri, projectUri, iconUri, releaseNotes, prerelease, requireLicenseAcceptance, externalModuleDependencies
             // if there were values in the OG psd1's PrivateData (or one passed in) store those in the vars
             // if there's parameters passed in, replace the vars with values from there
@@ -411,19 +374,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 tags = psData["Tags"] as string[];
             }
 
-            if (psData.ContainsKey("ProjectUri"))
+            if (psData.ContainsKey("ProjectUri") && psData["ProjectUri"] is string projectUriString)
             {
-                projectUri = psData["ProjectUri"] as Uri;
+                if (!Uri.TryCreate(projectUriString, UriKind.Absolute, out projectUri))
+                {
+                    projectUri = null;
+                }
             }
 
-            if (psData.ContainsKey("LicenseUri"))
+            if (psData.ContainsKey("LicenseUri") && psData["LicenseUri"] is string licenseUriString)
             {
-                licenseUri = psData["LicenseUri"] as Uri;
+                if (!Uri.TryCreate(licenseUriString, UriKind.Absolute, out licenseUri))
+                {
+                    licenseUri = null;
+                }
             }
 
-            if (psData.ContainsKey("IconUri"))
+            if (psData.ContainsKey("IconUri") && psData["IconUri"] is string iconUriString)
             {
-                iconUri = psData["IconUri"] as Uri;
+                if (!Uri.TryCreate(iconUriString, UriKind.Absolute, out iconUri))
+                {
+                    iconUri = null;
+                }
             }
 
             if (psData.ContainsKey("RequireLicenseAcceptance"))
