@@ -1107,13 +1107,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         public static bool GetIsWindowsPowerShell(PSCmdlet psCmdlet)
         {
-            bool isWinPS = false;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                isWinPS = psCmdlet.Host.Version < PSVersion6;
-            }
-
-            return isWinPS;
+            return psCmdlet.Host.Version < PSVersion6;
         }
 
         /// <summary>
