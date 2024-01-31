@@ -105,8 +105,9 @@ stages:
         azurePowerShellVersion: LatestVersion
         ScriptType: InlineScript
         inline: |
-          Connect-AzAccount
+          Write-Host "List Azure Container Registry details"
           Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
+          Write-Host "List Azure Container Registry details - done."
       displayName: 'List Azure Container Registry details'
 
     - task: DownloadBuildArtifacts@0
