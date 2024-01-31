@@ -99,6 +99,14 @@ stages:
       vmImage: windows-latest
     displayName: Test ACR
     steps:
+    - task: AzurePowerShell@5
+      inputs:
+        azureSubscription: PSResourceGetACR
+        inline: |
+          Connect-AzAccount
+          Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
+      displayName: 'List Azure Container Registry details'
+
     - task: DownloadBuildArtifacts@0
       displayName: 'Download artifacts'
       inputs:
