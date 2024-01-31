@@ -102,6 +102,7 @@ stages:
     - task: AzurePowerShell@5
       inputs:
         azureSubscription: PSResourceGetACR
+        azurePowerShellVersion: LatestVersion
         inline: |
           Connect-AzAccount
           Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
