@@ -355,7 +355,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             //         } # End of PSData hashtable
             //
             // } # End of PrivateData hashtable
+
             Hashtable privateData = new Hashtable();
+
             if (PrivateData != null && PrivateData.Count != 0)
             {
                 privateData = PrivateData;
