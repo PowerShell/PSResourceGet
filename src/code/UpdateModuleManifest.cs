@@ -1086,7 +1086,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string externalModuleDependenciesString = string.Join(", ", externalModuleDependencies.Select(item => "'" + item + "'"));
             string externalModuleDependenciesLine = externalModuleDependencies.Length == 0 ? "# ExternalModuleDependencies = @()" : $"ExternalModuleDependencies = @({externalModuleDependenciesString})";
     
-            string initialPrivateDataString = "PrivateData = @{" + "\n" + "PSData = @{" + "\n";
+            string initialPrivateDataString = "PrivateData = @{" + System.Environment.NewLine + "PSData = @{" + System.Environment.NewLine;
 
             string privateDataString = $@"
                 # Tags applied to this module. These help with module discovery in online galleries.
@@ -1113,7 +1113,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 # External dependent modules of this module
                 {externalModuleDependenciesLine}";
 
-            string endingPrivateDataString = "\n" + "} # End of PSData hashtable" + "\n" + "} # End of PrivateData hashtable";
+            string endingPrivateDataString = System.Environment.NewLine + "} # End of PSData hashtable" + System.Environment.NewLine + "} # End of PrivateData hashtable";
 
             return initialPrivateDataString + privateDataString + endingPrivateDataString;
         }
