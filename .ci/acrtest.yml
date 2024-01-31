@@ -103,6 +103,7 @@ stages:
       inputs:
         azureSubscription: PSResourceGetACR
         azurePowerShellVersion: LatestVersion
+        ScriptType: InlineScript
         inline: |
           Connect-AzAccount
           Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
