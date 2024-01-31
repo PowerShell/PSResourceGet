@@ -1,0 +1,146 @@
+name: $(BuildDefinitionName)-$(date:yyMM).$(date:dd)$(rev:rrr)
+trigger:
+  # Batch merge builds together while a merge build is running
+  batch: true
+  branches:
+    include:
+    - master
+pr:
+  branches:
+    include:
+    - master
+
+resources:
+  repositories:
+  - repository: ComplianceRepo
+    type: github
+    endpoint: ComplianceGHRepo
+    name: PowerShell/compliance
+
+variables:
+  - group: GithubTestingFeedCreds
+
+stages:
+- stage: Build
+  displayName: Build PSResourceGet Module Package
+  jobs:
+  - job: BuildPkg
+    displayName: Build Package
+    pool:
+      vmImage: windows-latest
+
+    steps:
+
+    - pwsh: |
+        Get-ChildItem -Path env:
+      displayName: Capture environment for build
+      condition: succeededOrFailed()
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        if (Test-Path -Path $modulePath) {
+          Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
+          Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
+        }
+        if (! (Test-Path -Path $modulePath)) {
+          Write-Verbose -Verbose "Creating new temp module path: $modulePath"
+          $null = New-Item -Path $modulePath -ItemType Directory
+        }
+      displayName: Create temporary module path
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        Write-Verbose -Verbose "Install PSResourceGet to temp module path"
+        Save-Module -Name Microsoft.PowerShell.PSResourceGet -MinimumVersion 0.9.0-rc1 -Path $modulePath -AllowPrerelease -Force
+      displayName: Install Microsoft.PowerShell.PSResourceGet v3
+
+    - pwsh: |
+        Get-ChildItem -Path $(Build.SourcesDirectory)/src/code -Recurse
+      displayName: Capture source code for build
+      condition: succeededOrFailed()
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        #
+        $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net472'
+      displayName: Build Module
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        #
+        $(Build.SourcesDirectory)/build.ps1 -Publish
+      displayName: Publish module nuget package and upload package artifact
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+        $config = Get-BuildConfiguration
+        #
+        $srcModulePath = Resolve-Path -Path "$($config.BuildOutputPath)/$($config.ModuleName)"
+        Get-ChildItem $srcModulePath
+        $artifactName = "$($config.ModuleName)"
+        Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName;]$srcModulePath"
+      displayName: Upload module artifact
+
+- stage: Test
+  displayName: Test Package
+  dependsOn: Build
+  jobs:
+  - job: testacr
+    pool:
+      vmImage: windows-latest
+    displayName: Test ACR
+    steps:
+    - task: DownloadBuildArtifacts@0
+      displayName: 'Download artifacts'
+      inputs:
+        buildType: current
+        downloadType: specific
+        itemPattern: '**/*.nupkg'
+        downloadPath: '$(System.ArtifactsDirectory)'
+
+    - pwsh: |
+        Get-ChildItem -Path "$(System.ArtifactsDirectory)"
+      displayName: Capture artifacts directory
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        if (Test-Path -Path $modulePath) {
+          Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
+          Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
+        }
+        if (! (Test-Path -Path $modulePath)) {
+          Write-Verbose -Verbose "Creating new temp module path: $modulePath"
+          $null = New-Item -Path $modulePath -ItemType Directory
+        }
+      displayName: Create temporary module path
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        Write-Verbose -Verbose "Install Microsoft.PowerShell.PSResourceGet to temp module path"
+        Save-Module -Name Microsoft.PowerShell.PSResourceGet -MinimumVersion 0.9.0-rc1 -Path $modulePath -AllowPrerelease -Force
+        Write-Verbose -Verbose "Install Pester 4.X to temp module path"
+        Save-Module -Name "Pester" -MaximumVersion 4.99 -Path $modulePath -Force
+      displayName: Install Microsoft.PowerShell.PSResourceGet and Pester
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name (Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1') -Force
+        #
+        Install-ModulePackageForTest -PackagePath "$(System.ArtifactsDirectory)"
+      displayName: Install module for test from downloaded artifact
+      workingDirectory: ${{ parameters.buildDirectory }}
+
+    - pwsh: |
+        Write-Verbose -Verbose "Running Pester tests"
+      displayName: Run tests
