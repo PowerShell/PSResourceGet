@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -11,7 +10,6 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Reflection;
-using System.Security.Policy;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
