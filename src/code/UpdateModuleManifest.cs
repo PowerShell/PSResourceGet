@@ -1139,7 +1139,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {iconUriLine}
 
                 # ReleaseNotes of this module
-                {releaseNotesLine}'
+                {releaseNotesLine}
 
                 # Prerelease string of this module
                 {prereleaseLine}
