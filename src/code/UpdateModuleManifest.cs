@@ -1,13 +1,17 @@
+using System.Runtime.CompilerServices;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using NuGet.Protocol.Plugins;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Reflection;
+using System.Security.Policy;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -307,6 +311,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this));
             }
 
+            // Due to a PowerShell New-ModuleManifest bug with PrivateData when it's a nested hashtable (https://github.com/PowerShell/PowerShell/issues/5922)
+            // we have to handle PrivateData entry, and thus module manifest creation, differently on PSCore and on WindowsPowerShell
+            bool isWindowsPowerShell = Utils.GetIsWindowsPowerShell(this);
+            if (isWindowsPowerShell)
+            {
+                CreateModuleManifestForWinPSHelper(parsedMetadata, resolvedManifestPath);
+            }
+            else
+            {
+                CreateModuleManifestHelper(parsedMetadata, resolvedManifestPath);
+            }
+
+        }
+
+        /// <summary>
+        /// Handles module manifest creation for Windows PowerShell platform.
+        /// Since we call New-ModuleManifest and the Windows PowerShell version of the cmdlet did not have Prerelease, ExternalModuleDependencies and RequireLicenseAcceptance parameters,
+        /// we can't simply call New-ModuleManifest with all parameters. Instead, create the manifest without PrivateData parameter (and those usually inside it) and then update the lines for PrivateData later.
+        /// </summary>
+        private void CreateModuleManifestForWinPSHelper(Hashtable parsedMetadata, string resolvedManifestPath)
+        {
             // Prerelease, ReleaseNotes, Tags, ProjectUri, LicenseUri, IconUri, RequireLicenseAcceptance,
             // and ExternalModuleDependencies are all properties within a hashtable property called 'PSData'
             // which is within another hashtable property called 'PrivateData'
@@ -343,53 +368,462 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             //         } # End of PSData hashtable
             //
             // } # End of PrivateData hashtable
-            var PrivateData = parsedMetadata["PrivateData"] as Hashtable;
-            var PSData = PrivateData["PSData"] as Hashtable;
 
-            if (PSData.ContainsKey("Prerelease"))
+            // create vars for all of the PrivateData keys: tags, licenseUri, projectUri, iconUri, releaseNotes, prerelease, requireLicenseAcceptance, externalModuleDependencies
+            // if there were values in the OG psd1's PrivateData (or one passed in) store those in the vars
+            // if there's parameters passed in, replace the vars with values from there
+            // anyways, create the rest of the manifest but do NOT pass it to New-MM
+            // create the file then modify
+
+            // assumption: if PrivateData param provided & psd1 already had values, replace it entirely with passed in PrivateData
+
+            string[] tags = Utils.EmptyStrArray;
+            Uri licenseUri = null;
+            Uri iconUri = null;
+            Uri projectUri = null;
+            string prerelease = String.Empty;
+            string releaseNotes = String.Empty;
+            bool? requireLicenseAcceptance = null;
+            string[] externalModuleDependencies = Utils.EmptyStrArray;
+
+            Hashtable privateData = new Hashtable();
+            if (PrivateData != null && PrivateData.Count != 0)
             {
-                parsedMetadata["Prerelease"] = PSData["Prerelease"];
+                privateData = PrivateData;
+            }
+            else
+            {
+                privateData = parsedMetadata["PrivateData"] as Hashtable;
             }
 
-            if (PSData.ContainsKey("ReleaseNotes"))
+            var psData = privateData["PSData"] as Hashtable;
+
+            if (psData.ContainsKey("Prerelease"))
             {
-                parsedMetadata["ReleaseNotes"] = PSData["ReleaseNotes"];
+                prerelease = psData["Prerelease"] as string;
             }
 
-            if (PSData.ContainsKey("Tags"))
+            if (psData.ContainsKey("ReleaseNotes"))
             {
-                parsedMetadata["Tags"] = PSData["Tags"];
+                releaseNotes = psData["ReleaseNotes"] as string;
             }
 
-            if (PSData.ContainsKey("ProjectUri"))
+            if (psData.ContainsKey("Tags"))
             {
-                parsedMetadata["ProjectUri"] = PSData["ProjectUri"];
+                tags = psData["Tags"] as string[];
             }
 
-            if (PSData.ContainsKey("LicenseUri"))
+            if (psData.ContainsKey("ProjectUri"))
             {
-                parsedMetadata["LicenseUri"] = PSData["LicenseUri"];
+                projectUri = psData["ProjectUri"] as Uri;
             }
 
-            if (PSData.ContainsKey("IconUri"))
+            if (psData.ContainsKey("LicenseUri"))
             {
-                parsedMetadata["IconUri"] = PSData["IconUri"];
+                licenseUri = psData["LicenseUri"] as Uri;
             }
 
-            if (PSData.ContainsKey("RequireLicenseAcceptance"))
+            if (psData.ContainsKey("IconUri"))
             {
-                parsedMetadata["RequireLicenseAcceptance"] = PSData["RequireLicenseAcceptance"];
+                iconUri = psData["IconUri"] as Uri;
             }
 
-            if (PSData.ContainsKey("ExternalModuleDependencies"))
+            if (psData.ContainsKey("RequireLicenseAcceptance"))
             {
-                parsedMetadata["ExternalModuleDependencies"] = PSData["ExternalModuleDependencies"];
+                requireLicenseAcceptance = psData["RequireLicenseAcceptance"] as bool?;
+            }
+
+            if (psData.ContainsKey("ExternalModuleDependencies"))
+            {
+                externalModuleDependencies = psData["ExternalModuleDependencies"] as string[];
+            }
+
+            // After getting the original module manifest contents, migrate all the fields to the new module manifest,
+
+            // adding in any new values specified via cmdlet parameters.
+            // Set up params to pass to New-ModuleManifest module
+            // For now this will be parsedMetadata hashtable and we will just add to it as needed
+
+            if (NestedModules != null)
+            {
+                parsedMetadata["NestedModules"] = NestedModules;
+            }
+
+            if (Guid != Guid.Empty)
+            {
+                parsedMetadata["Guid"] = Guid;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Author))
+            {
+                parsedMetadata["Author"] = Author;
+            }
+
+            if (CompanyName != null)
+            {
+                parsedMetadata["CompanyName"] = CompanyName;
+            }
+
+            if (Copyright != null)
+            {
+                parsedMetadata["Copyright"] = Copyright;
+            }
+
+            if (RootModule != null)
+            {
+                parsedMetadata["RootModule"] = RootModule;
+            }
+
+            if (ModuleVersion != null)
+            {
+                parsedMetadata["ModuleVersion"] = ModuleVersion;
+            }
+
+            if (Description != null)
+            {
+                parsedMetadata["Description"] = Description;
+            }
+
+            if (ProcessorArchitecture != ProcessorArchitecture.None)
+            {
+                parsedMetadata["ProcessorArchitecture"] = ProcessorArchitecture;
+            }
+
+            if (PowerShellVersion != null)
+            {
+                parsedMetadata["PowerShellVersion"] = PowerShellVersion;
+            }
+
+            if (ClrVersion != null)
+            {
+                parsedMetadata["ClrVersion"] = ClrVersion;
+            }
+
+            if (DotNetFrameworkVersion != null)
+            {
+                parsedMetadata["DotNetFrameworkVersion"] = DotNetFrameworkVersion;
+            }
+
+            if (PowerShellHostName != null)
+            {
+                parsedMetadata["PowerShellHostName"] = PowerShellHostName;
+            }
+
+            if (PowerShellHostVersion != null)
+            {
+                parsedMetadata["PowerShellHostVersion"] = PowerShellHostVersion;
+            }
+
+            if (RequiredModules != null)
+            {
+                parsedMetadata["RequiredModules"] = RequiredModules;
+            }
+
+            if (TypesToProcess != null)
+            {
+                parsedMetadata["TypesToProcess"] = TypesToProcess;
+            }
+
+            if (FormatsToProcess != null)
+            {
+                parsedMetadata["FormatsToProcess"] = FormatsToProcess;
+            }
+
+            if (ScriptsToProcess != null)
+            {
+                parsedMetadata["ScriptsToProcess"] = ScriptsToProcess;
+            }
+
+            if (RequiredAssemblies != null)
+            {
+                parsedMetadata["RequiredAssemblies"] = RequiredAssemblies;
+            }
+
+            if (FileList != null)
+            {
+                parsedMetadata["FileList"] = FileList;
+            }
+
+            if (ModuleList != null)
+            {
+                parsedMetadata["ModuleList"] = ModuleList;
+            }
+
+            if (FunctionsToExport != null)
+            {
+                parsedMetadata["FunctionsToExport"] = FunctionsToExport;
+            }
+
+            if (AliasesToExport != null)
+            {
+                parsedMetadata["AliasesToExport"] = AliasesToExport;
+            }
+
+            if (VariablesToExport != null)
+            {
+                parsedMetadata["VariablesToExport"] = VariablesToExport;
+            }
+
+            if (CmdletsToExport != null)
+            {
+                parsedMetadata["CmdletsToExport"] = CmdletsToExport;
+            }
+
+            if (DscResourcesToExport != null)
+            {
+                parsedMetadata["DscResourcesToExport"] = DscResourcesToExport;
+            }
+
+            if (CompatiblePSEditions != null)
+            {
+                parsedMetadata["CompatiblePSEditions"] = CompatiblePSEditions;
+            }
+
+            if (HelpInfoUri != null)
+            {
+                parsedMetadata["HelpInfoUri"] = HelpInfoUri;
+            }
+
+            if (DefaultCommandPrefix != null)
+            {
+                parsedMetadata["DefaultCommandPrefix"] = DefaultCommandPrefix;
+            }
+
+            if (Tags != null)
+            {
+                tags = Tags;
+            }
+
+            if (LicenseUri != null)
+            {
+                licenseUri = LicenseUri;
+            }
+
+            if (ProjectUri != null)
+            {
+                projectUri = ProjectUri;
+            }
+
+            if (IconUri != null)
+            {
+                iconUri = IconUri;
+            }
+
+            if (ReleaseNotes != null)
+            {
+                releaseNotes = ReleaseNotes;
+            }
+
+            if (Prerelease != null)
+            {
+                prerelease = Prerelease;
+            }
+
+            if (RequireLicenseAcceptance != null && RequireLicenseAcceptance.IsPresent)
+            {
+                requireLicenseAcceptance = RequireLicenseAcceptance;
+            }
+
+            if (ExternalModuleDependencies != null)
+            {
+                externalModuleDependencies = ExternalModuleDependencies;
+            }
+
+
+            // now populate tags, uri, release
+            if (tags.Length != 0)
+            {
+                parsedMetadata["Tags"] = tags;
+            }
+
+            if (licenseUri!= null)
+            {
+                parsedMetadata["LicenseUri"] = licenseUri;
+            }
+
+            if (iconUri!= null)
+            {
+                parsedMetadata["IconUri"] = iconUri;
+            }
+
+            if (projectUri!= null)
+            {
+                parsedMetadata["ProjectUri"] = projectUri;
+            }
+
+            if (!String.IsNullOrEmpty(releaseNotes))
+            {
+                parsedMetadata["ReleaseNotes"] = releaseNotes;
+            }
+
+            // create a tmp path to create the module manifest
+            string tmpParentPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+            try
+            {
+                Directory.CreateDirectory(tmpParentPath);
+            }
+            catch (Exception e)
+            {
+                ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException(e.Message),
+                    "ErrorCreatingTempDir",
+                    ErrorCategory.InvalidData,
+                    this));
+            }
+
+            string tmpModuleManifestPath = System.IO.Path.Combine(tmpParentPath, System.IO.Path.GetFileName(resolvedManifestPath));
+            parsedMetadata["Path"] = tmpModuleManifestPath;
+            WriteVerbose($"Temp path created for new module manifest is: {tmpModuleManifestPath}");
+
+            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+            {
+                try
+                {
+                    var results = pwsh.AddCommand("Microsoft.PowerShell.Core\\New-ModuleManifest").AddParameters(parsedMetadata).Invoke<Object>();
+                    if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
+                    {
+                        foreach (var err in pwsh.Streams.Error)
+                        {
+                            WriteError(err);
+                        }
+                    }
+
+                    // find line number of start and end of PrivateData
+                    // have string form of new PrivateData with these values settled
+                    // replace that content
+                }
+                catch (Exception e)
+                {
+                    ThrowTerminatingError(new ErrorRecord(
+                        new ArgumentException($"Error occured while running 'New-ModuleManifest': {e.Message}"),
+                        "ErrorExecutingNewModuleManifest",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
+            }
+
+            string privateDataString = GetPrivateDataString(tags, licenseUri, projectUri, iconUri, releaseNotes, prerelease, requireLicenseAcceptance, externalModuleDependencies);
+            string newTmpModuleManifestPath = System.IO.Path.Combine(tmpParentPath, "Updated" + System.IO.Path.GetFileName(resolvedManifestPath));
+            CreateNewPsd1WithUpdatedPrivateData(privateDataString, tmpModuleManifestPath, newTmpModuleManifestPath, out ErrorRecord errRecord);
+
+            try
+            {
+                // Move to the new module manifest back to the original location
+                WriteVerbose($"Moving '{newTmpModuleManifestPath}' to '{resolvedManifestPath}'");
+                Utils.MoveFiles(newTmpModuleManifestPath, resolvedManifestPath, overwrite: true);
+            }
+            finally {
+                // Clean up temp file if move fails
+                if (File.Exists(tmpModuleManifestPath))
+                {
+                    File.Delete(tmpModuleManifestPath);
+                }
+
+                if (File.Exists(newTmpModuleManifestPath))
+                {
+                    File.Delete(newTmpModuleManifestPath);
+                }
+            }
+
+        }
+
+        /// <summary>
+        /// Handles module manifest creation for non-WindowsPowerShell platforms.
+        /// </summary>
+        private void CreateModuleManifestHelper(Hashtable parsedMetadata, string resolvedManifestPath)
+        {
+            // Prerelease, ReleaseNotes, Tags, ProjectUri, LicenseUri, IconUri, RequireLicenseAcceptance,
+            // and ExternalModuleDependencies are all properties within a hashtable property called 'PSData'
+            // which is within another hashtable property called 'PrivateData'
+            // All of the properties mentioned above have their own parameter in 'New-ModuleManifest', so
+            // we will parse out these values from the parsedMetadata and create entries for each one in individualy.
+            // This way any values that were previously specified here will get transfered over to the new manifest.
+            // Example of the contents of PSData:
+            // PrivateData = @{
+            //         PSData = @{
+            //                  # Tags applied to this module. These help with module discovery in online galleries.
+            //                  Tags = @('Tag1', 'Tag2')
+            //
+            //                  # A URL to the license for this module.
+            //                  LicenseUri = 'https://www.licenseurl.com/'
+            //
+            //                  # A URL to the main website for this project.
+            //                  ProjectUri = 'https://www.projecturi.com/'
+            //
+            //                  # A URL to an icon representing this module.
+            //                  IconUri = 'https://iconuri.com/'
+            //
+            //                  # ReleaseNotes of this module.
+            //                  ReleaseNotes = 'These are the release notes of this module.'
+            //
+            //                  # Prerelease string of this module.
+            //                  Prerelease = 'preview'
+            //
+            //                  # Flag to indicate whether the module requires explicit user acceptance for install/update/save.
+            //                  RequireLicenseAcceptance = $false
+            //
+            //                  # External dependent modules of this module
+            //                  ExternalModuleDependencies = @('ModuleDep1, 'ModuleDep2')
+            //
+            //         } # End of PSData hashtable
+            //
+            // } # End of PrivateData hashtable
+            Hashtable privateData = new Hashtable();
+            if (PrivateData != null && PrivateData.Count != 0)
+            {
+                privateData = PrivateData;
+            }
+            else
+            {
+                privateData = parsedMetadata["PrivateData"] as Hashtable;
+            }
+
+            var psData = privateData["PSData"] as Hashtable;
+
+            if (psData.ContainsKey("Prerelease"))
+            {
+                parsedMetadata["Prerelease"] = psData["Prerelease"];
+            }
+
+            if (psData.ContainsKey("ReleaseNotes"))
+            {
+                parsedMetadata["ReleaseNotes"] = psData["ReleaseNotes"];
+            }
+
+            if (psData.ContainsKey("Tags"))
+            {
+                parsedMetadata["Tags"] = psData["Tags"];
+            }
+
+            if (psData.ContainsKey("ProjectUri"))
+            {
+                parsedMetadata["ProjectUri"] = psData["ProjectUri"];
+            }
+
+            if (psData.ContainsKey("LicenseUri"))
+            {
+                parsedMetadata["LicenseUri"] = psData["LicenseUri"];
+            }
+
+            if (psData.ContainsKey("IconUri"))
+            {
+                parsedMetadata["IconUri"] = psData["IconUri"];
+            }
+
+            if (psData.ContainsKey("RequireLicenseAcceptance"))
+            {
+                parsedMetadata["RequireLicenseAcceptance"] = psData["RequireLicenseAcceptance"];
+            }
+
+            if (psData.ContainsKey("ExternalModuleDependencies"))
+            {
+                parsedMetadata["ExternalModuleDependencies"] = psData["ExternalModuleDependencies"];
             }
 
             // Now we need to remove 'PSData' becaues if we leave this value in the hashtable,
             // New-ModuleManifest will keep this value and also attempt to create a new value for 'PSData'
             // and then complain that there's two keys within the PrivateData hashtable.
-            PrivateData.Remove("PSData");
+            privateData.Remove("PSData");
 
             // After getting the original module manifest contents, migrate all the fields to the new module manifest,
 
@@ -637,6 +1071,149 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     File.Delete(tmpModuleManifestPath);
                 }
             }
+
+        }
+
+        private string GetPrivateDataString(string[] tags, Uri licenseUri, Uri projectUri, Uri iconUri, string releaseNotes, string prerelease, bool? requireLicenseAcceptance, string[] externalModuleDependencies)
+        {
+            /**
+            Example PrivateData
+            
+            PrivateData = @{
+                PSData = @{
+                    # Tags applied to this module. These help with module discovery in online galleries.
+                    Tags = @('Tag1', 'Tag2')
+
+                    # A URL to the license for this module.
+                    LicenseUri = 'https://www.licenseurl.com/'
+
+                    # A URL to the main website for this project.
+                    ProjectUri = 'https://www.projecturi.com/'
+
+                    # A URL to an icon representing this module.
+                    IconUri = 'https://iconuri.com/'
+
+                    # ReleaseNotes of this module.
+                    ReleaseNotes = 'These are the release notes of this module.'
+
+                    # Prerelease string of this module.
+                    Prerelease = 'preview'
+
+                    # Flag to indicate whether the module requires explicit user acceptance for install/update/save.
+                    RequireLicenseAcceptance = $false
+
+                    # External dependent modules of this module
+                    ExternalModuleDependencies = @('ModuleDep1, 'ModuleDep2')
+            
+                } # End of PSData hashtable
+            
+            } # End of PrivateData hashtable
+            */
+
+            string tagsString = string.Join(", ", tags.Select(item => "'" + item + "'"));
+            string tagLine = tags.Length != 0 ? $"Tags = @({tagsString})"  : "# Tags = @()";
+            
+            string licenseUriLine = licenseUri == null ? "# LicenseUri = ''" : $"LicenseUri = '{licenseUri.ToString()}'";
+            string projectUriLine = projectUri == null ? "# ProjectUri = ''" : $"ProjectUri = '{projectUri.ToString()}'";
+            string iconUriLine = iconUri == null ? "# IconUri = ''" : $"IconUri = '{iconUri.ToString()}'";
+
+            string releaseNotesLine = String.IsNullOrEmpty(releaseNotes) ? "# ReleaseNotes = ''": $"ReleaseNotes = '{releaseNotes}'";
+            string prereleaseLine = String.IsNullOrEmpty(prerelease) ? "# Prerelease = ''" : $"Prerelease = '{prerelease}'";
+
+            string requireLicenseAcceptanceLine = requireLicenseAcceptance == null? "# RequireLicenseAcceptance = $false" : (requireLicenseAcceptance == false ? "RequireLicenseAcceptance = $false": "RequireLicenseAcceptance = $true");
+
+            string externalModuleDependenciesString = string.Join(", ", externalModuleDependencies.Select(item => "'" + item + "'"));
+            string externalModuleDependenciesLine = externalModuleDependencies.Length == 0 ? "# ExternalModuleDependencies = @()" : $"ExternalModuleDependencies = @({externalModuleDependenciesString})";
+    
+            string initialPrivateDataString = "PrivateData = @{" + "\n" + "PSData = @{" + "\n";
+
+            string privateDataString = $@"
+                # Tags applied to this module. These help with module discovery in online galleries.
+                {tagLine}
+
+                # A URL to the license for this module.
+                {licenseUriLine}
+
+                # A URL to the main website for this project.
+                {projectUriLine}
+
+                # A URL to an icon representing this module.
+                {iconUriLine}
+
+                # ReleaseNotes of this module
+                {releaseNotesLine}'
+
+                # Prerelease string of this module
+                {prereleaseLine}
+
+                # Flag to indicate whether the module requires explicit user acceptance for install/update/save
+                {requireLicenseAcceptanceLine}
+
+                # External dependent modules of this module
+                {externalModuleDependenciesLine}";
+
+            string endingPrivateDataString = "\n" + "} # End of PSData hashtable" + "\n" + "} # End of PrivateData hashtable";
+
+            return initialPrivateDataString + privateDataString + endingPrivateDataString;
+        }
+
+        private void CreateNewPsd1WithUpdatedPrivateData(string privateDataString, string tmpModuleManifestPath, string newTmpModuleManifestPath, out ErrorRecord errorRecord)
+        {
+            errorRecord = null;
+            string[] psd1FileLines = File.ReadAllLines(tmpModuleManifestPath);
+
+            int privateDataStartLine = 0;
+            int privateDataEndLine = 0;
+            string startLine = String.Empty;
+            for (int i = 0; i < psd1FileLines.Length; i++)
+            {
+                if (psd1FileLines[i].Trim().StartsWith("PrivateData =")){
+                    privateDataStartLine = i;
+                    startLine = psd1FileLines[i];
+                    WriteVerbose($"private data start line: {privateDataStartLine}");
+                    break;
+                }
+            }
+
+            // now find ending line
+            int leftBrace = 0;
+            
+            for (int i = privateDataStartLine; i < psd1FileLines.Length; i++)
+            {
+                if (psd1FileLines[i].Contains("{"))
+                {
+                    leftBrace++;
+                }
+                else if(psd1FileLines[i].Contains("}"))
+                {
+                    WriteVerbose($"line is: {psd1FileLines[i]}");
+                    if (leftBrace > 0)
+                    {
+                        leftBrace--;
+                    }
+                    
+                    if (leftBrace == 0)
+                    {
+                        privateDataEndLine = i;
+                        WriteVerbose($"private data end line: {privateDataEndLine}");
+                        break;
+                    }
+                }
+            }
+
+            List<string> newPsd1Lines = new List<string>();
+            for (int i = 0; i < privateDataStartLine; i++)
+            {
+                newPsd1Lines.Add(psd1FileLines[i]);
+            }
+
+            newPsd1Lines.Add(privateDataString);
+            for (int i = privateDataEndLine+1; i < psd1FileLines.Length; i++)
+            {
+                newPsd1Lines.Add(psd1FileLines[i]);
+            }
+
+            File.WriteAllLines(newTmpModuleManifestPath, newPsd1Lines);
         }
 
         #endregion
