@@ -310,15 +310,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // Due to a PowerShell New-ModuleManifest bug with the PrivateData entry when it's a nested hashtable (https://github.com/PowerShell/PowerShell/issues/5922)
             // we have to handle PrivateData entry, and thus module manifest creation, differently on PSCore than on WindowsPowerShell.
-            bool isWindowsPowerShell = Utils.GetIsWindowsPowerShell(this);
-            if (isWindowsPowerShell)
-            {
-                CreateModuleManifestForWinPSHelper(parsedMetadata, resolvedManifestPath);
-            }
-            else
-            {
-                CreateModuleManifestHelper(parsedMetadata, resolvedManifestPath);
-            }
+            Utils.GetIsWindowsPowerShell(this) ? CreateModuleManifestForWinPSHelper(parsedMetadata, resolvedManifestPath) : CreateModuleManifestHelper(parsedMetadata, resolvedManifestPath);
+
         }
 
         /// <summary>
