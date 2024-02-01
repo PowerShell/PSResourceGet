@@ -99,6 +99,11 @@ stages:
       vmImage: windows-latest
     displayName: Test ACR
     steps:
+    - pwsh: |
+        Install-PSResource -Name 'Microsoft.PowerShell.Management'
+        Install-PSResource -Name 'Microsoft.PowerShell.SecretStore'
+        Register-SecretVault -Name SecretStore -ModuleName Microsoft.PowerShell.SecretStore -DefaultVault
+      displayName: Install Secret store
     - task: AzurePowerShell@5
       inputs:
         azureSubscription: PSResourceGetACR
