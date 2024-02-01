@@ -106,21 +106,6 @@ stages:
         Set-SecretStoreConfiguration -Authentication None -Interaction None -Confirm:$false -Password $vaultPassword
         Register-SecretVault -Name SecretStore -ModuleName Microsoft.PowerShell.SecretStore -DefaultVault
       displayName: Install Secret store
-    - task: AzurePowerShell@5
-      inputs:
-        azureSubscription: PSResourceGetACR
-        azurePowerShellVersion: LatestVersion
-        ScriptType: InlineScript
-        pwsh: true
-        inline: |
-          Write-Host "List Azure Container Registry details"
-          Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
-          Write-Host "List Azure Container Registry details - done."
-          $azt = Get-AzAccessToken
-          Set-Secret -Name $azt.TenantID -Secret $azt.Token -Verbose
-          $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("Microsoft.PowerShell.SecretStore", $azt.TenantID)
-          Register-PSResourceRepository -Name ACRrepo -ApiVersion acr -Uri 'https://psresourcegettest.azurecr.io' -CredentialInfo $psCredInfo -Verbose
-      displayName: 'List Azure Container Registry details'
 
     - task: DownloadBuildArtifacts@0
       displayName: 'Download artifacts'
@@ -163,6 +148,28 @@ stages:
         Install-ModulePackageForTest -PackagePath "$(System.ArtifactsDirectory)"
       displayName: Install module for test from downloaded artifact
       workingDirectory: $(Build.SourcesDirectory)
+
+    - task: AzurePowerShell@5
+      inputs:
+        azureSubscription: PSResourceGetACR
+        azurePowerShellVersion: LatestVersion
+        ScriptType: InlineScript
+        pwsh: true
+        inline: |
+          $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+          Import-Module -Name (Join-Path -Path '$(Build.SourcesDirectory)' -ChildPath 'buildtools.psd1') -Force
+          Install-ModulePackageForTest -PackagePath "$(System.ArtifactsDirectory)"
+
+          Write-Host "List Azure Container Registry details"
+          Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
+          Write-Host "List Azure Container Registry details - done."
+          $azt = Get-AzAccessToken
+          Set-Secret -Name $azt.TenantID -Secret $azt.Token -Verbose
+          $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("Microsoft.PowerShell.SecretStore", $azt.TenantID)
+          Register-PSResourceRepository -Name ACRrepo -ApiVersion acr -Uri 'https://psresourcegettest.azurecr.io' -CredentialInfo $psCredInfo -Verbose
+      displayName: 'List Azure Container Registry details'
+
 
     - pwsh: |
         Find-PSResource -Name 'test_module' -Repository ACRrepo
