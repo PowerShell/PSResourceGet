@@ -102,7 +102,7 @@ stages:
     - pwsh: |
         Install-Module -Name 'Microsoft.PowerShell.SecretManagement' -force -SkipPublisherCheck -AllowClobber
         Install-Module -Name 'Microsoft.PowerShell.SecretStore' -force -SkipPublisherCheck -AllowClobber
-        Set-SecretStoreConfiguration -Authentication None -Interaction None
+        Set-SecretStoreConfiguration -Authentication None -Interaction None -Confirm:$false
         Register-SecretVault -Name SecretStore -ModuleName Microsoft.PowerShell.SecretStore -DefaultVault
       displayName: Install Secret store
     - task: AzurePowerShell@5
