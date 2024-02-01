@@ -156,18 +156,16 @@ stages:
         ScriptType: InlineScript
         pwsh: true
         inline: |
-          Import-Module $(Build.SourcesDirectory)\out\Microsoft.PowerShell.PSResourceGet -force -verbose
-
           Write-Host "List Azure Container Registry details"
           Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
           Write-Host "List Azure Container Registry details - done."
           $azt = Get-AzAccessToken
           Set-Secret -Name $azt.TenantID -Secret $azt.Token -Verbose
-          $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("Microsoft.PowerShell.SecretStore", $azt.TenantID)
-          Register-PSResourceRepository -Name ACRrepo -ApiVersion acr -Uri 'https://psresourcegettest.azurecr.io' -CredentialInfo $psCredInfo -Verbose
       displayName: 'List Azure Container Registry details'
 
     - pwsh: |
         Import-Module $(Build.SourcesDirectory)\out\Microsoft.PowerShell.PSResourceGet -force -verbose
+        $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("Microsoft.PowerShell.SecretStore", $azt.TenantID)
+        Register-PSResourceRepository -Name ACRrepo -ApiVersion acr -Uri 'https://psresourcegettest.azurecr.io' -CredentialInfo $psCredInfo -Verbose
         Find-PSResource -Name 'test_module' -Repository ACRrepo
       displayName: Run tests
