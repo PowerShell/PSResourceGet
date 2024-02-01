@@ -100,7 +100,7 @@ stages:
     displayName: Test ACR
     steps:
     - pwsh: |
-        Install-Module -Name 'Microsoft.PowerShell.Management' -force -SkipPublisherCheck -AllowClobber
+        Install-Module -Name 'Microsoft.PowerShell.SecretManagement' -force -SkipPublisherCheck -AllowClobber
         Install-Module -Name 'Microsoft.PowerShell.SecretStore' -force -SkipPublisherCheck -AllowClobber
         Register-SecretVault -Name SecretStore -ModuleName Microsoft.PowerShell.SecretStore -DefaultVault
       displayName: Install Secret store
