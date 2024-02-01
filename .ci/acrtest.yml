@@ -104,10 +104,15 @@ stages:
         azureSubscription: PSResourceGetACR
         azurePowerShellVersion: LatestVersion
         ScriptType: InlineScript
+        pwsh: true
         inline: |
           Write-Host "List Azure Container Registry details"
           Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
           Write-Host "List Azure Container Registry details - done."
+          $azt = Get-AzAccessToken
+          Set-Secret -Name $azt.TenantID -Secret $azt.Token
+          $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("Microsoft.PowerShell.SecretStore", $azt.TenantID)
+          Set-PSResourceRepository -Name ACRrepo -CredentialInfo $psCredInfo
       displayName: 'List Azure Container Registry details'
 
     - task: DownloadBuildArtifacts@0
@@ -153,5 +158,5 @@ stages:
       workingDirectory: $(Build.SourcesDirectory)
 
     - pwsh: |
-        Write-Verbose -Verbose "Running Pester tests"
+        Find-PSResource -Name 'test_module' -Repository ACRrepo
       displayName: Run tests
