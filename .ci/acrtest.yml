@@ -156,10 +156,7 @@ stages:
         ScriptType: InlineScript
         pwsh: true
         inline: |
-          $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
-          Import-Module -Name (Join-Path -Path '$(Build.SourcesDirectory)' -ChildPath 'buildtools.psd1') -Force
-          Install-ModulePackageForTest -PackagePath "$(System.ArtifactsDirectory)"
+          Import-Module $(Build.SourcesDirectory)\out\Microsoft.PowerShell.PSResourceGet -force -verbose
 
           Write-Host "List Azure Container Registry details"
           Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
@@ -170,7 +167,7 @@ stages:
           Register-PSResourceRepository -Name ACRrepo -ApiVersion acr -Uri 'https://psresourcegettest.azurecr.io' -CredentialInfo $psCredInfo -Verbose
       displayName: 'List Azure Container Registry details'
 
-
     - pwsh: |
+        Import-Module $(Build.SourcesDirectory)\out\Microsoft.PowerShell.PSResourceGet -force -verbose
         Find-PSResource -Name 'test_module' -Repository ACRrepo
       displayName: Run tests
