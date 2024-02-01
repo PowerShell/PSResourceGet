@@ -160,13 +160,15 @@ stages:
           Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
           Write-Host "List Azure Container Registry details - done."
           $azt = Get-AzAccessToken
-          Set-Secret -Name $azt.TenantID -Secret $azt.Token -Verbose
+          Set-Secret -Name '$azt.TenantID' -Secret $azt.Token -Verbose
+          $vstsCommandString = "vso[task.setvariable variable=TenantId]$($az.TenantID)"
+          Write-Host "sending " + $vstsCommandString
       displayName: 'List Azure Container Registry details'
 
     - pwsh: |
         Get-Module | Out-String -Stream | Write-Verbose -Verbose
         Import-Module $(Build.SourcesDirectory)\out\Microsoft.PowerShell.PSResourceGet -force -verbose
-        $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("Microsoft.PowerShell.SecretStore", $azt.TenantID)
+        $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("Microsoft.PowerShell.SecretStore", $(TenantID))
         Register-PSResourceRepository -Name ACRrepo -ApiVersion acr -Uri 'https://psresourcegettest.azurecr.io' -CredentialInfo $psCredInfo -Verbose
         Find-PSResource -Name 'test_module' -Repository ACRrepo
       displayName: Run tests
