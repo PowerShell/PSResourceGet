@@ -164,6 +164,7 @@ stages:
       displayName: 'List Azure Container Registry details'
 
     - pwsh: |
+        Get-Module | Out-String -Stream | Write-Verbose -Verbose
         Import-Module $(Build.SourcesDirectory)\out\Microsoft.PowerShell.PSResourceGet -force -verbose
         $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("Microsoft.PowerShell.SecretStore", $azt.TenantID)
         Register-PSResourceRepository -Name ACRrepo -ApiVersion acr -Uri 'https://psresourcegettest.azurecr.io' -CredentialInfo $psCredInfo -Verbose
