@@ -160,8 +160,9 @@ stages:
           Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
           Write-Host "List Azure Container Registry details - done."
           $azt = Get-AzAccessToken
-          Set-Secret -Name '$azt.TenantID' -Secret $azt.Token -Verbose
-          $vstsCommandString = "vso[task.setvariable variable=TenantId]$($azt.TenantID)"
+          $tenantId = $azt.TenantID
+          Set-Secret -Name $tenantId -Secret $azt.Token -Verbose
+          $vstsCommandString = "vso[task.setvariable variable=TenantId]$tenantId"
           Write-Host "sending " + $vstsCommandString
           Write-Host "##$vstsCommandString"
       displayName: 'List Azure Container Registry details'
