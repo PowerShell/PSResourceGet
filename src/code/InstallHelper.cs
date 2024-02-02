@@ -6,6 +6,7 @@ using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
@@ -603,6 +604,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
                         }
 
+                        Console.WriteLine($"~~~Finding Dependencies for {parentPkgObj.Name}~~~");
                         // Get the dependencies from the installed package.
                         if (parentPkgObj.Dependencies.Length > 0)
                         {
@@ -738,7 +740,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 default:
                     // VersionType.NoVersion
+
+                    Stopwatch stopwatch = new Stopwatch();
+                    // Start measuring time for Find
+                    stopwatch.Start();
+
                     responses = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ErrorRecord findNameErrRecord);
+
+                    // Stop measuring time
+                    stopwatch.Stop();
+
+                    // Get the elapsed time in milliseconds
+                    long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
+
+                    Console.WriteLine($"Find Name - Elapsed Time: {elapsedMilliseconds} milliseconds");
+
                     if (findNameErrRecord != null)
                     {
                         errRecord = findNameErrRecord;
@@ -796,6 +812,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
+                Stopwatch stopwatch = new Stopwatch();
+                // Start measuring time
+                stopwatch.Start();
+
                 string currPkgNameVersion = $"{pkgToInstall.Name}{pkgToInstall.Version}";
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
                 {
@@ -806,6 +826,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     return packagesHash;
                 }
+
+                // Stop measuring time
+                stopwatch.Stop();
+
+                // Get the elapsed time in milliseconds
+                long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
+
+                Console.WriteLine($"Checking packages already installed on machine - Elapsed Time: {elapsedMilliseconds} milliseconds");
             }
 
             if (packagesHash.ContainsKey(pkgToInstall.Name))
@@ -851,9 +879,46 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
+
+                // TODO -- optimize
+
+                // 1) Find all dependencies
+                //pkgToInstall.Dependencies;
+                var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
+                _cmdletPassedIn.WriteDebug($"Finding dependency packages for '{pkgToInstall.Name}'");
+                List<PSResourceInfo> allDependencies = findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
+
+                foreach (PSResourceInfo pkg in allDependencies)
+                {
+                    Console.WriteLine($"{pkg.Name}: {pkg.Version}");
+
+                
+                }
+
+
+
+
+
                 // Download the package.
                 string pkgName = pkgToInstall.Name;
+
+                Stopwatch stopwatch = new Stopwatch();
+
+                // Start measuring time
+                stopwatch.Start();
+
                 Stream responseStream = currentServer.InstallPackage(pkgName, pkgVersion, _prerelease, out ErrorRecord installNameErrRecord);
+
+                // Stop measuring time
+                stopwatch.Stop();
+
+                // Get the elapsed time in milliseconds
+                long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
+
+                Console.WriteLine($"Install Package - Elapsed Time: {elapsedMilliseconds} milliseconds");
+
+
+
                 if (installNameErrRecord != null)
                 {
                     errRecord = installNameErrRecord;
