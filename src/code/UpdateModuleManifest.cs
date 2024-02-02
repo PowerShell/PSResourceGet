@@ -311,17 +311,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Due to a PowerShell New-ModuleManifest bug with the PrivateData entry when it's a nested hashtable (https://github.com/PowerShell/PowerShell/issues/5922)
             // we have to handle PrivateData entry, and thus module manifest creation, differently on PSCore than on WindowsPowerShell.
             ErrorRecord errorRecord = null;
-            bool successfulManifestCreation = Utils.GetIsWindowsPowerShell(this) ? TryCreateModuleManifestForWinPSHelper(parsedMetadata, resolvedManifestPath, out errorRecord) : TryCreateModuleManifestHelper(parsedMetadata, resolvedManifestPath, out errorRecord);
+            if (Utils.GetIsWindowsPowerShell(this))
+            {
+                CreateModuleManifestForWinPSHelper(parsedMetadata, resolvedManifestPath, out errorRecord);
+            }
+            else
+            {
+                CreateModuleManifestHelper(parsedMetadata, resolvedManifestPath, out errorRecord);
+            }
+
             if (errorRecord != null)
             {
-                WriteError(errorRecord);
+                ThrowTerminatingError(errorRecord);
             }
         }
 
         /// <summary>
         /// Handles module manifest creation for non-WindowsPowerShell platforms.
         /// </summary>
-        private bool TryCreateModuleManifestHelper(Hashtable parsedMetadata, string resolvedManifestPath, out ErrorRecord errorRecord)
+        private void CreateModuleManifestHelper(Hashtable parsedMetadata, string resolvedManifestPath, out ErrorRecord errorRecord)
         {
             errorRecord = null;
             // Prerelease, ReleaseNotes, Tags, ProjectUri, LicenseUri, IconUri, RequireLicenseAcceptance,
@@ -622,7 +630,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ErrorCategory.InvalidData,
                     this);
 
-                return false;
+                return;
             }
 
             string tmpModuleManifestPath = System.IO.Path.Combine(tmpParentPath, System.IO.Path.GetFileName(resolvedManifestPath));
@@ -650,7 +658,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ErrorCategory.InvalidArgument,
                         this);
 
-                    return false;
+                    return;
                 }
             }
 
@@ -669,8 +677,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 Utils.DeleteDirectory(tmpParentPath);
             }
-
-            return true;
         }
 
         /// <summary>
@@ -678,7 +684,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Since the code calls New-ModuleManifest and the Windows PowerShell version of the cmdlet did not have Prerelease, ExternalModuleDependencies and RequireLicenseAcceptance parameters,
         /// we can't simply call New-ModuleManifest with all parameters. Instead, create the manifest without PrivateData parameter (and the keys usually inside it) and then update the lines for PrivateData later.
         /// </summary>
-        private bool TryCreateModuleManifestForWinPSHelper(Hashtable parsedMetadata, string resolvedManifestPath, out ErrorRecord errorRecord)
+        private void CreateModuleManifestForWinPSHelper(Hashtable parsedMetadata, string resolvedManifestPath, out ErrorRecord errorRecord)
         {
             // Note on priority of values:
             // If -PrivateData parameter was provided with the cmdlet & .psd1 file PrivateData already had values, the passed in -PrivateData values replace those previosuly there.
@@ -965,7 +971,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ErrorCategory.InvalidData,
                     this);
                 
-                return false;
+                return;
             }
 
             string tmpModuleManifestPath = System.IO.Path.Combine(tmpParentPath, System.IO.Path.GetFileName(resolvedManifestPath));
@@ -995,7 +1001,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ErrorCategory.InvalidArgument,
                         this);
 
-                    return false;
+                    return;
                 }
             }
 
@@ -1005,7 +1011,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string newTmpModuleManifestPath = System.IO.Path.Combine(tmpParentPath, "Updated" + System.IO.Path.GetFileName(resolvedManifestPath));
             if (!TryCreateNewPsd1WithUpdatedPrivateData(privateDataString, tmpModuleManifestPath, newTmpModuleManifestPath, out errorRecord))
             {
-                return false;
+                return;
             }
 
             try
@@ -1028,8 +1034,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 Utils.DeleteDirectory(tmpParentPath);
             }
-
-            return  true;
         }
 
         /// <summary>
