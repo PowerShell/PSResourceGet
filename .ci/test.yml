@@ -62,22 +62,22 @@ jobs:
     workingDirectory: ${{ parameters.buildDirectory }}
 
   - task: AzurePowerShell@5
-      inputs:
-        azureSubscription: PSResourceGetACR
-        azurePowerShellVersion: LatestVersion
-        ScriptType: InlineScript
-        pwsh: true
-        inline: |
-          Write-Verbose -Verbose "Getting Azure Container Registry"
-          Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
-          Write-Verbose -Verbose "Setting up secret for Azure Container Registry"
-          $azt = Get-AzAccessToken
-          $tenantId = $azt.TenantID
-          Set-Secret -Name $tenantId -Secret $azt.Token -Verbose
-          $vstsCommandString = "vso[task.setvariable variable=TenantId]$tenantId"
-          Write-Host "sending " + $vstsCommandString
-          Write-Host "##$vstsCommandString"
-      displayName: 'Setup Azure Container Registry secret'
+    inputs:
+      azureSubscription: PSResourceGetACR
+      azurePowerShellVersion: LatestVersion
+      ScriptType: InlineScript
+      pwsh: true
+      inline: |
+        Write-Verbose -Verbose "Getting Azure Container Registry"
+        Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
+        Write-Verbose -Verbose "Setting up secret for Azure Container Registry"
+        $azt = Get-AzAccessToken
+        $tenantId = $azt.TenantID
+        Set-Secret -Name $tenantId -Secret $azt.Token -Verbose
+        $vstsCommandString = "vso[task.setvariable variable=TenantId]$tenantId"
+        Write-Host "sending " + $vstsCommandString
+        Write-Host "##$vstsCommandString"
+    displayName: 'Setup Azure Container Registry secret'
 
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
