@@ -1,9 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-<#
-# These tests are working with manual validation but there is currently no automated testing for ACR repositories. 
-
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
@@ -12,9 +9,10 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
     BeforeAll{
         $testModuleName = "hello-world"
         $ACRRepoName = "ACRRepo"
-        $ACRRepoUri = "https://psgetregistry.azurecr.io"
+        $ACRRepoUri = "https://psresourcegettest.azurecr.io"
         Get-NewPSResourceRepositoryFile
-        Register-PSResourceRepository -Name $ACRRepoName -Uri $ACRepoUri -ApiVersion "ACR"
+        $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
+        Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'acr' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
     }
 
     AfterAll {
@@ -138,5 +136,3 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindAllFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 }
-
-#>
