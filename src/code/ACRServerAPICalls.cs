@@ -200,6 +200,10 @@ namespace Microsoft.PowerShell.PSResourceGet
                         {
                             // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
                             latestVersionResponse.Add(GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord));
+                            if (errRecord != null)
+                            {
+                                return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
+                            }
 
                             break;
                         }
@@ -352,6 +356,10 @@ namespace Microsoft.PowerShell.PSResourceGet
                             }
 
                             latestVersionResponse.Add(GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord));
+                            if (errRecord != null)
+                            {
+                                return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
+                            }
                         }
                     }
                 }
@@ -421,6 +429,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 GetACRMetadata(registry, packageName, requiredVersion, acrAccessToken, out errRecord)
             };
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: results.ToArray(), responseType: acrFindResponseType);
+            }
+
 
             return new FindResults(stringResponse: new string[] { }, hashtableResponse: results.ToArray(), responseType: acrFindResponseType);
         }
@@ -689,69 +702,16 @@ namespace Microsoft.PowerShell.PSResourceGet
              *   }
              */
 
-            var layers = foundTags["layers"];
-            if (layers == null || layers[0] == null)
+            Tuple<string,string> metadataTuple = GetMetadataProperty(foundTags, packageName, out Exception exception);
+            if (exception != null)
             {
-                errRecord = new ErrorRecord(
-                    new InvalidOrEmptyResponse($"Response does not contain 'layers' element in manifest for package '{packageName}' in '{Repository.Name}'."),
-                    "FindNameFailure",
-                    ErrorCategory.InvalidResult,
-                    this);
-
+                errRecord = new ErrorRecord(exception, "FindNameFailure", ErrorCategory.InvalidResult, this);
+                
                 return requiredVersionResponse;
             }
 
-            var annotations = layers[0]["annotations"];
-            if (annotations == null)
-            {
-                errRecord = new ErrorRecord(
-                    new InvalidOrEmptyResponse($"Response does not contain 'annotations' element in manifest for package '{packageName}' in '{Repository.Name}'."),
-                    "FindNameFailure",
-                    ErrorCategory.InvalidResult,
-                    this);
-
-                return requiredVersionResponse;
-            }
-
-            if (annotations["metadata"] == null)
-            {
-                errRecord = new ErrorRecord(
-                    new InvalidOrEmptyResponse($"Response does not contain 'metadata' element in manifest for package '{packageName}' in '{Repository.Name}'."),
-                    "FindNameFailure",
-                    ErrorCategory.InvalidResult,
-                    this);
-
-                return requiredVersionResponse;
-            }
-
-            var metadata = annotations["metadata"].ToString();
-
-
-            var metadataPkgNameJToken = annotations["packageName"];
-            if (metadataPkgNameJToken == null)
-            {
-                errRecord = new ErrorRecord(
-                    new InvalidOrEmptyResponse($"Response does not contain 'packageName' element for package '{packageName}' in '{Repository.Name}'."),
-                    "FindNameFailure",
-                    ErrorCategory.InvalidResult,
-                    this);
-
-                return requiredVersionResponse;
-            }
-
-            string metadataPkgName = metadataPkgNameJToken.ToString();
-            if (string.IsNullOrWhiteSpace(metadataPkgName))
-            {
-                errRecord = new ErrorRecord(
-                    new InvalidOrEmptyResponse($"Response element 'packageName' is empty for package '{packageName}' in '{Repository.Name}'."),
-                    "FindNameFailure",
-                    ErrorCategory.InvalidResult,
-                    this);
-
-                return requiredVersionResponse;
-            }
-
-
+            string metadataPkgName = metadataTuple.Item1;
+            string metadata = metadataTuple.Item2;
             using (JsonDocument metadataJSONDoc = JsonDocument.Parse(metadata))
             {
                 JsonElement rootDom = metadataJSONDoc.RootElement;
@@ -779,6 +739,54 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             return requiredVersionResponse;
+        }
+
+        internal Tuple<string,string> GetMetadataProperty(JObject foundTags, string packageName, out Exception exception)
+        {
+            exception = null;
+            var emptyTuple = new Tuple<string, string>(string.Empty, string.Empty);
+            var layers = foundTags["layers"];
+            if (layers == null || layers[0] == null)
+            {
+                exception = new InvalidOrEmptyResponse($"Response does not contain 'layers' element in manifest for package '{packageName}' in '{Repository.Name}'.");
+                  
+                return emptyTuple;
+            }
+
+            var annotations = layers[0]["annotations"];
+            if (annotations == null)
+            {
+                exception = new InvalidOrEmptyResponse($"Response does not contain 'annotations' element in manifest for package '{packageName}' in '{Repository.Name}'.");
+                    
+                return emptyTuple;
+            }
+
+            if (annotations["metadata"] == null)
+            {
+                exception = new InvalidOrEmptyResponse($"Response does not contain 'metadata' element in manifest for package '{packageName}' in '{Repository.Name}'.");
+                    
+                return emptyTuple;
+            }
+
+            var metadata = annotations["metadata"].ToString();
+
+            var metadataPkgNameJToken = annotations["packageName"];
+            if (metadataPkgNameJToken == null)
+            {
+                exception = new InvalidOrEmptyResponse($"Response does not contain 'packageName' element for package '{packageName}' in '{Repository.Name}'.");
+                  
+                return emptyTuple;
+            }
+
+            string metadataPkgName = metadataPkgNameJToken.ToString();
+            if (string.IsNullOrWhiteSpace(metadataPkgName))
+            {
+                exception = new InvalidOrEmptyResponse($"Response element 'packageName' is empty for package '{packageName}' in '{Repository.Name}'.");
+                   
+                return emptyTuple;
+            }
+
+            return new Tuple<string, string>(metadataPkgName, metadata);
         }
 
         internal JObject FindAcrManifest(string registry, string packageName, string version, string acrAccessToken, out ErrorRecord errRecord)
