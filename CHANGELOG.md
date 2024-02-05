@@ -1,4 +1,20 @@
 # CHANGELOG
+## 1.0.2
+
+### Bug Fixes
+- Bug fix for `Update-PSResource` not updating from correct repository (#1549)
+- Bug fix for creating temp home directory on Unix (#1544)
+- Bug fix for creating `InstalledScriptInfos` directory when it does not exist (#1542)
+- Bug fix for `Update-ModuleManifest` throwing null pointer exception (#1538)
+- Bug fix for `name` property not populating in `PSResourceInfo` object when using `Find-PSResource` with JFrog Artifactory (#1535)
+- Bug fix for incorrect configuration of requests to JFrog Artifactory v2 endpoints (#1533 Thanks @sean-r-williams!)
+- Bug fix for determining JFrog Artifactory repositories (#1532 Thanks @sean-r-williams!)
+- Bug fix for v2 server repositories incorrectly adding script endpoint (1526)
+- Bug fixes for null references (#1525)
+- Typo fixes in message prompts in `Install-PSResource` (#1510 Thanks @NextGData!)
+- Bug fix to add `NormalizedVersion` property to `AdditionalMetadata` only when it exists (#1503 Thanks @sean-r-williams!)
+- Bug fix to verify whether `Uri` is a UNC path and set respective `ApiVersion` (#1479 Thanks @kborowinski!)
+
 ## 1.0.1
 
 ### Bug Fixes
