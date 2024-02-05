@@ -3,12 +3,8 @@
 
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
-# Explicitly import build module because in CI PowerShell can autoload PSGetv2
-# This ensures the build module is always being tested
-$buildModule = "$psscriptroot/../../out/PSResourceGet"
-Import-Module $buildModule -Force -Verbose
 
-Describe 'Test Update-PSModuleManifest' {
+Describe 'Test Update-PSModuleManifest' -tags 'CI' {
 
     BeforeEach {
         # Create temp module manifest to be updated
@@ -102,7 +98,7 @@ Describe 'Test Update-PSModuleManifest' {
         $ModuleVersion = "1.0.0"
         $Prerelease = "  "
         New-ModuleManifest -Path $script:testManifestPath -Description $Description -ModuleVersion $ModuleVersion
-        {Update-PSModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease} | Should -Throw -ErrorId "PrereleaseValueCannotOrBeWhiteSpace,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+        {Update-PSModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease} | Should -Throw -ErrorId "PrereleaseValueCannotBeWhiteSpace,Microsoft.PowerShell.PSResourceGet.Cmdlets.UpdateModuleManifest"
     }
 
     It "Update module manifest given ReleaseNotes parameter" {
@@ -112,6 +108,8 @@ Describe 'Test Update-PSModuleManifest' {
         Update-PSModuleManifest -Path $script:testManifestPath -ReleaseNotes $ReleaseNotes
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
+        Write-Verbose -Verbose "release notes are: $($results.PrivateData.PSData.ReleaseNotes)"
+        Write-Verbose -Verbose "release notes should be: $ReleaseNotes"
         $results.PrivateData.PSData.ReleaseNotes | Should -Be $ReleaseNotes
     }
 
@@ -422,6 +420,8 @@ Describe 'Test Update-PSModuleManifest' {
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.Author | Should -Be $Author
+        Write-Verbose -Verbose "Project Uri was: $($results.PrivateData.PSData.ProjectUri)"
+        Write-Verbose -Verbose "Project Uri should be: $ProjectUri"
         $results.PrivateData.PSData.ProjectUri | Should -Be $ProjectUri
         $results.PrivateData.PSData.Prerelease | Should -Be $Prerelease
     }
