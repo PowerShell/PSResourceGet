@@ -173,32 +173,13 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            /* response returned looks something like:
-             *   "registry": "myregistry.azurecr.io"
-             *   "imageName": "hello-world"
-             *   "tags": [
-             *     {
-             *       ""name"": ""1.0.0"",
-             *       ""digest"": ""sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a"",
-             *       ""createdTime"": ""2023-12-23T18:06:48.9975733Z"",
-             *       ""lastUpdateTime"": ""2023-12-23T18:06:48.9975733Z"",
-             *       ""signed"": false,
-             *       ""changeableAttributes"": {
-             *         ""deleteEnabled"": true,
-             *         ""writeEnabled"": true,
-             *         ""readEnabled"": true,
-             *         ""listEnabled"": true
-             *       }
-             *     }]
-             */
             List<Hashtable> latestVersionResponse = new List<Hashtable>();
             List<JToken> allVersionsList = foundTags["tags"].ToList();
             allVersionsList.Reverse();
 
-            foreach (var packageVersion in allVersionsList)
+            foreach (var pkgVersionTagInfo in allVersionsList)
             {
-                var packageVersionStr = packageVersion.ToString();
-                using (JsonDocument pkgVersionEntry = JsonDocument.Parse(packageVersionStr))
+                using (JsonDocument pkgVersionEntry = JsonDocument.Parse(pkgVersionTagInfo.ToString()))
                 {
                     JsonElement rootDom = pkgVersionEntry.RootElement;
                     if (!rootDom.TryGetProperty("name", out JsonElement pkgVersionElement))
@@ -218,7 +199,11 @@ namespace Microsoft.PowerShell.PSResourceGet
                         if (!pkgVersion.IsPrerelease || includePrerelease)
                         {
                             // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
-                            latestVersionResponse.Add(new Hashtable() { { packageName, packageVersionStr } });
+                            latestVersionResponse.Add(GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord));
+                            if (errRecord != null)
+                            {
+                                return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
+                            }
 
                             break;
                         }
@@ -339,26 +324,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            /* response returned looks something like:
-             *   "registry": "myregistry.azurecr.io"
-             *   "imageName": "hello-world"
-             *   "tags": [
-             *     {
-             *       ""name"": ""1.0.0"",
-             *       ""digest"": ""sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a"",
-             *       ""createdTime"": ""2023-12-23T18:06:48.9975733Z"",
-             *       ""lastUpdateTime"": ""2023-12-23T18:06:48.9975733Z"",
-             *       ""signed"": false,
-             *       ""changeableAttributes"": {
-             *         ""deleteEnabled"": true,
-             *         ""writeEnabled"": true,
-             *         ""readEnabled"": true,
-             *         ""listEnabled"": true
-             *       }
-             *     }]
-             */
             List<Hashtable> latestVersionResponse = new List<Hashtable>();
             List<JToken> allVersionsList = foundTags["tags"].ToList();
+            allVersionsList.Reverse();
             foreach (var packageVersion in allVersionsList)
             {
                 var packageVersionStr = packageVersion.ToString();
@@ -387,7 +355,11 @@ namespace Microsoft.PowerShell.PSResourceGet
                                 continue;
                             }
 
-                            latestVersionResponse.Add(new Hashtable() { { packageName, packageVersionStr } });
+                            latestVersionResponse.Add(GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord));
+                            if (errRecord != null)
+                            {
+                                return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
+                            }
                         }
                     }
                 }
@@ -453,59 +425,17 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             _cmdletPassedIn.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(registry, packageName, requiredVersion.ToString(), acrAccessToken, out errRecord);
-            if (errRecord != null || foundTags == null)
+            List<Hashtable> results = new List<Hashtable>
             {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+                GetACRMetadata(registry, packageName, requiredVersion, acrAccessToken, out errRecord)
+            };
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: results.ToArray(), responseType: acrFindResponseType);
             }
 
-            /* response returned looks something like:
-             *   "registry": "myregistry.azurecr.io"
-             *   "imageName": "hello-world"
-             *   "tags": [
-             *     {
-             *       ""name"": ""1.0.0"",
-             *       ""digest"": ""sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a"",
-             *       ""createdTime"": ""2023-12-23T18:06:48.9975733Z"",
-             *       ""lastUpdateTime"": ""2023-12-23T18:06:48.9975733Z"",
-             *       ""signed"": false,
-             *       ""changeableAttributes"": {
-             *         ""deleteEnabled"": true,
-             *         ""writeEnabled"": true,
-             *         ""readEnabled"": true,
-             *         ""listEnabled"": true
-             *       }
-             *     }]
-             */
-            List<Hashtable> requiredVersionResponse = new List<Hashtable>();
 
-            var packageVersionStr = foundTags["tag"].ToString();
-            using (JsonDocument pkgVersionEntry = JsonDocument.Parse(packageVersionStr))
-            {
-                JsonElement rootDom = pkgVersionEntry.RootElement;
-                if (!rootDom.TryGetProperty("name", out JsonElement pkgVersionElement))
-                {
-                    errRecord = new ErrorRecord(
-                        new InvalidOrEmptyResponse($"Response does not contain version element ('name') for package '{packageName}' in '{Repository.Name}'."),
-                        "FindNameFailure",
-                        ErrorCategory.InvalidResult,
-                        this);
-
-                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-                }
-
-                if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
-                {
-                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
-
-                    if (pkgVersion == requiredVersion)
-                    {
-                        requiredVersionResponse.Add(new Hashtable() { { packageName, packageVersionStr } });
-                    }
-                }
-            }
-
-            return new FindResults(stringResponse: new string[] { }, hashtableResponse: requiredVersionResponse.ToArray(), responseType: acrFindResponseType);
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: results.ToArray(), responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -709,6 +639,24 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         internal JObject FindAcrImageTags(string registry, string repositoryName, string version, string acrAccessToken, out ErrorRecord errRecord)
         {
+            /* response returned looks something like:
+             *   "registry": "myregistry.azurecr.io"
+             *   "imageName": "hello-world"
+             *   "tags": [
+             *     {
+             *       ""name"": ""1.0.0"",
+             *       ""digest"": ""sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a"",
+             *       ""createdTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""lastUpdateTime"": ""2023-12-23T18:06:48.9975733Z"",
+             *       ""signed"": false,
+             *       ""changeableAttributes"": {
+             *         ""deleteEnabled"": true,
+             *         ""writeEnabled"": true,
+             *         ""readEnabled"": true,
+             *         ""listEnabled"": true
+             *       }
+             *     }]
+             */
             try
             {
                 string resolvedVersion = string.Equals(version, "*", StringComparison.OrdinalIgnoreCase) ? null : $"/{version}";
@@ -719,6 +667,141 @@ namespace Microsoft.PowerShell.PSResourceGet
             catch (HttpRequestException e)
             {
                 throw new HttpRequestException("Error finding ACR artifact: " + e.Message);
+            }
+        }
+
+        internal Hashtable GetACRMetadata(string registry, string packageName, NuGetVersion requiredVersion, string acrAccessToken, out ErrorRecord errRecord)
+        {
+            Hashtable requiredVersionResponse = new Hashtable();
+
+            var foundTags = FindAcrManifest(registry, packageName, requiredVersion.ToNormalizedString(), acrAccessToken, out errRecord);
+            if (errRecord != null || foundTags == null)
+            {
+                return requiredVersionResponse;
+            }
+
+            /*   Response returned looks something like:
+             *    {
+             *     "schemaVersion": 2,
+             *     "config": {
+             *       "mediaType": "application/vnd.unknown.config.v1+json",
+             *       "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+             *       "size": 0
+             *     },
+             *     "layers": [
+             *       {
+             *         "mediaType": "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip'",
+             *         "digest": "sha256:7c55c7b66cb075628660d8249cc4866f16e34741c246a42ed97fb23ccd4ea956",
+             *         "size": 3533,
+             *         "annotations": {
+             *           "org.opencontainers.image.title": "test_module.1.0.0.nupkg",
+             *           "metadata": "{\"GUID\":\"45219bf4-10a4-4242-92d6-9bfcf79878fd\",\"FunctionsToExport\":[],\"CompanyName\":\"Anam\",\"CmdletsToExport\":[],\"VariablesToExport\":\"*\",\"Author\":\"Anam Navied\",\"ModuleVersion\":\"1.0.0\",\"Copyright\":\"(c) Anam Navied. All rights reserved.\",\"PrivateData\":{\"PSData\":{\"Tags\":[\"Test\",\"CommandsAndResource\",\"Tag2\"]}},\"RequiredModules\":[],\"Description\":\"This is a test module, for PSGallery team internal testing. Do not take a dependency on this package. This version contains tags for the package.\",\"AliasesToExport\":[]}"
+             *         }
+             *       }
+             *     ]
+             *   }
+             */
+
+            Tuple<string,string> metadataTuple = GetMetadataProperty(foundTags, packageName, out Exception exception);
+            if (exception != null)
+            {
+                errRecord = new ErrorRecord(exception, "FindNameFailure", ErrorCategory.InvalidResult, this);
+                
+                return requiredVersionResponse;
+            }
+
+            string metadataPkgName = metadataTuple.Item1;
+            string metadata = metadataTuple.Item2;
+            using (JsonDocument metadataJSONDoc = JsonDocument.Parse(metadata))
+            {
+                JsonElement rootDom = metadataJSONDoc.RootElement;
+                if (!rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement) &&
+                     !rootDom.TryGetProperty("Version", out pkgVersionElement))
+                {
+                    errRecord = new ErrorRecord(
+                        new InvalidOrEmptyResponse($"Response does not contain 'ModuleVersion' or 'Version' property in metadata for package '{packageName}' in '{Repository.Name}'."),
+                        "FindNameFailure",
+                        ErrorCategory.InvalidResult,
+                        this);
+
+                    return requiredVersionResponse;
+                }
+
+                if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                {
+                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+
+                    if (pkgVersion == requiredVersion)
+                    {
+                        requiredVersionResponse.Add(metadataPkgName, metadata);
+                    }
+                }
+            }
+
+            return requiredVersionResponse;
+        }
+
+        internal Tuple<string,string> GetMetadataProperty(JObject foundTags, string packageName, out Exception exception)
+        {
+            exception = null;
+            var emptyTuple = new Tuple<string, string>(string.Empty, string.Empty);
+            var layers = foundTags["layers"];
+            if (layers == null || layers[0] == null)
+            {
+                exception = new InvalidOrEmptyResponse($"Response does not contain 'layers' element in manifest for package '{packageName}' in '{Repository.Name}'.");
+                  
+                return emptyTuple;
+            }
+
+            var annotations = layers[0]["annotations"];
+            if (annotations == null)
+            {
+                exception = new InvalidOrEmptyResponse($"Response does not contain 'annotations' element in manifest for package '{packageName}' in '{Repository.Name}'.");
+                    
+                return emptyTuple;
+            }
+
+            if (annotations["metadata"] == null)
+            {
+                exception = new InvalidOrEmptyResponse($"Response does not contain 'metadata' element in manifest for package '{packageName}' in '{Repository.Name}'.");
+                    
+                return emptyTuple;
+            }
+
+            var metadata = annotations["metadata"].ToString();
+
+            var metadataPkgNameJToken = annotations["packageName"];
+            if (metadataPkgNameJToken == null)
+            {
+                exception = new InvalidOrEmptyResponse($"Response does not contain 'packageName' element for package '{packageName}' in '{Repository.Name}'.");
+                  
+                return emptyTuple;
+            }
+
+            string metadataPkgName = metadataPkgNameJToken.ToString();
+            if (string.IsNullOrWhiteSpace(metadataPkgName))
+            {
+                exception = new InvalidOrEmptyResponse($"Response element 'packageName' is empty for package '{packageName}' in '{Repository.Name}'.");
+                   
+                return emptyTuple;
+            }
+
+            return new Tuple<string, string>(metadataPkgName, metadata);
+        }
+
+        internal JObject FindAcrManifest(string registry, string packageName, string version, string acrAccessToken, out ErrorRecord errRecord)
+        {
+            try
+            {
+                var createManifestUrl = string.Format(acrManifestUrlTemplate, registry, packageName, version);
+                _cmdletPassedIn.WriteDebug($"GET manifest url:  {createManifestUrl}");
+
+                var defaultHeaders = GetDefaultHeaders(acrAccessToken);
+                return GetHttpResponseJObjectUsingDefaultHeaders(createManifestUrl, HttpMethod.Get, defaultHeaders, out errRecord);
+            }
+            catch (HttpRequestException e)
+            {
+                throw new HttpRequestException("Error finding ACR manifest: " + e.Message);
             }
         }
 
@@ -1113,7 +1196,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             FileInfo nupkgFile = new FileInfo(fullNupkgFile);
             var fileSize = nupkgFile.Length;
             var fileName = System.IO.Path.GetFileName(fullNupkgFile);
-            string fileContent = CreateJsonContent(nupkgDigest, configDigest, fileSize, fileName, jsonString);
+            string fileContent = CreateJsonContent(nupkgDigest, configDigest, fileSize, fileName, pkgName, jsonString);
             File.WriteAllText(configFilePath, fileContent);
 
             _cmdletPassedIn.WriteVerbose("Create the manifest layer");
@@ -1130,7 +1213,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             string nupkgDigest, 
             string configDigest, 
             long nupkgFileSize, 
-            string fileName, 
+            string fileName,
+            string packageName,
             string jsonString)
         {
             StringBuilder stringBuilder = new StringBuilder();
@@ -1167,6 +1251,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             jsonWriter.WritePropertyName("annotations");
             jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName("org.opencontainers.image.title");
+            jsonWriter.WriteValue(packageName);
+            jsonWriter.WritePropertyName("org.opencontainers.image.description");
             jsonWriter.WriteValue(fileName);
             jsonWriter.WritePropertyName("metadata");
             jsonWriter.WriteValue(jsonString);
