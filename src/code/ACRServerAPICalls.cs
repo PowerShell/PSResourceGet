@@ -1251,9 +1251,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             jsonWriter.WritePropertyName("annotations");
             jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName("org.opencontainers.image.title");
-            jsonWriter.WriteValue(fileName);
-            jsonWriter.WritePropertyName("packageName");
             jsonWriter.WriteValue(packageName);
+            jsonWriter.WritePropertyName("org.opencontainers.image.description");
+            jsonWriter.WriteValue(fileName);
             jsonWriter.WritePropertyName("metadata");
             jsonWriter.WriteValue(jsonString);
             jsonWriter.WriteEndObject();
