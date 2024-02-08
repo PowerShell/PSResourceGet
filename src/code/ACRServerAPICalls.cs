@@ -1106,8 +1106,8 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             errRecord = null;
             // Push the nupkg to the appropriate repository
-            var fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, pkgName + "." + pkgVersion.ToNormalizedString() + ".nupkg");
-
+            string fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, pkgName + "." + pkgVersion.ToNormalizedString() + ".nupkg");
+            string pkgNameLower = pkgName.ToLower();
             string accessToken = string.Empty;
             string tenantID = string.Empty;
 
@@ -1136,7 +1136,8 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             /* Uploading .nupkg */
             _cmdletPassedIn.WriteVerbose("Start uploading blob");
-            var moduleLocation = GetStartUploadBlobLocation(registry, pkgName, acrAccessToken).Result;
+            // Note:  ACR registries will only accept a name that is all lowercase.
+            var moduleLocation = GetStartUploadBlobLocation(registry, pkgNameLower, acrAccessToken).Result;
 
             _cmdletPassedIn.WriteVerbose("Computing digest for .nupkg file");
             bool nupkgDigestCreated = CreateDigest(fullNupkgFile, out string nupkgDigest, out ErrorRecord nupkgDigestError);
@@ -1159,7 +1160,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             using (FileStream configStream = new FileStream(emptyFilePath, FileMode.Create)){ }
             _cmdletPassedIn.WriteVerbose("Start uploading an empty file");
-            var emptyLocation = GetStartUploadBlobLocation(registry, pkgName, acrAccessToken).Result;
+            var emptyLocation = GetStartUploadBlobLocation(registry, pkgNameLower, acrAccessToken).Result;
             _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
             bool emptyDigestCreated = CreateDigest(emptyFilePath, out string emptyDigest, out ErrorRecord emptyDigestError);
             if (!emptyDigestCreated)
@@ -1200,7 +1201,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             File.WriteAllText(configFilePath, fileContent);
 
             _cmdletPassedIn.WriteVerbose("Create the manifest layer");
-            bool manifestCreated = CreateManifest(registry, pkgName, pkgVersion.OriginalVersion, configFilePath, true, acrAccessToken).Result;
+            bool manifestCreated = CreateManifest(registry, pkgNameLower, pkgVersion.OriginalVersion, configFilePath, true, acrAccessToken).Result;
 
             if (manifestCreated)
             {
