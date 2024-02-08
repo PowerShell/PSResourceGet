@@ -1,0 +1,1 @@
+This file will contain changelog updates for preview releases for Microsoft.PowerShell.PSResourceGet
