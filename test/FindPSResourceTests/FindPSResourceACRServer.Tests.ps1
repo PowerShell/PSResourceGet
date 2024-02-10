@@ -7,7 +7,7 @@ Import-Module $modPath -Force -Verbose
 Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 
     BeforeAll{
-        $testModuleName = "hello-world"
+        $testModuleName = "test_local_mod"
         $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io"
         Get-NewPSResourceRepositoryFile
