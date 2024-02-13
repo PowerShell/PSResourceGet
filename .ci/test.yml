@@ -11,6 +11,14 @@ jobs:
     vmImage: ${{ parameters.imageName }}
   displayName: ${{ parameters.displayName }}
   steps:
+  - ${{ parameters.powershellExecutable }}: |
+        Install-Module -Name 'Microsoft.PowerShell.SecretManagement' -force -SkipPublisherCheck -AllowClobber
+        Install-Module -Name 'Microsoft.PowerShell.SecretStore' -force -SkipPublisherCheck -AllowClobber
+        $vaultPassword = ConvertTo-SecureString $("a!!"+ (Get-Random -Maximum ([int]::MaxValue))) -AsPlainText -Force
+        Set-SecretStoreConfiguration -Authentication None -Interaction None -Confirm:$false -Password $vaultPassword
+        Register-SecretVault -Name SecretStore -ModuleName Microsoft.PowerShell.SecretStore -DefaultVault
+    displayName: Install Secret store
+
   - task: DownloadBuildArtifacts@0
     displayName: 'Download artifacts'
     inputs:
@@ -53,6 +61,24 @@ jobs:
     displayName: Install module for test from downloaded artifact
     workingDirectory: ${{ parameters.buildDirectory }}
 
+  - task: AzurePowerShell@5
+    inputs:
+      azureSubscription: PSResourceGetACR
+      azurePowerShellVersion: LatestVersion
+      ScriptType: InlineScript
+      pwsh: true
+      inline: |
+        Write-Verbose -Verbose "Getting Azure Container Registry"
+        Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
+        Write-Verbose -Verbose "Setting up secret for Azure Container Registry"
+        $azt = Get-AzAccessToken
+        $tenantId = $azt.TenantID
+        Set-Secret -Name $tenantId -Secret $azt.Token -Verbose
+        $vstsCommandString = "vso[task.setvariable variable=TenantId]$tenantId"
+        Write-Host "sending " + $vstsCommandString
+        Write-Host "##$vstsCommandString"
+    displayName: 'Setup Azure Container Registry secret'
+
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
       $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
@@ -68,4 +94,3 @@ jobs:
     workingDirectory: ${{ parameters.buildDirectory }}
     errorActionPreference: continue
     condition: succeededOrFailed()
-
