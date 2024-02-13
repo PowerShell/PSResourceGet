@@ -1105,6 +1105,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
+        public static bool GetIsWindowsPowerShell(PSCmdlet psCmdlet)
+        {
+            return psCmdlet.Host.Version < PSVersion6;
+        }
+
         /// <summary>
         /// Checks if any of the package versions are already installed and if they are removes them from the list of packages to install.
         /// </summary>
