@@ -16,6 +16,7 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -571,10 +572,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                                         currentServer: currentServer,
                                                         currentResponseUtil: currentResponseUtil,
                                                         tempInstallPath: tempInstallPath,
+                                                        skipDependencyCheck: skipDependencyCheck,
                                                         packagesHash: new Hashtable(StringComparer.InvariantCultureIgnoreCase),
                                                         errRecord: out ErrorRecord errRecord);
 
-                    // At this point parent package is installed to temp path.
+                    // At this point all packagea are installed to temp path.
                     if (errRecord != null)
                     {
                         if (errRecord.FullyQualifiedErrorId.Equals("PackageNotFound"))
@@ -592,69 +594,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (packagesHash.Count == 0)
                     {
                         continue;
-                    }
-
-                    Hashtable parentPkgInfo = packagesHash[parentPackage] as Hashtable;
-                    PSResourceInfo parentPkgObj = parentPkgInfo["psResourceInfoPkg"] as PSResourceInfo;
-
-                    if (!skipDependencyCheck)
-                    {
-                        if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
-                        {
-                            _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
-                        }
-
-                        Console.WriteLine($"~~~Finding Dependencies for {parentPkgObj.Name}~~~");
-                        // Get the dependencies from the installed package.
-                        if (parentPkgObj.Dependencies.Length > 0)
-                        {
-                            bool depFindFailed = false;
-                            foreach (PSResourceInfo depPkg in findHelper.FindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository))
-                            {
-                                if (depPkg == null)
-                                {
-                                    depFindFailed = true;
-                                    continue;
-                                }
-                                
-                                if (String.Equals(depPkg.Name, parentPkgObj.Name, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    continue;
-                                }
-
-                                NuGetVersion depVersion = null;
-                                if (depPkg.AdditionalMetadata.ContainsKey("NormalizedVersion"))
-                                {
-                                    if (!NuGetVersion.TryParse(depPkg.AdditionalMetadata["NormalizedVersion"] as string, out depVersion))
-                                    {
-                                        NuGetVersion.TryParse(depPkg.Version.ToString(), out depVersion);
-                                    }
-                                }
-
-                                packagesHash = BeginPackageInstall(
-                                            searchVersionType: VersionType.SpecificVersion,
-                                            specificVersion: depVersion,
-                                            versionRange: null,
-                                            pkgNameToInstall: depPkg.Name,
-                                            repository: repository,
-                                            currentServer: currentServer,
-                                            currentResponseUtil: currentResponseUtil,
-                                            tempInstallPath: tempInstallPath,
-                                            packagesHash: packagesHash,
-                                            errRecord: out ErrorRecord installPkgErrRecord);
-
-                                if (installPkgErrRecord != null)
-                                {
-                                    _cmdletPassedIn.WriteError(installPkgErrRecord);
-                                    continue;
-                                }
-                            }
-
-                            if (depFindFailed)
-                            {
-                                continue;
-                            }
-                        }
                     }
 
                     // If -WhatIf is passed in, early out.
@@ -706,6 +645,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
             string tempInstallPath,
+            bool skipDependencyCheck,
             Hashtable packagesHash,
             out ErrorRecord errRecord)
         {
@@ -713,6 +653,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             FindResults responses = null;
             errRecord = null;
 
+            // Find the parent package that needs to be installed
             switch (searchVersionType)
             {
                 case VersionType.VersionRange:
@@ -764,6 +705,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
             }
 
+            // Convert parent package to PSResourceInfo
             PSResourceInfo pkgToInstall = null;
             foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
             {
@@ -809,6 +751,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (pkgVersion == null) {
                 pkgVersion = pkgToInstall.Version.ToString();
             }
+
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
@@ -879,61 +822,79 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-
-                // TODO -- optimize
-
-                // 1) Find all dependencies
-                //pkgToInstall.Dependencies;
-                var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
-                _cmdletPassedIn.WriteDebug($"Finding dependency packages for '{pkgToInstall.Name}'");
-                List<PSResourceInfo> allDependencies = findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
-
-                foreach (PSResourceInfo pkg in allDependencies)
-                {
-                    Console.WriteLine($"{pkg.Name}: {pkg.Version}");
-
-                
-                }
-
-
-
-
-
-                // Download the package.
+                // Find all dependencies
                 string pkgName = pkgToInstall.Name;
-
-                Stopwatch stopwatch = new Stopwatch();
-
-                // Start measuring time
-                stopwatch.Start();
-
-                Stream responseStream = currentServer.InstallPackage(pkgName, pkgVersion, _prerelease, out ErrorRecord installNameErrRecord);
-
-                // Stop measuring time
-                stopwatch.Stop();
-
-                // Get the elapsed time in milliseconds
-                long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
-
-                Console.WriteLine($"Install Package - Elapsed Time: {elapsedMilliseconds} milliseconds");
-
-
-
-                if (installNameErrRecord != null)
+                if (!skipDependencyCheck)
                 {
-                    errRecord = installNameErrRecord;
-                    return packagesHash;
+                    if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+                    {
+                        _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
+                    }
+
+                    var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
+                    _cmdletPassedIn.WriteDebug($"Finding dependency packages for '{pkgToInstall.Name}'");
+                    List<PSResourceInfo> allDependencies = findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
+
+                    foreach (PSResourceInfo pkg in allDependencies)
+                    {
+                        Console.WriteLine($"{pkg.Name}: {pkg.Version}");
+                    }
+
+                    // TODO: ADD FOREACH HERE
+                    Parallel.ForEach(allDependencies, pkgToBeInstalled =>
+                    {
+                        // Perform some operation on each item
+                       // Console.WriteLine($"Processing number: {pkgToBeInstalled}, Thread ID: {Task.CurrentId}");
+                    
+
+
+                        Stream responseStream = currentServer.InstallPackage(pkgToBeInstalled.Name, pkgToBeInstalled.Version.ToString(), true, out ErrorRecord installNameErrRecord);
+
+                        if (installNameErrRecord != null)
+                        {
+                           // errRecord = installNameErrRecord;
+
+                            //write error 
+                            //return packagesHash;
+                        }
+
+                        bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out ErrorRecord tempSaveErrRecord) :
+                       TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out ErrorRecord tempInstallErrRecord);
+
+                        if (!installedToTempPathSuccessfully)
+                        {
+                            //return packagesHash;
+                        }
+
+                       // packagesHash.Add(pkgToBeInstalled.Name, pkgToBeInstalled.Version);
+
+
+                    });
                 }
+                else {
 
-                bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :
-                    TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord);
+                    // TODO:  check this version and prerelease combo
+                    Stream responseStream = currentServer.InstallPackage(pkgToInstall.Name, pkgToInstall.Version.ToString(), true, out ErrorRecord installNameErrRecord);
 
-                if (!installedToTempPathSuccessfully)
-                {
-                    return packagesHash;
+                    if (installNameErrRecord != null)
+                    {
+                        errRecord = installNameErrRecord;
+                        return packagesHash;
+                    }
+
+                    bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgToInstall.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :
+                   TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgToInstall.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord);
+
+                    if (!installedToTempPathSuccessfully)
+                    {
+                        return packagesHash;
+                    }
+
+                    packagesHash.Add(pkgToInstall.Name, pkgToInstall.Version);
                 }
             }
 
+            // TODO: figure out packagesHash / UpdatedPackagesHash
             return updatedPackagesHash;
         }
 
@@ -1000,7 +961,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             out Hashtable updatedPackagesHash,
             out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::TryInstallToTempPath()");
+            //_cmdletPassedIn.WriteDebug("In InstallHelper::TryInstallToTempPath()");
             error = null;
             updatedPackagesHash = packagesHash;
             try
@@ -1100,7 +1061,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         foreach (ErrorRecord parseError in parseScriptFileErrors)
                         {
-                            _cmdletPassedIn.WriteError(parseError);
+                           // _cmdletPassedIn.WriteError(parseError);
                         }
 
                         error = new ErrorRecord(
@@ -1117,7 +1078,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // This package is not a PowerShell package (eg a resource from the NuGet Gallery).
                     installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
 
-                    _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
+                    //_cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
                     isModule = true;
                 }
 

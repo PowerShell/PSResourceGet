@@ -754,13 +754,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private HttpContent HttpRequestCallForContent(string requestUrlV2, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCallForContent()");
+          //  _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCallForContent()");
             errRecord = null;
             HttpContent content = null;
 
             try
             {
-                _cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV2}'");
+                //_cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV2}'");
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
 
                 content = SendV2RequestForContentAsync(request, _sessionClient).GetAwaiter().GetResult();
@@ -792,7 +792,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (content == null || string.IsNullOrEmpty(content.ToString()))
             {
-                _cmdletPassedIn.WriteDebug("Response is empty");
+                //_cmdletPassedIn.WriteDebug("Response is empty");
             }
 
             return content;
@@ -1153,7 +1153,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallVersion()");
+            //_cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallVersion()");
             string requestUrlV2;
 
             if (_isADORepo)
