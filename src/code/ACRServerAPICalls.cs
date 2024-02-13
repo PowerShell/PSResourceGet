@@ -770,18 +770,18 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             var metadata = annotations["metadata"].ToString();
 
-            var metadataPkgNameJToken = annotations["packageName"];
-            if (metadataPkgNameJToken == null)
+            var metadataPkgTitleJToken = annotations["org.opencontainers.image.title"];
+            if (metadataPkgTitleJToken == null)
             {
-                exception = new InvalidOrEmptyResponse($"Response does not contain 'packageName' element for package '{packageName}' in '{Repository.Name}'.");
+                exception = new InvalidOrEmptyResponse($"Response does not contain 'org.opencontainers.image.title' element for package '{packageName}' in '{Repository.Name}'.");
                   
                 return emptyTuple;
             }
 
-            string metadataPkgName = metadataPkgNameJToken.ToString();
+            string metadataPkgName = metadataPkgTitleJToken.ToString();
             if (string.IsNullOrWhiteSpace(metadataPkgName))
             {
-                exception = new InvalidOrEmptyResponse($"Response element 'packageName' is empty for package '{packageName}' in '{Repository.Name}'.");
+                exception = new InvalidOrEmptyResponse($"Response element 'org.opencontainers.image.title' is empty for package '{packageName}' in '{Repository.Name}'.");
                    
                 return emptyTuple;
             }
@@ -1244,7 +1244,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("application/vnd.oci.image.layer.nondistributable.v1.tar+gzip'");
+            jsonWriter.WriteValue("application/vnd.oci.image.layer.nondistributable.v1.tar+gzip");
             jsonWriter.WritePropertyName("digest");
             jsonWriter.WriteValue($"sha256:{nupkgDigest}");
             jsonWriter.WritePropertyName("size");
