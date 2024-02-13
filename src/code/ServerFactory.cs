@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using System.Collections;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Net;
@@ -14,7 +15,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             using (System.Management.Automation.PowerShell ps = System.Management.Automation.PowerShell.Create(RunspaceMode.CurrentRunspace))
             {
-                _psVersion = ps.AddScript("$PSVersionTable.PSVersion.ToString()").Invoke<string>()[0];
+                _psVersion = ps.AddScript("$PSVersionTable").Invoke<Hashtable>()[0]["PSVersion"].ToString();
             }
 
             _psResourceGetVersion = typeof(UserAgentInfo).Assembly.GetName().Version.ToString();
