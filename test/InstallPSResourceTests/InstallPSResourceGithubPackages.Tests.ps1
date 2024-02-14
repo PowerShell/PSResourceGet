@@ -8,6 +8,8 @@ Import-Module $modPath -Force -Verbose
 Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
 
     BeforeAll {
+        Uninstall-PSResource $testModuleName, $testScriptName -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
+
         $testModuleName = "test_module"
         $testModuleName2 = "test_module2"
         $testScriptName = "test_script"
