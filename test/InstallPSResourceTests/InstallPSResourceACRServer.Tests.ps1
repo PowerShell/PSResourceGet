@@ -145,7 +145,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "7.0.0"
         $pkg.Copyright | Should -Be "(c) Anam Navied. All rights reserved."
         $pkg.Description | Should -Be "This is a test module, for PSGallery team internal testing. Do not take a dependency on this package. This version contains tags for the package."
-        $pkg.RepositorySourceLocation | Should -Be $ADORepoUri
+        $pkg.RepositorySourceLocation | Should -Be $ACRRepoUri
     }
 
     # Windows only
