@@ -5,7 +5,7 @@ $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
+Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
 
     BeforeAll {
         $testModuleName = "test_module"
@@ -18,6 +18,8 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
 
         $secureString = ConvertTo-SecureString $env:MAPPED_GITHUB_PAT -AsPlainText -Force
         $credential = New-Object pscredential ($env:GITHUB_USERNAME, $secureString)
+
+        Uninstall-PSResource $testModuleName, $testScriptName -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterEach {
@@ -28,9 +30,9 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    $testCases = @{Name="*";                        ErrorId="NameContainsWildcard"},
-                 @{Name="Test_local_m*";            ErrorId="NameContainsWildcard"},
-                 @{Name="Test?local","Test[local";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
+    $testCases = @{Name="*";                          ErrorId="NameContainsWildcard"},
+                 @{Name="Test_m*";                    ErrorId="NameContainsWildcard"},
+                 @{Name="Test?module","Test[module";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
 
     It "Should not install resource with wildcard in name" -TestCases $testCases {
         param($Name, $ErrorId)
