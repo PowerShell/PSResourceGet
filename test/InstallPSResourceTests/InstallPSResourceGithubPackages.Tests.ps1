@@ -5,7 +5,7 @@ $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
+Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
 
     BeforeAll {
         $testModuleName = "test_module"
@@ -38,6 +38,9 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
         $res = Get-InstalledPSResource $testModuleName
+        Write-Output ($res.Name)
+        $res.Count | Should -Be 1
+        $res.Name | Should -Be "Test_local_module"
         $res | Should -BeNullOrEmpty
     }
 
