@@ -32,7 +32,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     It "Should not install resource with wildcard in name" -TestCases $testCases {
         param($Name, $ErrorId)
-        Install-PSResource -Name $Name -Repository $ADORepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        Install-PSResource -Name $Name -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
         $res = Get-InstalledPSResource $testModuleName
@@ -40,30 +40,28 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     }
 
     It "Install specific module resource by name" {
-        Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository
+        Install-PSResource -Name $testModuleName -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
     }
 
-    <# currently failing
     It "Install specific script resource by name" {
-        Install-PSResource -Name $testScriptName -Repository $ADORepoName -TrustRepository
+        Install-PSResource -Name $testScriptName -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testScriptName
         $pkg.Name | Should -Be $testScriptName
         $pkg.Version | Should -Be "1.0.0"
     }
-    #>
     
     It "Install multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
-        Install-PSResource -Name $pkgNames -Repository $ADORepoName -TrustRepository  
+        Install-PSResource -Name $pkgNames -Repository $ACRRepoName -TrustRepository  
         $pkg = Get-InstalledPSResource $pkgNames
         $pkg.Name | Should -Be $pkgNames
     }
 
     It "Should not install resource given nonexistant name" {
-        Install-PSResource -Name "NonExistantModule" -Repository $ADORepoName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
+        Install-PSResource -Name "NonExistantModule" -Repository $ACRRepoName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
         $pkg = Get-InstalledPSResource "NonExistantModule"
         $pkg | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
@@ -72,28 +70,28 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     # Do some version testing, but Find-PSResource should be doing thorough testing
     It "Should install resource given name and exact version" {
-        Install-PSResource -Name $testModuleName -Version "1.0.0" -Repository $ADORepoName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "1.0.0" -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "1.0.0"
     }
 
     It "Should install resource given name and exact version with bracket syntax" {
-        Install-PSResource -Name $testModuleName -Version "[1.0.0]" -Repository $ADORepoName -TrustRepository  
+        Install-PSResource -Name $testModuleName -Version "[1.0.0]" -Repository $ACRRepoName -TrustRepository  
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "1.0.0"
     }
 
     It "Should install resource given name and exact range inclusive [1.0.0, 5.0.0]" {
-        Install-PSResource -Name $testModuleName -Version "[1.0.0, 5.0.0]" -Repository $ADORepoName -TrustRepository  
+        Install-PSResource -Name $testModuleName -Version "[1.0.0, 5.0.0]" -Repository $ACRRepoName -TrustRepository  
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Should install resource given name and exact range exclusive (1.0.0, 5.0.0)" {
-        Install-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $ADORepoName -TrustRepository  
+        Install-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $ACRRepoName -TrustRepository  
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "3.0.0"
@@ -103,7 +101,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     It "Should not install resource with incorrectly formatted version such as exclusive version (1.0.0.0)" {
         $Version = "(1.0.0.0)"
         try {
-            Install-PSResource -Name $testModuleName -Version $Version -Repository $ADORepoName -TrustRepository -ErrorAction SilentlyContinue
+            Install-PSResource -Name $testModuleName -Version $Version -Repository $ACRRepoName -TrustRepository -ErrorAction SilentlyContinue
         }
         catch
         {}
@@ -114,14 +112,14 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     }
 
     It "Install resource when given Name, Version '*', should install the latest version" {
-        Install-PSResource -Name $testModuleName -Version "*" -Repository $ADORepoName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "*" -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
-        Install-PSResource -Name $testModuleName -Prerelease -Repository $ADORepoName -TrustRepository 
+        Install-PSResource -Name $testModuleName -Prerelease -Repository $ACRRepoName -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.2.5"
@@ -129,14 +127,14 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     }
 
     It "Install resource via InputObject by piping from Find-PSresource" {
-        Find-PSResource -Name $testModuleName -Repository $ADORepoName | Install-PSResource -TrustRepository 
+        Find-PSResource -Name $testModuleName -Repository $ACRRepoName | Install-PSResource -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Install resource with companyname and repository source location and validate properties" {
-        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $ADORepoName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Version | Should -Be "5.2.5"
         $pkg.Prerelease | Should -Be "alpha001"
@@ -147,7 +145,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     # Windows only
     It "Install resource under CurrentUser scope - Windows only" -Skip:(!(Get-IsWindows)) {
-        Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository -Scope CurrentUser
+        Install-PSResource -Name $testModuleName -Repository $ACRRepoName -TrustRepository -Scope CurrentUser
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.InstalledLocation.ToString().Contains("Documents") | Should -Be $true
@@ -155,7 +153,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     # Windows only
     It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
-        Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository -Scope AllUsers -Verbose
+        Install-PSResource -Name $testModuleName -Repository $ACRRepoName -TrustRepository -Scope AllUsers -Verbose
         $pkg = Get-InstalledPSResource $testModuleName -Scope AllUsers
         $pkg.Name | Should -Be $testModuleName
         $pkg.InstalledLocation.ToString().Contains("Program Files") | Should -Be $true
@@ -163,7 +161,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     # Windows only
     It "Install resource under no specified scope - Windows only" -Skip:(!(Get-IsWindows)) {
-        Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository
+        Install-PSResource -Name $testModuleName -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.InstalledLocation.ToString().Contains("Documents") | Should -Be $true
@@ -172,7 +170,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     # Unix only
     # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
     It "Install resource under CurrentUser scope - Unix only" -Skip:(Get-IsWindows) {
-        Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository -Scope CurrentUser
+        Install-PSResource -Name $testModuleName -Repository $ACRRepoName -TrustRepository -Scope CurrentUser
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.InstalledLocation.ToString().Contains("$env:HOME/.local") | Should -Be $true
@@ -181,40 +179,40 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     # Unix only
     # Expected path should be similar to: '/home/janelane/.local/share/powershell/Modules'
     It "Install resource under no specified scope - Unix only" -Skip:(Get-IsWindows) {
-        Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository
+        Install-PSResource -Name $testModuleName -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.InstalledLocation.ToString().Contains("$env:HOME/.local") | Should -Be $true
     }
 
     It "Should not install resource that is already installed" {
-        Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository
+        Install-PSResource -Name $testModuleName -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
-        Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository -WarningVariable WarningVar -warningaction SilentlyContinue
+        Install-PSResource -Name $testModuleName -Repository $ACRRepoName -TrustRepository -WarningVariable WarningVar -warningaction SilentlyContinue
         $WarningVar | Should -Not -BeNullOrEmpty
     }
 
     It "Reinstall resource that is already installed with -Reinstall parameter" {
-        Install-PSResource -Name $testModuleName -Repository $ADORepoName -TrustRepository
+        Install-PSResource -Name $testModuleName -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
-        Install-PSResource -Name $testModuleName -Repository $ADORepoName -Reinstall -TrustRepository
+        Install-PSResource -Name $testModuleName -Repository $ACRRepoName -Reinstall -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Install PSResourceInfo object piped in" {
-        Find-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $ADORepoName | Install-PSResource -TrustRepository
+        Find-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $ACRRepoName | Install-PSResource -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleName
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "1.0.0"
     }
 
     It "Install module using -PassThru" {
-        $res = Install-PSResource -Name $testModuleName -Repository $ADORepoName -PassThru -TrustRepository
+        $res = Install-PSResource -Name $testModuleName -Repository $ACRRepoName -PassThru -TrustRepository
         $res.Name | Should -Contain $testModuleName
     }
 }
