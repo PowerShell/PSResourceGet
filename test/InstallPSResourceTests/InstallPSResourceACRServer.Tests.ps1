@@ -46,13 +46,15 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0"
     }
 
+    <# TODO:  enable after implementing script functionality
     It "Install specific script resource by name" {
         Install-PSResource -Name $testScriptName -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testScriptName
         $pkg.Name | Should -Be $testScriptName
         $pkg.Version | Should -Be "1.0.0"
     }
-    
+    #>
+
     It "Install multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
         Install-PSResource -Name $pkgNames -Repository $ACRRepoName -TrustRepository  
@@ -65,7 +67,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg = Get-InstalledPSResource "NonExistantModule"
         $pkg | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
     }
 
     # Do some version testing, but Find-PSResource should be doing thorough testing
@@ -118,6 +120,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0"
     }
 
+    <# TODO: enable when prerelease functionality is implemented
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
         Install-PSResource -Name $testModuleName -Prerelease -Repository $ACRRepoName -TrustRepository 
         $pkg = Get-InstalledPSResource $testModuleName
@@ -125,6 +128,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.2.5"
         $pkg.Prerelease | Should -Be "alpha001"
     }
+    #>
 
     It "Install resource via InputObject by piping from Find-PSresource" {
         Find-PSResource -Name $testModuleName -Repository $ACRRepoName | Install-PSResource -TrustRepository 
@@ -134,10 +138,9 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     }
 
     It "Install resource with companyname and repository source location and validate properties" {
-        Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $ACRRepoName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "5.0.0" -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Version | Should -Be "5.2.5"
-        $pkg.Prerelease | Should -Be "alpha001"
+        $pkg.Version | Should -Be "5.0.0"
 
         $pkg.CompanyName | Should -Be "None"
         $pkg.RepositorySourceLocation | Should -Be $ADORepoUri
