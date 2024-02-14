@@ -39,10 +39,8 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
     It "Should install resource with wildcard at end of name" {
         Install-PSResource -Name "Test_m*" -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorFilteringNamesForUnsupportedWildcards,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
         $res = Get-InstalledPSResource $testModuleName
-        $res.Count | Should -Be 1
-        $res.Name | Should -Be "test_module"
         $res | Should -BeNullOrEmpty
     }
 
