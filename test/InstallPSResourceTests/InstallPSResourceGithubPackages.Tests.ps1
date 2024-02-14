@@ -41,7 +41,6 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
         $res | Should -BeNullOrEmpty
     }
 
-
     It "Install specific module resource by name" {
         Install-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
