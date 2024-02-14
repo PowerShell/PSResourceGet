@@ -102,12 +102,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     # TODO: Update this test and others like it that use try/catch blocks instead of Should -Throw
     It "Should not install resource with incorrectly formatted version such as exclusive version (1.0.0.0)" {
         $Version = "(1.0.0.0)"
-        try {
-            Install-PSResource -Name $testModuleName -Version $Version -Repository $ACRRepoName -TrustRepository -ErrorAction SilentlyContinue
-        }
-        catch
-        {}
-        $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+        { Install-PSResource -Name $testModuleName -Version $Version -Repository $ACRRepoName -TrustRepository -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
         $res = Get-InstalledPSResource $testModuleName
         $res | Should -BeNullOrEmpty
