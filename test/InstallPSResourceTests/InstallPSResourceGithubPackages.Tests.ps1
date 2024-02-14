@@ -28,8 +28,7 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    $testCases = @{Name="*";                        ErrorId="NameContainsWildcard"},
-                 @{Name="Test_local_m*";            ErrorId="NameContainsWildcard"},
+    $testCases = @{Name="Test_local_m*";            ErrorId="NameContainsWildcard"},
                  @{Name="Test?local","Test[local";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
 
     It "Should not install resource with wildcard in name" -TestCases $testCases {
@@ -38,9 +37,16 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
         $res = Get-InstalledPSResource $testModuleName
-        Write-Output ($res.Name)
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "Should install resource with -Name '*'" {
+        Install-PSResource -Name "*" -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -BeGreaterThan 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+        $res = Get-InstalledPSResource $testModuleName
         $res.Count | Should -Be 1
-        $res.Name | Should -Be "Test_local_module"
+        $res.Name | Should -Be "test_module"
         $res | Should -BeNullOrEmpty
     }
 
