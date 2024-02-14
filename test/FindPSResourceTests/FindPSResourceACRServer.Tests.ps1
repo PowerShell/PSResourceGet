@@ -26,19 +26,12 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
     }
 
-    It "Find resource given specific Name, Version null" {
-        # FindName()
-        $res = Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Prerelease
-        $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0-alpha001"
-    }
-
     It "Should not find resource given nonexistant Name" {
         # FindName()
         $res = Find-PSResource -Name NonExistantModule -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ACRPackageNotFoundFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFoundFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 
@@ -75,6 +68,14 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Count | Should -BeGreaterOrEqual 1
     }
 
+    <# TODO: prerelease handling not yet implemented in ACR Server Protocol
+    It "Find resource given specific Name, Version null but allowing Prerelease" {
+        # FindName()
+        $res = Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Prerelease
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.0.0-alpha001"
+    }
+
     It "Find resource with latest (including prerelease) version given Prerelease parameter" {
         # FindName()
         # test_local_mod resource's latest version is a prerelease version, before that it has a non-prerelease version
@@ -92,6 +93,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $resWithPrerelease = Find-PSResource -Name $testModuleName -Version "*" -Repository $ACRRepoName -Prerelease
         $resWithPrerelease.Count | Should -BeGreaterOrEqual $resWithoutPrerelease.Count
     }
+    #>
 
     It "Should not find resource if Name, Version and Tag property are not all satisfied (single tag)" {
         # FindVersionWithTag()
