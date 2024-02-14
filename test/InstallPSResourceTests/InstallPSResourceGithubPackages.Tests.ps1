@@ -28,29 +28,19 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    It "Should not install resource with wildcard in name" {
-        Install-PSResource -Name "Test?module" -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
+    $testCases = @{Name="*";                          ErrorId="NameContainsWildcard"},
+                 @{Name="Test_m*";                    ErrorId="NameContainsWildcard"},
+                 @{Name="Test?module","Test[module";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
+
+    It "Should not install resource with wildcard in name" -TestCases $testCases {
+        param($Name, $ErrorId)
+        Install-PSResource -Name $Name -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "NameContainsWildcard,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
         $res = Get-InstalledPSResource $testModuleName
         $res | Should -BeNullOrEmpty
     }
 
-    It "Should install resource with wildcard at end of name" {
-        Install-PSResource -Name "Test_m*" -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorFilteringNamesForUnsupportedWildcards,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
-        $res = Get-InstalledPSResource $testModuleName
-        $res | Should -BeNullOrEmpty
-    }
-
-    It "Should install resource with -Name '*'" {
-        Install-PSResource -Name "*" -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "NameContainsWildcard,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
-        $res = Get-InstalledPSResource $testModuleName
-        $res | Should -BeNullOrEmpty
-    }
 
     It "Install specific module resource by name" {
         Install-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
