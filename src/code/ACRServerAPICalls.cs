@@ -137,38 +137,13 @@ namespace Microsoft.PowerShell.PSResourceGet
             string tenantID = string.Empty;
             string packageNameLowercase = packageName.ToLower();
 
-            // Need to set up secret management vault before hand
-            var repositoryCredentialInfo = Repository.CredentialInfo;
-            if (repositoryCredentialInfo != null)
+            string acrAccessToken = GetAcrAccessToken(Repository, out errRecord);
+            if (errRecord != null)
             {
-                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
-                    Repository.Name,
-                    repositoryCredentialInfo,
-                    _cmdletPassedIn);
-
-                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
-
-                tenantID = repositoryCredentialInfo.SecretName;
-                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            // Call asynchronous network methods in a try/catch block to handle exceptions.
             string registry = Repository.Uri.Host;
-
-            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
-            if (errRecord != null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
-            if (errRecord != null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
             _cmdletPassedIn.WriteVerbose("Getting tags");
             var foundTags = FindAcrImageTags(registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
@@ -299,37 +274,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             string tenantID = string.Empty;
             string packageNameLowercase = packageName.ToLower();
 
-            // Need to set up secret management vault beforehand
-            var repositoryCredentialInfo = Repository.CredentialInfo;
-            if (repositoryCredentialInfo != null)
+            string registryUrl = Repository.Uri.ToString();
+            string acrAccessToken = GetAcrAccessToken(Repository, out errRecord);
+            if (errRecord != null)
             {
-                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
-                    Repository.Name,
-                    repositoryCredentialInfo,
-                    _cmdletPassedIn);
-
-                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
-
-                tenantID = repositoryCredentialInfo.SecretName;
-                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
             string registry = Repository.Uri.Host;
-
-            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
-            if (errRecord != null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
-            if (errRecord != null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
             _cmdletPassedIn.WriteVerbose("Getting tags");
             var foundTags = FindAcrImageTags(registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
@@ -405,39 +357,16 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             string accessToken = string.Empty;
             string tenantID = string.Empty;
+            string registryUrl = Repository.Uri.ToString();
 
-            // Need to set up secret management vault beforehand
-            var repositoryCredentialInfo = Repository.CredentialInfo;
-            if (repositoryCredentialInfo != null)
+            string acrAccessToken = GetAcrAccessToken(Repository, out errRecord);
+            if (errRecord != null)
             {
-                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
-                    Repository.Name,
-                    repositoryCredentialInfo,
-                    _cmdletPassedIn);
-
-                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
-
-                tenantID = repositoryCredentialInfo.SecretName;
-                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
+                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
             string registry = Repository.Uri.Host;
-
-            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
-            if (errRecord != null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
-            if (errRecord != null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            _cmdletPassedIn.WriteVerbose("Getting ACR metadata");
+            _cmdletPassedIn.WriteVerbose("Getting tags");
             List<Hashtable> results = new List<Hashtable>
             {
                 GetACRMetadata(registry, packageName, requiredVersion, acrAccessToken, out errRecord)
@@ -509,37 +438,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempPath);
 
-            var repositoryCredentialInfo = Repository.CredentialInfo;
-            if (repositoryCredentialInfo != null)
+            string registryUrl = Repository.Uri.ToString();
+            string acrAccessToken = GetAcrAccessToken(Repository, out errRecord);
+            if (errRecord != null)
             {
-                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
-                    Repository.Name,
-                    repositoryCredentialInfo,
-                    _cmdletPassedIn);
-
-                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
-
-                tenantID = repositoryCredentialInfo.SecretName;
-                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
+                return null;
             }
 
-            // Call asynchronous network methods in a try/catch block to handle exceptions.
             string registry = Repository.Uri.Host;
-
-            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
-            if (errRecord != null)
-            {
-                return null;
-            }
-
-            _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
-            if (errRecord != null)
-            {
-                return null;
-            }
-
             _cmdletPassedIn.WriteVerbose($"Getting manifest for {moduleName} - {moduleVersion}");
             var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken, out errRecord);
             if (errRecord != null)
@@ -603,12 +509,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             return digest;
         }
 
-        internal string GetACRRegistryToken(out ErrorRecord errRecord)
+        // access token can be empty if the repository is unauthenticated
+        internal string GetAcrAccessToken(PSRepositoryInfo repositoryInfo, out ErrorRecord errRecord)
         {
             string accessToken = string.Empty;
+            string acrAccessToken = string.Empty;
             string tenantID = string.Empty;
+            errRecord = null;
 
-            // Need to set up secret management vault before hand
             var repositoryCredentialInfo = Repository.CredentialInfo;
             if (repositoryCredentialInfo != null)
             {
@@ -622,14 +530,48 @@ namespace Microsoft.PowerShell.PSResourceGet
                 tenantID = repositoryCredentialInfo.SecretName;
                 _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
             }
+            else
+            {
+                bool isRepositoryUnauthenticated = IsContainerRegistryUnauthenticated(repositoryInfo.Uri.ToString());
 
-            // Call asynchronous network methods in a try/catch block to handle exceptions.
+                if (!isRepositoryUnauthenticated)
+                {
+                    accessToken = Utils.GetAzAccessToken();
+                    if (string.IsNullOrEmpty(accessToken))
+                    {
+                        errRecord = new ErrorRecord(
+                            new InvalidOperationException("Failed to get access token from Azure."),
+                            "AzAccessTokenFailure",
+                            ErrorCategory.AuthenticationError,
+                            this);
 
-            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshToken(Registry, tenantID, accessToken, out errRecord);
-            _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            
-            return GetAcrAccessToken(Registry, acrRefreshToken, out errRecord);
+                        return null;
+                    }
+                }
+            }
+
+            string registry = repositoryInfo.Uri.Host;
+
+            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
+            acrAccessToken = GetAcrAccessTokenByRefreshToken(registry, acrRefreshToken, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
+            return acrAccessToken;
+        }
+
+        internal bool IsContainerRegistryUnauthenticated(string registryUrl)
+        {
+            string endpoint = $"{registryUrl}/v2/";
+            var response = s_client.SendAsync(new HttpRequestMessage(HttpMethod.Head, endpoint)).Result;
+            return (response.StatusCode == HttpStatusCode.OK);
         }
 
         internal string GetAcrRefreshToken(string registry, string tenant, string accessToken, out ErrorRecord errRecord)
@@ -638,7 +580,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
             string exchangeUrl = string.Format(acrOAuthExchangeUrlTemplate, registry);
             var results = GetHttpResponseJObjectUsingContentHeaders(exchangeUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
-            
+
             if (results != null && results["refresh_token"] != null)
             {
                 return results["refresh_token"].ToString();
@@ -647,7 +589,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             return string.Empty;
         }
 
-        internal string GetAcrAccessToken(string registry, string refreshToken, out ErrorRecord errRecord)
+        internal string GetAcrAccessTokenByRefreshToken(string registry, string refreshToken, out ErrorRecord errRecord)
         {
             string content = string.Format(acrAccessTokenTemplate, registry, refreshToken);
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
@@ -655,7 +597,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var results = GetHttpResponseJObjectUsingContentHeaders(tokenUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
 
             if (results != null && results["access_token"] != null)
-            { 
+            {
                 return results["access_token"].ToString();
             }
 
@@ -798,7 +740,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             if (layers == null || layers[0] == null)
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'layers' element in manifest for package '{packageName}' in '{Repository.Name}'.");
-                  
+
                 return emptyTuple;
             }
 
@@ -806,14 +748,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             if (annotations == null)
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'annotations' element in manifest for package '{packageName}' in '{Repository.Name}'.");
-                    
+
                 return emptyTuple;
             }
 
             if (annotations["metadata"] == null)
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'metadata' element in manifest for package '{packageName}' in '{Repository.Name}'.");
-                    
+
                 return emptyTuple;
             }
 
@@ -823,7 +765,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             if (metadataPkgTitleJToken == null)
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'org.opencontainers.image.title' element for package '{packageName}' in '{Repository.Name}'.");
-                  
+
                 return emptyTuple;
             }
 
@@ -831,7 +773,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             if (string.IsNullOrWhiteSpace(metadataPkgName))
             {
                 exception = new InvalidOrEmptyResponse($"Response element 'org.opencontainers.image.title' is empty for package '{packageName}' in '{Repository.Name}'.");
-                   
+
                 return emptyTuple;
             }
 
@@ -1156,10 +1098,16 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         private static Collection<KeyValuePair<string, string>> GetDefaultHeaders(string acrAccessToken)
         {
-            return new Collection<KeyValuePair<string, string>> {
-                    new KeyValuePair<string, string>("Authorization", acrAccessToken),
-                    new KeyValuePair<string, string>("Accept", "application/vnd.oci.image.manifest.v1+json")
-                };
+            var defaultHeaders = new Collection<KeyValuePair<string, string>>();
+
+            if (!string.IsNullOrEmpty(acrAccessToken))
+            {
+                defaultHeaders.Add(new KeyValuePair<string, string>("Authorization", acrAccessToken));
+            }
+
+            defaultHeaders.Add(new KeyValuePair<string, string>("Accept", "application/vnd.oci.image.manifest.v1+json"));
+
+            return defaultHeaders;
         }
 
         internal bool PushNupkgACR(string psd1OrPs1File, string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, ResourceType resourceType, Hashtable parsedMetadataHash, Hashtable dependencies, out ErrorRecord errRecord)
@@ -1168,7 +1116,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string pkgNameLower = pkgName.ToLower();
 
             // Get access token (includes refresh tokens)
-            var acrAccessToken = GetACRRegistryToken(out errRecord);
+            var acrAccessToken = GetAcrAccessToken(Repository, out errRecord);
 
             // Upload .nupkg
             TryUploadNupkg(pkgNameLower, acrAccessToken, fullNupkgFile, out string nupkgDigest);
@@ -1188,8 +1136,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                 _cmdletPassedIn.ThrowTerminatingError(metadataCreationError);
             }
 
-            // Create and upload manifest 
-            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, pkgName, resourceType, metadataJson, configFilePath, 
+            // Create and upload manifest
+            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, pkgName, resourceType, metadataJson, configFilePath,
                 pkgNameLower, pkgVersion, acrAccessToken, out HttpResponseMessage manifestResponse);
 
             // After manifest is created, see if there are any dependencies that need to be tracked on the server
@@ -1254,7 +1202,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 configFilePath = Guid.NewGuid().ToString() + ".json";
             }
             Utils.CreateFile(configFilePath);
-            
+
             _cmdletPassedIn.WriteVerbose("Computing digest for config");
             bool configDigestCreated = CreateDigest(configFilePath, out configDigest, out ErrorRecord configDigestError);
             if (!configDigestCreated)
@@ -1353,7 +1301,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             return true;
         }
 
-        private bool TryCreateAndUploadDependencyJson(string tempPath, 
+        private bool TryCreateAndUploadDependencyJson(string tempPath,
             Hashtable dependencies, string pkgNameLower, string acrAccessToken, out string depJsonContent, out string depDigest, out long depFileSize, out string depFileName)
         {
             depFileName = "dependency.json";
@@ -1374,7 +1322,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             // Upload dependency.json
             var depLocation = GetStartUploadBlobLocation(pkgNameLower, acrAccessToken).Result;
             var depFileResponse = EndUploadBlob(depLocation, depFilePath, depDigest, isManifest: false, acrAccessToken).Result;
-            
+
             return depFileResponse.IsSuccessStatusCode;
         }
 
@@ -1400,17 +1348,17 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
             var emptyArtifactResponse = EndUploadBlob(emptyArtifactLocation, emptyArtifactFilePath, emptyArtifactDigest, false, acrAccessToken).Result;
-            
+
             return emptyArtifactResponse.IsSuccessStatusCode;
         }
 
-        private bool TryCreateDependencyConfigFile(string depConfigFilePath, HttpResponseMessage manifestResponse, string depJsonContent, string depDigest, long depFileSize, 
+        private bool TryCreateDependencyConfigFile(string depConfigFilePath, HttpResponseMessage manifestResponse, string depJsonContent, string depDigest, long depFileSize,
             string depFileName, out string artifactDigest)
         {
             artifactDigest = string.Empty;
             _cmdletPassedIn.WriteVerbose("Create the dependency config file");
             Utils.CreateFile(depConfigFilePath);
-            
+
             _cmdletPassedIn.WriteVerbose("Computing digest for artifact config");
             bool depConfigDigestCreated = CreateDigest(depConfigFilePath, out string emptyConfigArtifactDigest, out ErrorRecord depConfigDigestError);
             if (!depConfigDigestCreated)
@@ -1460,9 +1408,9 @@ namespace Microsoft.PowerShell.PSResourceGet
 
 
         private string CreateManifestContent(
-            string nupkgDigest, 
-            string configDigest, 
-            long nupkgFileSize, 
+            string nupkgDigest,
+            string configDigest,
+            long nupkgFileSize,
             string fileName,
             string packageName,
             ResourceType resourceType,
@@ -1515,7 +1463,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             jsonWriter.WriteEndObject(); // end of annotations object
 
             jsonWriter.WriteEndObject(); // end of 'layers' entry object
-            
+
             jsonWriter.WriteEndArray(); // end of 'layers' array
             jsonWriter.WriteEndObject(); // end of manifest JSON object
 
@@ -1662,7 +1610,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             SHA256 mySHA256 = SHA256.Create();
             string myGuid = new Guid().ToString();
             byte[] byteArray = Encoding.UTF8.GetBytes(myGuid);
-            
+
             using (MemoryStream memStream = new MemoryStream(byteArray))
             {
                 digest = string.Empty;

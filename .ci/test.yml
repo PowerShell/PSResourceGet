@@ -4,6 +4,7 @@ parameters:
   displayName: PowerShell Core on Windows
   powershellExecutable: pwsh
   buildDirectory: '.'
+  useAzAuth: false
 
 jobs:
 - job: ${{ parameters.jobName }}
@@ -18,6 +19,7 @@ jobs:
         Set-SecretStoreConfiguration -Authentication None -Interaction None -Confirm:$false -Password $vaultPassword
         Register-SecretVault -Name SecretStore -ModuleName Microsoft.PowerShell.SecretStore -DefaultVault
     displayName: Install Secret store
+    condition: eq(${{ parameters.useAzAuth }}, false)
 
   - task: DownloadBuildArtifacts@0
     displayName: 'Download artifacts'
@@ -78,6 +80,35 @@ jobs:
         Write-Host "sending " + $vstsCommandString
         Write-Host "##$vstsCommandString"
     displayName: 'Setup Azure Container Registry secret'
+    condition: eq(${{ parameters.useAzAuth }}, false)
+
+  - powershell: |
+      # Set environment variable to identify in tests that secret store should not be used.
+        $vstsCommandString = "vso[task.setvariable variable=UsingAzAuth]true"
+        Write-Host "sending " + $vstsCommandString
+        Write-Host "##$vstsCommandString"
+        Write-Verbose -Verbose "UsingAzAuth = $env:USINGAZAUTH"
+    displayName: 'Set UsingAzAuth environment variable'
+    condition: eq(${{ parameters.useAzAuth }}, true)
+
+  - task: AzurePowerShell@5
+    inputs:
+      azureSubscription: PSResourceGetACR
+      azurePowerShellVersion: LatestVersion
+      ScriptType: InlineScript
+      inline: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+        Import-Module -Name (Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1') -Force
+        Invoke-ModuleTests -Type Functional
+    env:
+      MAPPED_GITHUB_PAT: $(github_pat)
+      MAPPED_ADO_PUBLIC_PAT: $(ado_public_pat)
+      MAPPED_ADO_PRIVATE_PAT: $(ado_private_pat)
+      MAPPED_ADO_PRIVATE_REPO_URL: $(ado_private_repo_url)
+    displayName: 'Execute functional tests with AzAuth'
+    condition: eq(${{ parameters.useAzAuth }}, true)
 
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
@@ -93,4 +124,4 @@ jobs:
     displayName: Execute functional tests
     workingDirectory: ${{ parameters.buildDirectory }}
     errorActionPreference: continue
-    condition: succeededOrFailed()
+    condition: eq(${{ parameters.useAzAuth }}, false)

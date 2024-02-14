@@ -14,8 +14,18 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io/"
         Get-NewPSResourceRepositoryFile
-        $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
-        Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'acr' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
+
+        $usingAzAuth = $env:USINGAZAUTH -eq 'true'
+
+        if ($usingAzAuth)
+        {
+            Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'acr' -Uri $ACRRepoUri -Verbose
+        }
+        else
+        {
+            $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
+            Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'acr' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
+        }
     }
 
     AfterEach {
@@ -62,7 +72,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     It "Install multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
-        Install-PSResource -Name $pkgNames -Repository $ACRRepoName -TrustRepository  
+        Install-PSResource -Name $pkgNames -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $pkgNames
         $pkg.Name | Should -Be $pkgNames
     }
@@ -72,7 +82,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg = Get-InstalledPSResource "NonExistantModule"
         $pkg | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
     }
 
     # Do some version testing, but Find-PSResource should be doing thorough testing
@@ -84,21 +94,21 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     }
 
     It "Should install resource given name and exact version with bracket syntax" {
-        Install-PSResource -Name $testModuleName -Version "[1.0.0]" -Repository $ACRRepoName -TrustRepository  
+        Install-PSResource -Name $testModuleName -Version "[1.0.0]" -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "1.0.0"
     }
 
     It "Should install resource given name and exact range inclusive [1.0.0, 5.0.0]" {
-        Install-PSResource -Name $testModuleName -Version "[1.0.0, 5.0.0]" -Repository $ACRRepoName -TrustRepository  
+        Install-PSResource -Name $testModuleName -Version "[1.0.0, 5.0.0]" -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Should install resource given name and exact range exclusive (1.0.0, 5.0.0)" {
-        Install-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $ACRRepoName -TrustRepository  
+        Install-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "3.0.0"
@@ -122,7 +132,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     <# TODO: enable when prerelease functionality is implemented
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
-        Install-PSResource -Name $testModuleName -Prerelease -Repository $ACRRepoName -TrustRepository 
+        Install-PSResource -Name $testModuleName -Prerelease -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.2.5"
@@ -131,7 +141,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     #>
 
     It "Install resource via InputObject by piping from Find-PSresource" {
-        Find-PSResource -Name $testModuleName -Repository $ACRRepoName | Install-PSResource -TrustRepository 
+        Find-PSResource -Name $testModuleName -Repository $ACRRepoName | Install-PSResource -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
@@ -244,15 +254,15 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidatio
     It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
         Install-PSResource -Name $testModuleName -Repository $TestGalleryName -Scope AllUsers
         $pkg = Get-Module $testModuleName -ListAvailable
-        $pkg.Name | Should -Be $testModuleName 
+        $pkg.Name | Should -Be $testModuleName
         $pkg.Path.Contains("/usr/") | Should -Be $true
     }
 
     # This needs to be manually tested due to prompt
     It "Install resource that requires accept license without -AcceptLicense flag" {
         Install-PSResource -Name $testModuleName2  -Repository $TestGalleryName
-        $pkg = Get-InstalledPSResource $testModuleName2 
-        $pkg.Name | Should -Be $testModuleName2 
+        $pkg = Get-InstalledPSResource $testModuleName2
+        $pkg.Name | Should -Be $testModuleName2
         $pkg.Version | Should -Be "0.0.1.0"
     }
 
@@ -261,7 +271,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidatio
         Set-PSResourceRepository PoshTestGallery -Trusted:$false
 
         Install-PSResource -Name $testModuleName -Repository $TestGalleryName -confirm:$false
-    
+
         $pkg = Get-Module $testModuleName -ListAvailable
         $pkg.Name | Should -Be $testModuleName
 

@@ -18,6 +18,8 @@ using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Net.Http;
 using System.Globalization;
 using System.Security;
+using Azure.Core;
+using Azure.Identity;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -636,6 +638,28 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 return null;
             }
+        }
+
+        public static string GetAzAccessToken()
+        {
+            var credOptions = new DefaultAzureCredentialOptions
+            {
+                ExcludeEnvironmentCredential = true,
+                ExcludeVisualStudioCodeCredential = true,
+                ExcludeVisualStudioCredential = true,
+                ExcludeWorkloadIdentityCredential = true,
+                ExcludeManagedIdentityCredential = false, // ManagedIdentityCredential makes the experience slow
+
+                ExcludeAzureCliCredential = false,
+                ExcludeAzurePowerShellCredential = false,
+                ExcludeInteractiveBrowserCredential = false,
+                ExcludeSharedTokenCacheCredential = false
+            };
+
+            var dCred = new DefaultAzureCredential(credOptions);
+            var tokenRequestContext = new TokenRequestContext(new string[] { "https://management.azure.com/.default" });
+            var token = dCred.GetTokenAsync(tokenRequestContext).Result;
+            return token.Token;
         }
 
         public static string GetACRAccessTokenFromSecretManagement(
