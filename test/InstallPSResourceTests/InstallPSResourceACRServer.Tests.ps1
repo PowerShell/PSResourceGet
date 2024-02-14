@@ -137,12 +137,14 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0"
     }
 
-    It "Install resource with companyname and repository source location and validate properties" {
-        Install-PSResource -Name $testModuleName -Version "5.0.0" -Repository $ACRRepoName -TrustRepository
-        $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Version | Should -Be "5.0.0"
-
-        $pkg.CompanyName | Should -Be "None"
+    It "Install resource with copyright, description and repository source location and validate properties" {
+        $testModule = "test_module"
+        Install-PSResource -Name $testModule -Version "7.0.0" -Repository $ACRRepoName -TrustRepository
+        $pkg = Get-InstalledPSResource $testModule
+        $pkg.Name | Should -Be $testModule
+        $pkg.Version | Should -Be "7.0.0"
+        $pkg.Copyright | Should -Be "(c) Anam Navied. All rights reserved."
+        $pkg.Description | Should -Be "This is a test module, for PSGallery team internal testing. Do not take a dependency on this package. This version contains tags for the package."
         $pkg.RepositorySourceLocation | Should -Be $ADORepoUri
     }
 
