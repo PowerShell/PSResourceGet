@@ -8,8 +8,6 @@ Import-Module $modPath -Force -Verbose
 Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
 
     BeforeAll {
-        Uninstall-PSResource $testModuleName, $testScriptName -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
-
         $testModuleName = "test_module"
         $testModuleName2 = "test_module2"
         $testScriptName = "test_script"
@@ -20,6 +18,8 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
 
         $secureString = ConvertTo-SecureString $env:MAPPED_GITHUB_PAT -AsPlainText -Force
         $credential = New-Object pscredential ($env:GITHUB_USERNAME, $secureString)
+
+        Uninstall-PSResource $testModuleName, $testScriptName -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterEach {
