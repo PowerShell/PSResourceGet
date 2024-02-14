@@ -12,7 +12,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $testModuleName2 = "test_local_mod2"
         $testScriptName = "test_ado_script"
         $ACRRepoName = "ACRRepo"
-        $ACRRepoUri = "https://psresourcegettest.azurecr.io"
+        $ACRRepoUri = "https://psresourcegettest.azurecr.io/"
         Get-NewPSResourceRepositoryFile
         $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
         Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'acr' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
