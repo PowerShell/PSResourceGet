@@ -4,13 +4,12 @@
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-$testDir = (get-item $psscriptroot).parent.FullName
 
 function CreateTestModule
 {
     param (
         [string] $Path = "$TestDrive",
-        [string] $ModuleName = 'TEMP-PSResourceGetTempTestModule'
+        [string] $ModuleName = 'temp-psresourcegettemptestmodule'
     )
 
     $modulePath = Join-Path -Path $Path -ChildPath $ModuleName
@@ -44,6 +43,7 @@ function CreateTestModule
 
 Describe "Test Publish-PSResource" -tags 'CI' {
     BeforeAll {
+        $script:testDir = (get-item $psscriptroot).parent.FullName
         Get-NewPSResourceRepositoryFile
 
         # Register repositories
@@ -54,7 +54,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     
         # Create module
         $script:tmpModulesPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
-        $script:PublishModuleName = "TEMP-PSResourceGetTempTestModule"
+        $script:PublishModuleName = "temp-psresourcegettemptestmodule"
         $script:PublishModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:PublishModuleName
         if(!(Test-Path $script:PublishModuleBase))
         {
@@ -82,7 +82,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         }
 
         # Path to folder, within our test folder, where we store invalid module and script files used for testing
-        $script:testFilesFolderPath = Join-Path $testDir -ChildPath "testFiles"
+        $script:testFilesFolderPath = Join-Path $script:testDir -ChildPath "testFiles"
 
         # Path to specifically to that invalid test modules folder
         $script:testModulesFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testModules"
@@ -95,7 +95,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
     
     It "Publish module with required module not installed on the local machine using -SkipModuleManifestValidate" {
-        $ModuleName = "TEMP-ModuleWithMissingRequiredModule"
+        $ModuleName = "ModuleWithMissingRequiredModule"
         CreateTestModule -Path $TestDrive -ModuleName $ModuleName
         
         # Skip the module manifest validation test, which fails from the missing manifest required module.
@@ -111,10 +111,10 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     It "Publish a module with -Path pointing to a module directory (parent directory has same name)" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+        
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName
 
-        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2
-
-        $results = Find-PSResource -Name ModuleWithMissingRequiredModule -Repository $ACRRepoName 
+        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName 
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
@@ -126,9 +126,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         New-Item -Path $newModuleRoot -ItemType Directory
         New-ModuleManifest -Path (Join-Path -Path $newModuleRoot -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        Publish-PSResource -Path $newModuleRoot -Repository $testRepository2
+        Publish-PSResource -Path $newModuleRoot -Repository $ACRRepoName
 
-        $results = Find-PSResource -Name ModuleWithMissingRequiredModule -Repository $ACRRepoName 
+        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName 
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
@@ -139,9 +139,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $manifestPath = Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1"
         New-ModuleManifest -Path $manifestPath -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        Publish-PSResource -Path $manifestPath -Repository $testRepository2
+        Publish-PSResource -Path $manifestPath -Repository $ACRRepoName
 
-        $results = Find-PSResource -Name ModuleWithMissingRequiredModule -Repository $ACRRepoName 
+        $results = Find-PSResource -Name  $script:PublishModuleName -Repository $ACRRepoName 
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
@@ -154,9 +154,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $manifestPath = Join-Path -Path $newModuleRoot -ChildPath "$script:PublishModuleName.psd1"
         New-ModuleManifest -Path $manifestPath -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        Publish-PSResource -Path $manifestPath -Repository $testRepository2
+        Publish-PSResource -Path $manifestPath -Repository $ACRRepoName
 
-        $results = Find-PSResource -Name ModuleWithMissingRequiredModule -Repository $ACRRepoName 
+        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName 
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
@@ -224,7 +224,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName
 
-        Save-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -Force -AsNupkg -Path $TestDrive 
+        Save-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -AsNupkg -Path $TestDrive 
         # Must change .nupkg to .zip so that Expand-Archive can work on Windows PowerShell
         $nupkgPath = Join-Path -Path $TestDrive -ChildPath "$script:PublishModuleName.$version.nupkg"
         $zipPath = Join-Path -Path $TestDrive -ChildPath "$script:PublishModuleName.$version.zip"
@@ -242,7 +242,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -DestinationPath $script:destinationPath
 
-        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName 
+        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -Version $version
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName 
         $results[0].Version | Should -Be $version 
@@ -262,7 +262,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName
 
-        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName 
+        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -Version $version
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName 
         $results[0].Version | Should -Be $version 
@@ -278,12 +278,13 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $modManifestPath -Repository $ACRRepoName
 
-        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName 
+        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -Version $correctVersion
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName 
         $results[0].Version | Should -Be $correctVersion 
     }
 
+    <# TODO: enable with scripts are supported in ACR
     It "Publish a script"{
         $scriptName = "TEMP-PSGetTestScript"
         $scriptVersion = "1.0.0"
@@ -352,7 +353,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Name | Should -Be $scriptName 
         $results[0].Version | Should -Be $scriptVersion 
     }
-    
+    #>
+
     It "Should write error and not publish script when Author property is missing" {
         $scriptName = "InvalidScriptMissingAuthor.ps1"
 
@@ -363,7 +365,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         
         Find-PSResource -Name $scriptName -Repository $ACRRepoName -ErrorVariable findErr -ErrorAction SilentlyContinue
         $findErr.Count | Should -BeGreaterThan 0
-        $findErr[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $findErr[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
     
     It "Should write error and not publish script when Version property is missing" {
@@ -376,7 +378,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Find-PSResource -Name $scriptName -Repository $ACRRepoName -ErrorVariable findErr -ErrorAction SilentlyContinue
         $findErr.Count | Should -BeGreaterThan 0
-        $findErr[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $findErr[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "Should write error and not publish script when Guid property is missing" {
@@ -389,7 +391,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Find-PSResource -Name $scriptName -Repository $ACRRepoName -ErrorVariable findErr -ErrorAction SilentlyContinue
         $findErr.Count | Should -BeGreaterThan 0
-        $findErr[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $findErr[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "Should write error and not publish script when Description property is missing" {
@@ -402,7 +404,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Find-PSResource -Name $scriptName -Repository $ACRRepoName -ErrorVariable findErr -ErrorAction SilentlyContinue
         $findErr.Count | Should -BeGreaterThan 0
-        $findErr[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $findErr[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "Should write error and not publish script when Description block altogether is missing" {
@@ -416,22 +418,22 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Find-PSResource -Name $scriptName -Repository $ACRRepoName -ErrorVariable findErr -ErrorAction SilentlyContinue
         $findErr.Count | Should -BeGreaterThan 0
-        $findErr[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $findErr[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "Publish a module with that has an invalid version format, should throw" {
-        $moduleName = "TEMP-incorrectmoduleversion"
+        $moduleName = "incorrectmoduleversion"
         $incorrectmoduleversion = Join-Path -Path $script:testModulesFolderPath -ChildPath $moduleName
 
-        {Publish-PSResource -Path $incorrectmoduleversion -Repository $ACRRepoName -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        { Publish-PSResource -Path $incorrectmoduleversion -Repository $ACRRepoName -ErrorAction Stop } | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
     
     It "Publish a module with a dependency that has an invalid version format, should throw" {
-        $moduleName = "TEMP-incorrectdepmoduleversion"
+        $moduleName = "incorrectdepmoduleversion"
         $incorrectdepmoduleversion = Join-Path -Path $script:testModulesFolderPath -ChildPath $moduleName
 
-        {Publish-PSResource -Path $incorrectdepmoduleversion -Repository $ACRRepoName -ErrorAction Stop} | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        { Publish-PSResource -Path $incorrectdepmoduleversion -Repository $ACRRepoName -ErrorAction Stop } | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
     
     It "Publish a module with using an invalid file path (path to .psm1), should throw" {
