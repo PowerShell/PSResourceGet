@@ -44,13 +44,13 @@ function CreateTestModule
 Describe "Test Publish-PSResource" -tags 'CI' {
     BeforeAll {
         $script:testDir = (get-item $psscriptroot).parent.FullName
-        #Get-NewPSResourceRepositoryFile
+        Get-NewPSResourceRepositoryFile
 
         # Register repositories
-        $ACRRepoName = "ACRnew"
+        $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io"
-        #$psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
-        #Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'acr' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
+        $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
+        Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'acr' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
     
         # Create module
         $script:tmpModulesPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
@@ -91,7 +91,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $script:testScriptsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testScripts"
     }
     AfterAll {
-       #Get-RevertPSResourceRepositoryFile
+        Get-RevertPSResourceRepositoryFile
     }
     
     It "Publish module with required module not installed on the local machine using -SkipModuleManifestValidate" {
@@ -237,7 +237,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Test-Path -Path (Join-Path -Path $unzippedPath -ChildPath $testFile) | Should -Be $True
     }
     #>
-    
+
     It "Publish a module with -Path -Repository and -DestinationPath" {
         $version = "10.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
