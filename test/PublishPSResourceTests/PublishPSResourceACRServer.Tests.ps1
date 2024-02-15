@@ -218,6 +218,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Version | Should -Be $version 
     }
     
+    #
     It "Publish a module and preserve file structure" {
         $version = "9.0.0"
         $testFile = Join-Path -Path "TestSubDirectory" -ChildPath "TestSubDirFile.ps1"
