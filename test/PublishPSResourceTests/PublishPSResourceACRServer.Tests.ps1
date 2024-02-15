@@ -54,7 +54,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     
         # Create module
         $script:tmpModulesPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
-        $script:PublishModuleName = "temp-psresourcegettemptestmodule"
+        $script:PublishModuleName = "temp-psresourcegettemptestmodule" + [System.Guid]::NewGuid();
         $script:PublishModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:PublishModuleName
         if(!(Test-Path $script:PublishModuleBase))
         {
