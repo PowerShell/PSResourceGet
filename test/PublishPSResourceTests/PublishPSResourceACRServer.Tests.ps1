@@ -95,11 +95,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
     
     It "Publish module with required module not installed on the local machine using -SkipModuleManifestValidate" {
-        $ModuleName = "ModuleWithMissingRequiredModule-" + [System.Guid]::NewGuid()
+        $ModuleName = "modulewithmissingrequiredmodule-" + [System.Guid]::NewGuid()
         CreateTestModule -Path $TestDrive -ModuleName $ModuleName
         
-        Write-Host "*************Module Name: $ModuleName*************"
-        Write-Verbose -Verbose "*************Module Name: $ModuleName*************"
         # Skip the module manifest validation test, which fails from the missing manifest required module.
         $testModulePath = Join-Path -Path $TestDrive -ChildPath $ModuleName
         Publish-PSResource -Path $testModulePath -Repository $ACRRepoName -Confirm:$false -SkipDependenciesCheck -SkipModuleManifestValidate
@@ -218,7 +216,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Version | Should -Be $version 
     }
     
-    #
     It "Publish a module and preserve file structure" {
         $version = "9.0.0"
         $testFile = Join-Path -Path "TestSubDirectory" -ChildPath "TestSubDirFile.ps1"
@@ -226,6 +223,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         New-Item -Path (Join-Path -Path $script:PublishModuleBase -ChildPath $testFile) -Force
 
         Write-Verbose -Verbose "***************** Module Name: $script:PublishModuleName ********   version 9.0.0  *********"
+        Write-Verbose -Verbose "*************** Path contents: $(Get-ChildItem -Path $script:PublishModuleBase -Recurse) *********"
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -Verbose -Debug
 
         Save-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -AsNupkg -Path $TestDrive 
