@@ -505,6 +505,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                 }
             }
+            catch (Exception e)
+            {
+                WriteError(new ErrorRecord(
+                    new MethodException($"Unexpected error publishing resource: '{e.Message}'"),
+                    "ErrorPublishingPSResource",
+                    ErrorCategory.NotSpecified,
+                    this));
+            }
             finally
             {
                 WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));

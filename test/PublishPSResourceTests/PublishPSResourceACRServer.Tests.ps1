@@ -90,6 +90,12 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         # Path to specifically to that invalid test scripts folder
         $script:testScriptsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testScripts"
     }
+    AfterEach {
+        if(!(Test-Path $script:DependencyModuleBase))
+        {
+            New-Item -Path $script:DependencyModuleBase -ItemType Directory -Force
+        }
+    }
     AfterAll {
         Get-RevertPSResourceRepositoryFile
     }
@@ -123,7 +129,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     It "Publish a module with -Path pointing to a module directory (parent directory has different name)" {
         $version = "2.0.0"
         $newModuleRoot = Join-Path -Path $script:PublishModuleBase -ChildPath "NewTestParentDirectory"
-        New-Item -Path $newModuleRoot -ItemType Directory
+        New-Item -Path $newModuleRoot -ItemType Directory -Force
         New-ModuleManifest -Path (Join-Path -Path $newModuleRoot -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
         Publish-PSResource -Path $newModuleRoot -Repository $ACRRepoName
@@ -150,7 +156,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     It "Publish a module with -Path pointing to a .psd1 (parent directory has different name)" {
         $version = "4.0.0"
         $newModuleRoot = Join-Path -Path $script:PublishModuleBase -ChildPath "NewTestParentDirectory"
-        New-Item -Path $newModuleRoot -ItemType Directory
+        New-Item -Path $newModuleRoot -ItemType Directory -Force
         $manifestPath = Join-Path -Path $newModuleRoot -ChildPath "$script:PublishModuleName.psd1"
         New-ModuleManifest -Path $manifestPath -ModuleVersion $version -Description "$script:PublishModuleName module"
 
@@ -177,7 +183,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     It "Publish a module with -Path pointing to a module directory (parent directory has different name) on a network share" {
         $version = "6.0.0"
         $newModuleRoot = Join-Path -Path $script:PublishModuleBaseUNC -ChildPath "NewTestParentDirectory"
-        New-Item -Path $newModuleRoot -ItemType Directory
+        New-Item -Path $newModuleRoot -ItemType Directory -Force
         New-ModuleManifest -Path (Join-Path -Path $newModuleRoot -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
         Publish-PSResource -Path $newModuleRoot -Repository $ACRRepoName
@@ -204,7 +210,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     It "Publish a module with -Path pointing to a .psd1 (parent directory has different name) on a network share" {
         $version = "8.0.0"
         $newModuleRoot = Join-Path -Path $script:PublishModuleBaseUNC -ChildPath "NewTestParentDirectory"
-        New-Item -Path $newModuleRoot -ItemType Directory
+        New-Item -Path $newModuleRoot -ItemType Directory -Force
         $manifestPath = Join-Path -Path $newModuleRoot -ChildPath "$script:PublishModuleName.psd1"
         New-ModuleManifest -Path $manifestPath -ModuleVersion $version -Description "$script:PublishModuleName module"
 
@@ -272,7 +278,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $incorrectVersion = "15.2.4"
         $correctVersion = "12.0.0"
         $versionBase = (Join-Path -Path $script:PublishModuleBase  -ChildPath $incorrectVersion)
-        New-Item -Path $versionBase -ItemType Directory
+        New-Item -Path $versionBase -ItemType Directory -Force
         $modManifestPath = (Join-Path -Path $versionBase -ChildPath "$script:PublishModuleName.psd1")
         New-ModuleManifest -Path $modManifestPath -ModuleVersion $correctVersion -Description "$script:PublishModuleName module"
 
