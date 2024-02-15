@@ -95,14 +95,14 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
     
     It "Publish module with required module not installed on the local machine using -SkipModuleManifestValidate" {
-        $ModuleName = "ModuleWithMissingRequiredModule"
+        $ModuleName = "ModuleWithMissingRequiredModule-" + [System.Guid]::NewGuid()
         CreateTestModule -Path $TestDrive -ModuleName $ModuleName
         
         # Skip the module manifest validation test, which fails from the missing manifest required module.
-        $testModulePath = Join-Path -Path $TestDrive -ChildPath ModuleWithMissingRequiredModule
+        $testModulePath = Join-Path -Path $TestDrive -ChildPath $ModuleName
         Publish-PSResource -Path $testModulePath -Repository $ACRRepoName -Confirm:$false -SkipDependenciesCheck -SkipModuleManifestValidate
 
-        $results = Find-PSResource -Name ModuleWithMissingRequiredModule -Repository $ACRRepoName 
+        $results = Find-PSResource -Name $ModuleName -Repository $ACRRepoName 
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $ModuleName
         $results[0].Version | Should -Be "1.0.0"
