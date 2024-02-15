@@ -98,6 +98,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $ModuleName = "ModuleWithMissingRequiredModule-" + [System.Guid]::NewGuid()
         CreateTestModule -Path $TestDrive -ModuleName $ModuleName
         
+        Write-Host "*************Module Name: $ModuleName*************"
+        Write-Verbose -Verbose "*************Module Name: $ModuleName*************"
         # Skip the module manifest validation test, which fails from the missing manifest required module.
         $testModulePath = Join-Path -Path $TestDrive -ChildPath $ModuleName
         Publish-PSResource -Path $testModulePath -Repository $ACRRepoName -Confirm:$false -SkipDependenciesCheck -SkipModuleManifestValidate
@@ -222,7 +224,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
         New-Item -Path (Join-Path -Path $script:PublishModuleBase -ChildPath $testFile) -Force
 
-        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName
+        Write-Verbose -Verbose "***************** Module Name: $script:PublishModuleName ********   version 9.0.0  *********"
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -Verbose -Debug
 
         Save-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -AsNupkg -Path $TestDrive 
         # Must change .nupkg to .zip so that Expand-Archive can work on Windows PowerShell
