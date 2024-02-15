@@ -216,7 +216,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Version | Should -Be $version 
     }
     
-    <# Test working locally but not in CI 
     It "Publish a module and preserve file structure" {
         $version = "9.0.0"
         $testFile = Join-Path -Path "TestSubDirectory" -ChildPath "TestSubDirFile.ps1"
@@ -236,7 +235,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Test-Path -Path (Join-Path -Path $unzippedPath -ChildPath $testFile) | Should -Be $True
     }
-    #>
 
     It "Publish a module with -Path -Repository and -DestinationPath" {
         $version = "10.0.0"
