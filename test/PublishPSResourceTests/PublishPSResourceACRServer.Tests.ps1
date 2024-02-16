@@ -230,6 +230,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         { Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -ErrorAction Stop } | Should -Not -Throw
 
+        Write-Host "TestDrive + $TestDrive"
+        Write-Host "PublishModuleName + $script:PublishModuleName"
         Save-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -AsNupkg -Path $TestDrive 
         # Must change .nupkg to .zip so that Expand-Archive can work on Windows PowerShell
         $nupkgPath = Join-Path -Path $TestDrive -ChildPath "$script:PublishModuleName.$version.nupkg"
