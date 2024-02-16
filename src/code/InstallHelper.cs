@@ -840,13 +840,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         Console.WriteLine($"{pkg.Name}: {pkg.Version}");
                     }
 
+                    // 1) TODO: If installing 5 or less packages, don't use Parallel.ForEach
+
+
                     // TODO: ADD FOREACH HERE
+                    // 2) TODO: MaxDegreeOfParallelism --  possibly max of about 32 threads (Invoke-Command has default of 32, that's where we got this number from)?
+                    // 3) TODO: Error handling: https://learn.microsoft.com/en-us/dotnet/standard/parallel-programming/how-to-handle-exceptions-in-parallel-loops
                     Parallel.ForEach(allDependencies, pkgToBeInstalled =>
                     {
                         // Perform some operation on each item
                        // Console.WriteLine($"Processing number: {pkgToBeInstalled}, Thread ID: {Task.CurrentId}");
                     
-
 
                         Stream responseStream = currentServer.InstallPackage(pkgToBeInstalled.Name, pkgToBeInstalled.Version.ToString(), true, out ErrorRecord installNameErrRecord);
 
