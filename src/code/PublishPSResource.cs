@@ -507,7 +507,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                WriteError(new ErrorRecord(
+                ThrowTerminatingError(new ErrorRecord(
                     new MethodException($"Unexpected error publishing resource: '{e.Message}'"),
                     "ErrorPublishingPSResource",
                     ErrorCategory.NotSpecified,

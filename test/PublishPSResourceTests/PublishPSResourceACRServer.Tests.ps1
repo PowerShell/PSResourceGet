@@ -91,9 +91,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $script:testScriptsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testScripts"
     }
     AfterEach {
-        if(!(Test-Path $script:DependencyModuleBase))
+        if(!(Test-Path $script:PublishModuleBase))
         {
-            New-Item -Path $script:DependencyModuleBase -ItemType Directory -Force
+            Remove-Item -Path $script:PublishModuleBase -Recurse -Force
         }
     }
     AfterAll {
