@@ -95,7 +95,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::BeginInstallPackages()");
             _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; VersionRange: '{1}'; NuGetVersion: '{2}'; VersionType: '{3}'; Version: '{4}'; Prerelease: '{5}'; Repository: '{6}'; " +
-                "AcceptLicense: '{7}'; Quiet: '{8}'; Reinstall: '{9}'; TrustRepository: '{10}'; NoClobber: '{11}'; AsNupkg: '{12}'; IncludeXml '{13}'; SavePackage '{14}'; TemporaryPath '{15}'; SkipDependencyCheck: '{16}'; " + 
+                "AcceptLicense: '{7}'; Quiet: '{8}'; Reinstall: '{9}'; TrustRepository: '{10}'; NoClobber: '{11}'; AsNupkg: '{12}'; IncludeXml '{13}'; SavePackage '{14}'; TemporaryPath '{15}'; SkipDependencyCheck: '{16}'; " +
                 "AuthenticodeCheck: '{17}'; PathsToInstallPkg: '{18}'; Scope '{19}'",
                 string.Join(",", names),
                 versionRange != null ? (versionRange.OriginalString != null ? versionRange.OriginalString : string.Empty) : string.Empty,
@@ -265,7 +265,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> repositoryNamesToSearch = new List<string>();
             bool sourceTrusted = false;
 
-            // Loop through all the repositories provided (in priority order) until there no more packages to install. 
+            // Loop through all the repositories provided (in priority order) until there no more packages to install.
             for (int i = 0; i < listOfRepositories.Count && _pkgNamesToInstall.Count > 0; i++)
             {
                 PSRepositoryInfo currentRepository = listOfRepositories[i];
@@ -614,7 +614,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                     depFindFailed = true;
                                     continue;
                                 }
-                                
+
                                 if (String.Equals(depPkg.Name, parentPkgObj.Name, StringComparison.OrdinalIgnoreCase))
                                 {
                                     continue;
@@ -682,6 +682,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             _packagesOnMachine.Add($"{pkgName}{pkgInfo["pkgVersion"]}");
                         }
                     }
+                }
+                catch (Exception e)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                            e,
+                            "InstallPackageFailure",
+                            ErrorCategory.InvalidOperation,
+                            _cmdletPassedIn));
+
+                    throw e;
                 }
                 finally
                 {
@@ -754,14 +764,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
                     errRecord = new ErrorRecord(
-                        currentResult.exception, 
-                        "FindConvertToPSResourceFailure", 
-                        ErrorCategory.ObjectNotFound, 
+                        currentResult.exception,
+                        "FindConvertToPSResourceFailure",
+                        ErrorCategory.ObjectNotFound,
                         _cmdletPassedIn);
                 }
                 else if (searchVersionType == VersionType.VersionRange)
                 {
-                    // Check to see if version falls within version range 
+                    // Check to see if version falls within version range
                     PSResourceInfo foundPkg = currentResult.returnedObject;
                     string versionStr = $"{foundPkg.Version}";
                     if (foundPkg.IsPrerelease)
@@ -800,7 +810,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
                 {
                     _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
-                    
+
                     // Remove from tracking list of packages to install.
                     _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
 
@@ -1166,7 +1176,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Extracts files from .nupkg
-        /// Similar functionality as System.IO.Compression.ZipFile.ExtractToDirectory, 
+        /// Similar functionality as System.IO.Compression.ZipFile.ExtractToDirectory,
         /// but while ExtractToDirectory cannot overwrite files, this method can.
         /// </summary>
         private bool TryExtractToDirectory(string zipPath, string extractPath, out ErrorRecord error)
