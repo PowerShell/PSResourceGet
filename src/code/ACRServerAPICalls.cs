@@ -723,18 +723,40 @@ namespace Microsoft.PowerShell.PSResourceGet
             Tuple<string,string> metadataTuple = GetMetadataProperty(foundTags, packageName, out Exception exception);
             if (exception != null)
             {
+                _cmdletPassedIn.WriteVerbose("Exception found");
                 errRecord = new ErrorRecord(exception, "FindNameFailure", ErrorCategory.InvalidResult, this);
                 return requiredVersionResponse;
             }
+            
+            if (metadataTuple == null)
+            {
+                _cmdletPassedIn.WriteVerbose("Tuple is null");
+
+            }
+
+            if (metadataTuple.Item1 == null)
+            {
+                _cmdletPassedIn.WriteVerbose("tuple item 1 is null");
+            }
+            if (metadataTuple.Item2 == null)
+            {
+                _cmdletPassedIn.WriteVerbose("tuple item 2 is null");
+            }
 
             string metadataPkgName = metadataTuple.Item1;
+            _cmdletPassedIn.WriteVerbose($"tuple item 1 is: {metadataPkgName}");
+
             string metadata = metadataTuple.Item2;
+            _cmdletPassedIn.WriteVerbose($"tuple item 1 is: {metadata}");
+
             using (JsonDocument metadataJSONDoc = JsonDocument.Parse(metadata))
             {
+                _cmdletPassedIn.WriteVerbose($"tuple item 1 is: {metadata}");
                 JsonElement rootDom = metadataJSONDoc.RootElement;
                 if (!rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement) &&
                      !rootDom.TryGetProperty("Version", out pkgVersionElement))
                 {
+                    _cmdletPassedIn.WriteVerbose($"Error getting properties");
                     errRecord = new ErrorRecord(
                         new InvalidOrEmptyResponse($"Response does not contain 'ModuleVersion' or 'Version' property in metadata for package '{packageName}' in '{Repository.Name}'."),
                         "FindNameFailure",
@@ -743,6 +765,8 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                     return requiredVersionResponse;
                 }
+
+                _cmdletPassedIn.WriteVerbose($"try to parse pkgVersionelement");
 
                 if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
                 {
@@ -754,6 +778,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                     }
                 }
             }
+
+            _cmdletPassedIn.WriteVerbose($"Successfully reached end of GetACRMetadata");
 
             return requiredVersionResponse;
         }
@@ -807,6 +833,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return emptyTuple;
             }
 
+            _cmdletPassedIn.WriteVerbose("Successfully parsed all metadata");
             return new Tuple<string, string>(metadataPkgName, metadata);
         }
 
