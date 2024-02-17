@@ -847,6 +847,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // -WhatIf processing.
             if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
             {
+                _cmdletPassedIn.WriteVerbose($"in save should process");
+
                 if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
                 {
                     updatedPackagesHash.Add(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
@@ -863,6 +865,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else if (!_cmdletPassedIn.ShouldProcess($"Package to install: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
             {
+                _cmdletPassedIn.WriteVerbose($"in install should process");
+
                 if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
                 {
                     updatedPackagesHash.Add(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
@@ -879,8 +883,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
+                _cmdletPassedIn.WriteVerbose($"In else statement");
+
                 // Download the package.
                 string pkgName = pkgToInstall.Name;
+                _cmdletPassedIn.WriteVerbose($"About to install package");
+
                 Stream responseStream = currentServer.InstallPackage(pkgName, pkgVersion, _prerelease, out ErrorRecord installNameErrRecord);
                 if (installNameErrRecord != null)
                 {
