@@ -156,6 +156,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
             if (errRecord != null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -163,6 +164,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
             if (errRecord != null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -202,6 +204,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                             latestVersionResponse.Add(GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord));
                             if (errRecord != null)
                             {
+                                _cmdletPassedIn.WriteError(errRecord);
                                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
                             }
 
@@ -307,6 +310,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
             if (errRecord != null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -314,6 +318,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
             if (errRecord != null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -358,6 +363,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                             latestVersionResponse.Add(GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord));
                             if (errRecord != null)
                             {
+                                _cmdletPassedIn.WriteError(errRecord);
                                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
                             }
                         }
@@ -414,6 +420,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
             if (errRecord != null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -421,6 +428,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
             if (errRecord != null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -431,6 +439,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             };
             if (errRecord != null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: results.ToArray(), responseType: acrFindResponseType);
             }
 
@@ -517,6 +526,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
             if (errRecord != null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return null;
             }
 
@@ -524,6 +534,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
             if (errRecord != null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return null;
             }
 
@@ -531,11 +542,13 @@ namespace Microsoft.PowerShell.PSResourceGet
             var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken, out errRecord);
             if (errRecord != null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return null;
             }
             string digest = GetDigestFromManifest(manifest, out errRecord);
             if (errRecord != null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return null;
             }
 
