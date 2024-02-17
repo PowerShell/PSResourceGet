@@ -172,6 +172,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -326,6 +327,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -690,6 +692,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var foundTags = FindAcrManifest(registry, packageName, requiredVersion.ToNormalizedString(), acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
+                _cmdletPassedIn.WriteError(errRecord);
                 return requiredVersionResponse;
             }
 
