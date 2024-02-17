@@ -745,6 +745,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
+                            _cmdletPassedIn.WriteVerbose("*** In find helper");
                             responses = currentServer.FindName(pkgName, _prerelease, _type, out errRecord);
                         }
                         else
@@ -1051,6 +1052,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (dep.VersionRange.Equals(VersionRange.All))
                     {
+                        _cmdletPassedIn.WriteVerbose("*** IN FIND HELPER VERSION RANGE ALL");
                         FindResults responses = currentServer.FindName(dep.Name, includePrerelease: true, _type, out ErrorRecord errRecord);
                         if (errRecord != null)
                         {

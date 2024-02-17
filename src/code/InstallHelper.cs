@@ -748,6 +748,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 default:
                     // VersionType.NoVersion
+                    _cmdletPassedIn.WriteVerbose("*** In install helper");
                     responses = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ErrorRecord findNameErrRecord);
                     if (findNameErrRecord != null)
                     {

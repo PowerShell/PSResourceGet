@@ -205,15 +205,20 @@ namespace Microsoft.PowerShell.PSResourceGet
                             latestVersionResponse.Add(GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord));
                             if (errRecord != null)
                             {
+                                _cmdletPassedIn.WriteVerbose("errRecord is not null");
                                 _cmdletPassedIn.WriteError(errRecord);
                                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
                             }
+
+                            _cmdletPassedIn.WriteVerbose("About to break");
 
                             break;
                         }
                     }
                 }
             }
+
+            _cmdletPassedIn.WriteVerbose("Returning from FindName");
 
             return new FindResults(stringResponse: new string[] {}, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
         }
@@ -747,11 +752,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteVerbose($"tuple item 1 is: {metadataPkgName}");
 
             string metadata = metadataTuple.Item2;
-            _cmdletPassedIn.WriteVerbose($"tuple item 1 is: {metadata}");
+            _cmdletPassedIn.WriteVerbose($"tuple item 2 is: {metadata}");
 
             using (JsonDocument metadataJSONDoc = JsonDocument.Parse(metadata))
             {
-                _cmdletPassedIn.WriteVerbose($"tuple item 1 is: {metadata}");
+                _cmdletPassedIn.WriteVerbose($"marsing metadata into jsondocument");
                 JsonElement rootDom = metadataJSONDoc.RootElement;
                 if (!rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement) &&
                      !rootDom.TryGetProperty("Version", out pkgVersionElement))
