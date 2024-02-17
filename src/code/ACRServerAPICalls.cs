@@ -690,6 +690,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             Hashtable requiredVersionResponse = new Hashtable();
 
             var foundTags = FindAcrManifest(registry, packageName, requiredVersion.ToNormalizedString(), acrAccessToken, out errRecord);
+            _cmdletPassedIn.WriteVerbose("Found ACR Manifest");
             if (errRecord != null || foundTags == null)
             {
                 _cmdletPassedIn.WriteError(errRecord);
@@ -718,11 +719,11 @@ namespace Microsoft.PowerShell.PSResourceGet
              *   }
              */
 
+            _cmdletPassedIn.WriteVerbose("GetMetadataProperty");
             Tuple<string,string> metadataTuple = GetMetadataProperty(foundTags, packageName, out Exception exception);
             if (exception != null)
             {
                 errRecord = new ErrorRecord(exception, "FindNameFailure", ErrorCategory.InvalidResult, this);
-                
                 return requiredVersionResponse;
             }
 
@@ -761,6 +762,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             exception = null;
             var emptyTuple = new Tuple<string, string>(string.Empty, string.Empty);
+            _cmdletPassedIn.WriteVerbose("Attempting to parse layers");
             var layers = foundTags["layers"];
             if (layers == null || layers[0] == null)
             {
@@ -769,6 +771,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return emptyTuple;
             }
 
+            _cmdletPassedIn.WriteVerbose("Attempting to parse annotations");
             var annotations = layers[0]["annotations"];
             if (annotations == null)
             {
@@ -777,6 +780,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return emptyTuple;
             }
 
+            _cmdletPassedIn.WriteVerbose("Attempting to parse metadata");
             if (annotations["metadata"] == null)
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'metadata' element in manifest for package '{packageName}' in '{Repository.Name}'.");
@@ -786,6 +790,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             var metadata = annotations["metadata"].ToString();
 
+            _cmdletPassedIn.WriteVerbose("Attempting to parse org.opencontainers.image.title");
             var metadataPkgTitleJToken = annotations["org.opencontainers.image.title"];
             if (metadataPkgTitleJToken == null)
             {
