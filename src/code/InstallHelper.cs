@@ -759,6 +759,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
             }
 
+            _cmdletPassedIn.WriteVerbose("** Got response");
+
+
             PSResourceInfo pkgToInstall = null;
             foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
             {
@@ -794,16 +797,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
+            _cmdletPassedIn.WriteVerbose("*** Got PSResourceResult ");
+
             if (pkgToInstall == null)
             {
                 return packagesHash;
             }
 
+            _cmdletPassedIn.WriteVerbose($"Checking repo uri");
+
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
+
+            _cmdletPassedIn.WriteVerbose($"Checking normalized version");
+
             pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
             if (pkgVersion == null) {
                 pkgVersion = pkgToInstall.Version.ToString();
             }
+
+            _cmdletPassedIn.WriteVerbose($"Reinstall is {_reinstall}");
+
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
@@ -819,6 +832,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
+            _cmdletPassedIn.WriteVerbose($"Checking packagesHash");
+
             if (packagesHash.ContainsKey(pkgToInstall.Name))
             {
                 return packagesHash;
@@ -826,6 +841,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
 
             Hashtable updatedPackagesHash = packagesHash;
+
+            _cmdletPassedIn.WriteVerbose($"WhatIF processing about to happen");
 
             // -WhatIf processing.
             if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
