@@ -843,6 +843,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Hashtable updatedPackagesHash = packagesHash;
 
             _cmdletPassedIn.WriteVerbose($"WhatIF processing about to happen");
+            _cmdletPassedIn.WriteVerbose($"_savePkg is: {_savePkg}");
+            _cmdletPassedIn.WriteVerbose($"pkgVersion is: {pkgVersion}");
+            if (pkgToInstall == null)
+            {
+                _cmdletPassedIn.WriteVerbose($"pkgToInstall is null");
+            }
+            if (pkgToInstall.Name == null)
+            {
+                _cmdletPassedIn.WriteVerbose($"pkgToInstall.Name is null");
+            }
+            _cmdletPassedIn.WriteVerbose($"pkgToInstall.Name is: {pkgToInstall.Name}");
 
             // -WhatIf processing.
             if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
