@@ -205,20 +205,15 @@ namespace Microsoft.PowerShell.PSResourceGet
                             latestVersionResponse.Add(GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord));
                             if (errRecord != null)
                             {
-                                _cmdletPassedIn.WriteVerbose("errRecord is not null");
                                 _cmdletPassedIn.WriteError(errRecord);
                                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
                             }
-
-                            _cmdletPassedIn.WriteVerbose("About to break");
 
                             break;
                         }
                     }
                 }
             }
-
-            _cmdletPassedIn.WriteVerbose("Returning from FindName");
 
             return new FindResults(stringResponse: new string[] {}, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
         }
@@ -695,7 +690,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             Hashtable requiredVersionResponse = new Hashtable();
 
             var foundTags = FindAcrManifest(registry, packageName, requiredVersion.ToNormalizedString(), acrAccessToken, out errRecord);
-            _cmdletPassedIn.WriteVerbose("Found ACR Manifest");
             if (errRecord != null || foundTags == null)
             {
                 _cmdletPassedIn.WriteError(errRecord);
@@ -723,29 +717,11 @@ namespace Microsoft.PowerShell.PSResourceGet
              *     ]
              *   }
              */
-
-            _cmdletPassedIn.WriteVerbose("GetMetadataProperty");
             Tuple<string,string> metadataTuple = GetMetadataProperty(foundTags, packageName, out Exception exception);
             if (exception != null)
             {
-                _cmdletPassedIn.WriteVerbose("Exception found");
                 errRecord = new ErrorRecord(exception, "FindNameFailure", ErrorCategory.InvalidResult, this);
                 return requiredVersionResponse;
-            }
-            
-            if (metadataTuple == null)
-            {
-                _cmdletPassedIn.WriteVerbose("Tuple is null");
-
-            }
-
-            if (metadataTuple.Item1 == null)
-            {
-                _cmdletPassedIn.WriteVerbose("tuple item 1 is null");
-            }
-            if (metadataTuple.Item2 == null)
-            {
-                _cmdletPassedIn.WriteVerbose("tuple item 2 is null");
             }
 
             string metadataPkgName = metadataTuple.Item1;
@@ -756,12 +732,10 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             using (JsonDocument metadataJSONDoc = JsonDocument.Parse(metadata))
             {
-                _cmdletPassedIn.WriteVerbose($"marsing metadata into jsondocument");
                 JsonElement rootDom = metadataJSONDoc.RootElement;
                 if (!rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement) &&
                      !rootDom.TryGetProperty("Version", out pkgVersionElement))
                 {
-                    _cmdletPassedIn.WriteVerbose($"Error getting properties");
                     errRecord = new ErrorRecord(
                         new InvalidOrEmptyResponse($"Response does not contain 'ModuleVersion' or 'Version' property in metadata for package '{packageName}' in '{Repository.Name}'."),
                         "FindNameFailure",
@@ -770,8 +744,6 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                     return requiredVersionResponse;
                 }
-
-                _cmdletPassedIn.WriteVerbose($"try to parse pkgVersionelement");
 
                 if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
                 {
@@ -784,8 +756,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                 }
             }
 
-            _cmdletPassedIn.WriteVerbose($"Successfully reached end of GetACRMetadata");
-
             return requiredVersionResponse;
         }
 
@@ -793,7 +763,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             exception = null;
             var emptyTuple = new Tuple<string, string>(string.Empty, string.Empty);
-            _cmdletPassedIn.WriteVerbose("Attempting to parse layers");
             var layers = foundTags["layers"];
             if (layers == null || layers[0] == null)
             {
@@ -811,7 +780,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return emptyTuple;
             }
 
-            _cmdletPassedIn.WriteVerbose("Attempting to parse metadata");
+            _cmdletPassedIn.WriteVerbose("Attempting to parse package metadata");
             if (annotations["metadata"] == null)
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'metadata' element in manifest for package '{packageName}' in '{Repository.Name}'.");
@@ -838,7 +807,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return emptyTuple;
             }
 
-            _cmdletPassedIn.WriteVerbose("Successfully parsed all metadata");
+            _cmdletPassedIn.WriteVerbose("Successfully parsed all manifest metadata");
             return new Tuple<string, string>(metadataPkgName, metadata);
         }
 

@@ -748,7 +748,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 default:
                     // VersionType.NoVersion
-                    _cmdletPassedIn.WriteVerbose("*** In install helper");
                     responses = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ErrorRecord findNameErrRecord);
                     if (findNameErrRecord != null)
                     {
@@ -758,9 +757,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     break;
             }
-
-            _cmdletPassedIn.WriteVerbose("** Got response");
-
 
             PSResourceInfo pkgToInstall = null;
             foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
@@ -797,25 +793,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            _cmdletPassedIn.WriteVerbose("*** Got PSResourceResult ");
-
             if (pkgToInstall == null)
             {
                 return packagesHash;
             }
 
-            _cmdletPassedIn.WriteVerbose($"Checking repo uri");
-
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
-
-            _cmdletPassedIn.WriteVerbose($"Checking normalized version");
-
             pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
             if (pkgVersion == null) {
                 pkgVersion = pkgToInstall.Version.ToString();
             }
-
-            _cmdletPassedIn.WriteVerbose($"Reinstall is {_reinstall}");
 
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
@@ -832,34 +819,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            _cmdletPassedIn.WriteVerbose($"Checking packagesHash");
-
             if (packagesHash.ContainsKey(pkgToInstall.Name))
             {
                 return packagesHash;
             }
 
-
             Hashtable updatedPackagesHash = packagesHash;
-
-            _cmdletPassedIn.WriteVerbose($"WhatIF processing about to happen");
-            _cmdletPassedIn.WriteVerbose($"_savePkg is: {_savePkg}");
-            _cmdletPassedIn.WriteVerbose($"pkgVersion is: {pkgVersion}");
-            if (pkgToInstall == null)
-            {
-                _cmdletPassedIn.WriteVerbose($"pkgToInstall is null");
-            }
-            if (pkgToInstall.Name == null)
-            {
-                _cmdletPassedIn.WriteVerbose($"pkgToInstall.Name is null");
-            }
-            _cmdletPassedIn.WriteVerbose($"pkgToInstall.Name is: {pkgToInstall.Name}");
-
             // -WhatIf processing.
             if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
             {
-                _cmdletPassedIn.WriteVerbose($"in save should process");
-
                 if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
                 {
                     updatedPackagesHash.Add(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
@@ -876,8 +844,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else if (!_cmdletPassedIn.ShouldProcess($"Package to install: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
             {
-                _cmdletPassedIn.WriteVerbose($"in install should process");
-
                 if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
                 {
                     updatedPackagesHash.Add(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
@@ -894,12 +860,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                _cmdletPassedIn.WriteVerbose($"In else statement");
-
                 // Download the package.
                 string pkgName = pkgToInstall.Name;
-                _cmdletPassedIn.WriteVerbose($"About to install package");
-
                 Stream responseStream = currentServer.InstallPackage(pkgName, pkgVersion, _prerelease, out ErrorRecord installNameErrRecord);
                 if (installNameErrRecord != null)
                 {

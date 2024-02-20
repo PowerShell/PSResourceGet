@@ -228,11 +228,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
         New-Item -Path (Join-Path -Path $script:PublishModuleBase -ChildPath $testFile) -Force
 
-        { Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -ErrorAction Stop } | Should -Not -Throw
-
-        Write-Host "TestDrive + $TestDrive"
-        Write-Host "PublishModuleName + $script:PublishModuleName"
-        $DebugPreference = 'SilentlyContinue'
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -ErrorAction Stop
     
         Save-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -AsNupkg -Path $TestDrive -TrustRepository
         # Must change .nupkg to .zip so that Expand-Archive can work on Windows PowerShell
