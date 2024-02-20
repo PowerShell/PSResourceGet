@@ -507,13 +507,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                WriteError(new ErrorRecord(
+                ThrowTerminatingError(new ErrorRecord(
                             e,
                             "PublishPSResourceError",
                             ErrorCategory.NotSpecified,
                             this));
-
-                throw e;
             }
             finally
             {
