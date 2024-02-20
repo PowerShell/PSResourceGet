@@ -725,11 +725,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             string metadataPkgName = metadataTuple.Item1;
-            _cmdletPassedIn.WriteVerbose($"tuple item 1 is: {metadataPkgName}");
-
             string metadata = metadataTuple.Item2;
-            _cmdletPassedIn.WriteVerbose($"tuple item 2 is: {metadata}");
-
+            _cmdletPassedIn.WriteVerbose($"package name is '{metadataPkgName}', package metadata is '{metadata}'");
             using (JsonDocument metadataJSONDoc = JsonDocument.Parse(metadata))
             {
                 JsonElement rootDom = metadataJSONDoc.RootElement;
