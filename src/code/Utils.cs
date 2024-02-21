@@ -127,7 +127,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             return stringToConvertToArray.Split(delimeter, StringSplitOptions.RemoveEmptyEntries);
         }
-        
+
         /// <summary>
         /// Converts an ArrayList of object types to a string array.
         /// </summary>
@@ -167,7 +167,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     if (removeWildcardEntries)
                     {
-                        // Tag   // CommandName  // DSCResourceName 
+                        // Tag   // CommandName  // DSCResourceName
                         errorMsgsList.Add($"{name} will be discarded from the provided entries.");
                         continue;
                     }
@@ -258,17 +258,17 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 string[] versionSplit = version.Split(new string[] { "." }, StringSplitOptions.None);
                 if (versionSplit.Length == 2 && versionSplit[1].Equals("*"))
                 {
-                    // eg: 2.* should translate to the version range "[2.0,2.99999]" 
+                    // eg: 2.* should translate to the version range "[2.0,2.99999]"
                     modifiedVersion = $"[{versionSplit[0]}.0,{versionSplit[0]}.999999]";
                 }
                 else if (versionSplit.Length == 3 && versionSplit[2].Equals("*"))
                 {
-                    // eg: 2.1.* should translate to the version range "[2.1.0,2.1.99999]" 
+                    // eg: 2.1.* should translate to the version range "[2.1.0,2.1.99999]"
                     modifiedVersion = $"[{versionSplit[0]}.{versionSplit[1]}.0,{versionSplit[0]}.{versionSplit[1]}.999999]";
                 }
                 else if (versionSplit.Length == 4 && versionSplit[3].Equals("*"))
                 {
-                    // eg: 2.8.8.* should translate to the version range "[2.1.3.0,2.1.3.99999]" 
+                    // eg: 2.8.8.* should translate to the version range "[2.1.3.0,2.1.3.99999]"
                     modifiedVersion = $"[{versionSplit[0]}.{versionSplit[1]}.{versionSplit[2]}.0,{versionSplit[0]}.{versionSplit[1]}.{versionSplit[2]}.999999]";
                 }
                 else {
@@ -428,7 +428,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 // This is needed for a relative path Uri string. Does not throw error for an absolute path.
                 var filePath = cmdletPassedIn.GetResolvedProviderPathFromPSPath(uriString, out ProviderInfo provider).First();
- 
+
                 if (Uri.TryCreate(filePath, UriKind.Absolute, out uriResult))
                 {
                     return true;
@@ -627,7 +627,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         "RepositoryCredentialCannotGetSecretFromVault",
                         ErrorCategory.InvalidOperation,
                         cmdletPassedIn));
-                
+
                 return null;
             }
         }
@@ -848,7 +848,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             return networkCredential;
         }
-        
+
         #endregion
 
         #region Path methods
@@ -895,7 +895,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return new DirectoryInfo(pkgPath).Parent.Name;
         }
 
-        // Find all potential resource paths 
+        // Find all potential resource paths
         public static List<string> GetPathsFromEnvVarAndScope(
             PSCmdlet psCmdlet,
             ScopeType? scope)
@@ -926,7 +926,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             ScopeType? scope = null)
         {
             List<String> resourcePaths = GetPathsFromEnvVarAndScope(psCmdlet, scope);
-            
+
             // resourcePaths should now contain, eg:
             // ./PowerShell/Scripts
             // ./PowerShell/Modules
@@ -976,7 +976,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             ScopeType? scope)
         {
             List<String> installationPaths = GetPathsFromEnvVarAndScope(psCmdlet, scope);
-            
+
             installationPaths = installationPaths.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
             installationPaths.ForEach(dir => psCmdlet.WriteVerbose(string.Format("All paths to search: '{0}'", dir)));
 
@@ -1144,7 +1144,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     allowedCommands: allowedCommands,
                     allowedVariables: allowedVariables,
                     allowEnvironmentVariables: allowEnvironmentVariables);
-                
+
                 // Convert contents into PSDataFile Hashtable by executing content as script.
                 object result = scriptBlock.InvokeReturnAsIs();
                 if (result is PSObject psObject)
@@ -1280,9 +1280,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 if (!moduleSpec.ContainsKey("ModuleName") || String.IsNullOrEmpty((string) moduleSpec["ModuleName"]))
                 {
                     errorList.Add(new ErrorRecord(
-                        new ArgumentException($"RequiredModules Hashtable entry {moduleSpec.ToString()} is missing a key 'ModuleName' and associated value, which is required for each module specification entry"), 
-                        "NameMissingInModuleSpecification", 
-                        ErrorCategory.InvalidArgument, 
+                        new ArgumentException($"RequiredModules Hashtable entry {moduleSpec.ToString()} is missing a key 'ModuleName' and associated value, which is required for each module specification entry"),
+                        "NameMissingInModuleSpecification",
+                        ErrorCategory.InvalidArgument,
                         null));
                     moduleSpecCreatedSuccessfully = false;
                     continue;
@@ -1304,9 +1304,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     else
                     {
                         errorList.Add(new ErrorRecord(
-                            new ArgumentException($"ModuleSpecification object was not able to be created for {moduleSpecName}"), 
-                            "ModuleSpecificationNotCreated", 
-                            ErrorCategory.InvalidArgument, 
+                            new ArgumentException($"ModuleSpecification object was not able to be created for {moduleSpecName}"),
+                            "ModuleSpecificationNotCreated",
+                            ErrorCategory.InvalidArgument,
                             null));
                         moduleSpecCreatedSuccessfully = false;
                         continue;
@@ -1323,9 +1323,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     if (String.IsNullOrEmpty(moduleSpecMaxVersion) && String.IsNullOrEmpty(moduleSpecModuleVersion) && String.IsNullOrEmpty(moduleSpecRequiredVersion))
                     {
                         errorList.Add(new ErrorRecord(
-                            new ArgumentException($"ModuleSpecification hashtable requires one of the following keys: MaximumVersion, ModuleVersion, RequiredVersion and failed to be created for {moduleSpecName}"), 
-                            "MissingModuleSpecificationMember", 
-                            ErrorCategory.InvalidArgument, 
+                            new ArgumentException($"ModuleSpecification hashtable requires one of the following keys: MaximumVersion, ModuleVersion, RequiredVersion and failed to be created for {moduleSpecName}"),
+                            "MissingModuleSpecificationMember",
+                            ErrorCategory.InvalidArgument,
                             null));
                         moduleSpecCreatedSuccessfully = false;
                         continue;
@@ -1361,9 +1361,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     catch (Exception e)
                     {
                         errorList.Add(new ErrorRecord(
-                            new ArgumentException($"ModuleSpecification instance was not able to be created with hashtable constructor due to: {e.Message}"), 
-                            "ModuleSpecificationNotCreated", 
-                            ErrorCategory.InvalidArgument, 
+                            new ArgumentException($"ModuleSpecification instance was not able to be created with hashtable constructor due to: {e.Message}"),
+                            "ModuleSpecificationNotCreated",
+                            ErrorCategory.InvalidArgument,
                             null));
                         moduleSpecCreatedSuccessfully = false;
                     }
@@ -1419,6 +1419,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         $"Cannot remove package path {dirPath}. The previous package contents have been restored.",
                         ex);
                 }
+            }
+            catch (Exception e)
+            {
+                throw e;
             }
             finally
             {
@@ -1724,9 +1728,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 string[] listOfExtensions = { "*.ps1", "*.psd1", "*.psm1", "*.mof", "*.cat", "*.ps1xml" };
                 authenticodeSignatures = cmdletPassedIn.InvokeCommand.InvokeScript(
                     script: @"param (
-                                      [string] $tempDirNameVersion, 
+                                      [string] $tempDirNameVersion,
                                       [string[]] $listOfExtensions
-                                 ) 
+                                 )
                                  Get-ChildItem $tempDirNameVersion -Recurse -Include $listOfExtensions | Get-AuthenticodeSignature -ErrorAction SilentlyContinue",
                     useNewScope: true,
                     writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
@@ -1736,9 +1740,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             catch (Exception e)
             {
                 errorRecord = new ErrorRecord(
-                    new ArgumentException(e.Message), 
-                    "GetAuthenticodeSignatureError", 
-                    ErrorCategory.InvalidResult, 
+                    new ArgumentException(e.Message),
+                    "GetAuthenticodeSignatureError",
+                    ErrorCategory.InvalidResult,
                     cmdletPassedIn);
 
                 return false;
@@ -1751,9 +1755,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 if (!signature.Status.Equals(SignatureStatus.Valid))
                 {
                     errorRecord = new ErrorRecord(
-                        new ArgumentException($"The signature for '{pkgName}' is '{signature.Status}."), 
-                        "GetAuthenticodeSignatureError", 
-                        ErrorCategory.InvalidResult, 
+                        new ArgumentException($"The signature for '{pkgName}' is '{signature.Status}."),
+                        "GetAuthenticodeSignatureError",
+                        ErrorCategory.InvalidResult,
                         cmdletPassedIn);
 
                     return false;
@@ -1762,7 +1766,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             return true;
         }
-       
+
         #endregion
     }
 

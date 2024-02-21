@@ -23,8 +23,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// <summary>
     /// Publishes a module, script, or nupkg to a designated repository.
     /// </summary>
-    [Cmdlet(VerbsData.Publish, 
-        "PSResource", 
+    [Cmdlet(VerbsData.Publish,
+        "PSResource",
         SupportsShouldProcess = true)]
     [Alias("pbres")]
     public sealed class PublishPSResource : PSCmdlet
@@ -488,6 +488,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
             }
+            catch (Exception e)
+            {
+                ThrowTerminatingError(new ErrorRecord(
+                            e,
+                            "PublishPSResourceError",
+                            ErrorCategory.NotSpecified,
+                            this));
+            }
             finally
             {
                 WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
@@ -789,7 +797,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!parsedMetadataHash.ContainsKey("requiredmodules"))
             {
                 return null;
-            }     
+            }
             LanguagePrimitives.TryConvertTo<object[]>(parsedMetadataHash["requiredmodules"], out object[] requiredModules);
 
             // Required modules can be:
@@ -822,7 +830,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     dependenciesHash.Add(moduleName, string.Empty);
                 }
             }
-            var externalModuleDeps = parsedMetadataHash.ContainsKey("ExternalModuleDependencies") ? 
+            var externalModuleDeps = parsedMetadataHash.ContainsKey("ExternalModuleDependencies") ?
                         parsedMetadataHash["ExternalModuleDependencies"] : null;
 
             if (externalModuleDeps != null && LanguagePrimitives.TryConvertTo<string[]>(externalModuleDeps, out string[] externalModuleNames))
@@ -1113,7 +1121,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WriteVerbose(string.Format("Successfully published the resource to '{0}'", repoUri));
             error = null;
             success = true;
-            
+
             return success;
         }
 
@@ -1137,7 +1145,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var networkCred = Credential == null ? _networkCredential : Credential.GetNetworkCredential();
             string key;
-          
+
             if (packageSource == null)
 
             {
@@ -1160,7 +1168,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 isPasswordClearText: true,
                 String.Empty));
         }
-    
+
         #endregion
     }
 }
