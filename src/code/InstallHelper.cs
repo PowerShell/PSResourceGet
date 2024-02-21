@@ -833,47 +833,92 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
                     _cmdletPassedIn.WriteDebug($"Finding dependency packages for '{pkgToInstall.Name}'");
-                    List<PSResourceInfo> allDependencies = findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
 
+                    // the last package added will be the parent package.  
+                    List<PSResourceInfo> allDependencies = findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
+                    PSResourceInfo parentPkg = allDependencies.Last();
+                    allDependencies.Remove(parentPkg);
+
+                    // allDependencies contains parent package as well
                     foreach (PSResourceInfo pkg in allDependencies)
                     {
                         Console.WriteLine($"{pkg.Name}: {pkg.Version}");
                     }
 
-                    // 1) TODO: If installing 5 or less packages, don't use Parallel.ForEach
-
-
-                    // TODO: ADD FOREACH HERE
-                    // 2) TODO: MaxDegreeOfParallelism --  possibly max of about 32 threads (Invoke-Command has default of 32, that's where we got this number from)?
-                    // 3) TODO: Error handling: https://learn.microsoft.com/en-us/dotnet/standard/parallel-programming/how-to-handle-exceptions-in-parallel-loops
-                    Parallel.ForEach(allDependencies, pkgToBeInstalled =>
+                    // List for keeping track of errors
+                    List<ErrorRecord> errors = new List<ErrorRecord>();
+                    // If installing 5 or less packages, don't use Parallel.ForEach
+                    if (allDependencies.Count > 5)
                     {
-                        // Perform some operation on each item
-                       // Console.WriteLine($"Processing number: {pkgToBeInstalled}, Thread ID: {Task.CurrentId}");
-                    
-
-                        Stream responseStream = currentServer.InstallPackage(pkgToBeInstalled.Name, pkgToBeInstalled.Version.ToString(), true, out ErrorRecord installNameErrRecord);
-
-                        if (installNameErrRecord != null)
+                        // Error handling: https://learn.microsoft.com/en-us/dotnet/standard/parallel-programming/how-to-handle-exceptions-in-parallel-loops
+                        // Set the maximum degree of parallelism to 32 (Invoke-Command has default of 32, that's where we got this number from)
+                        ParallelOptions options = new ParallelOptions
                         {
-                           // errRecord = installNameErrRecord;
+                            MaxDegreeOfParallelism = 32
+                        };
 
-                            //write error 
-                            //return packagesHash;
+                        _cmdletPassedIn.WriteDebug("**********************************************************Entering parallel foreach.");
+                        Parallel.ForEach(allDependencies, options, pkgToBeInstalled =>
+                        {
+                            // Perform some operation on each item
+                            Console.WriteLine($"Processing number: {pkgToBeInstalled}, Thread ID: {Task.CurrentId}");
+
+
+                            Stream responseStream = currentServer.InstallPackage(pkgToBeInstalled.Name, pkgToBeInstalled.Version.ToString(), true, out ErrorRecord installNameErrRecord);
+
+                            if (installNameErrRecord != null)
+                            {
+                                errors.Add(installNameErrRecord);
+
+                                //return packagesHash;
+                            }
+
+                            ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
+                            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
+                                TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out tempInstallErrRecord);
+
+                            if (!installedToTempPathSuccessfully)
+                            {
+                                errors.Add(tempSaveErrRecord ?? tempInstallErrRecord);
+
+                                //return packagesHash;
+                            }
+
+                           // packagesHash.Add(pkgToBeInstalled.Name, pkgToBeInstalled.Version);
+                        });
+
+                        return updatedPackagesHash;
+
+                    }
+                    else {
+                        // Install the good, old fashioned way
+                        foreach (var pkgToBeInstalled in allDependencies)
+                        {
+                            Stream responseStream = currentServer.InstallPackage(pkgToBeInstalled.Name, pkgToBeInstalled.Version.ToString(), true, out ErrorRecord installNameErrRecord);
+
+                            if (installNameErrRecord != null)
+                            {
+                                errRecord = installNameErrRecord;
+
+                                return packagesHash;
+                            }
+
+                            ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
+                            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
+                                TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out tempInstallErrRecord);
+
+                            if (!installedToTempPathSuccessfully)
+                            {
+                                errRecord = tempSaveErrRecord ?? tempInstallErrRecord;
+                                return packagesHash;
+                            }
+
+                            // no   -- packagesHash.Add(pkgToBeInstalled.Name, pkgToBeInstalled.Version);
                         }
 
-                        bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out ErrorRecord tempSaveErrRecord) :
-                       TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out ErrorRecord tempInstallErrRecord);
+                        return updatedPackagesHash;
+                    }
 
-                        if (!installedToTempPathSuccessfully)
-                        {
-                            //return packagesHash;
-                        }
-
-                       // packagesHash.Add(pkgToBeInstalled.Name, pkgToBeInstalled.Version);
-
-
-                    });
                 }
                 else {
 
@@ -894,7 +939,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return packagesHash;
                     }
 
-                    packagesHash.Add(pkgToInstall.Name, pkgToInstall.Version);
+                    //spackagesHash.Add(pkgToInstall.Name, pkgToInstall.Version);
                 }
             }
 
