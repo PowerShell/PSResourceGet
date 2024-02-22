@@ -156,7 +156,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
             if (errRecord != null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -164,7 +163,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
             if (errRecord != null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -172,7 +170,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -205,7 +202,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                             latestVersionResponse.Add(GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord));
                             if (errRecord != null)
                             {
-                                _cmdletPassedIn.WriteError(errRecord);
                                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
                             }
 
@@ -311,7 +307,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
             if (errRecord != null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -319,7 +314,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
             if (errRecord != null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -327,7 +321,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -365,7 +358,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                             latestVersionResponse.Add(GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord));
                             if (errRecord != null)
                             {
-                                _cmdletPassedIn.WriteError(errRecord);
                                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
                             }
                         }
@@ -422,7 +414,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
             if (errRecord != null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -430,7 +421,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
             if (errRecord != null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
@@ -441,7 +431,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             };
             if (errRecord != null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: results.ToArray(), responseType: acrFindResponseType);
             }
 
@@ -528,7 +517,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
             if (errRecord != null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return null;
             }
 
@@ -536,7 +524,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
             if (errRecord != null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return null;
             }
 
@@ -544,13 +531,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken, out errRecord);
             if (errRecord != null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return null;
             }
             string digest = GetDigestFromManifest(manifest, out errRecord);
             if (errRecord != null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return null;
             }
 
@@ -692,7 +677,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             var foundTags = FindAcrManifest(registry, packageName, requiredVersion.ToNormalizedString(), acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
-                _cmdletPassedIn.WriteError(errRecord);
                 return requiredVersionResponse;
             }
 
@@ -726,7 +710,6 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             string metadataPkgName = metadataTuple.Item1;
             string metadata = metadataTuple.Item2;
-            _cmdletPassedIn.WriteVerbose($"package name is '{metadataPkgName}', package metadata is '{metadata}'");
             using (JsonDocument metadataJSONDoc = JsonDocument.Parse(metadata))
             {
                 JsonElement rootDom = metadataJSONDoc.RootElement;
@@ -768,7 +751,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return emptyTuple;
             }
 
-            _cmdletPassedIn.WriteVerbose("Attempting to parse annotations");
             var annotations = layers[0]["annotations"];
             if (annotations == null)
             {
@@ -777,7 +759,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return emptyTuple;
             }
 
-            _cmdletPassedIn.WriteVerbose("Attempting to parse package metadata");
             if (annotations["metadata"] == null)
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'metadata' element in manifest for package '{packageName}' in '{Repository.Name}'.");
@@ -786,8 +767,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             var metadata = annotations["metadata"].ToString();
-
-            _cmdletPassedIn.WriteVerbose("Attempting to parse org.opencontainers.image.title");
             var metadataPkgTitleJToken = annotations["org.opencontainers.image.title"];
             if (metadataPkgTitleJToken == null)
             {
@@ -804,7 +783,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return emptyTuple;
             }
 
-            _cmdletPassedIn.WriteVerbose("Successfully parsed all manifest metadata");
             return new Tuple<string, string>(metadataPkgName, metadata);
         }
 
