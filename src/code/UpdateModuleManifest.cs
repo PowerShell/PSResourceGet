@@ -675,10 +675,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "CreateModuleManifestFailed",
                     ErrorCategory.InvalidOperation,
                     this);
-
-                throw e;
             }
-
             finally {
                 // Clean up temp file if move fails
                 if (File.Exists(tmpModuleManifestPath))
@@ -1038,8 +1035,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "CreateModuleManifestForWinPSFailed",
                     ErrorCategory.InvalidOperation,
                     this);
-
-                throw e;
             }
             finally {
                 // Clean up temp file if move fails
