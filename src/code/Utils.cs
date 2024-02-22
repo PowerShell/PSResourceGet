@@ -1203,6 +1203,30 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 string contents = System.IO.File.ReadAllText(filePath);
+
+
+
+
+
+                // Create a new PowerShell runspace
+                Runspace runspace = RunspaceFactory.CreateRunspace();
+                runspace.Open();
+
+                // Set the created runspace as the default for the current thread
+                Runspace.DefaultRunspace = runspace;
+                using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+                {
+                    // Use the runspace in the PowerShell pipeline
+                    pwsh.Runspace = runspace;
+
+                    // Invoke the pipeline and retrieve the results
+                    Collection<PSObject> result = pwsh.Invoke();
+                }
+                // Close the runspace when done
+                //runspace.Close();
+
+
+
                 var scriptBlock = System.Management.Automation.ScriptBlock.Create(contents);
 
                 // Ensure that the content script block is safe to convert into a PSDataFile Hashtable.
@@ -1218,6 +1242,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     result = psObject.BaseObject;
                 }
+
+
+
+
+
+
+
 
                 dataFileInfo = (Hashtable) result;
                 error = null;

@@ -855,27 +855,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         // Error handling: https://learn.microsoft.com/en-us/dotnet/standard/parallel-programming/how-to-handle-exceptions-in-parallel-loops
                         // Set the maximum degree of parallelism to 32 (Invoke-Command has default of 32, that's where we got this number from)
-                        ParallelOptions options = new ParallelOptions
-                        {
-                            MaxDegreeOfParallelism = 32
-                        };
-
                         _cmdletPassedIn.WriteDebug("**********************************************************Entering parallel foreach.");
-                        Parallel.ForEach(allDependencies, options, depPkg =>
+                        Parallel.ForEach(allDependencies, new ParallelOptions { MaxDegreeOfParallelism = 32 }, depPkg =>
                         {
                             var depPkgName = depPkg.Name;
                             var depPkgVersion = depPkg.Version.ToString();
                             // Perform some operation on each item
                             Console.WriteLine($"Processing number: {depPkg}, Thread ID: {Task.CurrentId}");
 
-
                             Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
 
                             if (installNameErrRecord != null)
                             {
                                 errors.Add(installNameErrRecord);
-
-                                //return packagesHash;
                             }
 
                             ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
@@ -885,22 +877,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             if (!installedToTempPathSuccessfully)
                             {
                                 errors.Add(tempSaveErrRecord ?? tempInstallErrRecord);
-
-                                //return packagesHash;
                             }
-
-                           // packagesHash.Add(pkgToBeInstalled.Name, pkgToBeInstalled.Version);
                         });
 
+                        // Early out if errors collected
+                        if (errors.Count > 0) {
+                            // Write out all errors collected from Parallel.ForEach
+                            foreach (var err in errors)
+                            {
+                                Console.WriteLine(err);
+                            }
+
+                            return packagesHash;
+                        }
 
                         // Install Parent Pkg
                         Stream responseStream = currentServer.InstallPackage(parentPkg.Name, parentPkg.Version.ToString(), true, out ErrorRecord installNameErrRecord);
-
                         if (installNameErrRecord != null)
                         {
                             errors.Add(installNameErrRecord);
-
-                            //return packagesHash;
+                            return packagesHash;
                         }
 
                         ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
@@ -909,15 +905,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (!installedToTempPathSuccessfully)
                         {
-                            errors.Add(tempSaveErrRecord ?? tempInstallErrRecord);
-
-                            //return packagesHash;
-                        }
-
-
-                        foreach (var err in errors)
-                        {
-                            Console.WriteLine(err);
+                            errRecord = tempSaveErrRecord ?? tempInstallErrRecord;
+                            return packagesHash;
                         }
 
                         return updatedPackagesHash;
@@ -934,7 +923,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             if (installNameErrRecord != null)
                             {
                                 errRecord = installNameErrRecord;
-
                                 return packagesHash;
                             }
 
@@ -947,8 +935,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 errRecord = tempSaveErrRecord ?? tempInstallErrRecord;
                                 return packagesHash;
                             }
-
-                            // no   -- packagesHash.Add(pkgToBeInstalled.Name, pkgToBeInstalled.Version);
                         }
 
                         return updatedPackagesHash;
