@@ -803,7 +803,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (pkgVersion == null) {
                 pkgVersion = pkgToInstall.Version.ToString();
             }
-
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
@@ -824,7 +823,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return packagesHash;
             }
 
+
             Hashtable updatedPackagesHash = packagesHash;
+
             // -WhatIf processing.
             if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
             {
