@@ -1207,7 +1207,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
 
 
-
+                /*
                 // Create a new PowerShell runspace
                 Runspace runspace = RunspaceFactory.CreateRunspace();
                 runspace.Open();
@@ -1224,6 +1224,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
                 // Close the runspace when done
                 //runspace.Close();
+                
+                */
 
 
 
@@ -1235,7 +1237,14 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     allowedCommands: allowedCommands,
                     allowedVariables: allowedVariables,
                     allowEnvironmentVariables: allowEnvironmentVariables);
-                
+
+                var obj = scriptBlock.GetPowerShell();
+                if (obj != null)
+                {
+                    Console.WriteLine("good");
+
+                }
+
                 // Convert contents into PSDataFile Hashtable by executing content as script.
                 object result = scriptBlock.InvokeReturnAsIs();
                 if (result is PSObject psObject)
