@@ -77,7 +77,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $script:tmpScriptsFolderPath = Join-Path -Path $TestDrive -ChildPath "tmpScriptsPath"
         if(!(Test-Path $script:tmpScriptsFolderPath))
         {
-            New-Item -Path $script:tmpScriptsFolderPath -ItemType Directory -Force
+            $null = New-Item -Path $script:tmpScriptsFolderPath -ItemType Directory -Force
         }
 
         # Path to folder, within our test folder, where we store invalid module and script files used for testing
