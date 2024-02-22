@@ -836,8 +836,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     // the last package added will be the parent package.  
                     List<PSResourceInfo> allDependencies = findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
-                    PSResourceInfo parentPkg = allDependencies.Last();
-                    allDependencies.Remove(parentPkg);
+
 
                     // allDependencies contains parent package as well
                     foreach (PSResourceInfo pkg in allDependencies)
@@ -850,6 +849,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // If installing 5 or less packages, don't use Parallel.ForEach
                     if (allDependencies.Count > 5)
                     {
+                        PSResourceInfo parentPkg = allDependencies.Last();
+                        allDependencies.Remove(parentPkg);
+
+
                         // Error handling: https://learn.microsoft.com/en-us/dotnet/standard/parallel-programming/how-to-handle-exceptions-in-parallel-loops
                         // Set the maximum degree of parallelism to 32 (Invoke-Command has default of 32, that's where we got this number from)
                         ParallelOptions options = new ParallelOptions
@@ -858,13 +861,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         };
 
                         _cmdletPassedIn.WriteDebug("**********************************************************Entering parallel foreach.");
-                        Parallel.ForEach(allDependencies, options, pkgToBeInstalled =>
+                        Parallel.ForEach(allDependencies, options, depPkg =>
                         {
+                            var depPkgName = depPkg.Name;
+                            var depPkgVersion = depPkg.Version.ToString();
                             // Perform some operation on each item
-                            Console.WriteLine($"Processing number: {pkgToBeInstalled}, Thread ID: {Task.CurrentId}");
+                            Console.WriteLine($"Processing number: {depPkg}, Thread ID: {Task.CurrentId}");
 
 
-                            Stream responseStream = currentServer.InstallPackage(pkgToBeInstalled.Name, pkgToBeInstalled.Version.ToString(), true, out ErrorRecord installNameErrRecord);
+                            Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
 
                             if (installNameErrRecord != null)
                             {
@@ -874,8 +879,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             }
 
                             ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
-                            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
-                                TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out tempInstallErrRecord);
+                            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
+                                TryInstallToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out tempInstallErrRecord);
 
                             if (!installedToTempPathSuccessfully)
                             {
@@ -887,6 +892,34 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                            // packagesHash.Add(pkgToBeInstalled.Name, pkgToBeInstalled.Version);
                         });
 
+
+                        // Install Parent Pkg
+                        Stream responseStream = currentServer.InstallPackage(parentPkg.Name, parentPkg.Version.ToString(), true, out ErrorRecord installNameErrRecord);
+
+                        if (installNameErrRecord != null)
+                        {
+                            errors.Add(installNameErrRecord);
+
+                            //return packagesHash;
+                        }
+
+                        ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
+                        bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, parentPkg.Name, parentPkg.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
+                            TryInstallToTempPath(responseStream, tempInstallPath, parentPkg.Name, parentPkg.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out tempInstallErrRecord);
+
+                        if (!installedToTempPathSuccessfully)
+                        {
+                            errors.Add(tempSaveErrRecord ?? tempInstallErrRecord);
+
+                            //return packagesHash;
+                        }
+
+
+                        foreach (var err in errors)
+                        {
+                            Console.WriteLine(err);
+                        }
+
                         return updatedPackagesHash;
 
                     }
@@ -894,7 +927,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Install the good, old fashioned way
                         foreach (var pkgToBeInstalled in allDependencies)
                         {
-                            Stream responseStream = currentServer.InstallPackage(pkgToBeInstalled.Name, pkgToBeInstalled.Version.ToString(), true, out ErrorRecord installNameErrRecord);
+                            var pkgToInstallName = pkgToBeInstalled.Name;
+                            var pkgToInstallVersion = pkgToBeInstalled.Version.ToString();
+                            Stream responseStream = currentServer.InstallPackage(pkgToInstallName, pkgToInstallVersion, true, out ErrorRecord installNameErrRecord);
 
                             if (installNameErrRecord != null)
                             {
@@ -904,8 +939,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             }
 
                             ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
-                            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
-                                TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out tempInstallErrRecord);
+                            bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
+                                TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, out tempInstallErrRecord);
 
                             if (!installedToTempPathSuccessfully)
                             {
@@ -1187,7 +1222,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             out Hashtable updatedPackagesHash,
             out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::TrySaveNupkgToTempPath()");
+           // _cmdletPassedIn.WriteDebug("In InstallHelper::TrySaveNupkgToTempPath()");
             error = null;
             updatedPackagesHash = packagesHash;
 
@@ -1525,7 +1560,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool CreateMetadataXMLFile(string dirNameVersion, string installPath, PSResourceInfo pkg, bool isModule, out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::CreateMetadataXMLFile()");
+            //_cmdletPassedIn.WriteDebug("In InstallHelper::CreateMetadataXMLFile()");
             error = null;
             bool success = true;
             // Script will have a metadata file similar to:  "TestScript_InstalledScriptInfo.xml"

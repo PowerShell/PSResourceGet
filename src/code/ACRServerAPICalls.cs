@@ -538,7 +538,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::InstallPackage()");
+            //_cmdletPassedIn.WriteDebug("In ACRServerAPICalls::InstallPackage()");
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
             {
@@ -583,21 +583,21 @@ namespace Microsoft.PowerShell.PSResourceGet
             // Call asynchronous network methods in a try/catch block to handle exceptions.
             string registry = Repository.Uri.Host;
 
-            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
+            //_cmdletPassedIn.WriteVerbose("Getting acr refresh token");
             var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
             if (errRecord != null)
             {
                 return null;
             }
 
-            _cmdletPassedIn.WriteVerbose("Getting acr access token");
+            //_cmdletPassedIn.WriteVerbose("Getting acr access token");
             var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
             if (errRecord != null)
             {
                 return null;
             }
 
-            _cmdletPassedIn.WriteVerbose($"Getting manifest for {moduleName} - {moduleVersion}");
+            //_cmdletPassedIn.WriteVerbose($"Getting manifest for {moduleName} - {moduleVersion}");
             var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken, out errRecord);
             if (errRecord != null)
             {
@@ -609,7 +609,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return null;
             }
 
-            _cmdletPassedIn.WriteVerbose($"Downloading blob for {moduleName} - {moduleVersion}");
+            //_cmdletPassedIn.WriteVerbose($"Downloading blob for {moduleName} - {moduleVersion}");
             // TODO: error handling here?
             var responseContent = GetAcrBlobAsync(registry, moduleName, digest, acrAccessToken).Result;
 
