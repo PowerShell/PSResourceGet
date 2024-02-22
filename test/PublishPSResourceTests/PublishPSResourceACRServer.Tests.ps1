@@ -4,7 +4,6 @@
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-
 function CreateTestModule
 {
     param (
