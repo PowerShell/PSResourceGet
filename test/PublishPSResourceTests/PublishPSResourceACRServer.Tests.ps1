@@ -71,7 +71,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         # Create temp destination path
         $script:destinationPath = [IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"))
-        New-Item $script:destinationPath -ItemType directory -Force
+        $null = New-Item $script:destinationPath -ItemType directory -Force
 
         #Create folder where we shall place all script files to be published for these tests
         $script:tmpScriptsFolderPath = Join-Path -Path $TestDrive -ChildPath "tmpScriptsPath"
