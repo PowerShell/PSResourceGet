@@ -541,24 +541,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool isModule = resourceType != ResourceType.Script;
             requiredModules = new Hashtable();
 
-            // A script will already have the metadata parsed into the parsedMetadatahash,
-            // a module will still need the module manifest to be parsed.
-            if (isModule)
+            if (parsedMetadataHash == null || parsedMetadataHash.Count == 0)
             {
-                // Use the parsed module manifest data as 'parsedMetadataHash' instead of the passed-in data.
-                if (!Utils.TryReadManifestFile(
-                    manifestFilePath: filePath,
-                    manifestInfo: out parsedMetadataHash,
-                    error: out Exception manifestReadError))
-                {
-                    WriteError(new ErrorRecord(
-                        manifestReadError,
-                        "ManifestFileReadParseForNuspecError",
-                        ErrorCategory.ReadError,
-                        this));
+                WriteError(new ErrorRecord(new ArgumentException("Hashtable provided with package metadata was null or empty"),
+                    "PackageMetadataHashtableNullOrEmptyError",
+                    ErrorCategory.ReadError,
+                    this));
 
-                    return string.Empty;
-                }
+                return string.Empty;
             }
 
             // now we have parsedMetadatahash to fill out the nuspec information
