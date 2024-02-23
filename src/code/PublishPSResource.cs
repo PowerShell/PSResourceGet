@@ -305,6 +305,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ErrorCategory.InvalidOperation,
                         this));
                 }
+
+                if (!Utils.TryReadManifestFile(
+                    manifestFilePath: pathToModuleManifestToPublish,
+                    manifestInfo: out parsedMetadata,
+                    error: out Exception manifestReadError))
+                {
+                    WriteError(new ErrorRecord(
+                        manifestReadError,
+                        "ManifestFileReadParseForACRPublishError",
+                        ErrorCategory.ReadError,
+                        this));
+
+                    return;
+                }
             }
 
             // Create a temp folder to push the nupkg to and delete it later
@@ -487,7 +501,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ACRServerAPICalls acrServer = new ACRServerAPICalls(repository, this, _networkCredential, userAgentString);
 
                     var pkgMetadataFile = (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish;
-                    if (!acrServer.PushNupkgACR(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, repository, parsedMetadata, out ErrorRecord pushNupkgACRError))
+                    if (!acrServer.PushNupkgACR(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, repository, resourceType, parsedMetadata, out ErrorRecord pushNupkgACRError))
                     {
                         WriteError(pushNupkgACRError);
                         // exit out of processing

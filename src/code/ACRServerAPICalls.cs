@@ -1102,7 +1102,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 };
         }
 
-        internal bool PushNupkgACR(string psd1OrPs1File, string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, Hashtable parsedMetadataHash, out ErrorRecord errRecord)
+        internal bool PushNupkgACR(string psd1OrPs1File, string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, ResourceType resourceType, Hashtable parsedMetadataHash, out ErrorRecord errRecord)
         {
             errRecord = null;
             // Push the nupkg to the appropriate repository
@@ -1188,7 +1188,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             /* Create manifest layer */
             _cmdletPassedIn.WriteVerbose("Create package version metadata as JSON string");
-            string jsonString = CreateMetadataContent(psd1OrPs1File, parsedMetadataHash, out ErrorRecord metadataCreationError);
+            string jsonString = CreateMetadataContent(psd1OrPs1File, resourceType, parsedMetadataHash, out ErrorRecord metadataCreationError);
             if (metadataCreationError != null)
             {
                 _cmdletPassedIn.ThrowTerminatingError(metadataCreationError);
@@ -1310,45 +1310,36 @@ namespace Microsoft.PowerShell.PSResourceGet
             return true;
         }
 
-        private string CreateMetadataContent(string manifestFilePath, Hashtable parsedMetadata, out ErrorRecord metadataCreationError)
+        private string CreateMetadataContent(string manifestFilePath, ResourceType resourceType, Hashtable parsedMetadata, out ErrorRecord metadataCreationError)
         {
             metadataCreationError = null;
-            Hashtable parsedMetadataHash = null;
             string jsonString = string.Empty;
 
             // A script will already have the metadata parsed into the parsedMetadatahash,
             // a module will still need the module manifest to be parsed.
             if (parsedMetadata == null || parsedMetadata.Count == 0)
             {
-                // Use the parsed module manifest data as 'parsedMetadataHash' instead of the passed-in data.
-                if (!Utils.TryReadManifestFile(
-                    manifestFilePath: manifestFilePath,
-                    manifestInfo: out parsedMetadataHash,
-                    error: out Exception manifestReadError))
-                {
-                    metadataCreationError = new ErrorRecord(
-                        manifestReadError,
-                        "ManifestFileReadParseForACRPublishError",
-                        ErrorCategory.ReadError,
-                        _cmdletPassedIn);
-
-                    return jsonString;
-                }
-            }
-
-            if (parsedMetadataHash == null)
-            {
                 metadataCreationError = new ErrorRecord(
-                    new InvalidOperationException("Error parsing package metadata into hashtable."),
-                    "PackageMetadataHashEmptyError",
-                    ErrorCategory.InvalidData,
+                    new ArgumentException("Hashtable created from .ps1 or .psd1 containing package metadata was null or empty"),
+                    "MetadataHashtableEmptyError",
+                    ErrorCategory.InvalidArgument,
                     _cmdletPassedIn);
 
                 return jsonString;
             }
-
-            _cmdletPassedIn.WriteVerbose("Serialize JSON into string.");
-            jsonString = System.Text.Json.JsonSerializer.Serialize(parsedMetadataHash);
+            else
+            {
+                _cmdletPassedIn.WriteVerbose("Serialize JSON into string.");
+                try
+                {
+                    jsonString = System.Text.Json.JsonSerializer.Serialize(parsedMetadata);
+                }
+                catch (Exception ex)
+                {
+                    metadataCreationError = new ErrorRecord(ex, "JsonSerializationError", ErrorCategory.InvalidResult, _cmdletPassedIn);
+                    return jsonString;
+                }
+            }
 
             return jsonString;
         }
