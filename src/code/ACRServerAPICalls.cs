@@ -596,7 +596,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
             string exchangeUrl = string.Format(acrOAuthExchangeUrlTemplate, registry);
             var results = GetHttpResponseJObjectUsingContentHeaders(exchangeUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
-            
+
             if (results != null && results["refresh_token"] != null)
             {
                 return results["refresh_token"].ToString();
@@ -613,7 +613,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var results = GetHttpResponseJObjectUsingContentHeaders(tokenUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
 
             if (results != null && results["access_token"] != null)
-            { 
+            {
                 return results["access_token"].ToString();
             }
 
@@ -706,7 +706,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             if (exception != null)
             {
                 errRecord = new ErrorRecord(exception, "FindNameFailure", ErrorCategory.InvalidResult, this);
-                
+
                 return requiredVersionResponse;
             }
 
@@ -749,7 +749,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             if (layers == null || layers[0] == null)
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'layers' element in manifest for package '{packageName}' in '{Repository.Name}'.");
-                  
+
                 return emptyTuple;
             }
 
@@ -757,14 +757,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             if (annotations == null)
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'annotations' element in manifest for package '{packageName}' in '{Repository.Name}'.");
-                    
+
                 return emptyTuple;
             }
 
             if (annotations["metadata"] == null)
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'metadata' element in manifest for package '{packageName}' in '{Repository.Name}'.");
-                    
+
                 return emptyTuple;
             }
 
@@ -774,7 +774,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             if (metadataPkgTitleJToken == null)
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'org.opencontainers.image.title' element for package '{packageName}' in '{Repository.Name}'.");
-                  
+
                 return emptyTuple;
             }
 
@@ -782,7 +782,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             if (string.IsNullOrWhiteSpace(metadataPkgName))
             {
                 exception = new InvalidOrEmptyResponse($"Response element 'org.opencontainers.image.title' is empty for package '{packageName}' in '{Repository.Name}'.");
-                   
+
                 return emptyTuple;
             }
 
@@ -929,6 +929,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     }
                 }
 
+                request.Headers.Add("User-Agent", "PowerShellResourceGet/1.1.0");
                 return SendRequestAsync(request).GetAwaiter().GetResult();
             }
             catch (ResourceNotFoundException e)
@@ -1002,6 +1003,12 @@ namespace Microsoft.PowerShell.PSResourceGet
                     }
                 }
             }
+
+            // Add User-Agent string for the request
+            if (!s_client.DefaultRequestHeaders.Contains("User-Agent"))
+            {
+                s_client.DefaultRequestHeaders.Add("User-Agent", "PowerShellResourceGet/1.1.0");
+            }
         }
 
         private static async Task<HttpContent> SendContentRequestAsync(HttpRequestMessage message)
@@ -1022,6 +1029,12 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             try
             {
+                // Add User-Agent string for the request
+                if (!message.Headers.Contains("User-Agent"))
+                {
+                    message.Headers.Add("User-Agent", "PowerShellResourceGet/1.1.0");
+                }
+
                 HttpResponseMessage response = await s_client.SendAsync(message);
 
                 switch (response.StatusCode)
@@ -1211,9 +1224,9 @@ namespace Microsoft.PowerShell.PSResourceGet
         }
 
         private string CreateJsonContent(
-            string nupkgDigest, 
-            string configDigest, 
-            long nupkgFileSize, 
+            string nupkgDigest,
+            string configDigest,
+            long nupkgFileSize,
             string fileName,
             string packageName,
             string jsonString)
