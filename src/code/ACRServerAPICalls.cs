@@ -1197,7 +1197,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             FileInfo nupkgFile = new FileInfo(fullNupkgFile);
             var fileSize = nupkgFile.Length;
             var fileName = System.IO.Path.GetFileName(fullNupkgFile);
-            string fileContent = CreateJsonContent(nupkgDigest, configDigest, fileSize, fileName, pkgName, jsonString);
+            string fileContent = CreateJsonContent(nupkgDigest, configDigest, fileSize, fileName, pkgName, resourceType, jsonString);
             File.WriteAllText(configFilePath, fileContent);
 
             _cmdletPassedIn.WriteVerbose("Create the manifest layer");
@@ -1207,6 +1207,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 return true;
             }
+
             return false;
         }
 
@@ -1216,6 +1217,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             long nupkgFileSize, 
             string fileName,
             string packageName,
+            ResourceType resourceType,
             string jsonString)
         {
             StringBuilder stringBuilder = new StringBuilder();
@@ -1224,6 +1226,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             jsonWriter.Formatting = Newtonsoft.Json.Formatting.Indented;
 
+            // start of manifest JSON object
             jsonWriter.WriteStartObject();
 
             jsonWriter.WritePropertyName("schemaVersion");
@@ -1257,16 +1260,17 @@ namespace Microsoft.PowerShell.PSResourceGet
             jsonWriter.WriteValue(fileName);
             jsonWriter.WritePropertyName("metadata");
             jsonWriter.WriteValue(jsonString);
-            jsonWriter.WriteEndObject();
-            jsonWriter.WriteEndObject();
+            jsonWriter.WritePropertyName("artifactType");
+            jsonWriter.WriteValue(resourceType.ToString());
+            jsonWriter.WriteEndObject(); // end of annotations object
 
-            jsonWriter.WriteEndArray();
-            jsonWriter.WriteEndObject();
+            jsonWriter.WriteEndObject(); // end of 'layers' entry object
+            
+            jsonWriter.WriteEndArray(); // end of 'layers' array
+            jsonWriter.WriteEndObject(); // end of manifest JSON object
 
             return stringWriter.ToString();
         }
-
-
 
         // ACR method
         private bool CreateDigest(string fileName, out string digest, out ErrorRecord error)
