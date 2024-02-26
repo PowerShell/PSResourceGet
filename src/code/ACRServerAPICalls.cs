@@ -193,6 +193,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                         return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
                     }
 
+                    // TODO Anam: add error handling if it CANT be parsed as NuGetversion
+                    // could have tried to parse it to NuGetVersion, or do element.Someproperty?
                     if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
                     {
                         _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
@@ -200,6 +202,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                         {
                             // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
                             latestVersionResponse.Add(GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord));
+                            // TODO Anam: add error handling here if GetAcrMetadata returns empty hashtable!
                             if (errRecord != null)
                             {
                                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
@@ -1331,18 +1334,24 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                 return jsonString;
             }
-            else
+
+            _cmdletPassedIn.WriteVerbose("Serialize JSON into string.");
+
+            if (parsedMetadata.ContainsKey("Version") && parsedMetadata["Version"] is NuGetVersion pkgNuGetVersion)
             {
-                _cmdletPassedIn.WriteVerbose("Serialize JSON into string.");
-                try
-                {
-                    jsonString = System.Text.Json.JsonSerializer.Serialize(parsedMetadata);
-                }
-                catch (Exception ex)
-                {
-                    metadataCreationError = new ErrorRecord(ex, "JsonSerializationError", ErrorCategory.InvalidResult, _cmdletPassedIn);
-                    return jsonString;
-                }
+                // do not serialize NuGetVersion, this will populate more metadata than is needed and makes it harder to deserialize
+                parsedMetadata.Remove("Version");
+                parsedMetadata["Version"] = pkgNuGetVersion.ToNormalizedString(); // or ToString();
+            }
+
+            try
+            {
+                jsonString = System.Text.Json.JsonSerializer.Serialize(parsedMetadata);
+            }
+            catch (Exception ex)
+            {
+                metadataCreationError = new ErrorRecord(ex, "JsonSerializationError", ErrorCategory.InvalidResult, _cmdletPassedIn);
+                return jsonString;
             }
 
             return jsonString;

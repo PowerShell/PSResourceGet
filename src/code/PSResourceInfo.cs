@@ -829,7 +829,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 JsonElement rootDom = packageMetadata.RootElement;
 
                 // Version
-                if (rootDom.TryGetProperty("ModuleVersion", out JsonElement versionElement))
+                if (rootDom.TryGetProperty("ModuleVersion", out JsonElement versionElement) || rootDom.TryGetProperty("Version", out versionElement))
                 {
                     string versionValue = versionElement.ToString();
                     metadata["Version"] = ParseHttpVersion(versionValue, out string prereleaseLabel);
@@ -843,9 +843,18 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             @"TryReadPSGetInfo: Cannot parse NormalizedVersion");
 
                         parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
+                        // TODO Anam: why don't we return here?
                     }
 
                     metadata["NormalizedVersion"] = parsedNormalizedVersion;
+                }
+                else
+                {
+                    errorMsg = string.Format(
+                        CultureInfo.InvariantCulture,
+                        @"TryReadPSGetInfo: Neither 'ModuleVersion' nor 'Version' could be found in package metadata");
+
+                    return false;
                 }
 
                 // License Url
