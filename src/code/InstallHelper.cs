@@ -439,7 +439,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string moduleManifestVersion,
             string scriptPath)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::MoveFilesIntoInstallPath()");
+            //_cmdletPassedIn.WriteDebug("In InstallHelper::MoveFilesIntoInstallPath()");
             // Creating the proper installation path depending on whether pkg is a module or script
             var newPathParent = isModule ? Path.Combine(installPath, pkgInfo.Name) : installPath;
             var finalModuleVersionDir = isModule ? Path.Combine(installPath, pkgInfo.Name, moduleManifestVersion) : installPath;
@@ -448,32 +448,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var tempModuleVersionDir = (!isModule || isLocalRepo) ? dirNameVersion
                 : Path.Combine(tempInstallPath, pkgInfo.Name.ToLower(), newVersion);
 
-            _cmdletPassedIn.WriteVerbose($"Installation source path is: '{tempModuleVersionDir}'");
-            _cmdletPassedIn.WriteVerbose($"Installation destination path is: '{finalModuleVersionDir}'");
+           // _cmdletPassedIn.WriteVerbose($"Installation source path is: '{tempModuleVersionDir}'");
+           // _cmdletPassedIn.WriteVerbose($"Installation destination path is: '{finalModuleVersionDir}'");
 
             if (isModule)
             {
                 // If new path does not exist
                 if (!Directory.Exists(newPathParent))
                 {
-                    _cmdletPassedIn.WriteVerbose($"Attempting to move '{tempModuleVersionDir}' to '{finalModuleVersionDir}'");
+             //       _cmdletPassedIn.WriteVerbose($"Attempting to move '{tempModuleVersionDir}' to '{finalModuleVersionDir}'");
                     Directory.CreateDirectory(newPathParent);
                     Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
                 }
                 else
                 {
-                    _cmdletPassedIn.WriteVerbose($"Temporary module version directory is: '{tempModuleVersionDir}'");
+               //     _cmdletPassedIn.WriteVerbose($"Temporary module version directory is: '{tempModuleVersionDir}'");
 
                     if (Directory.Exists(finalModuleVersionDir))
                     {
                         // Delete the directory path before replacing it with the new module.
                         // If deletion fails (usually due to binary file in use), then attempt restore so that the currently
                         // installed module is not corrupted.
-                        _cmdletPassedIn.WriteVerbose($"Attempting to delete with restore on failure.'{finalModuleVersionDir}'");
+                 //       _cmdletPassedIn.WriteVerbose($"Attempting to delete with restore on failure.'{finalModuleVersionDir}'");
                         Utils.DeleteDirectoryWithRestore(finalModuleVersionDir);
                     }
 
-                    _cmdletPassedIn.WriteVerbose($"Attempting to move '{tempModuleVersionDir}' to '{finalModuleVersionDir}'");
+               //     _cmdletPassedIn.WriteVerbose($"Attempting to move '{tempModuleVersionDir}' to '{finalModuleVersionDir}'");
                     Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
                 }
             }
@@ -499,36 +499,36 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (!Directory.Exists(scriptInfoFolderPath))
 
                     {
-                        _cmdletPassedIn.WriteVerbose($"Created '{scriptInfoFolderPath}' path for scripts");
+  //                      _cmdletPassedIn.WriteVerbose($"Created '{scriptInfoFolderPath}' path for scripts");
                         Directory.CreateDirectory(scriptInfoFolderPath);
                     }
 
                     // Need to delete old xml files because there can only be 1 per script
-                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: '{1}'", scriptXmlFilePath, File.Exists(scriptXmlFilePath)));
+   //                 _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: '{1}'", scriptXmlFilePath, File.Exists(scriptXmlFilePath)));
                     if (File.Exists(scriptXmlFilePath))
                     {
-                        _cmdletPassedIn.WriteVerbose("Deleting script metadata XML");
+     //                   _cmdletPassedIn.WriteVerbose("Deleting script metadata XML");
                         File.Delete(Path.Combine(scriptInfoFolderPath, scriptXML));
 
                     }
 
-                    _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML)));
+  //                  _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML)));
                     Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
 
                     // Need to delete old script file, if that exists
-                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt))));
+  //                  _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt))));
                     if (File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)))
                     {
-                        _cmdletPassedIn.WriteVerbose("Deleting script file");
+  //                      _cmdletPassedIn.WriteVerbose("Deleting script file");
                         File.Delete(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
                     }
                 }
                 else {
-                    _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, scriptXML)));
+ //                   _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, scriptXML)));
                     Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, scriptXML));
                 }
 
-                _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)));
+ //               _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)));
                 Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
             }
         }
@@ -1330,7 +1330,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool TryMoveInstallContent(string tempInstallPath, ScopeType scope, Hashtable packagesHash)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::TryMoveInstallContent()");
+            //_cmdletPassedIn.WriteDebug("In InstallHelper::TryMoveInstallContent()");
             foreach (string pkgName in packagesHash.Keys)
             {
                 Hashtable pkgInfo = packagesHash[pkgName] as Hashtable;
@@ -1355,7 +1355,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         moduleManifestVersion: pkgVersion,
                         scriptPath);
 
-                    _cmdletPassedIn.WriteVerbose($"Successfully installed package '{pkgName}' to location '{installPath}'");
+                    //_cmdletPassedIn.WriteVerbose($"Successfully installed package '{pkgName}' to location '{installPath}'");
 
                     if (!_savePkg && isScript)
                     {
@@ -1374,20 +1374,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (!String.IsNullOrEmpty(envPATHVarValue) && !envPATHVarValue.Contains(installPath) && !envPATHVarValue.Contains(installPathwithBackSlash))
                         {
-                            _cmdletPassedIn.WriteWarning(String.Format(ScriptPATHWarning, scope, installPath));
+                            //_cmdletPassedIn.WriteWarning(String.Format(ScriptPATHWarning, scope, installPath));
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                    /*_cmdletPassedIn.WriteError(new ErrorRecord(
                         new PSInvalidOperationException(
                             message: $"Unable to successfully install package '{pkgName}': '{e.Message}'",
                             innerException: e),
                         "InstallPackageFailed",
                         ErrorCategory.InvalidOperation,
                         _cmdletPassedIn));
-
+                    */
                     return false;
                 }
             }
@@ -1400,7 +1400,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool CallAcceptLicense(PSResourceInfo p, string moduleManifest, string tempInstallPath, string newVersion, out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::CallAcceptLicense()");
+            //_cmdletPassedIn.WriteDebug("In InstallHelper::CallAcceptLicense()");
             error = null;
             var requireLicenseAcceptance = false;
             var success = true;
@@ -1482,7 +1482,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool DetectClobber(string pkgName, Hashtable parsedMetadataHashtable, out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::DetectClobber()");
+            //_cmdletPassedIn.WriteDebug("In InstallHelper::DetectClobber()");
             error = null;
             bool foundClobber = false;
 
@@ -1576,7 +1576,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private void DeleteExtraneousFiles(string packageName, string dirNameVersion)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::DeleteExtraneousFiles()");
+           // _cmdletPassedIn.WriteDebug("In InstallHelper::DeleteExtraneousFiles()");
             // Deleting .nupkg SHA file, .nuspec, and .nupkg after unpacking the module
             // since we download as .zip for HTTP calls, we shouldn't have .nupkg* files
             // var nupkgSHAToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg.sha512");
@@ -1589,22 +1589,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (File.Exists(nuspecToDelete))
             {
-                _cmdletPassedIn.WriteDebug($"Deleting '{nuspecToDelete}'");
+                //_cmdletPassedIn.WriteDebug($"Deleting '{nuspecToDelete}'");
                 File.Delete(nuspecToDelete);
             }
             if (File.Exists(contentTypesToDelete))
             {
-                _cmdletPassedIn.WriteDebug($"Deleting '{contentTypesToDelete}'");
+                //_cmdletPassedIn.WriteDebug($"Deleting '{contentTypesToDelete}'");
                 File.Delete(contentTypesToDelete);
             }
             if (Directory.Exists(relsDirToDelete))
             {
-                _cmdletPassedIn.WriteDebug($"Deleting '{relsDirToDelete}'");
+                //_cmdletPassedIn.WriteDebug($"Deleting '{relsDirToDelete}'");
                 Utils.DeleteDirectory(relsDirToDelete);
             }
             if (Directory.Exists(packageDirToDelete))
             {
-                _cmdletPassedIn.WriteDebug($"Deleting '{packageDirToDelete}'");
+                //_cmdletPassedIn.WriteDebug($"Deleting '{packageDirToDelete}'");
                 Utils.DeleteDirectory(packageDirToDelete);
             }
         }

@@ -1195,77 +1195,88 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             out Hashtable dataFileInfo,
             out Exception error)
         {
+            dataFileInfo = null;
+            error = null;
             try
             {
                 if (filePath is null)
                 {
                     throw new PSArgumentNullException(nameof(filePath));
                 }
-
                 string contents = System.IO.File.ReadAllText(filePath);
 
-
-
-
-                /*
                 // Create a new PowerShell runspace
                 Runspace runspace = RunspaceFactory.CreateRunspace();
                 runspace.Open();
+                runspace.SessionStateProxy.LanguageMode = PSLanguageMode.ConstrainedLanguage;
 
                 // Set the created runspace as the default for the current thread
                 Runspace.DefaultRunspace = runspace;
+
                 using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
                     // Use the runspace in the PowerShell pipeline
                     pwsh.Runspace = runspace;
 
                     // Invoke the pipeline and retrieve the results
-                    Collection<PSObject> result = pwsh.Invoke();
+
+                    var cmd = new Command(
+                        command: contents,
+                        isScript: true,
+                        useLocalScope: true);
+                    cmd.MergeMyResults(
+                        myResult: PipelineResultTypes.Error | PipelineResultTypes.Warning | PipelineResultTypes.Verbose | PipelineResultTypes.Debug | PipelineResultTypes.Information,
+                        toResult: PipelineResultTypes.Output);
+                    pwsh.Commands.AddCommand(cmd);
+
+
+                    try
+                    {
+                        // Invoke the script.
+                        var results = pwsh.Invoke();
+
+                        if (results[0] is PSObject pwshObj)
+                        {
+                            switch (pwshObj.BaseObject)
+                            {
+                                case ErrorRecord err:
+                                    //_cmdletPassedIn.WriteError(error);
+                                    break;
+
+                                case WarningRecord warning:
+                                    //cmdlet.WriteWarning(warning.Message);
+                                    break;
+
+                                case VerboseRecord verbose:
+                                    //cmdlet.WriteVerbose(verbose.Message);
+                                    break;
+
+                                case DebugRecord debug:
+                                    //cmdlet.WriteDebug(debug.Message);
+                                    break;
+
+                                case InformationRecord info:
+                                    //cmdlet.WriteInformation(info);
+                                    break;
+
+                                case Hashtable result:
+                                    dataFileInfo = result;
+                                    return true;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        error = ex;
+                    }
                 }
                 // Close the runspace when done
-                //runspace.Close();
+                runspace.Close();
                 
-                */
-
-
-
-                var scriptBlock = System.Management.Automation.ScriptBlock.Create(contents);
-
-                // Ensure that the content script block is safe to convert into a PSDataFile Hashtable.
-                // This will throw for unsafe content.
-                scriptBlock.CheckRestrictedLanguage(
-                    allowedCommands: allowedCommands,
-                    allowedVariables: allowedVariables,
-                    allowEnvironmentVariables: allowEnvironmentVariables);
-
-                var obj = scriptBlock.GetPowerShell();
-                if (obj != null)
-                {
-                    Console.WriteLine("good");
-
-                }
-
-                // Convert contents into PSDataFile Hashtable by executing content as script.
-                object result = scriptBlock.InvokeReturnAsIs();
-                if (result is PSObject psObject)
-                {
-                    result = psObject.BaseObject;
-                }
-
-
-
-
-
-
-
-
-                dataFileInfo = (Hashtable) result;
-                error = null;
-                return true;
+                return false;
             }
             catch (Exception ex)
             {
-                dataFileInfo = null;
                 error = ex;
                 return false;
             }
