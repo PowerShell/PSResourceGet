@@ -843,7 +843,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             @"TryReadPSGetInfo: Cannot parse NormalizedVersion");
 
                         parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
-                        // TODO Anam: why don't we return here?
+                        // TODO: why don't we return here?
                     }
 
                     metadata["NormalizedVersion"] = parsedNormalizedVersion;

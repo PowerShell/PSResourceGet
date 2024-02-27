@@ -193,23 +193,29 @@ namespace Microsoft.PowerShell.PSResourceGet
                         return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
                     }
 
-                    // TODO Anam: add error handling if it CANT be parsed as NuGetversion
-                    // could have tried to parse it to NuGetVersion, or do element.Someproperty?
-                    if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                    if (!NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
                     {
-                        _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
-                        if (!pkgVersion.IsPrerelease || includePrerelease)
-                        {
-                            // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
-                            latestVersionResponse.Add(GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord));
-                            // TODO Anam: add error handling here if GetAcrMetadata returns empty hashtable!
-                            if (errRecord != null)
-                            {
-                                return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
-                            }
+                        errRecord = new ErrorRecord(
+                            new ArgumentException($"Version {pkgVersionElement.ToString()} to be parsed from metadata is not a valid NuGet version."),
+                            "FindNameFailure",
+                            ErrorCategory.InvalidArgument,
+                            this);
 
-                            break;
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
+                    }
+
+                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+                    if (!pkgVersion.IsPrerelease || includePrerelease)
+                    {
+                        // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
+                        Hashtable metadata = GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord);
+                        if (errRecord != null || metadata.Count == 0)
+                        {
+                            return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
                         }
+
+                        latestVersionResponse.Add(metadata);
+                        break;
                     }
                 }
             }
@@ -709,7 +715,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             if (exception != null)
             {
                 errRecord = new ErrorRecord(exception, "FindNameFailure", ErrorCategory.InvalidResult, this);
-                
+
                 return requiredVersionResponse;
             }
 
@@ -730,14 +736,22 @@ namespace Microsoft.PowerShell.PSResourceGet
                     return requiredVersionResponse;
                 }
 
-                if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                if (!NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
                 {
-                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+                    errRecord = new ErrorRecord(
+                        new ArgumentException($"Version {pkgVersionElement.ToString()} to be parsed from metadata is not a valid NuGet version."),
+                        "FindNameFailure",
+                        ErrorCategory.InvalidArgument,
+                        this);
 
-                    if (pkgVersion == requiredVersion)
-                    {
-                        requiredVersionResponse.Add(metadataPkgName, metadata);
-                    }
+                    return requiredVersionResponse;
+                }
+
+                _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+
+                if (pkgVersion == requiredVersion)
+                {
+                    requiredVersionResponse.Add(metadataPkgName, metadata);
                 }
             }
 
