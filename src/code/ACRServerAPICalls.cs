@@ -133,6 +133,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindName()");
             string accessToken = string.Empty;
             string tenantID = string.Empty;
+            string packageNameLowercase = packageName.ToLower();
 
             // Need to set up secret management vault before hand
             var repositoryCredentialInfo = Repository.CredentialInfo;
@@ -167,7 +168,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             _cmdletPassedIn.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken, out errRecord);
+            var foundTags = FindAcrImageTags(registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
@@ -208,7 +209,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     if (!pkgVersion.IsPrerelease || includePrerelease)
                     {
                         // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
-                        Hashtable metadata = GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord);
+                        Hashtable metadata = GetACRMetadata(registry, packageNameLowercase, pkgVersion, acrAccessToken, out errRecord);
                         if (errRecord != null || metadata.Count == 0)
                         {
                             return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
@@ -294,6 +295,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindVersionGlobbing()");
             string accessToken = string.Empty;
             string tenantID = string.Empty;
+            string packageNameLowercase = packageName.ToLower();
 
             // Need to set up secret management vault beforehand
             var repositoryCredentialInfo = Repository.CredentialInfo;
@@ -327,7 +329,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             _cmdletPassedIn.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(registry, packageName, "*", acrAccessToken, out errRecord);
+            var foundTags = FindAcrImageTags(registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
@@ -364,7 +366,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                                 continue;
                             }
 
-                            latestVersionResponse.Add(GetACRMetadata(registry, packageName, pkgVersion, acrAccessToken, out errRecord));
+                            latestVersionResponse.Add(GetACRMetadata(registry, packageNameLowercase, pkgVersion, acrAccessToken, out errRecord));
                             if (errRecord != null)
                             {
                                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
