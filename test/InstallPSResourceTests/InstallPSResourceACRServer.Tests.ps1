@@ -50,6 +50,14 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         Install-PSResource -Name $testScriptName -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testScriptName
         $pkg.Name | Should -Be $testScriptName
+        $pkg.Version | Should -Be "2.0.0"
+        $pkg.Type | Should -Be "Script"
+    }
+
+    It "Install script resource by name and version" {
+        Install-PSResource -Name $testScriptName -Version "1.0.0" -Repository $ACRRepoName -TrustRepository
+        $pkg = Get-InstalledPSResource $testScriptName
+        $pkg.Name | Should -Be $testScriptName
         $pkg.Version | Should -Be "1.0.0"
         $pkg.Type | Should -Be "Script"
     }
