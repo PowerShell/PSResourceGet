@@ -10,7 +10,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     BeforeAll {
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
-        $testScriptName = "test_ado_script"
+        $testScriptName = "testscript"
         $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io/"
         Get-NewPSResourceRepositoryFile
@@ -46,14 +46,13 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0"
     }
 
-    <# TODO:  enable after implementing script functionality
     It "Install specific script resource by name" {
         Install-PSResource -Name $testScriptName -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testScriptName
         $pkg.Name | Should -Be $testScriptName
         $pkg.Version | Should -Be "1.0.0"
+        $pkg.Type | Should -Be "Script"
     }
-    #>
 
     It "Install multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
