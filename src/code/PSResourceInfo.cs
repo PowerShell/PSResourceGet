@@ -833,6 +833,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     string versionValue = versionElement.ToString();
                     metadata["Version"] = ParseHttpVersion(versionValue, out string prereleaseLabel);
+                    // TODO: error out here if version from ParseHttpVersion is null
                     metadata["Prerelease"] = prereleaseLabel;
                     metadata["IsPrerelease"] = !String.IsNullOrEmpty(prereleaseLabel);
 
