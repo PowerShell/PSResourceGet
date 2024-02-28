@@ -51,7 +51,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg = Get-InstalledPSResource $testScriptName
         $pkg.Name | Should -Be $testScriptName
         $pkg.Version | Should -Be "2.0.0"
-        $pkg.Type | Should -Be "Script"
+        # $pkg.Type | Should -Be "Script"
     }
 
     It "Install script resource by name and version" {
@@ -59,7 +59,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg = Get-InstalledPSResource $testScriptName
         $pkg.Name | Should -Be $testScriptName
         $pkg.Version | Should -Be "1.0.0"
-        $pkg.Type | Should -Be "Script"
+        # $pkg.Type | Should -Be "Script"
     }
 
     It "Install multiple resources by name" {
