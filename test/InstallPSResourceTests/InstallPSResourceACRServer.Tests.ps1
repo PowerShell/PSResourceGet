@@ -49,17 +49,15 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     It "Install specific script resource by name" {
         Install-PSResource -Name $testScriptName -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testScriptName
-        $pkg.Name | Should -Be $testScriptName
+        $pkg.Name | Should -BeExactly $testScriptName
         $pkg.Version | Should -Be "2.0.0"
-        # $pkg.Type | Should -Be "Script"
     }
 
     It "Install script resource by name and version" {
         Install-PSResource -Name $testScriptName -Version "1.0.0" -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testScriptName
         $pkg.Name | Should -Be $testScriptName
-        $pkg.Version | Should -Be "1.0.0"
-        # $pkg.Type | Should -Be "Script"
+        $pkg.Version | Should -BeExactly "1.0.0"
     }
 
     It "Install multiple resources by name" {

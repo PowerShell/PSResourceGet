@@ -208,7 +208,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
                     if (!pkgVersion.IsPrerelease || includePrerelease)
                     {
-                        // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
+                        // TODO: ensure versions are in order, fix bug https://github.com/PowerShell/PSResourceGet/issues/1581
                         Hashtable metadata = GetACRMetadata(registry, packageNameLowercase, pkgVersion, acrAccessToken, out errRecord);
                         if (errRecord != null || metadata.Count == 0)
                         {
@@ -1338,8 +1338,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             metadataCreationError = null;
             string jsonString = string.Empty;
 
-            // A script will already have the metadata parsed into the parsedMetadatahash,
-            // a module will still need the module manifest to be parsed.
             if (parsedMetadata == null || parsedMetadata.Count == 0)
             {
                 metadataCreationError = new ErrorRecord(
@@ -1355,9 +1353,9 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             if (parsedMetadata.ContainsKey("Version") && parsedMetadata["Version"] is NuGetVersion pkgNuGetVersion)
             {
-                // do not serialize NuGetVersion, this will populate more metadata than is needed and makes it harder to deserialize
+                // do not serialize NuGetVersion, this will populate more metadata than is needed and makes it harder to deserialize later
                 parsedMetadata.Remove("Version");
-                parsedMetadata["Version"] = pkgNuGetVersion.ToNormalizedString(); // or ToString();
+                parsedMetadata["Version"] = pkgNuGetVersion.ToString();
             }
 
             try

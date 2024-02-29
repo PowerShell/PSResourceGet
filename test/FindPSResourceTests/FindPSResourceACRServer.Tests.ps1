@@ -143,17 +143,15 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         # FindName()
         $res = Find-PSResource -Name $testScript -Repository $ACRRepoName
         $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be $testScript
+        $res.Name | Should -BeExactly $testScript
         $res.Version | Should -Be "2.0.0"
-        # $res.Type | Should -Be "Script"
     }
 
     It "Should find script given Name and Version" {
         # FindVersion()
         $res = Find-PSResource -Name $testScript -Version "1.0.0" -Repository $ACRRepoName
         $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -Be $testScript
+        $res.Name | Should -BeExactly $testScript
         $res.Version | Should -Be "1.0.0"
-        # $res.Type | Should -Be "Script"
     }
 }

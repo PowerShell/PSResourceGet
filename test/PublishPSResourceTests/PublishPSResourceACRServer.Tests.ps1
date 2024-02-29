@@ -319,7 +319,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Version | Should -Be $scriptVersion 
     }
 
-    <# Comment out until 0 digit bug is fixed.
+    <# This test does not work currently due to a bug if the last digit is 0. Link to issue: https://github.com/PowerShell/PSResourceGet/issues/1582
     It "Should publish a script without lines in between comment blocks locally" {
         $scriptName = "ScriptWithoutEmptyLinesBetweenCommentBlocks"
         $scriptVersion = "1.0.0"
@@ -334,7 +334,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
     #>
     
-    <#
+    <# This test does not work currently due to a bug if the last digit is 0. Link to issue: https://github.com/PowerShell/PSResourceGet/issues/1582
     It "Should publish a script without lines in help block locally" {
         $scriptName = "ScriptWithoutEmptyLinesInMetadata"
         $scriptVersion = "1.0.0"

@@ -261,7 +261,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                // parsedMetadata needs to be initialized for modules, will later be passed in to create nuspec
                 if (!string.IsNullOrEmpty(pathToModuleManifestToPublish))
                 {
                     _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToModuleManifestToPublish);
@@ -341,7 +340,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 // Create a nuspec
-                // Right now parsedMetadataHash will be empty for modules and will contain metadata for scripts
                 Hashtable dependencies;
                 string nuspec = string.Empty;
                 try
