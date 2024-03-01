@@ -5,11 +5,14 @@ using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
 using System.Runtime.ExceptionServices;
+using System.Security.Cryptography;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -36,6 +39,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private NetworkCredential _networkCredential;
         private Dictionary<string, List<string>> _packagesFound;
         private HashSet<string> _knownLatestPkgVersion;
+        List<PSResourceInfo> depPkgsFound;
 
         #endregion
 
@@ -1039,264 +1043,668 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Internal Client Search Methods
 
+
         internal IEnumerable<PSResourceInfo> FindDependencyPackages(
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
             PSResourceInfo currentPkg,
             PSRepositoryInfo repository)
+
         {
+            depPkgsFound = new List<PSResourceInfo>();
+            FindDependencyPackagesHelper(currentServer, currentResponseUtil, currentPkg, repository);
+
+            // Console.WriteLine($"returned to parent method ");
+            foreach (var item in depPkgsFound)
+            {
+                // Console.WriteLine(item.Name);
+            }
+            foreach (var item in depPkgsFound)
+            {
+                if (!_packagesFound.ContainsKey(item.Name))
+                {
+                    TryAddToPackagesFound(item);
+                    yield return item;
+                }
+                else
+                {
+                    List<string> pkgVersions = _packagesFound[item.Name];
+                    // _packagesFound has item.name in it, but the version is not the same
+                    if (!pkgVersions.Contains(FormatPkgVersionString(item)))
+                    {
+                        TryAddToPackagesFound(item);
+
+                        yield return item;
+                    }
+                }
+            }
+        }
+
+
+
+        internal void FindDependencyPackagesHelper(
+            ServerApiCall currentServer,
+            ResponseUtil currentResponseUtil,
+            PSResourceInfo currentPkg,
+            PSRepositoryInfo repository)
+        {
+            List<ErrorRecord> errors = new List<ErrorRecord>();
+
             if (currentPkg.Dependencies.Length > 0)
             {
-                foreach (var dep in currentPkg.Dependencies)
+                foreach (var depend in currentPkg.Dependencies)
                 {
-                    PSResourceInfo depPkg = null;
 
-                    if (dep.VersionRange.Equals(VersionRange.All) || !dep.VersionRange.HasUpperBound)
+                    // Console.WriteLine($"Dep Name: {depend.Name}, DepVersion Min: {depend.VersionRange.MinVersion} DepVersion Max: {depend.VersionRange.MaxVersion}");
+                }
+
+                // Add parallel.foreach here
+                // If installing more than 5 packages, do so concurrently
+                if (currentPkg.Dependencies.Length > 5)
+                {
+
+                    Parallel.ForEach(currentPkg.Dependencies, new ParallelOptions { MaxDegreeOfParallelism = 32 }, dep =>
                     {
-                        if (_knownLatestPkgVersion.Contains(dep.Name))
-                        {
-                            Console.WriteLine($"{dep.Name} already has the known latest version, so we don't need to find it");
-                            continue;
-                        }
+                        //// Console.WriteLine($"FindDependencyPackages Processing number: {dep}, Thread ID: {Task.CurrentId}");
+                        PSResourceInfo depPkg = null;
 
-                        FindResults responses = currentServer.FindName(dep.Name, includePrerelease: true, _type, out ErrorRecord errRecord);
-                        if (errRecord != null)
+                        if (dep.VersionRange.Equals(VersionRange.All) || !dep.VersionRange.HasUpperBound)
                         {
-                            if (errRecord.Exception is ResourceNotFoundException)
+                           // // Console.WriteLine($"++++++++++++++DepPkg Name is {dep.Name}");
+                          //  // Console.WriteLine($"+++++++++++++MIN VERSION is {dep.VersionRange.MinVersion}  MAX VERSION IS : {dep.VersionRange.MaxVersion}");
+                            // _knownLatestPkgVersion will tell us if we already have the latest version available for a particular package.
+                            if (_knownLatestPkgVersion.Contains(dep.Name))
                             {
-                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                              //  // Console.WriteLine($"{dep.Name} already has the known latest version, so we don't need to find it");
+                                // "return"
                             }
                             else
                             {
-                                _cmdletPassedIn.WriteError(errRecord);
+                              //  // Console.WriteLine("BEfore FindName");
+                                FindResults responses = currentServer.FindName(dep.Name, includePrerelease: true, _type, out ErrorRecord errRecord);
+                              //  // Console.WriteLine("After FindName");
+
+                                if (errRecord != null)
+                                {
+                                    if (errRecord.Exception is ResourceNotFoundException)
+                                    {
+                                        errors.Add(new ErrorRecord(
+                                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}': {errRecord.Exception.Message}"),
+                                                "DependencyPackageNotFound",
+                                                ErrorCategory.ObjectNotFound,
+                                                this));
+                                    }
+                                }
+                                // "return"
+
+                                if (responses != null)
+                                {
+                                //    // Console.WriteLine("Before ConvertToPSResourceResult");
+                                    PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
+                                  //  // Console.WriteLine("After FindName");
+
+                                    if (currentResult == null)
+                                    {
+                                        // This scenario may occur when the package version requested is unlisted.
+                                        errors.Add(new ErrorRecord(
+                                            new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'"),
+                                            "DependencyPackageNotFound",
+                                            ErrorCategory.ObjectNotFound,
+                                            this));
+                                    }
+                                    else if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
+                                    {
+                                        errors.Add(new ErrorRecord(
+                                           new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                                           "DependencyPackageNotFound",
+                                           ErrorCategory.ObjectNotFound,
+                                           this));
+                                    }
+                                    else
+                                    {
+                                        depPkg = currentResult.returnedObject;
+                                        if (!depPkgsFound.Contains(depPkg))
+                                        {
+                                            _knownLatestPkgVersion.Add(depPkg.Name);
+                                    //        // Console.WriteLine("Before recursive FindDependencyPackagesHelper 1");
+
+                                            // add pkg then find dependencies
+                                            depPkgsFound.Add(depPkg);
+                                            FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                                      //      // Console.WriteLine("After recursive FindDependencyPackagesHelper 1");
+                                        }
+                                        else
+                                        {
+                                            List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
+                                            // _packagesFound has depPkg.name in it, but the version is not the same
+                                            if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
+                                            {
+                                        //        // Console.WriteLine("Before recursive FindDependencyPackagesHelper 2");
+
+                                                // add pkg then find dependencies
+                                                // for now     depPkgsFound.Add(depPkg);
+                                                // for now     depPkgsFound.AddRange(FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository));
+                                          //      // Console.WriteLine("After recursive FindDependencyPackagesHelper 2");
+
+                                            }
+                                        }
+                                    }
+                                }
                             }
-                            yield return null;
-                            continue;
                         }
-
-                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
-                        if (currentResult == null)
+                        else if (dep.VersionRange.MinVersion.Equals(dep.VersionRange.MaxVersion))
                         {
-                            // This scenario may occur when the package version requested is unlisted.
-                            _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'"),
-                                "DependencyPackageNotFound",
-                                ErrorCategory.ObjectNotFound,
-                                this));
-                            yield return null;
-                            continue;
-                        }
+                            //// Console.WriteLine($"*****************DepPkg Name is {dep.Name}");
+                            //// Console.WriteLine($"*****************MIN VERSION is {dep.VersionRange.MinVersion}  MAX VERSION IS : {dep.VersionRange.MaxVersion}");
 
-                        if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
-                        {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'", currentResult.exception),
-                                "DependencyPackageNotFound",
-                                ErrorCategory.ObjectNotFound,
-                                this));
-                            yield return null;
-                            continue;
-                        }
+                            //// Console.WriteLine("Before minVersion FindVersion");
 
-                        depPkg = currentResult.returnedObject;
+                            FindResults responses = currentServer.FindVersion(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, out ErrorRecord errRecord);
+                         //   // Console.WriteLine("After minVersion FindVersion");
 
-                        if (!_packagesFound.ContainsKey(depPkg.Name))
-                        {
-                            _knownLatestPkgVersion.Add(depPkg.Name);
-                            foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                            if (errRecord != null)
                             {
-                                yield return depRes;
+                                if (errRecord.Exception is ResourceNotFoundException)
+                                {
+                                    errors.Add(new ErrorRecord(
+                                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}': {errRecord.Exception.Message}"),
+                                        "DependencyPackageNotFound",
+                                        ErrorCategory.ObjectNotFound,
+                                        this));
+                                }
+                                else
+                                {
+                                    errors.Add(new ErrorRecord(
+                                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'"),
+                                        "DependencyPackageNotFound",
+                                        ErrorCategory.ObjectNotFound,
+                                        this));
+                                }
+                                // return null;
+                            }
+                            else
+                            {
+                           //     // Console.WriteLine("Before min version ConvertToPSResourceResult");
+
+                                PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
+                             //   // Console.WriteLine("After min version ConvertToPSResourceResult");
+
+                                if (currentResult == null)
+                                {
+                                    // This scenario may occur when the package version requested is unlisted.
+                                    errors.Add(new ErrorRecord(
+                                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'"),
+                                        "DependencyPackageNotFound",
+                                        ErrorCategory.ObjectNotFound,
+                                        this));
+                                    //return null;
+                                }
+                                else if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
+                                {
+                                    errors.Add(new ErrorRecord(
+                                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                                        "DependencyPackageNotFound",
+                                        ErrorCategory.ObjectNotFound,
+                                        this));
+                                    //return null;
+                                }
+                                else
+                                {
+                                    depPkg = currentResult.returnedObject;
+                                    if (!depPkgsFound.Contains(depPkg))
+                                    {
+                                 //       // Console.WriteLine("Before min version FindDependencyPackagesHelper");
+
+                                        // add pkg then find dependencies
+                                        depPkgsFound.Add(depPkg);
+                                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                                  //     // Console.WriteLine("After min version FindDependencyPackagesHelper");
+
+                                    }
+                                    else
+                                    {
+                                        List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
+                                        // _packagesFound has depPkg.name in it, but the version is not the same
+                                        if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
+                                        {
+                                        //    // Console.WriteLine("Before min version FindDependencyPackagesHelper 2");
+
+                                            // add pkg then find dependencies
+                                            // for now depPkgsFound.Add(depPkg);
+                                            // for now  depPkgsFound.AddRange(FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository));
+                                       //     // Console.WriteLine("After min version FindDependencyPackagesHelper 2");
+
+                                        }
+                                    }
+                                }
                             }
                         }
                         else
                         {
-                            List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
-                            // _packagesFound has depPkg.name in it, but the version is not the same
-                            if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
+                          //  // Console.WriteLine("Before FindVersionGlobbing");
+
+                            FindResults responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, out ErrorRecord errRecord);
+                           // // Console.WriteLine("After FindVersionGlobbing");
+
+                            if (errRecord != null)
                             {
-                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                                if (errRecord.Exception is ResourceNotFoundException)
                                 {
-                                    yield return depRes;
+                                    errors.Add(new ErrorRecord(
+                                       new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}': {errRecord.Exception.Message}"),
+                                       "DependencyPackageNotFound",
+                                       ErrorCategory.ObjectNotFound,
+                                       this));
                                 }
+                                else
+                                {
+                                    errors.Add(new ErrorRecord(
+                                       new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'"),
+                                       "DependencyPackageNotFound",
+                                       ErrorCategory.ObjectNotFound,
+                                       this));
+                                }
+                                //return 
                             }
-                        }
-                    }
-                    else if (dep.VersionRange.MinVersion.Equals(dep.VersionRange.MaxVersion))
-                    {
-                        FindResults responses = currentServer.FindVersion(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, out ErrorRecord errRecord);
-                        if (errRecord != null)
-                        {
-                            if (errRecord.Exception is ResourceNotFoundException)
+
+                            if (responses.IsFindResultsEmpty())
                             {
-                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                                errors.Add(new ErrorRecord(
+                                    new InvalidOrEmptyResponse($"Dependency package with name {dep.Name} and version range {dep.VersionRange} could not be found in repository '{repository.Name}"),
+                                    "FindDepPackagesFindVersionGlobbingFailure",
+                                    ErrorCategory.InvalidResult,
+                                        this));
+                                // return null;
                             }
                             else
                             {
-                                _cmdletPassedIn.WriteError(errRecord);
+                          //      // Console.WriteLine("Before FindVersionGlobbing ConvertToPSResourceResult");
+
+                                foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
+                                {
+                            //        // Console.WriteLine("Before FindVersionGlobbing ConvertToPSResourceResult in for each loop");
+
+                                    if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
+                                    {
+                                        errors.Add(new ErrorRecord(
+                                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                                        "DependencyPackageNotFound",
+                                        ErrorCategory.ObjectNotFound,
+                                        this));
+
+                                        //return null;
+                                    }
+                                    else
+                                    {
+                                        // Check to see if version falls within version range 
+                                        PSResourceInfo foundDep = currentResult.returnedObject;
+                                        string depVersionStr = $"{foundDep.Version}";
+                                        if (foundDep.IsPrerelease)
+                                        {
+                                            depVersionStr += $"-{foundDep.Prerelease}";
+                                        }
+
+                                        if (NuGetVersion.TryParse(depVersionStr, out NuGetVersion depVersion)
+                                               && dep.VersionRange.Satisfies(depVersion))
+                                        {
+                                //            // Console.WriteLine($"**** Dependency package '{foundDep.Name}', version '{foundDep.Version}' saved as new depPkg");
+
+                                            depPkg = foundDep;
+                                            break;
+                                        }
+
+                                 //       // Console.WriteLine($"Dependency package '{foundDep.Name}', version '{foundDep.Version}'");
+                                    }
+                                }
+
+                                if (depPkg == null)
+                                {
+                                 //   // Console.WriteLine($"depPkg is null and I don't know what this means");
+                                }
+                                else
+                                {
+                                    if (!depPkgsFound.Contains(depPkg))
+                                    {
+                                      //  // Console.WriteLine($"PackagesFound contains {depPkg.Name}");
+
+                                        // add pkg then find dependencies
+                                        depPkgsFound.Add(depPkg);
+                                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                                    }
+                                    else
+                                    {
+                                        List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
+                                        // _packagesFound has depPkg.name in it, but the version is not the same
+
+                                     //   // Console.WriteLine($" _packagesFound has ${depPkg.Name} in it, but the version '{depPkg.Version}' is not the same '{string.Join(",", pkgVersions)}'");
+
+                                        if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
+                                        {
+                                        //    // Console.WriteLine($"pkgVersions does not contain {FormatPkgVersionString(depPkg)}");
+                                            // add pkg then find dependencies
+                                            // for now  depPkgsFound.Add(depPkg);
+                                            // for now depPkgsFound.AddRange(FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository));
+                                        }
+                                    }
+                                }
                             }
-                            yield return null;
-                            continue;
                         }
 
-                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
-                        if (currentResult == null)
-                        {
-                            // This scenario may occur when the package version requested is unlisted.
-                            _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'"),
-                                "DependencyPackageNotFound",
-                                ErrorCategory.ObjectNotFound,
-                                this));
-                            yield return null;
-                            continue;
-                        }
 
-                        if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
-                        {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'", currentResult.exception),
-                                "DependencyPackageNotFound",
-                                ErrorCategory.ObjectNotFound,
-                                this));
-                            yield return null;
-                            continue;
-                        }
+                    });
 
-                        depPkg = currentResult.returnedObject;
 
-                        if (!_packagesFound.ContainsKey(depPkg.Name))
+
+
+
+                }
+                else
+                {
+                    // Install the good old fashioned way
+
+                    // Console.WriteLine($"SHOUL DNOT GET HEREE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
+
+                    foreach (var dep in currentPkg.Dependencies)
+                    {
+                        // Console.WriteLine($"FindDependencyPackages Processing number: {dep}, Thread ID: {Task.CurrentId}");
+                        PSResourceInfo depPkg = null;
+
+                        if (dep.VersionRange.Equals(VersionRange.All) || !dep.VersionRange.HasUpperBound)
                         {
-                            foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                            // Console.WriteLine($"++++++++++++++DepPkg Name is {dep.Name}");
+                            // Console.WriteLine($"+++++++++++++MIN VERSION is {dep.VersionRange.MinVersion}  MAX VERSION IS : {dep.VersionRange.MaxVersion}");
+                            // _knownLatestPkgVersion will tell us if we already have the latest version available for a particular package.
+                            if (_knownLatestPkgVersion.Contains(dep.Name))
                             {
-                                yield return depRes;
+                                // Console.WriteLine($"{dep.Name} already has the known latest version, so we don't need to find it");
+                                // "return"
+                            }
+                            else
+                            {
+                                // Console.WriteLine("BEfore FindName");
+                                FindResults responses = currentServer.FindName(dep.Name, includePrerelease: true, _type, out ErrorRecord errRecord);
+                                // Console.WriteLine("After FindName");
+
+                                if (errRecord != null)
+                                {
+                                    if (errRecord.Exception is ResourceNotFoundException)
+                                    {
+                                        errors.Add(new ErrorRecord(
+                                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}': {errRecord.Exception.Message}"),
+                                                "DependencyPackageNotFound",
+                                                ErrorCategory.ObjectNotFound,
+                                                this));
+                                    }
+                                }
+                                // "return"
+
+                                if (responses != null)
+                                {
+                                    // Console.WriteLine("Before ConvertToPSResourceResult");
+                                    PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
+                                    // Console.WriteLine("After FindName");
+
+                                    if (currentResult == null)
+                                    {
+                                        // This scenario may occur when the package version requested is unlisted.
+                                        errors.Add(new ErrorRecord(
+                                            new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'"),
+                                            "DependencyPackageNotFound",
+                                            ErrorCategory.ObjectNotFound,
+                                            this));
+                                    }
+                                    else if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
+                                    {
+                                        errors.Add(new ErrorRecord(
+                                           new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                                           "DependencyPackageNotFound",
+                                           ErrorCategory.ObjectNotFound,
+                                           this));
+                                    }
+                                    else
+                                    {
+                                        depPkg = currentResult.returnedObject;
+                                        if (!depPkgsFound.Contains(depPkg))
+                                        {
+                                            _knownLatestPkgVersion.Add(depPkg.Name);
+                                            // Console.WriteLine("Before recursive FindDependencyPackagesHelper 1");
+
+                                            // add pkg then find dependencies
+                                            depPkgsFound.Add(depPkg);
+                                            FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                                            // Console.WriteLine("After recursive FindDependencyPackagesHelper 1");
+                                        }
+                                        else
+                                        {
+                                            List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
+                                            // _packagesFound has depPkg.name in it, but the version is not the same
+                                            if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
+                                            {
+                                                // Console.WriteLine("Before recursive FindDependencyPackagesHelper 2");
+
+                                                // add pkg then find dependencies
+                                                // for now     depPkgsFound.Add(depPkg);
+                                                // for now     depPkgsFound.AddRange(FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository));
+                                                // Console.WriteLine("After recursive FindDependencyPackagesHelper 2");
+
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else if (dep.VersionRange.MinVersion.Equals(dep.VersionRange.MaxVersion))
+                        {
+                            // Console.WriteLine($"*****************DepPkg Name is {dep.Name}");
+                            // Console.WriteLine($"*****************MIN VERSION is {dep.VersionRange.MinVersion}  MAX VERSION IS : {dep.VersionRange.MaxVersion}");
+
+                            // Console.WriteLine("Before minVersion FindVersion");
+
+                            FindResults responses = currentServer.FindVersion(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, out ErrorRecord errRecord);
+                            // Console.WriteLine("After minVersion FindVersion");
+
+                            if (errRecord != null)
+                            {
+                                if (errRecord.Exception is ResourceNotFoundException)
+                                {
+                                    errors.Add(new ErrorRecord(
+                                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}': {errRecord.Exception.Message}"),
+                                        "DependencyPackageNotFound",
+                                        ErrorCategory.ObjectNotFound,
+                                        this));
+                                }
+                                else
+                                {
+                                    errors.Add(new ErrorRecord(
+                                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'"),
+                                        "DependencyPackageNotFound",
+                                        ErrorCategory.ObjectNotFound,
+                                        this));
+                                }
+                                // return null;
+                            }
+                            else
+                            {
+                                // Console.WriteLine("Before min version ConvertToPSResourceResult");
+
+                                PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
+                                // Console.WriteLine("After min version ConvertToPSResourceResult");
+
+                                if (currentResult == null)
+                                {
+                                    // This scenario may occur when the package version requested is unlisted.
+                                    errors.Add(new ErrorRecord(
+                                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'"),
+                                        "DependencyPackageNotFound",
+                                        ErrorCategory.ObjectNotFound,
+                                        this));
+                                    //return null;
+                                }
+                                else if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
+                                {
+                                    errors.Add(new ErrorRecord(
+                                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                                        "DependencyPackageNotFound",
+                                        ErrorCategory.ObjectNotFound,
+                                        this));
+                                    //return null;
+                                }
+                                else
+                                {
+                                    depPkg = currentResult.returnedObject;
+                                    if (!depPkgsFound.Contains(depPkg))
+                                    {
+                                        // Console.WriteLine("Before min version FindDependencyPackagesHelper");
+
+                                        // add pkg then find dependencies
+                                        depPkgsFound.Add(depPkg);
+                                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                                        // Console.WriteLine("After min version FindDependencyPackagesHelper");
+
+                                    }
+                                    else
+                                    {
+                                        List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
+                                        // _packagesFound has depPkg.name in it, but the version is not the same
+                                        if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
+                                        {
+                                            // Console.WriteLine("Before min version FindDependencyPackagesHelper 2");
+
+                                            // add pkg then find dependencies
+                                           // for now depPkgsFound.Add(depPkg);
+                                           // for now  depPkgsFound.AddRange(FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository));
+                                            // Console.WriteLine("After min version FindDependencyPackagesHelper 2");
+
+                                        }
+                                    }
+                                }
                             }
                         }
                         else
                         {
-                            List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
-                            // _packagesFound has depPkg.name in it, but the version is not the same
-                            if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
+                            // Console.WriteLine("Before FindVersionGlobbing");
+
+                            FindResults responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, out ErrorRecord errRecord);
+                            // Console.WriteLine("After FindVersionGlobbing");
+
+                            if (errRecord != null)
                             {
-                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                                if (errRecord.Exception is ResourceNotFoundException)
                                 {
-                                    yield return depRes;
+                                    errors.Add(new ErrorRecord(
+                                       new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}': {errRecord.Exception.Message}"),
+                                       "DependencyPackageNotFound",
+                                       ErrorCategory.ObjectNotFound,
+                                       this));
                                 }
+                                else
+                                {
+                                    errors.Add(new ErrorRecord(
+                                       new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'"),
+                                       "DependencyPackageNotFound",
+                                       ErrorCategory.ObjectNotFound,
+                                       this));
+                                }
+                                //return 
                             }
-                        }
-                    }
-                    else
-                    {
-                        FindResults responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, out ErrorRecord errRecord);
-                        if (errRecord != null)
-                        {
-                            if (errRecord.Exception is ResourceNotFoundException)
+
+                            if (responses.IsFindResultsEmpty())
                             {
-                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                                errors.Add(new ErrorRecord(
+                                    new InvalidOrEmptyResponse($"Dependency package with name {dep.Name} and version range {dep.VersionRange} could not be found in repository '{repository.Name}"),
+                                    "FindDepPackagesFindVersionGlobbingFailure",
+                                    ErrorCategory.InvalidResult,
+                                        this));
+                                // return null;
                             }
                             else
                             {
-                                _cmdletPassedIn.WriteError(errRecord);
-                            }
-                            yield return null;
-                            continue;
-                        }
+                                // Console.WriteLine("Before FindVersionGlobbing ConvertToPSResourceResult");
 
-                        if (responses.IsFindResultsEmpty())
-                        {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new InvalidOrEmptyResponse($"Dependency package with name {dep.Name} and version range {dep.VersionRange} could not be found in repository '{repository.Name}"),
-                                "FindDepPackagesFindVersionGlobbingFailure",
-                                ErrorCategory.InvalidResult,
-                                this));
-                            yield return null;
-                            continue;
-                        }
-
-                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
-                        {
-                            if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
-                            {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(
-                                    new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception),
-                                    "DependencyPackageNotFound",
-                                    ErrorCategory.ObjectNotFound,
-                                    this));
-
-                                yield return null;
-                                continue;
-                            }
-
-                            // Check to see if version falls within version range 
-                            PSResourceInfo foundDep = currentResult.returnedObject;
-                            string depVersionStr = $"{foundDep.Version}";
-                            if (foundDep.IsPrerelease)
-                            {
-                                depVersionStr += $"-{foundDep.Prerelease}";
-                            }
-
-                            if (NuGetVersion.TryParse(depVersionStr, out NuGetVersion depVersion)
-                                   && dep.VersionRange.Satisfies(depVersion))
-                            {
-                                Console.WriteLine($"**** Dependency package '{foundDep.Name}', version '{foundDep.Version}' saved as new depPkg");
-
-                                depPkg = foundDep;
-                                break;
-                            }
-
-                            Console.WriteLine($"Dependency package '{foundDep.Name}', version '{foundDep.Version}'");
-                        }
-
-                        if (depPkg == null)
-                        {
-                            continue;
-                        }
-
-                        if (!_packagesFound.ContainsKey(depPkg.Name))
-                        {
-                            Console.WriteLine($"PackagesFound contains {depPkg.Name}");
-
-                            foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
-                            {
-                                yield return depRes;
-                            }
-                        }
-                        else
-                        {
-                            List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
-                            // _packagesFound has depPkg.name in it, but the version is not the same
-
-                            Console.WriteLine($" _packagesFound has ${depPkg.Name} in it, but the version '{depPkg.Version}' is not the same '{string.Join(",", pkgVersions)}'");
-
-                            if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
-                            {
-                                Console.WriteLine($"pkgVersions does not contain {FormatPkgVersionString(depPkg)}");
-                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                                foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
                                 {
-                                    yield return depRes;
+                                    // Console.WriteLine("Before FindVersionGlobbing ConvertToPSResourceResult in for each loop");
+
+                                    if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
+                                    {
+                                        errors.Add(new ErrorRecord(
+                                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                                        "DependencyPackageNotFound",
+                                        ErrorCategory.ObjectNotFound,
+                                        this));
+
+                                        //return null;
+                                    }
+                                    else
+                                    {
+                                        // Check to see if version falls within version range 
+                                        PSResourceInfo foundDep = currentResult.returnedObject;
+                                        string depVersionStr = $"{foundDep.Version}";
+                                        if (foundDep.IsPrerelease)
+                                        {
+                                            depVersionStr += $"-{foundDep.Prerelease}";
+                                        }
+
+                                        if (NuGetVersion.TryParse(depVersionStr, out NuGetVersion depVersion)
+                                               && dep.VersionRange.Satisfies(depVersion))
+                                        {
+                                            // Console.WriteLine($"**** Dependency package '{foundDep.Name}', version '{foundDep.Version}' saved as new depPkg");
+
+                                            depPkg = foundDep;
+                                            break;
+                                        }
+
+                                        // Console.WriteLine($"Dependency package '{foundDep.Name}', version '{foundDep.Version}'");
+                                    }
+                                }
+
+                                if (depPkg == null)
+                                {
+                                    // Console.WriteLine($"depPkg is null and I don't know what this means");
+                                }
+                                else
+                                {
+                                    if (!depPkgsFound.Contains(depPkg))
+                                    {
+                                        // Console.WriteLine($"PackagesFound contains {depPkg.Name}");
+
+                                        // add pkg then find dependencies
+                                        depPkgsFound.Add(depPkg);
+                                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                                    }
+                                    else
+                                    {
+                                        List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
+                                        // _packagesFound has depPkg.name in it, but the version is not the same
+
+                                        // Console.WriteLine($" _packagesFound has ${depPkg.Name} in it, but the version '{depPkg.Version}' is not the same '{string.Join(",", pkgVersions)}'");
+
+                                        if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
+                                        {
+                                            // Console.WriteLine($"pkgVersions does not contain {FormatPkgVersionString(depPkg)}");
+                                            // add pkg then find dependencies
+                                           // for now  depPkgsFound.Add(depPkg);
+                                            // for now depPkgsFound.AddRange(FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository));
+                                        }
+                                    }
                                 }
                             }
                         }
+
+
                     }
+
+
+
+
+
+
                 }
             }
 
-            if (!_packagesFound.ContainsKey(currentPkg.Name))
-            {
-                TryAddToPackagesFound(currentPkg);
-
-                yield return currentPkg;
-            }
-            else
-            {
-                List<string> pkgVersions = _packagesFound[currentPkg.Name] as List<string>;
-                // _packagesFound has currentPkg.name in it, but the version is not the same
-                if (!pkgVersions.Contains(FormatPkgVersionString(currentPkg)))
-                {
-                    TryAddToPackagesFound(currentPkg);
-
-                    yield return currentPkg;
-                }
-            }
+            // Console.WriteLine($"Returning from helper method");
+           // return depPkgsFound;
 
         }
 

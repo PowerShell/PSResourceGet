@@ -1205,7 +1205,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
                 string contents = System.IO.File.ReadAllText(filePath);
 
-                // Create a new PowerShell runspace
+                // Parallel.ForEach calls into this method.
+                // Each thread needs its own runspace created to provide a separate environment for operations to run independently.
                 Runspace runspace = RunspaceFactory.CreateRunspace();
                 runspace.Open();
                 runspace.SessionStateProxy.LanguageMode = PSLanguageMode.ConstrainedLanguage;
@@ -1215,10 +1216,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
-                    // Use the runspace in the PowerShell pipeline
                     pwsh.Runspace = runspace;
-
-                    // Invoke the pipeline and retrieve the results
 
                     var cmd = new Command(
                         command: contents,
@@ -1232,7 +1230,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     try
                     {
-                        // Invoke the script.
+                        // Invoke the pipeline and retrieve the results
                         var results = pwsh.Invoke();
 
                         if (results[0] is PSObject pwshObj)
@@ -1270,7 +1268,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         error = ex;
                     }
                 }
-                // Close the runspace when done
                 runspace.Close();
                 
                 return false;
