@@ -1598,7 +1598,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             FileInfo fileInfo = new FileInfo(fileName);
             SHA256 mySHA256 = SHA256.Create();
 
-
             using (FileStream fileStream = fileInfo.Open(FileMode.Open, FileAccess.Read))
             {
                 digest = string.Empty;
