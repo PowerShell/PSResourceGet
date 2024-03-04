@@ -538,7 +538,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
-            //_cmdletPassedIn.WriteDebug("In ACRServerAPICalls::InstallPackage()");
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
             {
@@ -555,12 +554,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             return results;
         }
 
-        private Stream InstallVersion(
-            string moduleName,
-            string moduleVersion,
-            out ErrorRecord errRecord)
+        private Stream InstallVersion(string moduleName, string moduleVersion, out ErrorRecord errRecord)
         {
-            errRecord = null;
             string accessToken = string.Empty;
             string tenantID = string.Empty;
             string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
