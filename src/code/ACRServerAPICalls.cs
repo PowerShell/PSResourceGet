@@ -1633,7 +1633,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return false;
             }
 
-
             Console.WriteLine($"FILENAME: {fileName}");
             Console.WriteLine($"digest: {digest}");
 
