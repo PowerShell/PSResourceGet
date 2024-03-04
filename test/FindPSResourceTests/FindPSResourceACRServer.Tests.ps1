@@ -8,6 +8,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 
     BeforeAll{
         $testModuleName = "test_local_mod"
+        $testScript = "testscript"
         $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io"
         Get-NewPSResourceRepositoryFile
@@ -136,5 +137,21 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindAllFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+
+    It "Should find script given Name" {
+        # FindName()
+        $res = Find-PSResource -Name $testScript -Repository $ACRRepoName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -BeExactly $testScript
+        $res.Version | Should -Be "2.0.0"
+    }
+
+    It "Should find script given Name and Version" {
+        # FindVersion()
+        $res = Find-PSResource -Name $testScript -Version "1.0.0" -Repository $ACRRepoName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -BeExactly $testScript
+        $res.Version | Should -Be "1.0.0"
     }
 }

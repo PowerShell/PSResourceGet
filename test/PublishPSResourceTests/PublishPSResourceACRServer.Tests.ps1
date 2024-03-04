@@ -289,9 +289,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Version | Should -Be $correctVersion 
     }
 
-    <# TODO: enable with scripts are supported in ACR
     It "Publish a script"{
-        $scriptName = "TEMP-PSGetTestScript"
+        $scriptBaseName = "temp-testscript"
+        $scriptName = $scriptBaseName + [System.Guid]::NewGuid();
         $scriptVersion = "1.0.0"
 
         $params = @{
@@ -299,13 +299,13 @@ Describe "Test Publish-PSResource" -tags 'CI' {
             GUID = [guid]::NewGuid()
             Author = 'Jane'
             CompanyName = 'Microsoft Corporation'
-            Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
-            Description = "Description for the $scriptName script"
-            LicenseUri = "https://$scriptName.com/license"
-            IconUri = "https://$scriptName.com/icon"
-            ProjectUri = "https://$scriptName.com"
-            Tags = @('Tag1','Tag2', "Tag-$scriptName-$scriptVersion")
-            ReleaseNotes = "$scriptName release notes"
+            Copyright = '(c) 2024 Microsoft Corporation. All rights reserved.'
+            Description = "Description for the $scriptBaseName script"
+            LicenseUri = "https://$scriptBaseName.com/license"
+            IconUri = "https://$scriptBaseName.com/icon"
+            ProjectUri = "https://$scriptBaseName.com"
+            Tags = @('Tag1','Tag2', "Tag-$scriptBaseName-$scriptVersion")
+            ReleaseNotes = "$scriptBaseName release notes"
             }
 
         $scriptPath = (Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$scriptName.ps1")
@@ -319,6 +319,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Version | Should -Be $scriptVersion 
     }
 
+    <# This test does not work currently due to a bug if the last digit is 0. Link to issue: https://github.com/PowerShell/PSResourceGet/issues/1582
     It "Should publish a script without lines in between comment blocks locally" {
         $scriptName = "ScriptWithoutEmptyLinesBetweenCommentBlocks"
         $scriptVersion = "1.0.0"
@@ -331,7 +332,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Name | Should -Be $scriptName 
         $results[0].Version | Should -Be $scriptVersion 
     }
+    #>
     
+    <# This test does not work currently due to a bug if the last digit is 0. Link to issue: https://github.com/PowerShell/PSResourceGet/issues/1582
     It "Should publish a script without lines in help block locally" {
         $scriptName = "ScriptWithoutEmptyLinesInMetadata"
         $scriptVersion = "1.0.0"
@@ -344,9 +347,10 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Name | Should -Be $scriptName 
         $results[0].Version | Should -Be $scriptVersion 
     }
+    #>
     
     It "Should publish a script with ExternalModuleDependencies that are not published" {
-        $scriptName = "testscript"
+        $scriptName = "ScriptWithExternalDependencies"
         $scriptVersion = "1.0.0"
         $scriptPath = Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1"
         New-PSScriptFileInfo -Description 'test' -Version $scriptVersion -RequiredModules @{ModuleName='testModule'} -ExternalModuleDependencies 'testModule' -Path $scriptPath -Force
@@ -358,7 +362,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Name | Should -Be $scriptName 
         $results[0].Version | Should -Be $scriptVersion 
     }
-    #>
 
     It "Should write error and not publish script when Author property is missing" {
         $scriptName = "InvalidScriptMissingAuthor.ps1"

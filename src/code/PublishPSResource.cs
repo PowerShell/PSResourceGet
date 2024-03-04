@@ -261,7 +261,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                // parsedMetadata needs to be initialized for modules, will later be passed in to create nuspec
                 if (!string.IsNullOrEmpty(pathToModuleManifestToPublish))
                 {
                     _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToModuleManifestToPublish);
@@ -305,6 +304,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ErrorCategory.InvalidOperation,
                         this));
                 }
+
+                if (!Utils.TryReadManifestFile(
+                    manifestFilePath: pathToModuleManifestToPublish,
+                    manifestInfo: out parsedMetadata,
+                    error: out Exception manifestReadError))
+                {
+                    WriteError(new ErrorRecord(
+                        manifestReadError,
+                        "ManifestFileReadParseForACRPublishError",
+                        ErrorCategory.ReadError,
+                        this));
+
+                    return;
+                }
             }
 
             // Create a temp folder to push the nupkg to and delete it later
@@ -327,7 +340,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 // Create a nuspec
-                // Right now parsedMetadataHash will be empty for modules and will contain metadata for scripts
                 Hashtable dependencies;
                 string nuspec = string.Empty;
                 try
@@ -487,7 +499,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ACRServerAPICalls acrServer = new ACRServerAPICalls(repository, this, _networkCredential, userAgentString);
 
                     var pkgMetadataFile = (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish;
-                    if (!acrServer.PushNupkgACR(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, repository, parsedMetadata, out ErrorRecord pushNupkgACRError))
+                    if (!acrServer.PushNupkgACR(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, repository, resourceType, parsedMetadata, out ErrorRecord pushNupkgACRError))
                     {
                         WriteError(pushNupkgACRError);
                         // exit out of processing
@@ -535,24 +547,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool isModule = resourceType != ResourceType.Script;
             requiredModules = new Hashtable();
 
-            // A script will already have the metadata parsed into the parsedMetadatahash,
-            // a module will still need the module manifest to be parsed.
-            if (isModule)
+            if (parsedMetadataHash == null || parsedMetadataHash.Count == 0)
             {
-                // Use the parsed module manifest data as 'parsedMetadataHash' instead of the passed-in data.
-                if (!Utils.TryReadManifestFile(
-                    manifestFilePath: filePath,
-                    manifestInfo: out parsedMetadataHash,
-                    error: out Exception manifestReadError))
-                {
-                    WriteError(new ErrorRecord(
-                        manifestReadError,
-                        "ManifestFileReadParseForNuspecError",
-                        ErrorCategory.ReadError,
-                        this));
+                WriteError(new ErrorRecord(new ArgumentException("Hashtable provided with package metadata was null or empty"),
+                    "PackageMetadataHashtableNullOrEmptyError",
+                    ErrorCategory.ReadError,
+                    this));
 
-                    return string.Empty;
-                }
+                return string.Empty;
             }
 
             // now we have parsedMetadatahash to fill out the nuspec information

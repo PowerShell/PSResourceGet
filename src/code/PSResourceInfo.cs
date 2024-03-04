@@ -819,7 +819,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             if (packageMetadata == null)
             {
-                errorMsg = "TryConvertJsonToPSResourceInfo: Invalid json object. Object cannot be null.";
+                errorMsg = "TryConvertFromACRJson: Invalid json object. Object cannot be null.";
                 return false;
             }
 
@@ -829,23 +829,33 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 JsonElement rootDom = packageMetadata.RootElement;
 
                 // Version
-                if (rootDom.TryGetProperty("ModuleVersion", out JsonElement versionElement))
+                if (rootDom.TryGetProperty("ModuleVersion", out JsonElement versionElement) || rootDom.TryGetProperty("Version", out versionElement))
                 {
                     string versionValue = versionElement.ToString();
-                    metadata["Version"] = ParseHttpVersion(versionValue, out string prereleaseLabel);
+                    
+                    Version pkgVersion = ParseHttpVersion(versionValue, out string prereleaseLabel);
+                    metadata["Version"] = pkgVersion;
                     metadata["Prerelease"] = prereleaseLabel;
                     metadata["IsPrerelease"] = !String.IsNullOrEmpty(prereleaseLabel);
 
-                    if (!NuGetVersion.TryParse(versionValue, out NuGetVersion parsedNormalizedVersion))
+                    if (!NuGetVersion.TryParse(versionValue, out NuGetVersion parsedNormalizedVersion) && pkgVersion == null)
                     {
                         errorMsg = string.Format(
                             CultureInfo.InvariantCulture,
-                            @"TryReadPSGetInfo: Cannot parse NormalizedVersion");
+                            @"TryConvertFromACRJson: Cannot parse NormalizedVersion or System.Version from version in metadata.");
 
-                        parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
+                        return false;
                     }
 
                     metadata["NormalizedVersion"] = parsedNormalizedVersion;
+                }
+                else
+                {
+                    errorMsg = string.Format(
+                        CultureInfo.InvariantCulture,
+                        @"TryConvertFromACRJson: Neither 'ModuleVersion' nor 'Version' could be found in package metadata");
+
+                    return false;
                 }
 
                 // License Url
@@ -972,7 +982,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 errorMsg = string.Format(
                     CultureInfo.InvariantCulture,
-                    @"TryConvertFromJson: Cannot parse PSResourceInfo from json object with error: {0}",
+                    @"TryConvertFromACRJson: Cannot parse PSResourceInfo from json object with error: {0}",
                     ex.Message);
                     
                 return false;
