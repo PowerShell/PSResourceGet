@@ -1183,14 +1183,14 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             _cmdletPassedIn.WriteVerbose("Create package version metadata as JSON string");
             // Create module metadata string
-            string metadataJson = CreateMetadataContent(psd1OrPs1File, parsedMetadataHash, out ErrorRecord metadataCreationError);
+            string metadataJson = CreateMetadataContent(psd1OrPs1File, resourceType, parsedMetadataHash, out ErrorRecord metadataCreationError);
             if (metadataCreationError != null)
             {
                 _cmdletPassedIn.ThrowTerminatingError(metadataCreationError);
             }
 
             // Create and upload manifest 
-            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, pkgName, metadataJson, configFilePath, 
+            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, pkgName, resourceType, metadataJson, configFilePath, 
                 pkgNameLower, pkgVersion, acrAccessToken, out HttpResponseMessage manifestResponse);
 
             // After manifest is created, see if there are any dependencies that need to be tracked on the server
@@ -1261,15 +1261,10 @@ namespace Microsoft.PowerShell.PSResourceGet
                 _cmdletPassedIn.ThrowTerminatingError(configDigestError);
             }
 
-            /* Create manifest layer */
-            _cmdletPassedIn.WriteVerbose("Create package version metadata as JSON string");
-            string jsonString = CreateMetadataContent(psd1OrPs1File, resourceType, parsedMetadataHash, out ErrorRecord metadataCreationError);
-            if (metadataCreationError != null)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(metadataCreationError);
-            }
+            return configDigestCreated;
+        }
 
-        private bool TryCreateAndUploadManifest(string fullNupkgFile, string nupkgDigest, string configDigest, string pkgName, string metadataJson, string configFilePath,
+        private bool TryCreateAndUploadManifest(string fullNupkgFile, string nupkgDigest, string configDigest, string pkgName, ResourceType resourceType, string metadataJson, string configFilePath,
             string pkgNameLower, NuGetVersion pkgVersion, string acrAccessToken, out HttpResponseMessage manifestResponse)
         {
             FileInfo nupkgFile = new FileInfo(fullNupkgFile);
