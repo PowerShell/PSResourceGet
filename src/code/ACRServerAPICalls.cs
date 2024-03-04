@@ -1278,7 +1278,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             bool manifestCreated = manifestResponse.IsSuccessStatusCode;
             if (!manifestCreated)
             {
-                // TODO:  add error?
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new ArgumentException("Error uploading package manifest"),
+                        "PackageManifestUploadError",
+                        ErrorCategory.InvalidResult,
+                        _cmdletPassedIn));
                 return false;
             }
 
@@ -1321,15 +1325,19 @@ namespace Microsoft.PowerShell.PSResourceGet
                 bool depManifestCreated = depManifestResponse.IsSuccessStatusCode;
                 if (!depManifestCreated)
                 {
-                    // TODO: error out
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new ArgumentException("Error uploading dependency manifest"),
+                        "DependencyManifestUploadError",
+                        ErrorCategory.InvalidResult,
+                        _cmdletPassedIn));
                     return false;
                 }
 
                 _cmdletPassedIn.WriteVerbose("End of dependency processing");
             }
-            catch
+            catch (Exception e)
             {
-                // TODO: throw
+                throw new ProcessDependencyException("Error processing dependencies: " + e.Message);
             }
             finally
             {
@@ -1397,6 +1405,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         private bool TryCreateDependencyConfigFile(string depConfigFilePath, HttpResponseMessage manifestResponse, string depJsonContent, string depDigest, long depFileSize, 
             string depFileName, out string artifactDigest)
         {
+            artifactDigest = string.Empty;
             _cmdletPassedIn.WriteVerbose("Create the dependency config file");
 
             File.Create(depConfigFilePath).Dispose();
@@ -1413,15 +1422,23 @@ namespace Microsoft.PowerShell.PSResourceGet
             string[] parentLocation = manifestResponse.Headers.Location.OriginalString.Split(':');
             if (parentLocation == null && parentLocation.Length < 2)
             {
-                // Error out 
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new ArgumentException("Error creating dependency manifest. Parent manifest location is invalid."),
+                        "DependencyManifestCreationError",
+                        ErrorCategory.InvalidResult,
+                        _cmdletPassedIn));
+                return false;
             }
 
             string parentDigest = parentLocation[1];
-
             var contentLength = manifestResponse.RequestMessage.Content.Headers.ContentLength;
             if (contentLength == null)
             {
-                // Error Out
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException("Error creating dependency manifest. Parent manifest size is invalid."),
+                    "DependencyManifestCreationError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn));
             }
             long parentSize = (long)manifestResponse.RequestMessage.Content.Headers.ContentLength;
 
@@ -1430,8 +1447,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             string depFileContent = CreateDependencyManifestContent(emptyConfigArtifactDigest, 0, depDigest, depFileSize, depFileName, depJsonStr, parentDigest, parentSize);
             File.WriteAllText(depConfigFilePath, depFileContent);
 
-            var depManifestDigestCreated = CreateDigest(depConfigFilePath, out artifactDigest, out ErrorRecord artifactDigesterror);
-            // TODO: add err handling
+            var depManifestDigestCreated = CreateDigest(depConfigFilePath, out artifactDigest, out ErrorRecord artifactDigestError);
+            if (!depManifestDigestCreated)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(artifactDigestError);
+            }
 
             return depManifestDigestCreated;
         }
@@ -1592,7 +1612,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             return stringWriter.ToString();
         }
 
-        // ACR method
         private bool CreateDigest(string fileName, out string digest, out ErrorRecord error)
         {
             FileInfo fileInfo = new FileInfo(fileName);
@@ -1633,10 +1652,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 return false;
             }
-
-
-            Console.WriteLine($"FILENAME: {fileName}");
-            Console.WriteLine($"digest: {digest}");
 
             return true;
         }
@@ -1681,9 +1696,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 return false;
             }
-
-
-            Console.WriteLine($"digest: {digest}");
 
             return true;
         }
