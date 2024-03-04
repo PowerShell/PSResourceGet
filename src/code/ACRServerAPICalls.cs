@@ -20,9 +20,6 @@ using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Security.Policy;
-using Microsoft.Win32;
-using NuGet.Protocol.Core.Types;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
@@ -46,7 +43,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         const string acrManifestUrlTemplate = "https://{0}/v2/{1}/manifests/{2}"; // 0 - registry, 1 - repo(modulename), 2 - tag(version)
         const string acrBlobDownloadUrlTemplate = "https://{0}/v2/{1}/blobs/{2}"; // 0 - registry, 1 - repo(modulename), 2 - layer digest
         const string acrFindImageVersionUrlTemplate = "https://{0}/acr/v1/{1}/_tags{2}"; // 0 - registry, 1 - repo(modulename), 2 - /tag(version)
-        const string acrStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads/"; // 0 - registry, 1 - packagename  
+        const string acrStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads/"; // 0 - registry, 1 - packagename
         const string acrEndUploadTemplate = "https://{0}{1}&digest=sha256:{2}"; // 0 - registry, 1 - location, 2 - digest
 
         private static readonly HttpClient s_client = new HttpClient();
@@ -59,7 +56,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             Repository = repository;
             Registry = Repository.Uri.Host;
-
             _cmdletPassedIn = cmdletPassedIn;
             HttpClientHandler handler = new HttpClientHandler()
             {
