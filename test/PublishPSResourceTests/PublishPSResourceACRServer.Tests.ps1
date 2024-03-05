@@ -262,8 +262,11 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $dependencyVersion = '9.0.0'
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ ModuleName = $dependencyName; ModuleVersion = $dependencyVersion })
 
-        Test-ModuleManifest -path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -verbose -debug
+        get-content (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") 
 
+        write-host("-----------------------------------------------------------------------")
+        Test-ModuleManifest -path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -verbose -debug
+        write-host("-----------------------------------------------------------------------")
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName
 
         $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -Version $version
@@ -285,9 +288,12 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $dependency2Version = '5.0.0'
 
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @( $dependency1Name , @{ ModuleName = $dependency2Name; ModuleVersion = $dependency2Version }) 
+        get-content (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") 
 
+        write-host("-----------------------------------------------------------------------")
         Test-ModuleManifest -path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -verbose -debug
-        
+        write-host("-----------------------------------------------------------------------")
+
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName
 
         $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -Version $version
