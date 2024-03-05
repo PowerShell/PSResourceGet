@@ -260,8 +260,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $version = "11.0.0"
         $dependencyName = 'test_module'
         $dependencyVersion = '9.0.0'
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" `
-            -RequiredModules @(@{ ModuleName = $dependencyName; ModuleVersion = $dependencyVersion }) 
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ ModuleName = $dependencyName; ModuleVersion = $dependencyVersion })
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -DestinationPath $script:destinationPath
 
@@ -279,12 +278,11 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
     It "Publish a module with multiple dependencies" {
         $version = "12.0.0"
-        $dependency1Name = 'test_local_mod'
-        $dependency2Name = 'test_module'
-        $dependency2Version = '9.0.0'
+        $dependency1Name = 'testdep'
+        $dependency2Name = 'test_local_mod'
+        $dependency2Version = '5.0.0'
 
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" `
-            -RequiredModules @( $dependency1Name , @{ ModuleName = $dependency2Name; ModuleVersion = $dependency2Version }) 
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @( $dependency1Name , @{ ModuleName = $dependency2Name; ModuleVersion = $dependency2Version }) 
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -DestinationPath $script:destinationPath
 
