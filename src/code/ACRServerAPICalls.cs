@@ -30,6 +30,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         #region Members
 
         public override PSRepositoryInfo Repository { get; set; }
+        public String Registry { get; set; }
         private readonly PSCmdlet _cmdletPassedIn;
         private HttpClient _sessionClient { get; set; }
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[] { };
@@ -54,6 +55,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         public ACRServerAPICalls(PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential, string userAgentString) : base(repository, networkCredential)
         {
             Repository = repository;
+            Registry = Repository.Uri.Host;
             _cmdletPassedIn = cmdletPassedIn;
             HttpClientHandler handler = new HttpClientHandler()
             {
@@ -435,16 +437,16 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            _cmdletPassedIn.WriteVerbose("Getting tags");
+            _cmdletPassedIn.WriteVerbose("Getting ACR metadata");
             List<Hashtable> results = new List<Hashtable>
             {
                 GetACRMetadata(registry, packageName, requiredVersion, acrAccessToken, out errRecord)
             };
+
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: results.ToArray(), responseType: acrFindResponseType);
             }
-
 
             return new FindResults(stringResponse: new string[] { }, hashtableResponse: results.ToArray(), responseType: acrFindResponseType);
         }
@@ -601,6 +603,35 @@ namespace Microsoft.PowerShell.PSResourceGet
             return digest;
         }
 
+        internal string GetACRRegistryToken(out ErrorRecord errRecord)
+        {
+            string accessToken = string.Empty;
+            string tenantID = string.Empty;
+
+            // Need to set up secret management vault before hand
+            var repositoryCredentialInfo = Repository.CredentialInfo;
+            if (repositoryCredentialInfo != null)
+            {
+                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
+                    Repository.Name,
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
+
+                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
+
+                tenantID = repositoryCredentialInfo.SecretName;
+                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
+            }
+
+            // Call asynchronous network methods in a try/catch block to handle exceptions.
+
+            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
+            var acrRefreshToken = GetAcrRefreshToken(Registry, tenantID, accessToken, out errRecord);
+            _cmdletPassedIn.WriteVerbose("Getting acr access token");
+            
+            return GetAcrAccessToken(Registry, acrRefreshToken, out errRecord);
+        }
+
         internal string GetAcrRefreshToken(string registry, string tenant, string accessToken, out ErrorRecord errRecord)
         {
             string content = string.Format(acrRefreshTokenTemplate, registry, tenant, accessToken);
@@ -750,7 +781,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                 }
 
                 _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
-
                 if (pkgVersion == requiredVersion)
                 {
                     requiredVersionResponse.Add(metadataPkgName, metadata);
@@ -824,12 +854,12 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal async Task<string> GetStartUploadBlobLocation(string registry, string pkgName, string acrAccessToken)
+        internal async Task<string> GetStartUploadBlobLocation(string pkgName, string acrAccessToken)
         {
             try
             {
                 var defaultHeaders = GetDefaultHeaders(acrAccessToken);
-                var startUploadUrl = string.Format(acrStartUploadTemplate, registry, pkgName);
+                var startUploadUrl = string.Format(acrStartUploadTemplate, Registry, pkgName);
                 return (await GetHttpResponseHeader(startUploadUrl, HttpMethod.Post, defaultHeaders)).Location.ToString();
             }
             catch (HttpRequestException e)
@@ -838,11 +868,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal async Task<bool> EndUploadBlob(string registry, string location, string filePath, string digest, bool isManifest, string acrAccessToken)
+        internal async Task<HttpResponseMessage> EndUploadBlob(string location, string filePath, string digest, bool isManifest, string acrAccessToken)
         {
             try
             {
-                var endUploadUrl = string.Format(acrEndUploadTemplate, registry, location, digest);
+                var endUploadUrl = string.Format(acrEndUploadTemplate, Registry, location, digest);
                 var defaultHeaders = GetDefaultHeaders(acrAccessToken);
                 return await PutRequestAsync(endUploadUrl, filePath, isManifest, defaultHeaders);
             }
@@ -852,11 +882,25 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal async Task<bool> CreateManifest(string registry, string pkgName, string pkgVersion, string configPath, bool isManifest, string acrAccessToken)
+        internal async Task<HttpResponseMessage> UploadManifest(string pkgName, string pkgVersion, string configPath, bool isManifest, string acrAccessToken)
         {
             try
             {
-                var createManifestUrl = string.Format(acrManifestUrlTemplate, registry, pkgName, pkgVersion);
+                var createManifestUrl = string.Format(acrManifestUrlTemplate, Registry, pkgName, pkgVersion);
+                var defaultHeaders = GetDefaultHeaders(acrAccessToken);
+                return await PutRequestAsync(createManifestUrl, configPath, isManifest, defaultHeaders);
+            }
+            catch (HttpRequestException e)
+            {
+                throw new HttpRequestException("Error occured while trying to create manifest: " + e.Message);
+            }
+        }
+
+        internal async Task<HttpResponseMessage> UploadDependencyManifest(string pkgName, string referenceSHA, string configPath, bool isManifest, string acrAccessToken)
+        {
+            try
+            {
+                var createManifestUrl = string.Format(acrManifestUrlTemplate, Registry, pkgName, referenceSHA);
                 var defaultHeaders = GetDefaultHeaders(acrAccessToken);
                 return await PutRequestAsync(createManifestUrl, configPath, isManifest, defaultHeaders);
             }
@@ -1081,7 +1125,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        private static async Task<bool> PutRequestAsync(string url, string filePath, bool isManifest, Collection<KeyValuePair<string, string>> contentHeaders)
+        private static async Task<HttpResponseMessage> PutRequestAsync(string url, string filePath, bool isManifest, Collection<KeyValuePair<string, string>> contentHeaders)
         {
             try
             {
@@ -1100,10 +1144,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                         httpContent.Headers.Add("Content-Type", "application/octet-stream");
                     }
 
-                    HttpResponseMessage response = await s_client.PutAsync(url, httpContent);
-                    response.EnsureSuccessStatusCode();
-
-                    return response.IsSuccessStatusCode;
+                    return await s_client.PutAsync(url, httpContent); ;
                 }
             }
             catch (HttpRequestException e)
@@ -1121,54 +1162,66 @@ namespace Microsoft.PowerShell.PSResourceGet
                 };
         }
 
-        internal bool PushNupkgACR(string psd1OrPs1File, string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, ResourceType resourceType, Hashtable parsedMetadataHash, out ErrorRecord errRecord)
+        internal bool PushNupkgACR(string psd1OrPs1File, string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, ResourceType resourceType, Hashtable parsedMetadataHash, Hashtable dependencies, out ErrorRecord errRecord)
         {
-            errRecord = null;
-            // Push the nupkg to the appropriate repository
             string fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, pkgName + "." + pkgVersion.ToNormalizedString() + ".nupkg");
             string pkgNameLower = pkgName.ToLower();
-            string accessToken = string.Empty;
-            string tenantID = string.Empty;
 
-            // Need to set up secret management vault before hand
-            var repositoryCredentialInfo = repository.CredentialInfo;
-            if (repositoryCredentialInfo != null)
+            // Get access token (includes refresh tokens)
+            var acrAccessToken = GetACRRegistryToken(out errRecord);
+
+            // Upload .nupkg
+            TryUploadNupkg(pkgNameLower, acrAccessToken, fullNupkgFile, out string nupkgDigest);
+
+            // Create and upload an empty file-- needed by ACR server
+            TryCreateAndUploadEmptyFile(outputNupkgDir, pkgNameLower, acrAccessToken);
+
+            // Create config.json file
+            var configFilePath = System.IO.Path.Combine(outputNupkgDir, "config.json");
+            TryCreateConfig(configFilePath, out string configDigest);
+
+            _cmdletPassedIn.WriteVerbose("Create package version metadata as JSON string");
+            // Create module metadata string
+            string metadataJson = CreateMetadataContent(psd1OrPs1File, resourceType, parsedMetadataHash, out ErrorRecord metadataCreationError);
+            if (metadataCreationError != null)
             {
-                accessToken = Utils.GetACRAccessTokenFromSecretManagement(
-                    repository.Name,
-                    repositoryCredentialInfo,
-                    _cmdletPassedIn);
-
-                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
-
-                tenantID = repositoryCredentialInfo.SecretName;
-                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
+                _cmdletPassedIn.ThrowTerminatingError(metadataCreationError);
             }
 
-            // Call asynchronous network methods in a try/catch block to handle exceptions.
-            string registry = repository.Uri.Host;
+            // Create and upload manifest 
+            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, pkgName, resourceType, metadataJson, configFilePath, 
+                pkgNameLower, pkgVersion, acrAccessToken, out HttpResponseMessage manifestResponse);
 
-            _cmdletPassedIn.WriteVerbose("Getting acr refresh token");
-            var acrRefreshToken = GetAcrRefreshToken(registry, tenantID, accessToken, out errRecord);
-            _cmdletPassedIn.WriteVerbose("Getting acr access token");
-            var acrAccessToken = GetAcrAccessToken(registry, acrRefreshToken, out errRecord);
+            // After manifest is created, see if there are any dependencies that need to be tracked on the server
+            if (dependencies != null && dependencies.Count > 0)
+            {
+                TryProcessDependencies(dependencies, pkgNameLower, acrAccessToken, manifestResponse);
+            }
 
-            /* Uploading .nupkg */
+            return true;
+        }
+
+        private bool TryUploadNupkg(string pkgNameLower, string acrAccessToken, string fullNupkgFile, out string nupkgDigest)
+        {
             _cmdletPassedIn.WriteVerbose("Start uploading blob");
             // Note:  ACR registries will only accept a name that is all lowercase.
-            var moduleLocation = GetStartUploadBlobLocation(registry, pkgNameLower, acrAccessToken).Result;
+            var moduleLocation = GetStartUploadBlobLocation(pkgNameLower, acrAccessToken).Result;
 
             _cmdletPassedIn.WriteVerbose("Computing digest for .nupkg file");
-            bool nupkgDigestCreated = CreateDigest(fullNupkgFile, out string nupkgDigest, out ErrorRecord nupkgDigestError);
+            bool nupkgDigestCreated = CreateDigest(fullNupkgFile, out nupkgDigest, out ErrorRecord nupkgDigestError);
             if (!nupkgDigestCreated)
             {
                 _cmdletPassedIn.ThrowTerminatingError(nupkgDigestError);
             }
 
             _cmdletPassedIn.WriteVerbose("Finish uploading blob");
-            bool moduleUploadSuccess = EndUploadBlob(registry, moduleLocation, fullNupkgFile, nupkgDigest, false, acrAccessToken).Result;
+            var responseNupkg = EndUploadBlob(moduleLocation, fullNupkgFile, nupkgDigest, false, acrAccessToken).Result;
 
-            /* Upload an empty file-- needed by ACR server */
+            return responseNupkg.IsSuccessStatusCode;
+        }
+
+        private bool TryCreateAndUploadEmptyFile(string outputNupkgDir, string pkgNameLower, string acrAccessToken)
+        {
             _cmdletPassedIn.WriteVerbose("Create an empty file");
             string emptyFileName = "empty.txt";
             var emptyFilePath = System.IO.Path.Combine(outputNupkgDir, emptyFileName);
@@ -1177,9 +1230,10 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 emptyFilePath = Guid.NewGuid().ToString() + ".txt";
             }
-            using (FileStream configStream = new FileStream(emptyFilePath, FileMode.Create)){ }
+            Utils.CreateFile(emptyFilePath);
+
             _cmdletPassedIn.WriteVerbose("Start uploading an empty file");
-            var emptyLocation = GetStartUploadBlobLocation(registry, pkgNameLower, acrAccessToken).Result;
+            var emptyLocation = GetStartUploadBlobLocation(pkgNameLower, acrAccessToken).Result;
             _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
             bool emptyDigestCreated = CreateDigest(emptyFilePath, out string emptyDigest, out ErrorRecord emptyDigestError);
             if (!emptyDigestCreated)
@@ -1187,57 +1241,232 @@ namespace Microsoft.PowerShell.PSResourceGet
                 _cmdletPassedIn.ThrowTerminatingError(emptyDigestError);
             }
             _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
-            bool emptyFileUploadSuccess = EndUploadBlob(registry, emptyLocation, emptyFilePath, emptyDigest, false, acrAccessToken).Result;
+            var emptyResponse = EndUploadBlob(emptyLocation, emptyFilePath, emptyDigest, false, acrAccessToken).Result;
 
-            /* Create config layer */
+            return emptyResponse.IsSuccessStatusCode;
+        }
+
+        private bool TryCreateConfig(string configFilePath, out string configDigest)
+        {
             _cmdletPassedIn.WriteVerbose("Create the config file");
-            string configFileName = "config.json";
-            var configFilePath = System.IO.Path.Combine(outputNupkgDir, configFileName);
             while (File.Exists(configFilePath))
             {
                 configFilePath = Guid.NewGuid().ToString() + ".json";
             }
-            using (FileStream configStream = new FileStream(configFilePath, FileMode.Create)){ }
+            Utils.CreateFile(configFilePath);
+            
             _cmdletPassedIn.WriteVerbose("Computing digest for config");
-            bool configDigestCreated = CreateDigest(configFilePath, out string configDigest, out ErrorRecord configDigestError);
+            bool configDigestCreated = CreateDigest(configFilePath, out configDigest, out ErrorRecord configDigestError);
             if (!configDigestCreated)
             {
                 _cmdletPassedIn.ThrowTerminatingError(configDigestError);
             }
 
-            /* Create manifest layer */
-            _cmdletPassedIn.WriteVerbose("Create package version metadata as JSON string");
-            string jsonString = CreateMetadataContent(psd1OrPs1File, resourceType, parsedMetadataHash, out ErrorRecord metadataCreationError);
-            if (metadataCreationError != null)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(metadataCreationError);
-            }
+            return configDigestCreated;
+        }
 
+        private bool TryCreateAndUploadManifest(string fullNupkgFile, string nupkgDigest, string configDigest, string pkgName, ResourceType resourceType, string metadataJson, string configFilePath,
+            string pkgNameLower, NuGetVersion pkgVersion, string acrAccessToken, out HttpResponseMessage manifestResponse)
+        {
             FileInfo nupkgFile = new FileInfo(fullNupkgFile);
             var fileSize = nupkgFile.Length;
             var fileName = System.IO.Path.GetFileName(fullNupkgFile);
-            string fileContent = CreateJsonContent(nupkgDigest, configDigest, fileSize, fileName, pkgName, resourceType, jsonString);
+            string fileContent = CreateManifestContent(nupkgDigest, configDigest, fileSize, fileName, pkgName, resourceType, metadataJson);
             File.WriteAllText(configFilePath, fileContent);
 
             _cmdletPassedIn.WriteVerbose("Create the manifest layer");
-            bool manifestCreated = CreateManifest(registry, pkgNameLower, pkgVersion.OriginalVersion, configFilePath, true, acrAccessToken).Result;
-
-            if (manifestCreated)
+            manifestResponse = UploadManifest(pkgNameLower, pkgVersion.OriginalVersion, configFilePath, true, acrAccessToken).Result;
+            bool manifestCreated = manifestResponse.IsSuccessStatusCode;
+            if (!manifestCreated)
             {
-                return true;
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new ArgumentException("Error uploading package manifest"),
+                        "PackageManifestUploadError",
+                        ErrorCategory.InvalidResult,
+                        _cmdletPassedIn));
+                return false;
             }
 
-            return false;
+            return manifestCreated;
         }
 
-        private string CreateJsonContent(
+        private bool TryProcessDependencies(Hashtable dependencies, string pkgNameLower, string acrAccessToken, HttpResponseMessage manifestResponse)
+        {
+            string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+            try
+            {
+                Directory.CreateDirectory(tempPath);
+
+                // Create dependency.json
+                TryCreateAndUploadDependencyJson(tempPath, dependencies, pkgNameLower, acrAccessToken, out string depJsonContent, out string depDigest, out long depFileSize, out string depFileName);
+
+                // Create and upload an empty file-- needed by ACR server
+                if (!TryCreateAndUploadEmptyTxtFile(tempPath, pkgNameLower, acrAccessToken))
+                {
+                    return false;
+                }
+
+                // Create artifactconfig.json file
+                string depConfigFileName = "artifactconfig.json";
+                var depConfigFilePath = System.IO.Path.Combine(tempPath, depConfigFileName);
+                while (File.Exists(depConfigFilePath))
+                {
+                    depConfigFilePath = System.IO.Path.Combine(tempPath, Guid.NewGuid().ToString() + ".json");
+                }
+                if (!TryCreateDependencyConfigFile(depConfigFilePath, manifestResponse, depJsonContent, depDigest, depFileSize, depFileName, out string artifactDigest))
+                {
+                    return false;
+                }
+
+                _cmdletPassedIn.WriteVerbose("Create the manifest");
+
+                // Upload Manifest
+                var depManifestResponse = UploadDependencyManifest(pkgNameLower, $"sha256:{artifactDigest}", depConfigFilePath, true, acrAccessToken).Result;
+                bool depManifestCreated = depManifestResponse.IsSuccessStatusCode;
+                if (!depManifestCreated)
+                {
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new ArgumentException("Error uploading dependency manifest"),
+                        "DependencyManifestUploadError",
+                        ErrorCategory.InvalidResult,
+                        _cmdletPassedIn));
+                    return false;
+                }
+
+                _cmdletPassedIn.WriteVerbose("End of dependency processing");
+            }
+            catch (Exception e)
+            {
+                throw new ProcessDependencyException("Error processing dependencies: " + e.Message);
+            }
+            finally
+            {
+                if (Directory.Exists(tempPath))
+                {
+                    // Delete the temp directory and all its contents
+                    _cmdletPassedIn.WriteVerbose($"Attempting to delete '{tempPath}'");
+                    Utils.DeleteDirectoryWithRestore(tempPath);
+                }
+            }
+
+            return true;
+        }
+
+        private bool TryCreateAndUploadDependencyJson(string tempPath, 
+            Hashtable dependencies, string pkgNameLower, string acrAccessToken, out string depJsonContent, out string depDigest, out long depFileSize, out string depFileName)
+        {
+            depFileName = "dependency.json";
+            var depFilePath = System.IO.Path.Combine(tempPath, depFileName);
+            Utils.CreateFile(depFilePath);
+            FileInfo depFile = new FileInfo(depFilePath);
+
+            depJsonContent = CreateDependencyJsonContent(dependencies);
+            File.WriteAllText(depFilePath, depJsonContent);
+            depFileSize = depFile.Length;
+
+            bool depDigestCreated = CreateDigest(depFilePath, out depDigest, out ErrorRecord depDigestError);
+            if (depDigestError != null)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(depDigestError);
+            }
+
+            // Upload dependency.json
+            var depLocation = GetStartUploadBlobLocation(pkgNameLower, acrAccessToken).Result;
+            var depFileResponse = EndUploadBlob(depLocation, depFilePath, depDigest, isManifest: false, acrAccessToken).Result;
+            
+            return depFileResponse.IsSuccessStatusCode;
+        }
+
+        private bool TryCreateAndUploadEmptyTxtFile(string tempPath, string pkgNameLower, string acrAccessToken)
+        {
+            _cmdletPassedIn.WriteVerbose("Create an empty artifact file");
+            string emptyArtifactFileName = "artifactEmpty.txt";
+            var emptyArtifactFilePath = System.IO.Path.Combine(tempPath, emptyArtifactFileName);
+            // Rename the empty file in case such a file already exists in the temp folder (although highly unlikely)
+            while (File.Exists(emptyArtifactFilePath))
+            {
+                emptyArtifactFilePath = Guid.NewGuid().ToString() + ".txt";
+            }
+            Utils.CreateFile(emptyArtifactFilePath);
+
+            _cmdletPassedIn.WriteVerbose("Start uploading an empty artifact file");
+            var emptyArtifactLocation = GetStartUploadBlobLocation(pkgNameLower, acrAccessToken).Result;
+            _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
+            bool emptyArtifactDigestCreated = CreateDigest(emptyArtifactFilePath, out string emptyArtifactDigest, out ErrorRecord emptyArtifactDigestError);
+            if (!emptyArtifactDigestCreated)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(emptyArtifactDigestError);
+            }
+            _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
+            var emptyArtifactResponse = EndUploadBlob(emptyArtifactLocation, emptyArtifactFilePath, emptyArtifactDigest, false, acrAccessToken).Result;
+            
+            return emptyArtifactResponse.IsSuccessStatusCode;
+        }
+
+        private bool TryCreateDependencyConfigFile(string depConfigFilePath, HttpResponseMessage manifestResponse, string depJsonContent, string depDigest, long depFileSize, 
+            string depFileName, out string artifactDigest)
+        {
+            artifactDigest = string.Empty;
+            _cmdletPassedIn.WriteVerbose("Create the dependency config file");
+            Utils.CreateFile(depConfigFilePath);
+            
+            _cmdletPassedIn.WriteVerbose("Computing digest for artifact config");
+            bool depConfigDigestCreated = CreateDigest(depConfigFilePath, out string emptyConfigArtifactDigest, out ErrorRecord depConfigDigestError);
+            if (!depConfigDigestCreated)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(depConfigDigestError);
+            }
+            FileInfo depConfigFile = new FileInfo(depConfigFilePath);
+
+
+            // Can either get the digest/size through response from pushing parent manifest earlier,
+            string[] parentLocation = manifestResponse.Headers.Location.OriginalString.Split(':');
+            if (parentLocation == null && parentLocation.Length < 2)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                        new ArgumentException("Error creating dependency manifest. Parent manifest location is invalid."),
+                        "DependencyManifestCreationError",
+                        ErrorCategory.InvalidResult,
+                        _cmdletPassedIn));
+                return false;
+            }
+
+            string parentDigest = parentLocation[1];
+            var contentLength = manifestResponse.RequestMessage.Content.Headers.ContentLength;
+            if (contentLength == null)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                    new ArgumentException("Error creating dependency manifest. Parent manifest size is invalid."),
+                    "DependencyManifestCreationError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn));
+            }
+            long parentSize = (long)manifestResponse.RequestMessage.Content.Headers.ContentLength;
+
+            // Create manifest for dependencies
+            var depJsonStr = depJsonContent.Replace("\r", String.Empty).Replace("\n", String.Empty);
+            string depFileContent = CreateDependencyManifestContent(emptyConfigArtifactDigest, 0, depDigest, depFileSize, depFileName, depJsonStr, parentDigest, parentSize);
+            File.WriteAllText(depConfigFilePath, depFileContent);
+
+            var depManifestDigestCreated = CreateDigest(depConfigFilePath, out artifactDigest, out ErrorRecord artifactDigestError);
+            if (!depManifestDigestCreated)
+            {
+                _cmdletPassedIn.ThrowTerminatingError(artifactDigestError);
+            }
+
+            return depManifestDigestCreated;
+        }
+
+
+        private string CreateManifestContent(
             string nupkgDigest, 
             string configDigest, 
             long nupkgFileSize, 
             string fileName,
             string packageName,
             ResourceType resourceType,
-            string jsonString)
+            string metadata)
         {
             StringBuilder stringBuilder = new StringBuilder();
             StringWriter stringWriter = new StringWriter(stringBuilder);
@@ -1250,11 +1479,13 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             jsonWriter.WritePropertyName("schemaVersion");
             jsonWriter.WriteValue(2);
+            jsonWriter.WritePropertyName("mediaType");
+            jsonWriter.WriteValue("application/vnd.oci.image.manifest.v1+json");
 
             jsonWriter.WritePropertyName("config");
             jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("application/vnd.unknown.config.v1+json");
+            jsonWriter.WriteValue("application/vnd.oci.image.config.v1+json");
             jsonWriter.WritePropertyName("digest");
             jsonWriter.WriteValue($"sha256:{configDigest}");
             jsonWriter.WritePropertyName("size");
@@ -1266,7 +1497,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             jsonWriter.WriteStartObject();
             jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("application/vnd.oci.image.layer.nondistributable.v1.tar+gzip");
+            jsonWriter.WriteValue("application/vnd.oci.image.layer.v1.tar+gzip");
             jsonWriter.WritePropertyName("digest");
             jsonWriter.WriteValue($"sha256:{nupkgDigest}");
             jsonWriter.WritePropertyName("size");
@@ -1278,7 +1509,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             jsonWriter.WritePropertyName("org.opencontainers.image.description");
             jsonWriter.WriteValue(fileName);
             jsonWriter.WritePropertyName("metadata");
-            jsonWriter.WriteValue(jsonString);
+            jsonWriter.WriteValue(metadata);
             jsonWriter.WritePropertyName("artifactType");
             jsonWriter.WriteValue(resourceType.ToString());
             jsonWriter.WriteEndObject(); // end of annotations object
@@ -1291,11 +1522,103 @@ namespace Microsoft.PowerShell.PSResourceGet
             return stringWriter.ToString();
         }
 
-        // ACR method
+        private string CreateDependencyManifestContent(
+            string depConfigDigest,
+            long depConfigFileSize,
+            string depDigest,
+            long depFileSize,
+            string depFileName,
+            string dependenciesStr,
+            string parentDigest,
+            long parentSize)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            StringWriter stringWriter = new StringWriter(stringBuilder);
+            JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter);
+
+            jsonWriter.Formatting = Newtonsoft.Json.Formatting.Indented;
+
+            jsonWriter.WriteStartObject();
+
+            jsonWriter.WritePropertyName("schemaVersion");
+            jsonWriter.WriteValue(2);
+            jsonWriter.WritePropertyName("mediaType");
+            jsonWriter.WriteValue("application/vnd.oci.image.manifest.v1+json");
+
+            jsonWriter.WritePropertyName("config");
+            jsonWriter.WriteStartObject();
+            jsonWriter.WritePropertyName("mediaType");
+            jsonWriter.WriteValue("dependency");
+            jsonWriter.WritePropertyName("digest");
+            jsonWriter.WriteValue($"sha256:{depConfigDigest}");
+            jsonWriter.WritePropertyName("size");
+            jsonWriter.WriteValue(depConfigFileSize);
+            jsonWriter.WriteEndObject();
+
+            jsonWriter.WritePropertyName("layers");
+            jsonWriter.WriteStartArray();
+
+            jsonWriter.WriteStartObject();
+            jsonWriter.WritePropertyName("mediaType");
+            jsonWriter.WriteValue("application/vnd.oci.image.layer.v1.tar");
+            jsonWriter.WritePropertyName("digest");
+            jsonWriter.WriteValue($"sha256:{depDigest}");
+            jsonWriter.WritePropertyName("size");
+            jsonWriter.WriteValue(depFileSize);
+            jsonWriter.WritePropertyName("annotations");
+            jsonWriter.WriteStartObject();
+            jsonWriter.WritePropertyName("org.opencontainers.image.title");
+            jsonWriter.WriteValue(depFileName);;
+            jsonWriter.WritePropertyName("dependencies");
+            jsonWriter.WriteValue(dependenciesStr);
+            jsonWriter.WriteEndObject();
+
+            jsonWriter.WriteEndObject();
+
+            jsonWriter.WriteEndArray();
+
+
+            jsonWriter.WritePropertyName("subject");
+            jsonWriter.WriteStartObject();
+            jsonWriter.WritePropertyName("mediaType");
+            jsonWriter.WriteValue("application/vnd.oci.image.manifest.v1+json");
+            jsonWriter.WritePropertyName("digest");
+            jsonWriter.WriteValue($"sha256:{parentDigest}");
+            jsonWriter.WritePropertyName("size");
+            jsonWriter.WriteValue(parentSize);
+            jsonWriter.WriteEndObject();
+
+            jsonWriter.WriteEndObject();
+
+            return stringWriter.ToString();
+        }
+
+        private string CreateDependencyJsonContent(Hashtable dependencies)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            StringWriter stringWriter = new StringWriter(stringBuilder);
+            JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter);
+
+            jsonWriter.Formatting = Newtonsoft.Json.Formatting.Indented;
+
+            jsonWriter.WriteStartObject();
+
+            foreach (string dependencyName in dependencies.Keys)
+            {
+                jsonWriter.WritePropertyName(dependencyName);
+                jsonWriter.WriteValue(dependencies[dependencyName]);
+            }
+
+            jsonWriter.WriteEndObject();
+
+            return stringWriter.ToString();
+        }
+
         private bool CreateDigest(string fileName, out string digest, out ErrorRecord error)
         {
             FileInfo fileInfo = new FileInfo(fileName);
             SHA256 mySHA256 = SHA256.Create();
+
             using (FileStream fileStream = fileInfo.Open(FileMode.Open, FileAccess.Read))
             {
                 digest = string.Empty;
@@ -1312,7 +1635,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                         stringBuilder.AppendFormat("{0:x2}", b);
                     digest = stringBuilder.ToString();
                     // Write the name and hash value of the file to the console.
-                    _cmdletPassedIn.WriteVerbose($"{fileInfo.Name}: {hashValue}");
+                    _cmdletPassedIn.WriteVerbose($"{fileInfo.Name}: {digest}");
                     error = null;
                 }
                 catch (IOException ex)
@@ -1330,6 +1653,51 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 return false;
             }
+
+            return true;
+        }
+
+        private bool CreateDependencyDigest(out string digest, out ErrorRecord error)
+        {
+            SHA256 mySHA256 = SHA256.Create();
+            string myGuid = new Guid().ToString();
+            byte[] byteArray = Encoding.UTF8.GetBytes(myGuid);
+            
+            using (MemoryStream memStream = new MemoryStream(byteArray))
+            {
+                digest = string.Empty;
+
+                try
+                {
+                    // Create a MemoryStream for the Guid.
+                    // Be sure it's positioned to the beginning of the stream.
+                    memStream.Position = 0;
+                    // Compute the hash of the MemoryStream.
+                    byte[] hashValue = mySHA256.ComputeHash(memStream);
+                    StringBuilder stringBuilder = new StringBuilder();
+                    foreach (byte b in hashValue)
+                        stringBuilder.AppendFormat("{0:x2}", b);
+                    digest = stringBuilder.ToString();
+                    // Write the name and hash value of the file to the console.
+                    _cmdletPassedIn.WriteVerbose($"dependency digest: {digest}");
+                    error = null;
+                }
+                catch (IOException ex)
+                {
+                    var IOError = new ErrorRecord(ex, $"IOException for .nupkg file: {ex.Message}", ErrorCategory.InvalidOperation, null);
+                    error = IOError;
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    var AuthorizationError = new ErrorRecord(ex, $"UnauthorizedAccessException for .nupkg file: {ex.Message}", ErrorCategory.PermissionDenied, null);
+                    error = AuthorizationError;
+                }
+            }
+            if (error != null)
+            {
+                return false;
+            }
+
             return true;
         }
 

@@ -68,4 +68,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
         }
     }
+
+    public class ProcessDependencyException : Exception
+    {
+        public ProcessDependencyException(string message, Exception innerException = null)
+            : base(message)
+        {
+        }
+    }
 }
