@@ -743,6 +743,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         errRecord = findVersionErrRecord;
                         return packagesHash;
                     }
+                    _cmdletPassedIn.WriteDebug("Response returned");
+                    _cmdletPassedIn.WriteDebug($"Response is null? {responses == null}");
 
                     break;
 
@@ -761,6 +763,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSResourceInfo pkgToInstall = null;
             foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
             {
+                _cmdletPassedIn.WriteDebug("Response returned");
+
                 if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
                     errRecord = new ErrorRecord(
