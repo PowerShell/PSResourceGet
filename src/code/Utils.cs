@@ -1724,6 +1724,26 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
+        public static void CreateFile(string filePath)
+        {
+            FileStream fileStream = null;
+            try
+            {
+                fileStream = File.Create(filePath);
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Error creating file '{filePath}': {e.Message}");
+            }
+            finally
+            {
+                if (fileStream != null)
+                {
+                    fileStream.Close();
+                }
+            }
+        }
+
         #endregion
 
     }

@@ -1230,7 +1230,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 emptyFilePath = Guid.NewGuid().ToString() + ".txt";
             }
-            File.Create(emptyFilePath).Dispose();
+            Utils.CreateFile(emptyFilePath);
+
             _cmdletPassedIn.WriteVerbose("Start uploading an empty file");
             var emptyLocation = GetStartUploadBlobLocation(pkgNameLower, acrAccessToken).Result;
             _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
@@ -1252,7 +1253,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 configFilePath = Guid.NewGuid().ToString() + ".json";
             }
-            File.Create(configFilePath).Dispose();
+            Utils.CreateFile(configFilePath);
+            
             _cmdletPassedIn.WriteVerbose("Computing digest for config");
             bool configDigestCreated = CreateDigest(configFilePath, out configDigest, out ErrorRecord configDigestError);
             if (!configDigestCreated)
@@ -1356,7 +1358,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             depFileName = "dependency.json";
             var depFilePath = System.IO.Path.Combine(tempPath, depFileName);
-            File.Create(depFilePath).Dispose();
+            Utils.CreateFile(depFilePath);
             FileInfo depFile = new FileInfo(depFilePath);
 
             depJsonContent = CreateDependencyJsonContent(dependencies);
@@ -1386,7 +1388,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 emptyArtifactFilePath = Guid.NewGuid().ToString() + ".txt";
             }
-            File.Create(emptyArtifactFilePath).Dispose();
+            Utils.CreateFile(emptyArtifactFilePath);
+
             _cmdletPassedIn.WriteVerbose("Start uploading an empty artifact file");
             var emptyArtifactLocation = GetStartUploadBlobLocation(pkgNameLower, acrAccessToken).Result;
             _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
@@ -1406,8 +1409,8 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             artifactDigest = string.Empty;
             _cmdletPassedIn.WriteVerbose("Create the dependency config file");
-
-            File.Create(depConfigFilePath).Dispose();
+            Utils.CreateFile(depConfigFilePath);
+            
             _cmdletPassedIn.WriteVerbose("Computing digest for artifact config");
             bool depConfigDigestCreated = CreateDigest(depConfigFilePath, out string emptyConfigArtifactDigest, out ErrorRecord depConfigDigestError);
             if (!depConfigDigestCreated)
