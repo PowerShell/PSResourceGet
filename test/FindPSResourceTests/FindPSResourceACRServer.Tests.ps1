@@ -13,8 +13,6 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $ACRRepoUri = "https://psresourcegettest.azurecr.io"
         Get-NewPSResourceRepositoryFile
 
-        Write-Verbose -Verbose "UsingAzAuth = $env:USINGAZAUTH"
-
         $usingAzAuth = $env:USINGAZAUTH -eq 'true'
 
         if ($usingAzAuth)
