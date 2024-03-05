@@ -260,6 +260,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $version = "11.0.0"
         $dependencyName = 'test_module'
         $dependencyVersion = '9.0.0'
+
+        # New-ModuleManifest requires that the module be installed before it can be added as a dependency
+        Install-PSResource -Name $dependencyName -Version $dependencyVersion -Repository $ACRRepoName
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ ModuleName = $dependencyName; ModuleVersion = $dependencyVersion })
 
         Write-Host(get-content (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1"))
@@ -287,6 +290,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $dependency2Name = 'test_local_mod'
         $dependency2Version = '5.0.0'
 
+        # New-ModuleManifest requires that the module be installed before it can be added as a dependency
+        Install-PSResource -Name $dependency1Name -Repository $ACRRepoName
+        Install-PSResource -Name $dependency2Name -Version $dependency2Version -Repository $ACRRepoName
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @( $dependency1Name , @{ ModuleName = $dependency2Name; ModuleVersion = $dependency2Version }) 
         Write-Host(get-content (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1"))
 
