@@ -775,23 +775,36 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else if (searchVersionType == VersionType.VersionRange)
                 {
+                    _cmdletPassedIn.WriteVerbose("Response returned -- search version type is version range");
+
                     // Check to see if version falls within version range
                     PSResourceInfo foundPkg = currentResult.returnedObject;
+                    _cmdletPassedIn.WriteVerbose($"is foundPkg null?  {foundPkg == null}");
+
                     string versionStr = $"{foundPkg.Version}";
                     if (foundPkg.IsPrerelease)
                     {
                         versionStr += $"-{foundPkg.Prerelease}";
                     }
 
+                    _cmdletPassedIn.WriteVerbose($"after processing prerelease");
+
+                    _cmdletPassedIn.WriteVerbose($"verion range is {_versionRange}");
+
                     if (NuGetVersion.TryParse(versionStr, out NuGetVersion version)
                            && _versionRange.Satisfies(version))
                     {
+                        _cmdletPassedIn.WriteVerbose($"verion is {version}");
+
                         pkgToInstall = foundPkg;
 
                         break;
                     }
                 } else {
+                    _cmdletPassedIn.WriteVerbose("Response returned -- search verion type is ~NOT~ a version range");
+
                     pkgToInstall = currentResult.returnedObject;
+                    _cmdletPassedIn.WriteVerbose($"is pkgToInstall null?  {pkgToInstall == null}");
 
                     break;
                 }
@@ -865,6 +878,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
+                _cmdletPassedIn.WriteVerbose($"download package");
+
                 // Download the package.
                 string pkgName = pkgToInstall.Name;
                 Stream responseStream = currentServer.InstallPackage(pkgName, pkgVersion, _prerelease, out ErrorRecord installNameErrRecord);
