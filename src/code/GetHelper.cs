@@ -6,6 +6,7 @@ using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Management.Automation;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
@@ -95,7 +96,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool selectPrereleaseOnly)
         {
             _cmdletPassedIn.WriteDebug("In GetHelper::GetPackagesFromPath()");
+            _cmdletPassedIn.WriteDebug($"Name == null? {name == null}.");
+            _cmdletPassedIn.WriteDebug($"Name length? {name.Length}.");
+            _cmdletPassedIn.WriteDebug($"pathsToSearch: {pathsToSearch.FirstOrDefault()}");
+            _cmdletPassedIn.WriteDebug($"Name is {name[0]}.");
+
             List<string> pkgPathsByName = FilterPkgPathsByName(name, pathsToSearch);
+            _cmdletPassedIn.WriteDebug("In GetHelper:: after GetPackagesFromPath()");
 
             foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pkgPathsByName, selectPrereleaseOnly))
             {
