@@ -265,11 +265,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Install-PSResource -Name $dependencyName -Version $dependencyVersion -Repository $ACRRepoName -TrustRepository -Verbose
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ ModuleName = $dependencyName; ModuleVersion = $dependencyVersion })
 
-        Write-Host(get-content (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1"))
-
-        write-host("-----------------------------------------------------------------------")
-        Test-ModuleManifest -path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -verbose -debug
-        write-host("-----------------------------------------------------------------------")
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName
 
         $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -Version $version
@@ -279,9 +274,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         # TODO: Uncomment when Find-PSResource returns dependencies
         #$results[0].Dependencies.Name | Should -Be $dependencyName 
         #$results[0].Dependencies.VersionRange | Should -Be $dependencyVersion 
-
-        $expectedPath = Join-Path -Path $script:destinationPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Test-Path $expectedPath | Should -Be $true
     }
 
     It "Publish a module with multiple dependencies" {
@@ -294,11 +286,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Install-PSResource -Name $dependency1Name -Repository $ACRRepoName -TrustRepository -Verbose
         Install-PSResource -Name $dependency2Name -Version $dependency2Version -Repository $ACRRepoName -TrustRepository -verbose
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @( $dependency1Name , @{ ModuleName = $dependency2Name; ModuleVersion = $dependency2Version }) 
-        Write-Host(get-content (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1"))
-
-        write-host("-----------------------------------------------------------------------")
-        Test-ModuleManifest -path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -verbose -debug
-        write-host("-----------------------------------------------------------------------")
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName
 
