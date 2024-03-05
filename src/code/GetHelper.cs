@@ -6,7 +6,6 @@ using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Management.Automation;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
@@ -97,6 +96,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In GetHelper::GetPackagesFromPath()");
             List<string> pkgPathsByName = FilterPkgPathsByName(name, pathsToSearch);
+
             foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pkgPathsByName, selectPrereleaseOnly))
             {
                 PSResourceInfo pkg = OutputPackageObject(pkgPath, _scriptDictionary);

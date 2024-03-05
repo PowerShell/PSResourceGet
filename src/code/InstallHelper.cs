@@ -773,8 +773,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     // Check to see if version falls within version range
                     PSResourceInfo foundPkg = currentResult.returnedObject;
-                    _cmdletPassedIn.WriteVerbose($"is foundPkg null?  {foundPkg == null}");
-
                     string versionStr = $"{foundPkg.Version}";
                     if (foundPkg.IsPrerelease)
                     {
@@ -790,7 +788,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                 } else {
                     pkgToInstall = currentResult.returnedObject;
-                    _cmdletPassedIn.WriteVerbose($"is pkgToInstall null?  {pkgToInstall == null}");
 
                     break;
                 }
