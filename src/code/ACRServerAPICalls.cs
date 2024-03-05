@@ -169,7 +169,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            _cmdletPassedIn.WriteVerbose("Getting tags1");
             var foundTags = FindAcrImageTags(registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
@@ -330,7 +329,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            _cmdletPassedIn.WriteVerbose("Getting tags2");
             var foundTags = FindAcrImageTags(registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
@@ -437,19 +435,15 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            _cmdletPassedIn.WriteVerbose("Getting tags3");
             List<Hashtable> results = new List<Hashtable>
             {
                 GetACRMetadata(registry, packageName, requiredVersion, acrAccessToken, out errRecord)
             };
-            _cmdletPassedIn.WriteVerbose("Right after GetACRMetadata");
 
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: results.ToArray(), responseType: acrFindResponseType);
             }
-            _cmdletPassedIn.WriteVerbose("After err handling");
-
 
             return new FindResults(stringResponse: new string[] { }, hashtableResponse: results.ToArray(), responseType: acrFindResponseType);
         }
@@ -784,10 +778,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                 }
 
                 _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
-
                 if (pkgVersion == requiredVersion)
                 {
-                    _cmdletPassedIn.WriteDebug($"package version is; '{pkgVersion}', required version is '{requiredVersion}'");
                     requiredVersionResponse.Add(metadataPkgName, metadata);
                 }
             }

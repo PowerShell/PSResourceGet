@@ -46,7 +46,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Get-NewPSResourceRepositoryFile
 
         # Register repositories
-        $ACRRepoName = "ACRnew"
+        $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io"
         $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
         Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'acr' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
