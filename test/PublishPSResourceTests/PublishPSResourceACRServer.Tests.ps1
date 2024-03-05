@@ -46,7 +46,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Get-NewPSResourceRepositoryFile
 
         # Register repositories
-        $ACRRepoName = "ACRRepo"
+        $ACRRepoName = "ACRnew"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io"
         $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
         Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'acr' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
@@ -262,7 +262,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $dependencyVersion = '9.0.0'
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ ModuleName = $dependencyName; ModuleVersion = $dependencyVersion })
 
-        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -DestinationPath $script:destinationPath
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName
 
         $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -Version $version
         $results | Should -Not -BeNullOrEmpty
@@ -284,7 +284,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @( $dependency1Name , @{ ModuleName = $dependency2Name; ModuleVersion = $dependency2Version }) 
 
-        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -DestinationPath $script:destinationPath
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName
 
         $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -Version $version
         $results | Should -Not -BeNullOrEmpty
