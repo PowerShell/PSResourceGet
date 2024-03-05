@@ -169,7 +169,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            _cmdletPassedIn.WriteVerbose("Getting tags");
+            _cmdletPassedIn.WriteVerbose("Getting tags1");
             var foundTags = FindAcrImageTags(registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
@@ -330,7 +330,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            _cmdletPassedIn.WriteVerbose("Getting tags");
+            _cmdletPassedIn.WriteVerbose("Getting tags2");
             var foundTags = FindAcrImageTags(registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
@@ -437,7 +437,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            _cmdletPassedIn.WriteVerbose("Getting tags");
+            _cmdletPassedIn.WriteVerbose("Getting tags3");
             List<Hashtable> results = new List<Hashtable>
             {
                 GetACRMetadata(registry, packageName, requiredVersion, acrAccessToken, out errRecord)
