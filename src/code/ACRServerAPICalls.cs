@@ -741,20 +741,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal async Task<HttpResponseMessage> UploadDependencyManifest(string pkgName, string referenceSHA, string configPath, bool isManifest, string acrAccessToken)
-        {
-            try
-            {
-                var createManifestUrl = string.Format(acrManifestUrlTemplate, Registry, pkgName, referenceSHA);
-                var defaultHeaders = GetDefaultHeaders(acrAccessToken);
-                return await PutRequestAsync(createManifestUrl, configPath, isManifest, defaultHeaders);
-            }
-            catch (HttpRequestException e)
-            {
-                throw new HttpRequestException("Error occured while trying to create manifest: " + e.Message);
-            }
-        }
-
         internal async Task<HttpContent> GetHttpContentResponseJObject(string url, Collection<KeyValuePair<string, string>> defaultHeaders)
         {
             try
@@ -1039,15 +1025,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                 _cmdletPassedIn.ThrowTerminatingError(metadataCreationError);
             }
 
-            // Create and upload manifest
-            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, pkgName, resourceType, metadataJson, configFilePath,
+            // Create and upload manifest 
+            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, pkgName, resourceType, metadataJson, configFilePath, 
                 pkgNameLower, pkgVersion, acrAccessToken, out HttpResponseMessage manifestResponse);
-
-            // After manifest is created, see if there are any dependencies that need to be tracked on the server
-            if (dependencies != null && dependencies.Count > 0)
-            {
-                TryProcessDependencies(dependencies, pkgNameLower, acrAccessToken, manifestResponse);
-            }
 
             return true;
         }
@@ -1117,7 +1097,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         }
 
         private bool TryCreateAndUploadManifest(string fullNupkgFile, string nupkgDigest, string configDigest, string pkgName, ResourceType resourceType, string metadataJson, string configFilePath,
-            string pkgNameLower, NuGetVersion pkgVersion, string acrAccessToken, out HttpResponseMessage manifestResponse)
+            string pkgNameLower, NuGetVersion pkgVersion, string acrAccessToken)
         {
             FileInfo nupkgFile = new FileInfo(fullNupkgFile);
             var fileSize = nupkgFile.Length;
@@ -1126,7 +1106,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             File.WriteAllText(configFilePath, fileContent);
 
             _cmdletPassedIn.WriteVerbose("Create the manifest layer");
-            manifestResponse = UploadManifest(pkgNameLower, pkgVersion.OriginalVersion, configFilePath, true, acrAccessToken).Result;
+            HttpResponseMessage manifestResponse = UploadManifest(pkgNameLower, pkgVersion.OriginalVersion, configFilePath, true, acrAccessToken).Result;
             bool manifestCreated = manifestResponse.IsSuccessStatusCode;
             if (!manifestCreated)
             {
@@ -1140,175 +1120,6 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             return manifestCreated;
         }
-
-        private bool TryProcessDependencies(Hashtable dependencies, string pkgNameLower, string acrAccessToken, HttpResponseMessage manifestResponse)
-        {
-            string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-
-            try
-            {
-                Directory.CreateDirectory(tempPath);
-
-                // Create dependency.json
-                TryCreateAndUploadDependencyJson(tempPath, dependencies, pkgNameLower, acrAccessToken, out string depJsonContent, out string depDigest, out long depFileSize, out string depFileName);
-
-                // Create and upload an empty file-- needed by ACR server
-                if (!TryCreateAndUploadEmptyTxtFile(tempPath, pkgNameLower, acrAccessToken))
-                {
-                    return false;
-                }
-
-                // Create artifactconfig.json file
-                string depConfigFileName = "artifactconfig.json";
-                var depConfigFilePath = System.IO.Path.Combine(tempPath, depConfigFileName);
-                while (File.Exists(depConfigFilePath))
-                {
-                    depConfigFilePath = System.IO.Path.Combine(tempPath, Guid.NewGuid().ToString() + ".json");
-                }
-                if (!TryCreateDependencyConfigFile(depConfigFilePath, manifestResponse, depJsonContent, depDigest, depFileSize, depFileName, out string artifactDigest))
-                {
-                    return false;
-                }
-
-                _cmdletPassedIn.WriteVerbose("Create the manifest");
-
-                // Upload Manifest
-                var depManifestResponse = UploadDependencyManifest(pkgNameLower, $"sha256:{artifactDigest}", depConfigFilePath, true, acrAccessToken).Result;
-                bool depManifestCreated = depManifestResponse.IsSuccessStatusCode;
-                if (!depManifestCreated)
-                {
-                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new ArgumentException("Error uploading dependency manifest"),
-                        "DependencyManifestUploadError",
-                        ErrorCategory.InvalidResult,
-                        _cmdletPassedIn));
-                    return false;
-                }
-
-                _cmdletPassedIn.WriteVerbose("End of dependency processing");
-            }
-            catch (Exception e)
-            {
-                throw new ProcessDependencyException("Error processing dependencies: " + e.Message);
-            }
-            finally
-            {
-                if (Directory.Exists(tempPath))
-                {
-                    // Delete the temp directory and all its contents
-                    _cmdletPassedIn.WriteVerbose($"Attempting to delete '{tempPath}'");
-                    Utils.DeleteDirectoryWithRestore(tempPath);
-                }
-            }
-
-            return true;
-        }
-
-        private bool TryCreateAndUploadDependencyJson(string tempPath,
-            Hashtable dependencies, string pkgNameLower, string acrAccessToken, out string depJsonContent, out string depDigest, out long depFileSize, out string depFileName)
-        {
-            depFileName = "dependency.json";
-            var depFilePath = System.IO.Path.Combine(tempPath, depFileName);
-            Utils.CreateFile(depFilePath);
-            FileInfo depFile = new FileInfo(depFilePath);
-
-            depJsonContent = CreateDependencyJsonContent(dependencies);
-            File.WriteAllText(depFilePath, depJsonContent);
-            depFileSize = depFile.Length;
-
-            bool depDigestCreated = CreateDigest(depFilePath, out depDigest, out ErrorRecord depDigestError);
-            if (depDigestError != null)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(depDigestError);
-            }
-
-            // Upload dependency.json
-            var depLocation = GetStartUploadBlobLocation(pkgNameLower, acrAccessToken).Result;
-            var depFileResponse = EndUploadBlob(depLocation, depFilePath, depDigest, isManifest: false, acrAccessToken).Result;
-
-            return depFileResponse.IsSuccessStatusCode;
-        }
-
-        private bool TryCreateAndUploadEmptyTxtFile(string tempPath, string pkgNameLower, string acrAccessToken)
-        {
-            _cmdletPassedIn.WriteVerbose("Create an empty artifact file");
-            string emptyArtifactFileName = "artifactEmpty.txt";
-            var emptyArtifactFilePath = System.IO.Path.Combine(tempPath, emptyArtifactFileName);
-            // Rename the empty file in case such a file already exists in the temp folder (although highly unlikely)
-            while (File.Exists(emptyArtifactFilePath))
-            {
-                emptyArtifactFilePath = Guid.NewGuid().ToString() + ".txt";
-            }
-            Utils.CreateFile(emptyArtifactFilePath);
-
-            _cmdletPassedIn.WriteVerbose("Start uploading an empty artifact file");
-            var emptyArtifactLocation = GetStartUploadBlobLocation(pkgNameLower, acrAccessToken).Result;
-            _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
-            bool emptyArtifactDigestCreated = CreateDigest(emptyArtifactFilePath, out string emptyArtifactDigest, out ErrorRecord emptyArtifactDigestError);
-            if (!emptyArtifactDigestCreated)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(emptyArtifactDigestError);
-            }
-            _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
-            var emptyArtifactResponse = EndUploadBlob(emptyArtifactLocation, emptyArtifactFilePath, emptyArtifactDigest, false, acrAccessToken).Result;
-
-            return emptyArtifactResponse.IsSuccessStatusCode;
-        }
-
-        private bool TryCreateDependencyConfigFile(string depConfigFilePath, HttpResponseMessage manifestResponse, string depJsonContent, string depDigest, long depFileSize,
-            string depFileName, out string artifactDigest)
-        {
-            artifactDigest = string.Empty;
-            _cmdletPassedIn.WriteVerbose("Create the dependency config file");
-            Utils.CreateFile(depConfigFilePath);
-
-            _cmdletPassedIn.WriteVerbose("Computing digest for artifact config");
-            bool depConfigDigestCreated = CreateDigest(depConfigFilePath, out string emptyConfigArtifactDigest, out ErrorRecord depConfigDigestError);
-            if (!depConfigDigestCreated)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(depConfigDigestError);
-            }
-            FileInfo depConfigFile = new FileInfo(depConfigFilePath);
-
-
-            // Can either get the digest/size through response from pushing parent manifest earlier,
-            string[] parentLocation = manifestResponse.Headers.Location.OriginalString.Split(':');
-            if (parentLocation == null && parentLocation.Length < 2)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new ArgumentException("Error creating dependency manifest. Parent manifest location is invalid."),
-                        "DependencyManifestCreationError",
-                        ErrorCategory.InvalidResult,
-                        _cmdletPassedIn));
-                return false;
-            }
-
-            string parentDigest = parentLocation[1];
-            var contentLength = manifestResponse.RequestMessage.Content.Headers.ContentLength;
-            if (contentLength == null)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                    new ArgumentException("Error creating dependency manifest. Parent manifest size is invalid."),
-                    "DependencyManifestCreationError",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn));
-            }
-            long parentSize = (long)manifestResponse.RequestMessage.Content.Headers.ContentLength;
-
-            // Create manifest for dependencies
-            var depJsonStr = depJsonContent.Replace("\r", String.Empty).Replace("\n", String.Empty);
-            string depFileContent = CreateDependencyManifestContent(emptyConfigArtifactDigest, 0, depDigest, depFileSize, depFileName, depJsonStr, parentDigest, parentSize);
-            File.WriteAllText(depConfigFilePath, depFileContent);
-
-            var depManifestDigestCreated = CreateDigest(depConfigFilePath, out artifactDigest, out ErrorRecord artifactDigestError);
-            if (!depManifestDigestCreated)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(artifactDigestError);
-            }
-
-            return depManifestDigestCreated;
-        }
-
 
         private string CreateManifestContent(
             string nupkgDigest,
@@ -1373,98 +1184,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             return stringWriter.ToString();
         }
 
-        private string CreateDependencyManifestContent(
-            string depConfigDigest,
-            long depConfigFileSize,
-            string depDigest,
-            long depFileSize,
-            string depFileName,
-            string dependenciesStr,
-            string parentDigest,
-            long parentSize)
-        {
-            StringBuilder stringBuilder = new StringBuilder();
-            StringWriter stringWriter = new StringWriter(stringBuilder);
-            JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter);
-
-            jsonWriter.Formatting = Newtonsoft.Json.Formatting.Indented;
-
-            jsonWriter.WriteStartObject();
-
-            jsonWriter.WritePropertyName("schemaVersion");
-            jsonWriter.WriteValue(2);
-            jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("application/vnd.oci.image.manifest.v1+json");
-
-            jsonWriter.WritePropertyName("config");
-            jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("dependency");
-            jsonWriter.WritePropertyName("digest");
-            jsonWriter.WriteValue($"sha256:{depConfigDigest}");
-            jsonWriter.WritePropertyName("size");
-            jsonWriter.WriteValue(depConfigFileSize);
-            jsonWriter.WriteEndObject();
-
-            jsonWriter.WritePropertyName("layers");
-            jsonWriter.WriteStartArray();
-
-            jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("application/vnd.oci.image.layer.v1.tar");
-            jsonWriter.WritePropertyName("digest");
-            jsonWriter.WriteValue($"sha256:{depDigest}");
-            jsonWriter.WritePropertyName("size");
-            jsonWriter.WriteValue(depFileSize);
-            jsonWriter.WritePropertyName("annotations");
-            jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName("org.opencontainers.image.title");
-            jsonWriter.WriteValue(depFileName);;
-            jsonWriter.WritePropertyName("dependencies");
-            jsonWriter.WriteValue(dependenciesStr);
-            jsonWriter.WriteEndObject();
-
-            jsonWriter.WriteEndObject();
-
-            jsonWriter.WriteEndArray();
-
-
-            jsonWriter.WritePropertyName("subject");
-            jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("application/vnd.oci.image.manifest.v1+json");
-            jsonWriter.WritePropertyName("digest");
-            jsonWriter.WriteValue($"sha256:{parentDigest}");
-            jsonWriter.WritePropertyName("size");
-            jsonWriter.WriteValue(parentSize);
-            jsonWriter.WriteEndObject();
-
-            jsonWriter.WriteEndObject();
-
-            return stringWriter.ToString();
-        }
-
-        private string CreateDependencyJsonContent(Hashtable dependencies)
-        {
-            StringBuilder stringBuilder = new StringBuilder();
-            StringWriter stringWriter = new StringWriter(stringBuilder);
-            JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter);
-
-            jsonWriter.Formatting = Newtonsoft.Json.Formatting.Indented;
-
-            jsonWriter.WriteStartObject();
-
-            foreach (string dependencyName in dependencies.Keys)
-            {
-                jsonWriter.WritePropertyName(dependencyName);
-                jsonWriter.WriteValue(dependencies[dependencyName]);
-            }
-
-            jsonWriter.WriteEndObject();
-
-            return stringWriter.ToString();
-        }
-
         private bool CreateDigest(string fileName, out string digest, out ErrorRecord error)
         {
             FileInfo fileInfo = new FileInfo(fileName);
@@ -1487,50 +1206,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                     digest = stringBuilder.ToString();
                     // Write the name and hash value of the file to the console.
                     _cmdletPassedIn.WriteVerbose($"{fileInfo.Name}: {digest}");
-                    error = null;
-                }
-                catch (IOException ex)
-                {
-                    var IOError = new ErrorRecord(ex, $"IOException for .nupkg file: {ex.Message}", ErrorCategory.InvalidOperation, null);
-                    error = IOError;
-                }
-                catch (UnauthorizedAccessException ex)
-                {
-                    var AuthorizationError = new ErrorRecord(ex, $"UnauthorizedAccessException for .nupkg file: {ex.Message}", ErrorCategory.PermissionDenied, null);
-                    error = AuthorizationError;
-                }
-            }
-            if (error != null)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        private bool CreateDependencyDigest(out string digest, out ErrorRecord error)
-        {
-            SHA256 mySHA256 = SHA256.Create();
-            string myGuid = new Guid().ToString();
-            byte[] byteArray = Encoding.UTF8.GetBytes(myGuid);
-
-            using (MemoryStream memStream = new MemoryStream(byteArray))
-            {
-                digest = string.Empty;
-
-                try
-                {
-                    // Create a MemoryStream for the Guid.
-                    // Be sure it's positioned to the beginning of the stream.
-                    memStream.Position = 0;
-                    // Compute the hash of the MemoryStream.
-                    byte[] hashValue = mySHA256.ComputeHash(memStream);
-                    StringBuilder stringBuilder = new StringBuilder();
-                    foreach (byte b in hashValue)
-                        stringBuilder.AppendFormat("{0:x2}", b);
-                    digest = stringBuilder.ToString();
-                    // Write the name and hash value of the file to the console.
-                    _cmdletPassedIn.WriteVerbose($"dependency digest: {digest}");
                     error = null;
                 }
                 catch (IOException ex)
