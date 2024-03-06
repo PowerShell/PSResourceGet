@@ -666,6 +666,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             string metadataPkgName = metadataTuple.Item1;
             string metadata = metadataTuple.Item2;
+            string pkgVersionString = String.Empty;
             using (JsonDocument metadataJSONDoc = JsonDocument.Parse(metadata))
             {
                 JsonElement rootDom = metadataJSONDoc.RootElement;
@@ -681,10 +682,27 @@ namespace Microsoft.PowerShell.PSResourceGet
                     return requiredVersionResponse;
                 }
 
-                if (!NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                pkgVersionString = pkgVersionElement.ToString();
+                if (!(rootDom.TryGetProperty("PrivateData", out JsonElement pkgPrivateDataElement) && pkgPrivateDataElement.TryGetProperty("PSData", out JsonElement pkgPSDataElement)))
                 {
                     errRecord = new ErrorRecord(
-                        new ArgumentException($"Version {pkgVersionElement.ToString()} to be parsed from metadata is not a valid NuGet version."),
+                        new InvalidOrEmptyResponse($"Response does not contain 'PrivateData' or nested 'PSData' property in metadata for package '{packageName}' in '{Repository.Name}'."),
+                        "FindNameFailure",
+                        ErrorCategory.InvalidResult,
+                        this);
+
+                    return requiredVersionResponse;
+                }
+
+                if (pkgPSDataElement.TryGetProperty("Prerelease", out JsonElement pkgPrereleaseLabelElement) && !String.IsNullOrEmpty(pkgPrereleaseLabelElement.ToString().Trim()))
+                {
+                    pkgVersionString += $"-{pkgPrereleaseLabelElement.ToString()}";
+                }
+
+                if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
+                {
+                    errRecord = new ErrorRecord(
+                        new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version."),
                         "FindNameFailure",
                         ErrorCategory.InvalidArgument,
                         this);

@@ -829,14 +829,45 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 JsonElement rootDom = packageMetadata.RootElement;
 
                 // Version
-                if (rootDom.TryGetProperty("ModuleVersion", out JsonElement versionElement) || rootDom.TryGetProperty("Version", out versionElement))
+                // For scripts (i.e with "Version" property) the version can contain prerelease label
+                if (rootDom.TryGetProperty("Version", out JsonElement scriptVersionElement))
                 {
-                    string versionValue = versionElement.ToString();
+                    string versionValue = scriptVersionElement.ToString();
                     
                     Version pkgVersion = ParseHttpVersion(versionValue, out string prereleaseLabel);
                     metadata["Version"] = pkgVersion;
                     metadata["Prerelease"] = prereleaseLabel;
                     metadata["IsPrerelease"] = !String.IsNullOrEmpty(prereleaseLabel);
+
+                    if (!NuGetVersion.TryParse(versionValue, out NuGetVersion parsedNormalizedVersion) && pkgVersion == null)
+                    {
+                        errorMsg = string.Format(
+                            CultureInfo.InvariantCulture,
+                            @"TryConvertFromACRJson: Cannot parse NormalizedVersion or System.Version from version in metadata.");
+
+                        return false;
+                    }
+
+                    metadata["NormalizedVersion"] = parsedNormalizedVersion;
+                }
+                else if(rootDom.TryGetProperty("ModuleVersion", out JsonElement moduleVersionElement))
+                {
+                    // For modules (i.e with "ModuleVersion" property) it will just contain the numerical part not prerelease label, so we must find that from PrivateData.PSData.Prerelease entry
+                    string versionValue = moduleVersionElement.ToString();
+                    
+                    Version pkgVersion = ParseHttpVersion(versionValue, out string prereleaseLabel);
+                    metadata["Version"] = pkgVersion;
+
+                    if (rootDom.TryGetProperty("PrivateData", out JsonElement privateDataElement) && privateDataElement.TryGetProperty("PSData", out JsonElement psDataElement))
+                    {
+                        if (psDataElement.TryGetProperty("Prerelease", out JsonElement pkgPrereleaseLabelElement) && !String.IsNullOrEmpty(pkgPrereleaseLabelElement.ToString().Trim()))
+                        {
+                            prereleaseLabel = pkgPrereleaseLabelElement.ToString().Trim();
+                            versionValue += $"-{prereleaseLabel}";
+                            metadata["Prerelease"] = prereleaseLabel;
+                            metadata["IsPrerelease"] = true;
+                        }
+                    }
 
                     if (!NuGetVersion.TryParse(versionValue, out NuGetVersion parsedNormalizedVersion) && pkgVersion == null)
                     {
