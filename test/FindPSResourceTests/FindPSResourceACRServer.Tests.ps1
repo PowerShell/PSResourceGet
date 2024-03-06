@@ -84,7 +84,8 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         # FindName()
         $res = Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Prerelease
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0-alpha001"
+        $resPrerelease.Version | Should -Be "5.0.0"
+        $resPrerelease.Prerelease | Should -Be "alpha001"
     }
 
     It "Find resource with latest (including prerelease) version given Prerelease parameter" {
