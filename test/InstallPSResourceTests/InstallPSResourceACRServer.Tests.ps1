@@ -130,7 +130,6 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0"
     }
 
-    <# TODO: enable when prerelease functionality is implemented
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
         Install-PSResource -Name $testModuleName -Prerelease -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
@@ -138,7 +137,6 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.2.5"
         $pkg.Prerelease | Should -Be "alpha001"
     }
-    #>
 
     It "Install resource via InputObject by piping from Find-PSresource" {
         Find-PSResource -Name $testModuleName -Repository $ACRRepoName | Install-PSResource -TrustRepository
