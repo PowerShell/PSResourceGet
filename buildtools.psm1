@@ -126,11 +126,29 @@ function Install-ModulePackageForTest {
     Unregister-PSResourceRepository -Name $localRepoName -Confirm:$false
 }
 
+function Invoke-ModuleTestsACR {
+    [CmdletBinding()]
+    param (
+        [ValidateSet("Functional", "StaticAnalysis")]
+        [string[]] $Type = "Functional"
+    )
+
+    $acrTestFiles = @(
+        "FindPSResourceTests/FindPSResourceACRServer.Tests.ps1",
+        "InstallPSResourceTests/InstallPSResourceACRServer.Tests.ps1",
+        "PublishPSResourceTests/PublishPSResourceACRServer.Tests.ps1"
+    )
+
+    Invoke-ModuleTests -Type $Type -TestFilePath $acrTestFiles
+}
+
+
 function Invoke-ModuleTests {
     [CmdletBinding()]
     param (
        [ValidateSet("Functional", "StaticAnalysis")]
-       [string[]] $Type = "Functional"
+       [string[]] $Type = "Functional",
+       [string[]] $TestFilePath = "."
     )
 
     Write-Verbose -Verbose -Message "Starting module Pester tests..."
@@ -143,7 +161,15 @@ function Invoke-ModuleTests {
     $testPath = $config.TestPath
     Write-Verbose -Verbose $config.ModuleName
     $moduleToTest = Join-Path -Path $config.BuildOutputPath -ChildPath "Microsoft.PowerShell.PSResourceGet"
-    $command = "Import-Module -Name ${moduleToTest} -Force -Verbose; Set-Location -Path ${testPath}; Invoke-Pester -Path . -OutputFile ${testResultFileName} -Tags '${tags}' -ExcludeTag '${excludeTag}'"
+
+    if ($TestFilePath.Count -gt 1) {
+        $TestFilePathJoined = $TestFilePath -join ','
+    }
+    else {
+        $TestFilePathJoined = $TestFilePath
+    }
+
+    $command = "Import-Module -Name ${moduleToTest} -Force -Verbose; Set-Location -Path ${testPath}; Invoke-Pester -Script ${TestFilePathJoined} -OutputFile ${testResultFileName} -Tags '${tags}' -ExcludeTag '${excludeTag}'"
     $pwshExePath = (Get-Process -Id $pid).Path
 
     Write-Verbose -Verbose -Message "Running Pester tests with command: $command using pwsh.exe path: $pwshExePath"

@@ -13,6 +13,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private static readonly HashSet<string> s_dependencies;
         private static readonly AssemblyLoadContextProxy s_proxy;
 
+        private static readonly HashSet<string> NetFrameworkLoadFromPath = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "System.Runtime.CompilerServices.Unsafe",
+            "System.Memory",
+            "System.Diagnostics.DiagnosticSource",
+            "System.Text.Json",
+            "System.Security.Cryptography.ProtectedData"
+        };
+
         static UnsafeAssemblyHandler()
         {
             s_self = Assembly.GetExecutingAssembly();
@@ -52,13 +61,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private static Assembly HandleAssemblyResolve(object sender, ResolveEventArgs args)
         {
             var requiredAssembly = new AssemblyName(args.Name);
+            string requiredAssemblyName = requiredAssembly.Name;
 
-            // If on .NET framework and requesting assembly is System.Memory load the version dependency folder
+            // If on .NET framework load specific assemblies from dependency folder
             if (s_proxy is null
-                && string.Equals(requiredAssembly.Name, "System.Runtime.CompilerServices.Unsafe"))
+                && NetFrameworkLoadFromPath.Contains(requiredAssemblyName))
             {
-                var compileServiceDllPath = Path.Combine(s_dependencyFolder, "System.Runtime.CompilerServices.Unsafe.dll");
-                return Assembly.LoadFrom(compileServiceDllPath);
+                var netFxDepDllPath = Path.Combine(s_dependencyFolder, $"{requiredAssemblyName}.dll");
+                return Assembly.LoadFrom(netFxDepDllPath);
             }
 
             if (IsAssemblyMatching(requiredAssembly, args.RequestingAssembly))

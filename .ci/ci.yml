@@ -137,3 +137,10 @@ stages:
       jobName: TestPkgWinMacOS
       displayName: PowerShell Core on macOS
       imageName: macOS-latest
+
+  - template: test.yml
+    parameters:
+      jobName: TestPkgWinAzAuth
+      displayName: AzAuth PowerShell Core on Windows
+      imageName: windows-latest
+      useAzAuth: true
