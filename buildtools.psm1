@@ -161,7 +161,15 @@ function Invoke-ModuleTests {
     $testPath = $config.TestPath
     Write-Verbose -Verbose $config.ModuleName
     $moduleToTest = Join-Path -Path $config.BuildOutputPath -ChildPath "Microsoft.PowerShell.PSResourceGet"
-    $command = "Import-Module -Name ${moduleToTest} -Force -Verbose; Set-Location -Path ${testPath}; Invoke-Pester -Script ${TestFilePath} -OutputFile ${testResultFileName} -Tags '${tags}' -ExcludeTag '${excludeTag}'"
+
+    if ($TestFilePath.Count -gt 1) {
+        $TestFilePathJoined = $TestFilePath -join ','
+    }
+    else {
+        $TestFilePathJoined = $TestFilePath
+    }
+
+    $command = "Import-Module -Name ${moduleToTest} -Force -Verbose; Set-Location -Path ${testPath}; Invoke-Pester -Script ${TestFilePathJoined} -OutputFile ${testResultFileName} -Tags '${tags}' -ExcludeTag '${excludeTag}'"
     $pwshExePath = (Get-Process -Id $pid).Path
 
     Write-Verbose -Verbose -Message "Running Pester tests with command: $command using pwsh.exe path: $pwshExePath"
