@@ -80,7 +80,6 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Count | Should -BeGreaterOrEqual 1
     }
 
-    <# TODO: prerelease handling not yet implemented in ACR Server Protocol
     It "Find resource given specific Name, Version null but allowing Prerelease" {
         # FindName()
         $res = Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Prerelease
@@ -105,7 +104,6 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $resWithPrerelease = Find-PSResource -Name $testModuleName -Version "*" -Repository $ACRRepoName -Prerelease
         $resWithPrerelease.Count | Should -BeGreaterOrEqual $resWithoutPrerelease.Count
     }
-    #>
 
     It "Should not find resource if Name, Version and Tag property are not all satisfied (single tag)" {
         # FindVersionWithTag()
