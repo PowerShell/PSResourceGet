@@ -827,6 +827,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 Hashtable metadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
                 JsonElement rootDom = packageMetadata.RootElement;
+                metadata["IsPrerelease"] = false;
+                metadata["Prerelease"] = String.Empty;
 
                 // Version
                 // For scripts (i.e with "Version" property) the version can contain prerelease label
