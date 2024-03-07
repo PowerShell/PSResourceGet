@@ -1612,7 +1612,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             List<Hashtable> latestVersionResponse = new List<Hashtable>();
             List<JToken> allVersionsList = foundTags["tags"].ToList();
 
-            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, versionType, versionRange, requiredVersion, packageNameLowercase, includePrerelease, getOnlyLatest, out errRecord);
+            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, versionType, versionRange, requiredVersion, packageNameLowercase, includePrerelease, out errRecord);
             if (errRecord != null)
             {
                 return emptyHashResponses;
@@ -1630,12 +1630,17 @@ namespace Microsoft.PowerShell.PSResourceGet
                 }
 
                 latestVersionResponse.Add(metadata);
+                if (getOnlyLatest)
+                {
+                    // getOnlyLatest will be true for FindName(), as only the latest criteria satisfying version should be returned
+                    break;
+                }
             }   
 
             return latestVersionResponse.ToArray();
         }
 
-        private SortedDictionary<NuGet.Versioning.SemanticVersion, string> GetPackagesWithRequiredVersion(List<JToken> allPkgVersions, VersionType versionType, VersionRange versionRange, NuGetVersion specificVersion, string packageName, bool includePrerelease, bool getOnlyLatest, out ErrorRecord errRecord)
+        private SortedDictionary<NuGet.Versioning.SemanticVersion, string> GetPackagesWithRequiredVersion(List<JToken> allPkgVersions, VersionType versionType, VersionRange versionRange, NuGetVersion specificVersion, string packageName, bool includePrerelease, out ErrorRecord errRecord)
         {
             errRecord = null;
             // we need NuGetVersion to sort versions by order, and string pkgVersionString (which is the exact tag from the server) to call GetACRMetadata() later with exact version tag.
@@ -1688,11 +1693,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                         {
                             // accounts for FindVersionGlobbing() and FindName() scenario
                             sortedPkgs.Add(pkgVersion, pkgVersionString);
-                            if (getOnlyLatest)
-                            {
-                                // getOnlyLatest will be true for FindName(), as only the latest criteria satisfying version should be returned
-                                break;
-                            }
                         }
                     }
                 }
