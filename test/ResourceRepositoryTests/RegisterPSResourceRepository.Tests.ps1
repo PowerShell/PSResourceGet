@@ -406,7 +406,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
 
     It "should register container registry repository with correct ApiVersion" {
         $ContainerRegistryName = "ACRRepo"
-        $ContainerRegistryUri = "https://psresourcegettest.azurecr.io"
+        $ContainerRegistryUri = "https://psresourcegettest.azurecr.io/"
         Register-PSResourceRepository -Name $ContainerRegistryName -Uri $ContainerRegistryUri
         $res = Get-PSResourceRepository -Name $ContainerRegistryName
 
