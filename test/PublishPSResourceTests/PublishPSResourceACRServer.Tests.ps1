@@ -371,10 +371,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Version | Should -Be $scriptVersion
     }
 
-    <# This test does not work currently due to a bug if the last digit is 0. Link to issue: https://github.com/PowerShell/PSResourceGet/issues/1582
     It "Should publish a script without lines in between comment blocks locally" {
         $scriptName = "ScriptWithoutEmptyLinesBetweenCommentBlocks"
-        $scriptVersion = "1.0.0"
+        $scriptVersion = "1.0"
         $scriptPath = (Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1")
 
         Publish-PSResource -Path $scriptPath -Repository $ACRRepoName
@@ -384,12 +383,10 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Name | Should -Be $scriptName
         $results[0].Version | Should -Be $scriptVersion
     }
-    #>
 
-    <# This test does not work currently due to a bug if the last digit is 0. Link to issue: https://github.com/PowerShell/PSResourceGet/issues/1582
     It "Should publish a script without lines in help block locally" {
         $scriptName = "ScriptWithoutEmptyLinesInMetadata"
-        $scriptVersion = "1.0.0"
+        $scriptVersion = "1.0"
         $scriptPath = (Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1")
 
         Publish-PSResource -Path $scriptPath -Repository $ACRRepoName
@@ -399,7 +396,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Name | Should -Be $scriptName
         $results[0].Version | Should -Be $scriptVersion
     }
-    #>
 
     It "Should publish a script with ExternalModuleDependencies that are not published" {
         $scriptName = "ScriptWithExternalDependencies"
