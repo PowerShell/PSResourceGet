@@ -154,9 +154,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             List<JToken> allVersionsList = foundTags["tags"].ToList();
 
             SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, VersionType.VersionRange, VersionRange.All, specificVersion: null, packageName, includePrerelease, out errRecord);
-            foreach(KeyValuePair<NuGet.Versioning.SemanticVersion, string> s in sortedQualifyingPkgs.Reverse())
+            foreach(KeyValuePair<NuGet.Versioning.SemanticVersion, string> pkgVersionTag in sortedQualifyingPkgs.Reverse())
             {
-                string exactTagVersion = s.Value.ToString();
+                string exactTagVersion = pkgVersionTag.Value.ToString();
                 Hashtable metadata = GetACRMetadata(Registry, packageNameLowercase, exactTagVersion, acrAccessToken, out errRecord);
                 if (errRecord != null || metadata.Count == 0)
                 {
@@ -260,9 +260,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             List<Hashtable> latestVersionResponse = new List<Hashtable>();
             List<JToken> allVersionsList = foundTags["tags"].ToList();
             SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, VersionType.VersionRange, versionRange, specificVersion: null, packageName, includePrerelease, out errRecord);
-            foreach(KeyValuePair<NuGet.Versioning.SemanticVersion, string> s in sortedQualifyingPkgs.Reverse())
+            foreach(KeyValuePair<NuGet.Versioning.SemanticVersion, string> pkgVersionTag in sortedQualifyingPkgs.Reverse())
             {
-                string exactTagVersion = s.Value.ToString();
+                string exactTagVersion = pkgVersionTag.Value.ToString();
                 Hashtable metadata = GetACRMetadata(Registry, packageName.ToLower(), exactTagVersion, acrAccessToken, out errRecord);
                 if (errRecord != null || metadata.Count == 0)
                 {
@@ -320,9 +320,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             List<JToken> allVersionsList = foundTags["tags"].ToList();
 
             SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, VersionType.SpecificVersion, VersionRange.All, requiredVersion, packageName, includePrereleaseVersions, out errRecord);
-            foreach(KeyValuePair<NuGet.Versioning.SemanticVersion, string> s in sortedQualifyingPkgs.Reverse())
+            foreach(KeyValuePair<NuGet.Versioning.SemanticVersion, string> pkgVersionTag in sortedQualifyingPkgs.Reverse())
             {
-                string exactTagVersion = s.Value.ToString();
+                string exactTagVersion = pkgVersionTag.Value.ToString();
                 Hashtable metadata = GetACRMetadata(Registry, packageNameLowercase, exactTagVersion, acrAccessToken, out errRecord);
                 if (errRecord != null || metadata.Count == 0)
                 {
