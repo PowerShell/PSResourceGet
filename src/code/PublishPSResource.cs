@@ -494,7 +494,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 string repositoryUri = repository.Uri.AbsoluteUri;
 
-                if (repository.ApiVersion == PSRepositoryInfo.APIVersion.acr)
+                if (repository.ApiVersion == PSRepositoryInfo.APIVersion.ContainerRegistry)
                 {
                     ACRServerAPICalls acrServer = new ACRServerAPICalls(repository, this, _networkCredential, userAgentString);
 

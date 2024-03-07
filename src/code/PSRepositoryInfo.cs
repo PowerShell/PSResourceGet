@@ -15,12 +15,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         public enum APIVersion
         {
-            unknown,
-            v2,
-            v3,
-            local,
-            nugetServer,
-            acr
+            Unknown,
+            V2,
+            V3,
+            Local,
+            NugetServer,
+            ContainerRegistry
         }
 
         #endregion

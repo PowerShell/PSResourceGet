@@ -43,27 +43,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             switch (repoApiVersion)
             {
-                case PSRepositoryInfo.APIVersion.v2:
+                case PSRepositoryInfo.APIVersion.V2:
                     currentServer = new V2ServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
                     break;
 
-                case PSRepositoryInfo.APIVersion.v3:
+                case PSRepositoryInfo.APIVersion.V3:
                     currentServer = new V3ServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
                     break;
 
-                case PSRepositoryInfo.APIVersion.local:
+                case PSRepositoryInfo.APIVersion.Local:
                     currentServer = new LocalServerAPICalls(repository, cmdletPassedIn, networkCredential);
                     break;
 
-                case PSRepositoryInfo.APIVersion.nugetServer:
+                case PSRepositoryInfo.APIVersion.NugetServer:
                     currentServer = new NuGetServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
                     break;
 
-                case PSRepositoryInfo.APIVersion.acr:
+                case PSRepositoryInfo.APIVersion.ContainerRegistry:
                     currentServer = new ACRServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
                     break;
 
-                case PSRepositoryInfo.APIVersion.unknown:
+                case PSRepositoryInfo.APIVersion.Unknown:
                     break;
             }
 

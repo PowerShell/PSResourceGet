@@ -315,7 +315,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 repositoryNamesToSearch.Add(repoName);
-                if ((currentRepository.ApiVersion == PSRepositoryInfo.APIVersion.v3) && (!installDepsForRepo))
+                if ((currentRepository.ApiVersion == PSRepositoryInfo.APIVersion.V3) && (!installDepsForRepo))
                 {
                     _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
                     installDepsForRepo = true;
@@ -598,7 +598,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (!skipDependencyCheck)
                     {
-                        if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+                        if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V3)
                         {
                             _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
                         }

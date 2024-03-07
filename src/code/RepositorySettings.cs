@@ -7,8 +7,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Security.Cryptography;
-using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using static Microsoft.PowerShell.PSResourceGet.UtilClasses.PSRepositoryInfo;
@@ -63,7 +61,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 // Add PSGallery to the newly created store
                 Uri psGalleryUri = new Uri(PSGalleryRepoUri);
-                Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null, PSRepositoryInfo.APIVersion.v2, force: false);
+                Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null, PSRepositoryInfo.APIVersion.V2, force: false);
             }
 
             // Open file (which should exist now), if cannot/is corrupted then throw error
@@ -416,7 +414,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // Update APIVersion if necessary
-                PSRepositoryInfo.APIVersion resolvedAPIVersion = PSRepositoryInfo.APIVersion.unknown;
+                PSRepositoryInfo.APIVersion resolvedAPIVersion = PSRepositoryInfo.APIVersion.Unknown;
                 if (apiVersion != null)
                 {
                     resolvedAPIVersion = (PSRepositoryInfo.APIVersion)apiVersion;
@@ -424,7 +422,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
                 else
                 {
-                    resolvedAPIVersion = (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value);
+                    resolvedAPIVersion = (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true);
                 }
 
 
@@ -531,7 +529,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         Int32.Parse(node.Attribute("Priority").Value),
                         Boolean.Parse(node.Attribute("Trusted").Value),
                         repoCredentialInfo,
-                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value)));
+                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true)));
 
                 // Remove item from file
                 node.Remove();
@@ -661,7 +659,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         Int32.Parse(repo.Attribute("Priority").Value),
                         Boolean.Parse(repo.Attribute("Trusted").Value),
                         thisCredentialInfo,
-                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), repo.Attribute("APIVersion").Value));
+                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), repo.Attribute("APIVersion").Value, ignoreCase: true));
 
                     foundRepos.Add(currentRepoItem);
                 }
@@ -765,7 +763,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             Int32.Parse(node.Attribute("Priority").Value),
                             Boolean.Parse(node.Attribute("Trusted").Value),
                             thisCredentialInfo,
-                            (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value));
+                            (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true));
 
                         foundRepos.Add(currentRepoItem);
                     }
@@ -823,30 +821,30 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (repoUri.AbsoluteUri.EndsWith("/v2", StringComparison.OrdinalIgnoreCase))
             {
                 // Scenario: V2 server protocol repositories (i.e PSGallery)
-                return PSRepositoryInfo.APIVersion.v2;
+                return PSRepositoryInfo.APIVersion.V2;
             }
             else if (repoUri.AbsoluteUri.EndsWith("/index.json", StringComparison.OrdinalIgnoreCase))
             {
                 // Scenario: V3 server protocol repositories (i.e NuGet.org, Azure Artifacts (ADO), Artifactory, Github Packages, MyGet.org)
-                return PSRepositoryInfo.APIVersion.v3;
+                return PSRepositoryInfo.APIVersion.V3;
             }
             else if (repoUri.AbsoluteUri.EndsWith("/nuget", StringComparison.OrdinalIgnoreCase))
             {
                 // Scenario: ASP.Net application feed created with NuGet.Server to host packages
-                return PSRepositoryInfo.APIVersion.nugetServer;
+                return PSRepositoryInfo.APIVersion.NugetServer;
             }
             else if (repoUri.Scheme.Equals(Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase) || repoUri.Scheme.Equals("temp", StringComparison.OrdinalIgnoreCase))
             {
                 // repositories with Uri Scheme "temp" may have PSPath Uri's like: "Temp:\repo" and we should consider them as local repositories.
-                return PSRepositoryInfo.APIVersion.local;
+                return PSRepositoryInfo.APIVersion.Local;
             }
             else if (repoUri.AbsoluteUri.EndsWith(".azurecr.io") || repoUri.AbsoluteUri.EndsWith(".azurecr.io/"))
             {
-                return PSRepositoryInfo.APIVersion.acr;
+                return PSRepositoryInfo.APIVersion.ContainerRegistry;
             }
             else
             {
-                return PSRepositoryInfo.APIVersion.unknown;
+                return PSRepositoryInfo.APIVersion.Unknown;
             }
         }
 
