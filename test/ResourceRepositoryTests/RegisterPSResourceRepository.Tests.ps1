@@ -411,7 +411,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $res = Get-PSResourceRepository -Name $ContainerRegistryName
 
         $res.Name | Should -Be $ContainerRegistryName
-        $res.Uri.LocalPath | Should -Contain $ContainerRegistryUri
+        $res.Uri.AbsoluteUri | Should -Contain $ContainerRegistryUri
         $res.ApiVersion | Should -Be 'ContainerRegistry'
     }
 }
