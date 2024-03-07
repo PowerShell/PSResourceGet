@@ -1027,7 +1027,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             // Create and upload manifest 
             TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, pkgName, resourceType, metadataJson, configFilePath, 
-                pkgNameLower, pkgVersion, acrAccessToken, out HttpResponseMessage manifestResponse);
+                pkgNameLower, pkgVersion, acrAccessToken);
 
             return true;
         }
