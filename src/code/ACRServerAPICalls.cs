@@ -133,48 +133,15 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindName()");
-            string accessToken = string.Empty;
-            string tenantID = string.Empty;
-            string packageNameLowercase = packageName.ToLower();
 
-            string acrAccessToken = GetAcrAccessToken(Repository, out errRecord);
+            // for FindName(), need to consider all versions (hence VersionType.VersionRange and VersionRange.All, and no requiredVersion) but only pick latest (hence getOnlyLatest: true)
+            Hashtable[] pkgResult = FindPackagesWithVersionHelper(packageName, VersionType.VersionRange, versionRange: VersionRange.All, requiredVersion: null, includePrerelease, getOnlyLatest: true, out errRecord);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            _cmdletPassedIn.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(Registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
-            if (errRecord != null || foundTags == null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            List<Hashtable> latestVersionResponse = new List<Hashtable>();
-            List<JToken> allVersionsList = foundTags["tags"].ToList();
-
-            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, VersionType.VersionRange, VersionRange.All, specificVersion: null, packageName, includePrerelease, out errRecord);
-            if (errRecord != null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            var pkgsInDescendingOrder = sortedQualifyingPkgs.Reverse();
-
-            foreach(var pkgVersionTag in pkgsInDescendingOrder)
-            {
-                string exactTagVersion = pkgVersionTag.Value.ToString();
-                Hashtable metadata = GetACRMetadata(Registry, packageNameLowercase, exactTagVersion, acrAccessToken, out errRecord);
-                if (errRecord != null || metadata.Count == 0)
-                {
-                    return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-                }
-
-                latestVersionResponse.Add(metadata);
-                break;
-            }
-
-            return new FindResults(stringResponse: new string[] {}, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResult.ToArray(), responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -193,7 +160,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                 this);
 
             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-
         }
 
         /// <summary>
@@ -246,47 +212,15 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindVersionGlobbing()");
-            string accessToken = string.Empty;
-            string tenantID = string.Empty;
-            string packageNameLowercase = packageName.ToLower();
 
-            string registryUrl = Repository.Uri.ToString();
-            string acrAccessToken = GetAcrAccessToken(Repository, out errRecord);
+            // for FindVersionGlobbing(), need to consider all versions that match version range criteria (hence VersionType.VersionRange and no requiredVersion)
+            Hashtable[] pkgResults = FindPackagesWithVersionHelper(packageName, VersionType.VersionRange, versionRange: versionRange, requiredVersion: null, includePrerelease, getOnlyLatest: false, out errRecord);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            _cmdletPassedIn.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(Registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
-            if (errRecord != null || foundTags == null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            List<Hashtable> latestVersionResponse = new List<Hashtable>();
-            List<JToken> allVersionsList = foundTags["tags"].ToList();
-            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, VersionType.VersionRange, versionRange, specificVersion: null, packageName, includePrerelease, out errRecord);
-            if (errRecord != null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            var pkgsInDescendingOrder = sortedQualifyingPkgs.Reverse();
-
-            foreach(var pkgVersionTag in pkgsInDescendingOrder)
-            {
-                string exactTagVersion = pkgVersionTag.Value.ToString();
-                Hashtable metadata = GetACRMetadata(Registry, packageName.ToLower(), exactTagVersion, acrAccessToken, out errRecord);
-                if (errRecord != null || metadata.Count == 0)
-                {
-                    return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-                }
-
-                latestVersionResponse.Add(metadata);
-            }
-
-            return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResults.ToArray(), responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -299,7 +233,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindVersion()");
-            string packageNameLowercase = packageName.ToLower();
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
                 errRecord = new ErrorRecord(
@@ -314,46 +247,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{requiredVersion}'");
             bool includePrereleaseVersions = requiredVersion.IsPrerelease;
 
-            string accessToken = string.Empty;
-            string tenantID = string.Empty;
-            string registryUrl = Repository.Uri.ToString();
-
-            string acrAccessToken = GetAcrAccessToken(Repository, out errRecord);
+            // for FindVersion(), need to consider the specific required version (hence VersionType.SpecificVersion and no version range)
+            Hashtable[] pkgResult = FindPackagesWithVersionHelper(packageName, VersionType.SpecificVersion, versionRange: VersionRange.None, requiredVersion: requiredVersion, includePrereleaseVersions, getOnlyLatest: false, out errRecord);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            var foundTags = FindAcrImageTags(Registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
-            if (errRecord != null || foundTags == null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            List<Hashtable> latestVersionResponse = new List<Hashtable>();
-            List<JToken> allVersionsList = foundTags["tags"].ToList();
-
-            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, VersionType.SpecificVersion, VersionRange.All, requiredVersion, packageName, includePrereleaseVersions, out errRecord);
-            if (errRecord != null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            var pkgsInDescendingOrder = sortedQualifyingPkgs.Reverse();
-
-            foreach(var pkgVersionTag in pkgsInDescendingOrder)
-            {
-                string exactTagVersion = pkgVersionTag.Value.ToString();
-                Hashtable metadata = GetACRMetadata(Registry, packageNameLowercase, exactTagVersion, acrAccessToken, out errRecord);
-                if (errRecord != null || metadata.Count == 0)
-                {
-                    return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-                }
-
-                latestVersionResponse.Add(metadata);
-            }
-
-            return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResult.ToArray(), responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -701,7 +602,6 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                     return requiredVersionResponse;
                 }
-
 
                 if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
                 {
@@ -1690,7 +1590,52 @@ namespace Microsoft.PowerShell.PSResourceGet
             return jsonString;
         }
 
-        private SortedDictionary<NuGet.Versioning.SemanticVersion, string> GetPackagesWithRequiredVersion(List<JToken> allPkgVersions, VersionType versionType, VersionRange versionRange, NuGetVersion specificVersion, string packageName, bool includePrerelease, out ErrorRecord errRecord)
+        private Hashtable[] FindPackagesWithVersionHelper(string packageName, VersionType versionType, VersionRange versionRange, NuGetVersion requiredVersion, bool includePrerelease, bool getOnlyLatest, out ErrorRecord errRecord)
+        {
+            string accessToken = string.Empty;
+            string tenantID = string.Empty;
+            string registryUrl = Repository.Uri.ToString();
+            string packageNameLowercase = packageName.ToLower();
+
+            string acrAccessToken = GetAcrAccessToken(Repository, out errRecord);
+            if (errRecord != null)
+            {
+                return emptyHashResponses;
+            }
+
+            var foundTags = FindAcrImageTags(Registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
+            if (errRecord != null || foundTags == null)
+            {
+                return emptyHashResponses;
+            }
+
+            List<Hashtable> latestVersionResponse = new List<Hashtable>();
+            List<JToken> allVersionsList = foundTags["tags"].ToList();
+
+            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, versionType, versionRange, requiredVersion, packageNameLowercase, includePrerelease, getOnlyLatest, out errRecord);
+            if (errRecord != null)
+            {
+                return emptyHashResponses;
+            }
+
+            var pkgsInDescendingOrder = sortedQualifyingPkgs.Reverse();
+
+            foreach(var pkgVersionTag in pkgsInDescendingOrder)
+            {
+                string exactTagVersion = pkgVersionTag.Value.ToString();
+                Hashtable metadata = GetACRMetadata(Registry, packageNameLowercase, exactTagVersion, acrAccessToken, out errRecord);
+                if (errRecord != null || metadata.Count == 0)
+                {
+                    return emptyHashResponses;
+                }
+
+                latestVersionResponse.Add(metadata);
+            }   
+
+            return latestVersionResponse.ToArray();
+        }
+
+        private SortedDictionary<NuGet.Versioning.SemanticVersion, string> GetPackagesWithRequiredVersion(List<JToken> allPkgVersions, VersionType versionType, VersionRange versionRange, NuGetVersion specificVersion, string packageName, bool includePrerelease, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             errRecord = null;
             // we need NuGetVersion to sort versions by order, and string pkgVersionString (which is the exact tag from the server) to call GetACRMetadata() later with exact version tag.
@@ -1732,6 +1677,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     {
                         if (pkgVersion.ToNormalizedString() == specificVersion.ToNormalizedString())
                         {
+                            // accounts for FindVersion() scenario
                             sortedPkgs.Add(pkgVersion, pkgVersionString);
                             break;
                         }
@@ -1740,7 +1686,13 @@ namespace Microsoft.PowerShell.PSResourceGet
                     {
                         if (versionRange.Satisfies(pkgVersion) && (!pkgVersion.IsPrerelease || includePrerelease))
                         {
+                            // accounts for FindVersionGlobbing() and FindName() scenario
                             sortedPkgs.Add(pkgVersion, pkgVersionString);
+                            if (getOnlyLatest)
+                            {
+                                // getOnlyLatest will be true for FindName(), as only the latest criteria satisfying version should be returned
+                                break;
+                            }
                         }
                     }
                 }
