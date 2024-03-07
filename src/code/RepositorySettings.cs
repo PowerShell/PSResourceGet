@@ -422,7 +422,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
                 else
                 {
-                    resolvedAPIVersion = (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value);
+                    resolvedAPIVersion = (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true);
                 }
 
 
@@ -529,7 +529,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         Int32.Parse(node.Attribute("Priority").Value),
                         Boolean.Parse(node.Attribute("Trusted").Value),
                         repoCredentialInfo,
-                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value)));
+                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true)));
 
                 // Remove item from file
                 node.Remove();
@@ -659,7 +659,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         Int32.Parse(repo.Attribute("Priority").Value),
                         Boolean.Parse(repo.Attribute("Trusted").Value),
                         thisCredentialInfo,
-                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), repo.Attribute("APIVersion").Value));
+                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), repo.Attribute("APIVersion").Value, ignoreCase: true));
 
                     foundRepos.Add(currentRepoItem);
                 }
