@@ -373,7 +373,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
     It "Should publish a script without lines in between comment blocks locally" {
         $scriptName = "ScriptWithoutEmptyLinesBetweenCommentBlocks"
-        $scriptVersion = "1.0.0"
+        $scriptVersion = "1.0"
         $scriptPath = (Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1")
 
         Publish-PSResource -Path $scriptPath -Repository $ACRRepoName
@@ -386,7 +386,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
     It "Should publish a script without lines in help block locally" {
         $scriptName = "ScriptWithoutEmptyLinesInMetadata"
-        $scriptVersion = "1.0.0"
+        $scriptVersion = "1.0"
         $scriptPath = (Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1")
 
         Publish-PSResource -Path $scriptPath -Repository $ACRRepoName
