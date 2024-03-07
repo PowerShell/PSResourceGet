@@ -8,7 +8,7 @@ function CreateTestModule
 {
     param (
         [string] $Path = "$TestDrive",
-        [string] $ModuleName = 'temp-psresourcegettemptestmodule'
+        [string] $ModuleName = 'temp-testmodule'
     )
 
     $modulePath = Join-Path -Path $Path -ChildPath $ModuleName
@@ -63,7 +63,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         # Create module
         $script:tmpModulesPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
-        $script:PublishModuleName = "temp-psresourcegettemptestmodule" + [System.Guid]::NewGuid();
+        $script:PublishModuleName = "Temp-TestModule" + [System.Guid]::NewGuid();
         $script:PublishModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:PublishModuleName
         if(!(Test-Path $script:PublishModuleBase))
         {
@@ -72,12 +72,17 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 		$script:PublishModuleBaseUNC = $script:PublishModuleBase -Replace '^(.):', '\\localhost\$1$'
 
         #Create dependency module
-        $script:DependencyModuleName = "TEMP-PackageManagement"
+        $script:DependencyModuleName = "Temp-PackageManagement"
         $script:DependencyModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:DependencyModuleName
         if(!(Test-Path $script:DependencyModuleBase))
         {
             New-Item -Path $script:DependencyModuleBase -ItemType Directory -Force
         }
+
+        # create names of other modules and scripts that will be referenced in test
+        $script:ModuleWithoutRequiredModuleName = "Temp-ModuleWithoutRequiredModule-" + [System.Guid]::NewGuid()
+        $script:ScriptName = "Temp-TestScript" + [System.Guid]::NewGuid();
+        $script:ScriptWithExternalDeps = "Temp-TestScriptWithExternalDeps"
 
         # Create temp destination path
         $script:destinationPath = [IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"))
@@ -107,19 +112,24 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
     AfterAll {
         Get-RevertPSResourceRepositoryFile
+
+        # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
+        Remove-AzContainerRegistryRepository -Name $script:PublishModuleName -RegistryName psresourcegettest
+        Remove-AzContainerRegistryRepository -Name $script:ModuleWithoutRequiredModuleName -RegistryName psresourcegettest
+        Remove-AzContainerRegistryRepository -Name $script:ScriptName -RegistryName psresourcegettest
+        Remove-AzContainerRegistryRepository -Name $script:ScriptWithExternalDeps -RegistryName psresourcegettest
     }
 
     It "Publish module with required module not installed on the local machine using -SkipModuleManifestValidate" {
-        $ModuleName = "modulewithmissingrequiredmodule-" + [System.Guid]::NewGuid()
-        CreateTestModule -Path $TestDrive -ModuleName $ModuleName
+        CreateTestModule -Path $TestDrive -ModuleName $script:ModuleWithoutRequiredModuleName
 
         # Skip the module manifest validation test, which fails from the missing manifest required module.
-        $testModulePath = Join-Path -Path $TestDrive -ChildPath $ModuleName
+        $testModulePath = Join-Path -Path $TestDrive -ChildPath $script:ModuleWithoutRequiredModuleName
         Publish-PSResource -Path $testModulePath -Repository $ACRRepoName -Confirm:$false -SkipDependenciesCheck -SkipModuleManifestValidate
 
-        $results = Find-PSResource -Name $ModuleName -Repository $ACRRepoName
+        $results = Find-PSResource -Name $script:ModuleWithoutRequiredModuleName -Repository $ACRRepoName
         $results | Should -Not -BeNullOrEmpty
-        $results[0].Name | Should -Be $ModuleName
+        $results[0].Name | Should -Be $script:ModuleWithoutRequiredModuleName
         $results[0].Version | Should -Be "1.0.0"
     }
 
@@ -342,32 +352,29 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
 
     It "Publish a script"{
-        $scriptBaseName = "temp-testscript"
-        $scriptName = $scriptBaseName + [System.Guid]::NewGuid();
         $scriptVersion = "1.0.0"
-
         $params = @{
             Version = $scriptVersion
             GUID = [guid]::NewGuid()
             Author = 'Jane'
             CompanyName = 'Microsoft Corporation'
             Copyright = '(c) 2024 Microsoft Corporation. All rights reserved.'
-            Description = "Description for the $scriptBaseName script"
-            LicenseUri = "https://$scriptBaseName.com/license"
-            IconUri = "https://$scriptBaseName.com/icon"
-            ProjectUri = "https://$scriptBaseName.com"
-            Tags = @('Tag1','Tag2', "Tag-$scriptBaseName-$scriptVersion")
-            ReleaseNotes = "$scriptBaseName release notes"
+            Description = "Description for the $script:ScriptName script"
+            LicenseUri = "https://$script:ScriptName.com/license"
+            IconUri = "https://$script:ScriptName.com/icon"
+            ProjectUri = "https://$script:ScriptName.com"
+            Tags = @('Tag1','Tag2', "Tag-$script:ScriptName-$scriptVersion")
+            ReleaseNotes = "$script:ScriptName release notes"
             }
 
-        $scriptPath = (Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$scriptName.ps1")
+        $scriptPath = (Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$script:ScriptName.ps1")
         New-PSScriptFileInfo @params -Path $scriptPath
 
         Publish-PSResource -Path $scriptPath -Repository $ACRRepoName
 
-        $results = Find-PSResource -Name $scriptName -Repository $ACRRepoName
+        $results = Find-PSResource -Name $script:ScriptName -Repository $ACRRepoName
         $results | Should -Not -BeNullOrEmpty
-        $results[0].Name | Should -Be $scriptName
+        $results[0].Name | Should -Be $script:ScriptName
         $results[0].Version | Should -Be $scriptVersion
     }
 
@@ -402,16 +409,15 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     #>
 
     It "Should publish a script with ExternalModuleDependencies that are not published" {
-        $scriptName = "ScriptWithExternalDependencies"
         $scriptVersion = "1.0.0"
-        $scriptPath = Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1"
+        $scriptPath = Join-Path -Path $script:tmpScriptsFolderPath -ChildPath $script:ScriptWithExternalDeps
         New-PSScriptFileInfo -Description 'test' -Version $scriptVersion -RequiredModules @{ModuleName='testModule'} -ExternalModuleDependencies 'testModule' -Path $scriptPath -Force
 
         Publish-PSResource -Path $scriptPath -Repository $ACRRepoName
 
-        $results = Find-PSResource -Name $scriptName -Repository $ACRRepoName
+        $results = Find-PSResource -Name $script:ScriptWithExternalDeps -Repository $ACRRepoName
         $results | Should -Not -BeNullOrEmpty
-        $results[0].Name | Should -Be $scriptName
+        $results[0].Name | Should -Be $script:ScriptWithExternalDeps
         $results[0].Version | Should -Be $scriptVersion
     }
 
@@ -487,7 +493,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         { Publish-PSResource -Path $incorrectmoduleversion -Repository $ACRRepoName -ErrorAction Stop } | Should -Throw -ErrorId "InvalidModuleManifest,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
-
 
     It "Publish a module with a dependency that has an invalid version format, should throw" {
         $moduleName = "incorrectdepmoduleversion"
