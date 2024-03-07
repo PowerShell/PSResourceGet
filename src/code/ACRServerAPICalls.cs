@@ -154,7 +154,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             List<JToken> allVersionsList = foundTags["tags"].ToList();
 
             SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, VersionType.VersionRange, VersionRange.All, specificVersion: null, packageName, includePrerelease, out errRecord);
-            foreach(KeyValuePair<NuGet.Versioning.SemanticVersion, string> pkgVersionTag in sortedQualifyingPkgs.Reverse())
+            var pkgsInDescendingOrder = sortedQualifyingPkgs.Reverse();
+
+            foreach(var pkgVersionTag in pkgsInDescendingOrder)
             {
                 string exactTagVersion = pkgVersionTag.Value.ToString();
                 Hashtable metadata = GetACRMetadata(Registry, packageNameLowercase, exactTagVersion, acrAccessToken, out errRecord);
@@ -260,7 +262,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             List<Hashtable> latestVersionResponse = new List<Hashtable>();
             List<JToken> allVersionsList = foundTags["tags"].ToList();
             SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, VersionType.VersionRange, versionRange, specificVersion: null, packageName, includePrerelease, out errRecord);
-            foreach(KeyValuePair<NuGet.Versioning.SemanticVersion, string> pkgVersionTag in sortedQualifyingPkgs.Reverse())
+            var pkgsInDescendingOrder = sortedQualifyingPkgs.Reverse();
+
+            foreach(var pkgVersionTag in pkgsInDescendingOrder)
             {
                 string exactTagVersion = pkgVersionTag.Value.ToString();
                 Hashtable metadata = GetACRMetadata(Registry, packageName.ToLower(), exactTagVersion, acrAccessToken, out errRecord);
@@ -320,7 +324,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             List<JToken> allVersionsList = foundTags["tags"].ToList();
 
             SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, VersionType.SpecificVersion, VersionRange.All, requiredVersion, packageName, includePrereleaseVersions, out errRecord);
-            foreach(KeyValuePair<NuGet.Versioning.SemanticVersion, string> pkgVersionTag in sortedQualifyingPkgs.Reverse())
+            var pkgsInDescendingOrder = sortedQualifyingPkgs.Reverse();
+
+            foreach(var pkgVersionTag in pkgsInDescendingOrder)
             {
                 string exactTagVersion = pkgVersionTag.Value.ToString();
                 Hashtable metadata = GetACRMetadata(Registry, packageNameLowercase, exactTagVersion, acrAccessToken, out errRecord);
@@ -1710,8 +1716,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                     {
                         if (pkgVersion.ToNormalizedString() == specificVersion.ToNormalizedString())
                         {
-                            NuGet.Versioning.SemanticVersion semanticVersionOfPkg = new SemanticVersion(pkgVersion.Major, pkgVersion.Minor, pkgVersion.Patch, pkgVersion.IsPrerelease ? pkgVersion.Release: String.Empty);
-                            sortedPkgs.Add(semanticVersionOfPkg, pkgVersionElement.ToString());
+                            // NuGet.Versioning.SemanticVersion semanticVersionOfPkg = new SemanticVersion(pkgVersion.Major, pkgVersion.Minor, pkgVersion.Patch, pkgVersion.IsPrerelease ? pkgVersion.Release: String.Empty);
+                            // sortedPkgs.Add(semanticVersionOfPkg, pkgVersionElement.ToString());
+                            sortedPkgs.Add(pkgVersion, pkgVersionElement.ToString());
                             break;
                         }
                     }
@@ -1719,8 +1726,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                     {
                         if (versionRange.Satisfies(pkgVersion) && (!pkgVersion.IsPrerelease || includePrerelease))
                         {
-                            NuGet.Versioning.SemanticVersion semanticVersionOfPkg = new SemanticVersion(pkgVersion.Major, pkgVersion.Minor, pkgVersion.Patch, pkgVersion.IsPrerelease ? pkgVersion.Release: String.Empty);
-                            sortedPkgs.Add(semanticVersionOfPkg, pkgVersionElement.ToString());
+                            // NuGet.Versioning.SemanticVersion semanticVersionOfPkg = new SemanticVersion(pkgVersion.Major, pkgVersion.Minor, pkgVersion.Patch, pkgVersion.IsPrerelease ? pkgVersion.Release: String.Empty);
+                            // sortedPkgs.Add(semanticVersionOfPkg, pkgVersionElement.ToString());
+                            sortedPkgs.Add(pkgVersion, pkgVersionElement.ToString());
                         }
                     }
 
