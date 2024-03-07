@@ -655,8 +655,22 @@ namespace Microsoft.PowerShell.PSResourceGet
             using (JsonDocument metadataJSONDoc = JsonDocument.Parse(metadata))
             {
                 JsonElement rootDom = metadataJSONDoc.RootElement;
-                if (!rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement) &&
-                     !rootDom.TryGetProperty("Version", out pkgVersionElement))
+                if (rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement))
+                {
+                    // module metadata will have "ModuleVersion" property
+                    pkgVersionString = pkgVersionElement.ToString();
+                    if (rootDom.TryGetProperty("PrivateData", out JsonElement pkgPrivateDataElement) && pkgPrivateDataElement.TryGetProperty("PSData", out JsonElement pkgPSDataElement)
+                        && pkgPSDataElement.TryGetProperty("Prerelease", out JsonElement pkgPrereleaseLabelElement) && !String.IsNullOrEmpty(pkgPrereleaseLabelElement.ToString().Trim()))
+                    {
+                        pkgVersionString += $"-{pkgPrereleaseLabelElement.ToString()}";
+                    }
+                }
+                else if(rootDom.TryGetProperty("Version", out pkgVersionElement))
+                {
+                    // script metadata will have "Version" property
+                    pkgVersionString = pkgVersionElement.ToString();
+                }
+                else
                 {
                     errRecord = new ErrorRecord(
                         new InvalidOrEmptyResponse($"Response does not contain 'ModuleVersion' or 'Version' property in metadata for package '{packageName}' in '{Repository.Name}'."),
@@ -667,22 +681,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                     return requiredVersionResponse;
                 }
 
-                pkgVersionString = pkgVersionElement.ToString();
-                if (!(rootDom.TryGetProperty("PrivateData", out JsonElement pkgPrivateDataElement) && pkgPrivateDataElement.TryGetProperty("PSData", out JsonElement pkgPSDataElement)))
-                {
-                    errRecord = new ErrorRecord(
-                        new InvalidOrEmptyResponse($"Response does not contain 'PrivateData' or nested 'PSData' property in metadata for package '{packageName}' in '{Repository.Name}'."),
-                        "FindNameFailure",
-                        ErrorCategory.InvalidResult,
-                        this);
-
-                    return requiredVersionResponse;
-                }
-
-                if (pkgPSDataElement.TryGetProperty("Prerelease", out JsonElement pkgPrereleaseLabelElement) && !String.IsNullOrEmpty(pkgPrereleaseLabelElement.ToString().Trim()))
-                {
-                    pkgVersionString += $"-{pkgPrereleaseLabelElement.ToString()}";
-                }
 
                 if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
                 {
