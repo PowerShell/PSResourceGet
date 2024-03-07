@@ -13,10 +13,13 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $testScriptName = "testscript"
         $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io/"
+
+        Write-Verbose -Verbose "**********************"
         Get-NewPSResourceRepositoryFile
 
         $usingAzAuth = $env:USINGAZAUTH -eq 'true'
-
+        $repos = Get-PSResourceRepository
+        Write-Host $repos.Name 
         if ($usingAzAuth)
         {
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -Verbose
