@@ -96,7 +96,7 @@ jobs:
     azurePowerShellVersion: LatestVersion
     ScriptType: InlineScript
     inline: |
-      $acrRepositoryNamesFilePath = Join-Path -Path $env:localappdata -ChildPath 'TempModules','ACRTestRepositoryNames.txt'
+      $acrRepositoryNamesFilePath = Join-Path -Path $env:localappdata -ChildPath 'TempModules' -AdditionalChildPath 'ACRTestRepositoryNames.txt'
       New-Item -Path $acrRepositoryNamesFilePath
     displayName: 'Upload empty file for ACR functional tests to write test repository names to'
     condition: eq(${{ parameters.useAzAuth }}, true)
@@ -126,8 +126,8 @@ jobs:
     azurePowerShellVersion: LatestVersion
     ScriptType: InlineScript
     inline: |
-      $registryName = "psresourcegettest"
-      $acrRepositoryNamesFilePath = Join-Path -Path $env:localappdata -ChildPath 'TempModules','ACRTestRepositoryNames.txt'
+      $registryName = 'psresourcegettest'
+      $acrRepositoryNamesFilePath = Join-Path -Path $env:localappdata -ChildPath 'TempModules' -AdditionalChildPath 'ACRTestRepositoryNames.txt'
       $repositoryNames = Get-Content -Path acrRepositoryNamesFilePath
       foreach ($name in $repositoryNames)
       {
