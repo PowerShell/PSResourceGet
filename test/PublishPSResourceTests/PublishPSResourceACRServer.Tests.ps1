@@ -113,11 +113,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     AfterAll {
         Get-RevertPSResourceRepositoryFile
 
-        # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
-        Remove-AzContainerRegistryRepository -Name $script:PublishModuleName -RegistryName psresourcegettest
-        Remove-AzContainerRegistryRepository -Name $script:ModuleWithoutRequiredModuleName -RegistryName psresourcegettest
-        Remove-AzContainerRegistryRepository -Name $script:ScriptName -RegistryName psresourcegettest
-        Remove-AzContainerRegistryRepository -Name $script:ScriptWithExternalDeps -RegistryName psresourcegettest
+        $acrRepositoryNames = @($script:PublishModuleName, $script:ModuleWithoutRequiredModuleName, $script:ScriptName, $script:ScriptWithExternalDeps)
+        $registryName = "psresourcegettest"
+        Remove-TestACRRepositories $acrRepositoryNames $registryName
     }
 
     It "Publish module with required module not installed on the local machine using -SkipModuleManifestValidate" {

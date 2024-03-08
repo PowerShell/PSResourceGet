@@ -747,3 +747,20 @@ function CheckForExpectedPSGetInfo
     $psGetInfo.UpdatedDate.Year | Should -BeExactly 1
     $psGetInfo.Version | Should -Be "1.1.0"
 }
+
+function Start-CleanUpACRRepositories
+{
+    Param(
+        [string[]]
+        $repositoryNames,
+
+        [string]
+        $registryName
+    )
+
+    foreach ($name in $repositoryNames)
+    {
+        # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
+        Remove-AzContainerRegistryRepository -Name $name -RegistryName $registryName
+    }
+}
