@@ -755,7 +755,7 @@ function Set-TestACRRepositories
         $repositoryNames
     )
 
-    $acrRepositoryNamesFilePath = Join-Path -Path $env:localappdata -ChildPath 'TempModules','ACRTestRepositoryNames.txt'
+    $acrRepositoryNamesFilePath = Join-Path -Path [Environment]::GetFolderPath("LocalAppData") -ChildPath 'TempModules','ACRTestRepositoryNames.txt'
     $fileExists = Test-Path -Path $acrRepositoryNamesFilePath
     if ($fileExists)
     {
