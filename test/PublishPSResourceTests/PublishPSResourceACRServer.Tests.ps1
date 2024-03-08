@@ -410,7 +410,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
     It "Should publish a script with ExternalModuleDependencies that are not published" {
         $scriptVersion = "1.0.0"
-        $scriptPath = Join-Path -Path $script:tmpScriptsFolderPath -ChildPath $script:ScriptWithExternalDeps
+        $scriptPath = Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$script:ScriptWithExternalDeps.ps1"
         New-PSScriptFileInfo -Description 'test' -Version $scriptVersion -RequiredModules @{ModuleName='testModule'} -ExternalModuleDependencies 'testModule' -Path $scriptPath -Force
 
         Publish-PSResource -Path $scriptPath -Repository $ACRRepoName
