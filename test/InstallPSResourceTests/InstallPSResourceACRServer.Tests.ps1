@@ -143,7 +143,6 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $childPkg.Version | Should -Be "1.0.0"
     }
 
-    <# TODO: enable when prerelease functionality is implemented
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
         Install-PSResource -Name $testModuleName -Prerelease -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
