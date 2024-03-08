@@ -92,12 +92,12 @@ jobs:
 
   - task: AzurePowerShell@5
     inputs:
-    azureSubscription: PSResourceGetACR
-    azurePowerShellVersion: LatestVersion
-    ScriptType: InlineScript
-    inline: |
-      $acrRepositoryNamesFilePath = Join-Path -Path $env:localappdata -ChildPath 'TempModules' -AdditionalChildPath 'ACRTestRepositoryNames.txt'
-      New-Item -Path $acrRepositoryNamesFilePath
+      azureSubscription: PSResourceGetACR
+      azurePowerShellVersion: LatestVersion
+      ScriptType: InlineScript
+      inline: |
+        $acrRepositoryNamesFilePath = Join-Path -Path $env:localappdata -ChildPath 'TempModules' -AdditionalChildPath 'ACRTestRepositoryNames.txt'
+        New-Item -Path $acrRepositoryNamesFilePath
     displayName: 'Upload empty file for ACR functional tests to write test repository names to'
     condition: eq(${{ parameters.useAzAuth }}, true)
 
