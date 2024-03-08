@@ -81,8 +81,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         # create names of other modules and scripts that will be referenced in test
         $script:ModuleWithoutRequiredModuleName = "Temp-ModuleWithoutRequiredModule-" + [System.Guid]::NewGuid()
-        $script:ScriptName = "Temp-TestScript" + [System.Guid]::NewGuid();
-        $script:ScriptWithExternalDeps = "Temp-TestScriptWithExternalDeps"
+        $script:ScriptName = "Temp-TestScript" + [System.Guid]::NewGuid()
+        $script:ScriptWithExternalDeps = "Temp-TestScriptWithExternalDeps" + [System.Guid]::NewGuid()
 
         # Create temp destination path
         $script:destinationPath = [IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"))
@@ -114,8 +114,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
 
         $acrRepositoryNames = @($script:PublishModuleName, $script:ModuleWithoutRequiredModuleName, $script:ScriptName, $script:ScriptWithExternalDeps)
-        $registryName = "psresourcegettest"
-        Remove-TestACRRepositories $acrRepositoryNames $registryName
+        Set-TestACRRepositories $acrRepositoryNames
     }
 
     It "Publish module with required module not installed on the local machine using -SkipModuleManifestValidate" {

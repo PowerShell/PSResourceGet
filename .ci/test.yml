@@ -92,6 +92,17 @@ jobs:
 
   - task: AzurePowerShell@5
     inputs:
+    azureSubscription: PSResourceGetACR
+    azurePowerShellVersion: LatestVersion
+    ScriptType: InlineScript
+    inline: |
+      $acrRepositoryNamesFilePath = Join-Path -Path $env:localappdata -ChildPath 'TempModules','ACRTestRepositoryNames.txt'
+      New-Item -Path $acrRepositoryNamesFilePath
+    displayName: 'Upload empty file for ACR functional tests to write test repository names to'
+    condition: eq(${{ parameters.useAzAuth }}, true)
+
+  - task: AzurePowerShell@5
+    inputs:
       azureSubscription: PSResourceGetACR
       azurePowerShellVersion: LatestVersion
       ScriptType: InlineScript
@@ -107,6 +118,23 @@ jobs:
       MAPPED_ADO_PRIVATE_PAT: $(ado_private_pat)
       MAPPED_ADO_PRIVATE_REPO_URL: $(ado_private_repo_url)
     displayName: 'Execute functional tests with AzAuth'
+    condition: eq(${{ parameters.useAzAuth }}, true)
+
+  - task: AzurePowerShell@5
+    inputs:
+    azureSubscription: PSResourceGetACR
+    azurePowerShellVersion: LatestVersion
+    ScriptType: InlineScript
+    inline: |
+      $registryName = "psresourcegettest"
+      $acrRepositoryNamesFilePath = Join-Path -Path $env:localappdata -ChildPath 'TempModules','ACRTestRepositoryNames.txt'
+      $repositoryNames = Get-Content -Path acrRepositoryNamesFilePath
+      foreach ($name in $repositoryNames)
+      {
+        # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
+        Remove-AzContainerRegistryRepository -Name $name -RegistryName $registryName
+      }
+    displayName: 'Upload empty file for ACR functional tests to write test repository names to'
     condition: eq(${{ parameters.useAzAuth }}, true)
 
   - ${{ parameters.powershellExecutable }}: |

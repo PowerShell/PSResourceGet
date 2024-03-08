@@ -748,19 +748,17 @@ function CheckForExpectedPSGetInfo
     $psGetInfo.Version | Should -Be "1.1.0"
 }
 
-function Remove-TestACRRepositories
+function Set-TestACRRepositories
 {
     Param(
         [string[]]
-        $repositoryNames,
-
-        [string]
-        $registryName
+        $repositoryNames
     )
 
-    foreach ($name in $repositoryNames)
+    $acrRepositoryNamesFilePath = Join-Path -Path $env:localappdata -ChildPath 'TempModules','ACRTestRepositoryNames.txt'
+    $fileExists = Test-Path -Path $acrRepositoryNamesFilePath
+    if ($fileExists)
     {
-        # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
-        Remove-AzContainerRegistryRepository -Name $name -RegistryName $registryName
+        $repositoryNames | Out-File -FilePath $acrRepositoryNamesFilePath
     }
 }
