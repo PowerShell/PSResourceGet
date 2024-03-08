@@ -928,9 +928,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     metadata["PublishedDate"] = ParseHttpDateTime(publishedElement.ToString());
                 }
 
-                // Dependencies
-                // TODO
-
                 // IsPrerelease
                 if (rootDom.TryGetProperty("IsPrerelease", out JsonElement isPrereleaseElement))
                 {
@@ -964,6 +961,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 if (rootDom.TryGetProperty("ReleaseNotes", out JsonElement releaseNotesElement))
                 {
                     metadata["ReleaseNotes"] = releaseNotesElement.ToString();
+                }
+
+                // Dependencies
+                if (rootDom.TryGetProperty("RequiredModules", out JsonElement requiredModulesElement))
+                {
+                    metadata["Dependencies"] = ParseACRDependencies(requiredModulesElement, out errorMsg).ToArray();
                 }
 
                 var additionalMetadataHashtable = new Dictionary<string, string>
@@ -1464,7 +1467,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return new System.Version();
         }
 
-        public static Uri ParseHttpUrl(string uriString)
+        internal static Uri ParseHttpUrl(string uriString)
         {
             Uri parsedUri;
             Uri.TryCreate(uriString, UriKind.Absolute, out parsedUri);
@@ -1472,13 +1475,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return parsedUri;
         }
 
-        public static DateTime? ParseHttpDateTime(string publishedString)
+        internal static DateTime? ParseHttpDateTime(string publishedString)
         {
             DateTime.TryParse(publishedString, out DateTime parsedDateTime);
             return parsedDateTime;
         }
 
-        public static Dependency[] ParseHttpDependencies(string dependencyString)
+        internal static Dependency[] ParseHttpDependencies(string dependencyString)
         {
             /*
             Az.Profile:[0.1.0, ):|Az.Aks:[0.1.0, ):|Az.AnalysisServices:[0.1.0, ):
@@ -1513,6 +1516,71 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
             
             return dependencyList.ToArray();
+        }
+
+        internal static List<Dependency> ParseACRDependencies(JsonElement requiredModulesElement, out string errorMsg)
+        {
+            errorMsg = string.Empty;
+            List<Dependency> pkgDeps = new List<Dependency>();
+            if (requiredModulesElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var dependency in requiredModulesElement.EnumerateArray())
+                {
+                    if (dependency.ValueKind == JsonValueKind.String)
+                    {
+                        // Dependency name with no specified version
+                        pkgDeps.Add(new Dependency(dependency.GetString(), VersionRange.All));
+                    }
+                    else if (dependency.ValueKind == JsonValueKind.Object)
+                    {
+                        // Dependency hashtable
+                        string depName = string.Empty;
+                        VersionRange depVersionRange = VersionRange.All;
+                        if (dependency.TryGetProperty("ModuleName", out JsonElement depNameElement))
+                        {
+                            depName = depNameElement.ToString();
+                        }
+
+                        if (dependency.TryGetProperty("ModuleVersion", out JsonElement depModuleVersionElement))
+                        {
+                            // New-ScriptFileInfo will add "RequiredVersion" value as "null" if nothing is explicitly passed in
+                            if (!NuGetVersion.TryParse(depModuleVersionElement.ToString(), out NuGetVersion depNuGetVersion))
+                            {
+                                errorMsg = string.Format("Error parsing 'ModuleVersion' property from 'RequiredModules' in metadata.");
+                                return pkgDeps;
+                            }
+
+                            depVersionRange = new VersionRange(
+                                            minVersion: depNuGetVersion,
+                                            includeMinVersion: true);
+                        }
+                        else if (dependency.TryGetProperty("RequiredVersion", out JsonElement depRequiredVersionElement))
+                        {
+                            // New-ScriptFileInfo will add "RequiredVersion" value as "null" if nothing is explicitly passed in,
+                            // Which gets translated to an empty string.
+                            // In this case, we just want the VersionRange to be VersionRange.All
+                            if (!string.Equals(depModuleVersionElement.ToString(), string.Empty))
+                            {
+                                if (!NuGetVersion.TryParse(depRequiredVersionElement.ToString(), out NuGetVersion depNuGetVersion))
+                                {
+                                    errorMsg = string.Format("Error parsing 'RequiredVersion' property from 'RequiredModules' in metadata.");
+                                    return pkgDeps;
+                                }
+
+                                depVersionRange = new VersionRange(
+                                                minVersion: depNuGetVersion,
+                                                includeMinVersion: true,
+                                                maxVersion: depNuGetVersion,
+                                                includeMaxVersion: true);
+                            }
+                        }
+
+                        pkgDeps.Add(new Dependency(depName, depVersionRange));
+                    }
+                }
+            }
+
+            return pkgDeps;
         }
 
         private static ResourceType ParseHttpMetadataType(

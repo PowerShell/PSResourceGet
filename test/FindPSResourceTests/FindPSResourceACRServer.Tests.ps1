@@ -8,6 +8,8 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 
     BeforeAll{
         $testModuleName = "test_local_mod"
+        $testModuleParentName = "test_parent_mod"
+        $testModuleDependencyName = "test_dependency_mod"
         $testScript = "testscript"
         $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io"
@@ -78,6 +80,14 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         }
 
         $res.Count | Should -BeGreaterOrEqual 1
+    }
+
+    It "Find module and dependencies when -IncludeDependencies is specified" {
+        $res = Find-PSResource -Name $testModuleParentName -Repository $ACRRepoName -IncludeDependencies
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be @($testModuleParentName, $testModuleDependencyName)
+        $res.Version[0].ToString() | Should -Be "1.0.0"
+        $res.Version[1].ToString() | Should -Be "1.0.0"
     }
 
     It "Find resource given specific Name, Version null but allowing Prerelease" {
