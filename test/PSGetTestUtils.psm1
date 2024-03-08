@@ -748,7 +748,7 @@ function CheckForExpectedPSGetInfo
     $psGetInfo.Version | Should -Be "1.1.0"
 }
 
-function Start-CleanUpACRRepositories
+function Remove-TestACRRepositories
 {
     Param(
         [string[]]
