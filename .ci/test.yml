@@ -96,7 +96,8 @@ jobs:
       azurePowerShellVersion: LatestVersion
       ScriptType: InlineScript
       inline: |
-        $acrRepositoryNamesFolder = Join-Path -Path [Environment]::GetFolderPath("LocalAppData") -ChildPath 'TempModules'
+        Write-Verbose -Verbose $env:localappdata
+        $acrRepositoryNamesFolder = Join-Path -Path $env:localappdata -ChildPath 'TempModules'
         $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
         New-Item -Path $acrRepositoryNamesFilePath
     displayName: 'Upload empty file for ACR functional tests to write test repository names to'
