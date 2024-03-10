@@ -139,7 +139,7 @@ jobs:
         $registryName = 'psresourcegettest'
         $acrRepositoryNamesFolder = Join-Path -Path $env:localappdata -ChildPath 'TempModules'
         $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
-        $repositoryNames = Get-Content -Path acrRepositoryNamesFilePath
+        $repositoryNames = Get-Content -Path $acrRepositoryNamesFilePath
         foreach ($name in $repositoryNames)
         {
           # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
