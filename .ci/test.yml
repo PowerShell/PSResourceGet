@@ -98,13 +98,13 @@ jobs:
       inline: |
         Write-Verbose -Verbose $env:localappdata
         $acrRepositoryNamesFolder = Join-Path -Path $env:localappdata -ChildPath 'TempModules'
-        if (Test-Path -Path $modulePath) {
-          Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
-          Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
+        if (Test-Path -Path $acrRepositoryNamesFolder) {
+          Write-Verbose -Verbose "Deleting existing temp acr repository names folder path: $acrRepositoryNamesFolder"
+          Remove-Item -Path $acrRepositoryNamesFolder -Recurse -Force -ErrorAction Ignore
         }
-        if (! (Test-Path -Path $modulePath)) {
-          Write-Verbose -Verbose "Creating new temp module path: $modulePath"
-          $null = New-Item -Path $modulePath -ItemType Directory
+        if (! (Test-Path -Path $acrRepositoryNamesFolder)) {
+          Write-Verbose -Verbose "Creating new folder for acr repository names file to be placed with path: $acrRepositoryNamesFolder"
+          $null = New-Item -Path $acrRepositoryNamesFolder -ItemType Directory
         }
         $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
         New-Item -Path $acrRepositoryNamesFilePath
@@ -145,7 +145,7 @@ jobs:
           # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
           Remove-AzContainerRegistryRepository -Name $name -RegistryName $registryName
         }
-    displayName: 'Upload empty file for ACR functional tests to write test repository names to'
+    displayName: 'Delete test repositories from ACR'
     condition: eq(${{ parameters.useAzAuth }}, true)
 
   - ${{ parameters.powershellExecutable }}: |
