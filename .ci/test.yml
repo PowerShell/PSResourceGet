@@ -98,6 +98,14 @@ jobs:
       inline: |
         Write-Verbose -Verbose $env:localappdata
         $acrRepositoryNamesFolder = Join-Path -Path $env:localappdata -ChildPath 'TempModules'
+        if (Test-Path -Path $modulePath) {
+          Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
+          Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
+        }
+        if (! (Test-Path -Path $modulePath)) {
+          Write-Verbose -Verbose "Creating new temp module path: $modulePath"
+          $null = New-Item -Path $modulePath -ItemType Directory
+        }
         $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
         New-Item -Path $acrRepositoryNamesFilePath
     displayName: 'Upload empty file for ACR functional tests to write test repository names to'
@@ -129,7 +137,7 @@ jobs:
       ScriptType: InlineScript
       inline: |
         $registryName = 'psresourcegettest'
-        $acrRepositoryNamesFolder = Join-Path -Path [Environment]::GetFolderPath("LocalAppData") -ChildPath 'TempModules'
+        $acrRepositoryNamesFolder = Join-Path -Path $env:localappdata -ChildPath 'TempModules'
         $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
         $repositoryNames = Get-Content -Path acrRepositoryNamesFilePath
         foreach ($name in $repositoryNames)
