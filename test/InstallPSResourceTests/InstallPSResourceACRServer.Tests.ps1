@@ -10,6 +10,8 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     BeforeAll {
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
+        $testModuleParentName = "test_parent_mod"
+        $testModuleDependencyName = "test_dependency_mod"
         $testScriptName = "testscript"
         $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io/"
@@ -19,12 +21,12 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
         if ($usingAzAuth)
         {
-            Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'acr' -Uri $ACRRepoUri -Verbose
+            Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -Verbose
         }
         else
         {
             $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
-            Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'acr' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
+            Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
         }
     }
 
@@ -130,7 +132,17 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0"
     }
 
-    <# TODO: enable when prerelease functionality is implemented
+    It "Install resource with a dependency (should install both parent and dependency)" {
+        Install-PSResource -Name $testModuleParentName -Repository $ACRRepoName -TrustRepository
+        
+        $parentPkg = Get-InstalledPSResource $testModuleParentName
+        $parentPkg.Name | Should -Be $testModuleParentName
+        $parentPkg.Version | Should -Be "1.0.0"
+        $childPkg = Get-InstalledPSResource $testModuleDependencyName
+        $childPkg.Name | Should -Be $testModuleDependencyName
+        $childPkg.Version | Should -Be "1.0.0"
+    }
+
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
         Install-PSResource -Name $testModuleName -Prerelease -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
@@ -138,7 +150,6 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.2.5"
         $pkg.Prerelease | Should -Be "alpha001"
     }
-    #>
 
     It "Install resource via InputObject by piping from Find-PSresource" {
         Find-PSResource -Name $testModuleName -Repository $ACRRepoName | Install-PSResource -TrustRepository

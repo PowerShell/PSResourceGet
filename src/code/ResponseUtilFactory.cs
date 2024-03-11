@@ -14,27 +14,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             switch (repoApiVersion)
             {
-                case PSRepositoryInfo.APIVersion.v2:
+                case PSRepositoryInfo.APIVersion.V2:
                     currentResponseUtil = new V2ResponseUtil(repository);
                     break;
 
-                case PSRepositoryInfo.APIVersion.v3:
+                case PSRepositoryInfo.APIVersion.V3:
                     currentResponseUtil = new V3ResponseUtil(repository);
                     break;
 
-                case PSRepositoryInfo.APIVersion.local:
+                case PSRepositoryInfo.APIVersion.Local:
                     currentResponseUtil = new LocalResponseUtil(repository);
                     break;
 
-                case PSRepositoryInfo.APIVersion.nugetServer:
+                case PSRepositoryInfo.APIVersion.NugetServer:
                     currentResponseUtil = new NuGetServerResponseUtil(repository);
                     break;
 
-                case PSRepositoryInfo.APIVersion.acr:
+                case PSRepositoryInfo.APIVersion.ContainerRegistry:
                     currentResponseUtil = new ACRResponseUtil(repository);
                     break;
 
-                case PSRepositoryInfo.APIVersion.unknown:
+                case PSRepositoryInfo.APIVersion.Unknown:
                     break;
             }
 

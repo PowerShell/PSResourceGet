@@ -403,4 +403,15 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $res.Uri.LocalPath | Should -Contain $tmpDir1Path
         $res.ApiVersion | Should -Be 'v2'
     }
+
+    It "should register container registry repository with correct ApiVersion" {
+        $ContainerRegistryName = "ACRRepo"
+        $ContainerRegistryUri = "https://psresourcegettest.azurecr.io/"
+        Register-PSResourceRepository -Name $ContainerRegistryName -Uri $ContainerRegistryUri
+        $res = Get-PSResourceRepository -Name $ContainerRegistryName
+
+        $res.Name | Should -Be $ContainerRegistryName
+        $res.Uri.AbsoluteUri | Should -Contain $ContainerRegistryUri
+        $res.ApiVersion | Should -Be 'ContainerRegistry'
+    }
 }

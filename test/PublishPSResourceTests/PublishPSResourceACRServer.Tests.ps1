@@ -53,12 +53,12 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         if ($usingAzAuth)
         {
-            Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'acr' -Uri $ACRRepoUri -Verbose
+            Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -Verbose
         }
         else
         {
             $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
-            Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'acr' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
+            Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
         }
 
         # Create module
@@ -275,11 +275,11 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
     It "Publish a module with one dependency" {
         $version = "11.0.0"
-        $dependencyName = 'test_module'
-        $dependencyVersion = '9.0.0'
+        $dependencyName = 'test_dependency_mod'
+        $dependencyVersion = '1.0.0'
 
         # New-ModuleManifest requires that the module be installed before it can be added as a dependency
-        Install-PSResource -Name $dependencyName -Version $dependencyVersion -Repository $ACRRepoName -TrustRepository -Verbose
+        Install-PSResource -Name $dependencyName -Version $dependencyVersion -Repository $ACRRepoName -TrustRepository
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @(@{ ModuleName = $dependencyName; ModuleVersion = $dependencyVersion })
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName
@@ -288,20 +288,19 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName 
         $results[0].Version | Should -Be $version 
-        # TODO: Uncomment when Find-PSResource returns dependencies
-        #$results[0].Dependencies.Name | Should -Be $dependencyName 
-        #$results[0].Dependencies.VersionRange | Should -Be $dependencyVersion 
+        $results[0].Dependencies.Name | Should -Be $dependencyName 
+        $results[0].Dependencies.VersionRange.MinVersion.ToString() | Should -Be $dependencyVersion 
     }
 
     It "Publish a module with multiple dependencies" {
         $version = "12.0.0"
-        $dependency1Name = 'testdep'
-        $dependency2Name = 'test_local_mod'
-        $dependency2Version = '5.0.0'
+        $dependency1Name = 'test_dependency_mod2'
+        $dependency2Name = 'test_dependency_mod'
+        $dependency2Version = '1.0.0'
 
         # New-ModuleManifest requires that the module be installed before it can be added as a dependency
-        Install-PSResource -Name $dependency1Name -Repository $ACRRepoName -TrustRepository -Verbose
-        Install-PSResource -Name $dependency2Name -Version $dependency2Version -Repository $ACRRepoName -TrustRepository -verbose
+        Install-PSResource -Name $dependency1Name -Repository $ACRRepoName -TrustRepository -Verbose -Reinstall
+        Install-PSResource -Name $dependency2Name -Version $dependency2Version -Repository $ACRRepoName -TrustRepository -Reinstall
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @( $dependency1Name , @{ ModuleName = $dependency2Name; ModuleVersion = $dependency2Version }) 
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName
@@ -310,9 +309,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName 
         $results[0].Version | Should -Be $version 
-        # TODO: Uncomment when Find-PSResource returns dependencies
-        #$results[0].Dependencies.Name | Should -Be $dependency1Name, $dependency2Name
-        #$results[0].Dependencies.VersionRange | Should -Be $dependency2Version 
+        $results[0].Dependencies.Name | Should -Be $dependency1Name, $dependency2Name
+        $results[0].Dependencies.VersionRange.MinVersion.OriginalVersion.ToString() | Should -Be $dependency2Version 
     }
     
     It "Publish a module and clean up properly when file in module is readonly" {
@@ -375,10 +373,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Version | Should -Be $scriptVersion
     }
 
-    <# This test does not work currently due to a bug if the last digit is 0. Link to issue: https://github.com/PowerShell/PSResourceGet/issues/1582
     It "Should publish a script without lines in between comment blocks locally" {
         $scriptName = "ScriptWithoutEmptyLinesBetweenCommentBlocks"
-        $scriptVersion = "1.0.0"
+        $scriptVersion = "1.0"
         $scriptPath = (Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1")
 
         Publish-PSResource -Path $scriptPath -Repository $ACRRepoName
@@ -388,12 +385,10 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Name | Should -Be $scriptName
         $results[0].Version | Should -Be $scriptVersion
     }
-    #>
 
-    <# This test does not work currently due to a bug if the last digit is 0. Link to issue: https://github.com/PowerShell/PSResourceGet/issues/1582
     It "Should publish a script without lines in help block locally" {
         $scriptName = "ScriptWithoutEmptyLinesInMetadata"
-        $scriptVersion = "1.0.0"
+        $scriptVersion = "1.0"
         $scriptPath = (Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1")
 
         Publish-PSResource -Path $scriptPath -Repository $ACRRepoName
@@ -403,7 +398,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Name | Should -Be $scriptName
         $results[0].Version | Should -Be $scriptVersion
     }
-    #>
 
     It "Should publish a script with ExternalModuleDependencies that are not published" {
         $scriptVersion = "1.0.0"

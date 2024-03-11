@@ -133,72 +133,15 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindName()");
-            string accessToken = string.Empty;
-            string tenantID = string.Empty;
-            string packageNameLowercase = packageName.ToLower();
 
-            string acrAccessToken = GetAcrAccessToken(Repository, out errRecord);
+            // for FindName(), need to consider all versions (hence VersionType.VersionRange and VersionRange.All, and no requiredVersion) but only pick latest (hence getOnlyLatest: true)
+            Hashtable[] pkgResult = FindPackagesWithVersionHelper(packageName, VersionType.VersionRange, versionRange: VersionRange.All, requiredVersion: null, includePrerelease, getOnlyLatest: true, out errRecord);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            string registry = Repository.Uri.Host;
-            _cmdletPassedIn.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
-            if (errRecord != null || foundTags == null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            List<Hashtable> latestVersionResponse = new List<Hashtable>();
-            List<JToken> allVersionsList = foundTags["tags"].ToList();
-            allVersionsList.Reverse();
-
-            foreach (var pkgVersionTagInfo in allVersionsList)
-            {
-                using (JsonDocument pkgVersionEntry = JsonDocument.Parse(pkgVersionTagInfo.ToString()))
-                {
-                    JsonElement rootDom = pkgVersionEntry.RootElement;
-                    if (!rootDom.TryGetProperty("name", out JsonElement pkgVersionElement))
-                    {
-                        errRecord = new ErrorRecord(
-                            new InvalidOrEmptyResponse($"Response does not contain version element ('name') for package '{packageName}' in '{Repository.Name}'."),
-                            "FindNameFailure",
-                            ErrorCategory.InvalidResult,
-                            this);
-
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-                    }
-
-                    if (!NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
-                    {
-                        errRecord = new ErrorRecord(
-                            new ArgumentException($"Version {pkgVersionElement.ToString()} to be parsed from metadata is not a valid NuGet version."),
-                            "FindNameFailure",
-                            ErrorCategory.InvalidArgument,
-                            this);
-
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-                    }
-
-                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
-                    if (!pkgVersion.IsPrerelease || includePrerelease)
-                    {
-                        // TODO: ensure versions are in order, fix bug https://github.com/PowerShell/PSResourceGet/issues/1581
-                        Hashtable metadata = GetACRMetadata(registry, packageNameLowercase, pkgVersion, acrAccessToken, out errRecord);
-                        if (errRecord != null || metadata.Count == 0)
-                        {
-                            return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-                        }
-
-                        latestVersionResponse.Add(metadata);
-                        break;
-                    }
-                }
-            }
-
-            return new FindResults(stringResponse: new string[] {}, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResult.ToArray(), responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -217,7 +160,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                 this);
 
             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-
         }
 
         /// <summary>
@@ -270,67 +212,15 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ACRServerAPICalls::FindVersionGlobbing()");
-            string accessToken = string.Empty;
-            string tenantID = string.Empty;
-            string packageNameLowercase = packageName.ToLower();
 
-            string registryUrl = Repository.Uri.ToString();
-            string acrAccessToken = GetAcrAccessToken(Repository, out errRecord);
+            // for FindVersionGlobbing(), need to consider all versions that match version range criteria (hence VersionType.VersionRange and no requiredVersion)
+            Hashtable[] pkgResults = FindPackagesWithVersionHelper(packageName, VersionType.VersionRange, versionRange: versionRange, requiredVersion: null, includePrerelease, getOnlyLatest: false, out errRecord);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            string registry = Repository.Uri.Host;
-            _cmdletPassedIn.WriteVerbose("Getting tags");
-            var foundTags = FindAcrImageTags(registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
-            if (errRecord != null || foundTags == null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-            }
-
-            List<Hashtable> latestVersionResponse = new List<Hashtable>();
-            List<JToken> allVersionsList = foundTags["tags"].ToList();
-            allVersionsList.Reverse();
-            foreach (var packageVersion in allVersionsList)
-            {
-                var packageVersionStr = packageVersion.ToString();
-                using (JsonDocument pkgVersionEntry = JsonDocument.Parse(packageVersionStr))
-                {
-                    JsonElement rootDom = pkgVersionEntry.RootElement;
-                    if (!rootDom.TryGetProperty("name", out JsonElement pkgVersionElement))
-                    {
-                        errRecord = new ErrorRecord(
-                            new InvalidOrEmptyResponse($"Response does not contain version element ('name') for package '{packageName}' in '{Repository.Name}'."),
-                            "FindNameFailure",
-                            ErrorCategory.InvalidResult,
-                            this);
-
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
-                    }
-
-                    if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
-                    {
-                        _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
-                        if (versionRange.Satisfies(pkgVersion))
-                        {
-                            if (!includePrerelease && pkgVersion.IsPrerelease == true)
-                            {
-                                _cmdletPassedIn.WriteDebug($"Prerelease version '{pkgVersion}' found, but not included.");
-                                continue;
-                            }
-
-                            latestVersionResponse.Add(GetACRMetadata(registry, packageNameLowercase, pkgVersion, acrAccessToken, out errRecord));
-                            if (errRecord != null)
-                            {
-                                return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
-                            }
-                        }
-                    }
-                }
-            }
-
-            return new FindResults(stringResponse: new string[] { }, hashtableResponse: latestVersionResponse.ToArray(), responseType: acrFindResponseType);
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResults.ToArray(), responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -353,31 +243,18 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
+            
             _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{requiredVersion}'");
+            bool includePrereleaseVersions = requiredVersion.IsPrerelease;
 
-            string accessToken = string.Empty;
-            string tenantID = string.Empty;
-            string registryUrl = Repository.Uri.ToString();
-
-            string acrAccessToken = GetAcrAccessToken(Repository, out errRecord);
+            // for FindVersion(), need to consider the specific required version (hence VersionType.SpecificVersion and no version range)
+            Hashtable[] pkgResult = FindPackagesWithVersionHelper(packageName, VersionType.SpecificVersion, versionRange: VersionRange.None, requiredVersion: requiredVersion, includePrereleaseVersions, getOnlyLatest: false, out errRecord);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
 
-            string registry = Repository.Uri.Host;
-            _cmdletPassedIn.WriteVerbose("Getting tags");
-            List<Hashtable> results = new List<Hashtable>
-            {
-                GetACRMetadata(registry, packageName, requiredVersion, acrAccessToken, out errRecord)
-            };
-
-            if (errRecord != null)
-            {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: results.ToArray(), responseType: acrFindResponseType);
-            }
-
-            return new FindResults(stringResponse: new string[] { }, hashtableResponse: results.ToArray(), responseType: acrFindResponseType);
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResult.ToArray(), responseType: acrFindResponseType);
         }
 
         /// <summary>
@@ -655,11 +532,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal Hashtable GetACRMetadata(string registry, string packageName, NuGetVersion requiredVersion, string acrAccessToken, out ErrorRecord errRecord)
+        internal Hashtable GetACRMetadata(string registry, string packageName, string exactTagVersion, string acrAccessToken, out ErrorRecord errRecord)
         {
             Hashtable requiredVersionResponse = new Hashtable();
 
-            var foundTags = FindAcrManifest(registry, packageName, requiredVersion.ToNormalizedString(), acrAccessToken, out errRecord);
+            var foundTags = FindAcrManifest(registry, packageName, exactTagVersion, acrAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
                 return requiredVersionResponse;
@@ -697,11 +574,26 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             string metadataPkgName = metadataTuple.Item1;
             string metadata = metadataTuple.Item2;
+            string pkgVersionString = String.Empty;
             using (JsonDocument metadataJSONDoc = JsonDocument.Parse(metadata))
             {
                 JsonElement rootDom = metadataJSONDoc.RootElement;
-                if (!rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement) &&
-                     !rootDom.TryGetProperty("Version", out pkgVersionElement))
+                if (rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement))
+                {
+                    // module metadata will have "ModuleVersion" property
+                    pkgVersionString = pkgVersionElement.ToString();
+                    if (rootDom.TryGetProperty("PrivateData", out JsonElement pkgPrivateDataElement) && pkgPrivateDataElement.TryGetProperty("PSData", out JsonElement pkgPSDataElement)
+                        && pkgPSDataElement.TryGetProperty("Prerelease", out JsonElement pkgPrereleaseLabelElement) && !String.IsNullOrEmpty(pkgPrereleaseLabelElement.ToString().Trim()))
+                    {
+                        pkgVersionString += $"-{pkgPrereleaseLabelElement.ToString()}";
+                    }
+                }
+                else if(rootDom.TryGetProperty("Version", out pkgVersionElement))
+                {
+                    // script metadata will have "Version" property
+                    pkgVersionString = pkgVersionElement.ToString();
+                }
+                else
                 {
                     errRecord = new ErrorRecord(
                         new InvalidOrEmptyResponse($"Response does not contain 'ModuleVersion' or 'Version' property in metadata for package '{packageName}' in '{Repository.Name}'."),
@@ -712,10 +604,21 @@ namespace Microsoft.PowerShell.PSResourceGet
                     return requiredVersionResponse;
                 }
 
-                if (!NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
+                if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
                 {
                     errRecord = new ErrorRecord(
-                        new ArgumentException($"Version {pkgVersionElement.ToString()} to be parsed from metadata is not a valid NuGet version."),
+                        new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version."),
+                        "FindNameFailure",
+                        ErrorCategory.InvalidArgument,
+                        this);
+
+                    return requiredVersionResponse;
+                }
+
+                if (!NuGetVersion.TryParse(exactTagVersion, out NuGetVersion requiredVersion))
+                {
+                    errRecord = new ErrorRecord(
+                        new ArgumentException($"Version {exactTagVersion} to be parsed from method input is not a valid NuGet version."),
                         "FindNameFailure",
                         ErrorCategory.InvalidArgument,
                         this);
@@ -724,7 +627,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 }
 
                 _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
-                if (pkgVersion == requiredVersion)
+                if (pkgVersion.ToNormalizedString() == requiredVersion.ToNormalizedString())
                 {
                     requiredVersionResponse.Add(metadataPkgName, metadata);
                 }
@@ -830,20 +733,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             try
             {
                 var createManifestUrl = string.Format(acrManifestUrlTemplate, Registry, pkgName, pkgVersion);
-                var defaultHeaders = GetDefaultHeaders(acrAccessToken);
-                return await PutRequestAsync(createManifestUrl, configPath, isManifest, defaultHeaders);
-            }
-            catch (HttpRequestException e)
-            {
-                throw new HttpRequestException("Error occured while trying to create manifest: " + e.Message);
-            }
-        }
-
-        internal async Task<HttpResponseMessage> UploadDependencyManifest(string pkgName, string referenceSHA, string configPath, bool isManifest, string acrAccessToken)
-        {
-            try
-            {
-                var createManifestUrl = string.Format(acrManifestUrlTemplate, Registry, pkgName, referenceSHA);
                 var defaultHeaders = GetDefaultHeaders(acrAccessToken);
                 return await PutRequestAsync(createManifestUrl, configPath, isManifest, defaultHeaders);
             }
@@ -1137,15 +1026,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                 _cmdletPassedIn.ThrowTerminatingError(metadataCreationError);
             }
 
-            // Create and upload manifest
-            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, pkgName, resourceType, metadataJson, configFilePath,
-                pkgNameLower, pkgVersion, acrAccessToken, out HttpResponseMessage manifestResponse);
-
-            // After manifest is created, see if there are any dependencies that need to be tracked on the server
-            if (dependencies != null && dependencies.Count > 0)
-            {
-                TryProcessDependencies(dependencies, pkgNameLower, acrAccessToken, manifestResponse);
-            }
+            // Create and upload manifest 
+            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, pkgName, resourceType, metadataJson, configFilePath, 
+                pkgNameLower, pkgVersion, acrAccessToken);
 
             return true;
         }
@@ -1215,7 +1098,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         }
 
         private bool TryCreateAndUploadManifest(string fullNupkgFile, string nupkgDigest, string configDigest, string pkgName, ResourceType resourceType, string metadataJson, string configFilePath,
-            string pkgNameLower, NuGetVersion pkgVersion, string acrAccessToken, out HttpResponseMessage manifestResponse)
+            string pkgNameLower, NuGetVersion pkgVersion, string acrAccessToken)
         {
             FileInfo nupkgFile = new FileInfo(fullNupkgFile);
             var fileSize = nupkgFile.Length;
@@ -1224,7 +1107,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             File.WriteAllText(configFilePath, fileContent);
 
             _cmdletPassedIn.WriteVerbose("Create the manifest layer");
-            manifestResponse = UploadManifest(pkgNameLower, pkgVersion.OriginalVersion, configFilePath, true, acrAccessToken).Result;
+            HttpResponseMessage manifestResponse = UploadManifest(pkgNameLower, pkgVersion.OriginalVersion, configFilePath, true, acrAccessToken).Result;
             bool manifestCreated = manifestResponse.IsSuccessStatusCode;
             if (!manifestCreated)
             {
@@ -1238,175 +1121,6 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             return manifestCreated;
         }
-
-        private bool TryProcessDependencies(Hashtable dependencies, string pkgNameLower, string acrAccessToken, HttpResponseMessage manifestResponse)
-        {
-            string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-
-            try
-            {
-                Directory.CreateDirectory(tempPath);
-
-                // Create dependency.json
-                TryCreateAndUploadDependencyJson(tempPath, dependencies, pkgNameLower, acrAccessToken, out string depJsonContent, out string depDigest, out long depFileSize, out string depFileName);
-
-                // Create and upload an empty file-- needed by ACR server
-                if (!TryCreateAndUploadEmptyTxtFile(tempPath, pkgNameLower, acrAccessToken))
-                {
-                    return false;
-                }
-
-                // Create artifactconfig.json file
-                string depConfigFileName = "artifactconfig.json";
-                var depConfigFilePath = System.IO.Path.Combine(tempPath, depConfigFileName);
-                while (File.Exists(depConfigFilePath))
-                {
-                    depConfigFilePath = System.IO.Path.Combine(tempPath, Guid.NewGuid().ToString() + ".json");
-                }
-                if (!TryCreateDependencyConfigFile(depConfigFilePath, manifestResponse, depJsonContent, depDigest, depFileSize, depFileName, out string artifactDigest))
-                {
-                    return false;
-                }
-
-                _cmdletPassedIn.WriteVerbose("Create the manifest");
-
-                // Upload Manifest
-                var depManifestResponse = UploadDependencyManifest(pkgNameLower, $"sha256:{artifactDigest}", depConfigFilePath, true, acrAccessToken).Result;
-                bool depManifestCreated = depManifestResponse.IsSuccessStatusCode;
-                if (!depManifestCreated)
-                {
-                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new ArgumentException("Error uploading dependency manifest"),
-                        "DependencyManifestUploadError",
-                        ErrorCategory.InvalidResult,
-                        _cmdletPassedIn));
-                    return false;
-                }
-
-                _cmdletPassedIn.WriteVerbose("End of dependency processing");
-            }
-            catch (Exception e)
-            {
-                throw new ProcessDependencyException("Error processing dependencies: " + e.Message);
-            }
-            finally
-            {
-                if (Directory.Exists(tempPath))
-                {
-                    // Delete the temp directory and all its contents
-                    _cmdletPassedIn.WriteVerbose($"Attempting to delete '{tempPath}'");
-                    Utils.DeleteDirectoryWithRestore(tempPath);
-                }
-            }
-
-            return true;
-        }
-
-        private bool TryCreateAndUploadDependencyJson(string tempPath,
-            Hashtable dependencies, string pkgNameLower, string acrAccessToken, out string depJsonContent, out string depDigest, out long depFileSize, out string depFileName)
-        {
-            depFileName = "dependency.json";
-            var depFilePath = System.IO.Path.Combine(tempPath, depFileName);
-            Utils.CreateFile(depFilePath);
-            FileInfo depFile = new FileInfo(depFilePath);
-
-            depJsonContent = CreateDependencyJsonContent(dependencies);
-            File.WriteAllText(depFilePath, depJsonContent);
-            depFileSize = depFile.Length;
-
-            bool depDigestCreated = CreateDigest(depFilePath, out depDigest, out ErrorRecord depDigestError);
-            if (depDigestError != null)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(depDigestError);
-            }
-
-            // Upload dependency.json
-            var depLocation = GetStartUploadBlobLocation(pkgNameLower, acrAccessToken).Result;
-            var depFileResponse = EndUploadBlob(depLocation, depFilePath, depDigest, isManifest: false, acrAccessToken).Result;
-
-            return depFileResponse.IsSuccessStatusCode;
-        }
-
-        private bool TryCreateAndUploadEmptyTxtFile(string tempPath, string pkgNameLower, string acrAccessToken)
-        {
-            _cmdletPassedIn.WriteVerbose("Create an empty artifact file");
-            string emptyArtifactFileName = "artifactEmpty.txt";
-            var emptyArtifactFilePath = System.IO.Path.Combine(tempPath, emptyArtifactFileName);
-            // Rename the empty file in case such a file already exists in the temp folder (although highly unlikely)
-            while (File.Exists(emptyArtifactFilePath))
-            {
-                emptyArtifactFilePath = Guid.NewGuid().ToString() + ".txt";
-            }
-            Utils.CreateFile(emptyArtifactFilePath);
-
-            _cmdletPassedIn.WriteVerbose("Start uploading an empty artifact file");
-            var emptyArtifactLocation = GetStartUploadBlobLocation(pkgNameLower, acrAccessToken).Result;
-            _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
-            bool emptyArtifactDigestCreated = CreateDigest(emptyArtifactFilePath, out string emptyArtifactDigest, out ErrorRecord emptyArtifactDigestError);
-            if (!emptyArtifactDigestCreated)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(emptyArtifactDigestError);
-            }
-            _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
-            var emptyArtifactResponse = EndUploadBlob(emptyArtifactLocation, emptyArtifactFilePath, emptyArtifactDigest, false, acrAccessToken).Result;
-
-            return emptyArtifactResponse.IsSuccessStatusCode;
-        }
-
-        private bool TryCreateDependencyConfigFile(string depConfigFilePath, HttpResponseMessage manifestResponse, string depJsonContent, string depDigest, long depFileSize,
-            string depFileName, out string artifactDigest)
-        {
-            artifactDigest = string.Empty;
-            _cmdletPassedIn.WriteVerbose("Create the dependency config file");
-            Utils.CreateFile(depConfigFilePath);
-
-            _cmdletPassedIn.WriteVerbose("Computing digest for artifact config");
-            bool depConfigDigestCreated = CreateDigest(depConfigFilePath, out string emptyConfigArtifactDigest, out ErrorRecord depConfigDigestError);
-            if (!depConfigDigestCreated)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(depConfigDigestError);
-            }
-            FileInfo depConfigFile = new FileInfo(depConfigFilePath);
-
-
-            // Can either get the digest/size through response from pushing parent manifest earlier,
-            string[] parentLocation = manifestResponse.Headers.Location.OriginalString.Split(':');
-            if (parentLocation == null && parentLocation.Length < 2)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new ArgumentException("Error creating dependency manifest. Parent manifest location is invalid."),
-                        "DependencyManifestCreationError",
-                        ErrorCategory.InvalidResult,
-                        _cmdletPassedIn));
-                return false;
-            }
-
-            string parentDigest = parentLocation[1];
-            var contentLength = manifestResponse.RequestMessage.Content.Headers.ContentLength;
-            if (contentLength == null)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                    new ArgumentException("Error creating dependency manifest. Parent manifest size is invalid."),
-                    "DependencyManifestCreationError",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn));
-            }
-            long parentSize = (long)manifestResponse.RequestMessage.Content.Headers.ContentLength;
-
-            // Create manifest for dependencies
-            var depJsonStr = depJsonContent.Replace("\r", String.Empty).Replace("\n", String.Empty);
-            string depFileContent = CreateDependencyManifestContent(emptyConfigArtifactDigest, 0, depDigest, depFileSize, depFileName, depJsonStr, parentDigest, parentSize);
-            File.WriteAllText(depConfigFilePath, depFileContent);
-
-            var depManifestDigestCreated = CreateDigest(depConfigFilePath, out artifactDigest, out ErrorRecord artifactDigestError);
-            if (!depManifestDigestCreated)
-            {
-                _cmdletPassedIn.ThrowTerminatingError(artifactDigestError);
-            }
-
-            return depManifestDigestCreated;
-        }
-
 
         private string CreateManifestContent(
             string nupkgDigest,
@@ -1471,98 +1185,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             return stringWriter.ToString();
         }
 
-        private string CreateDependencyManifestContent(
-            string depConfigDigest,
-            long depConfigFileSize,
-            string depDigest,
-            long depFileSize,
-            string depFileName,
-            string dependenciesStr,
-            string parentDigest,
-            long parentSize)
-        {
-            StringBuilder stringBuilder = new StringBuilder();
-            StringWriter stringWriter = new StringWriter(stringBuilder);
-            JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter);
-
-            jsonWriter.Formatting = Newtonsoft.Json.Formatting.Indented;
-
-            jsonWriter.WriteStartObject();
-
-            jsonWriter.WritePropertyName("schemaVersion");
-            jsonWriter.WriteValue(2);
-            jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("application/vnd.oci.image.manifest.v1+json");
-
-            jsonWriter.WritePropertyName("config");
-            jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("dependency");
-            jsonWriter.WritePropertyName("digest");
-            jsonWriter.WriteValue($"sha256:{depConfigDigest}");
-            jsonWriter.WritePropertyName("size");
-            jsonWriter.WriteValue(depConfigFileSize);
-            jsonWriter.WriteEndObject();
-
-            jsonWriter.WritePropertyName("layers");
-            jsonWriter.WriteStartArray();
-
-            jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("application/vnd.oci.image.layer.v1.tar");
-            jsonWriter.WritePropertyName("digest");
-            jsonWriter.WriteValue($"sha256:{depDigest}");
-            jsonWriter.WritePropertyName("size");
-            jsonWriter.WriteValue(depFileSize);
-            jsonWriter.WritePropertyName("annotations");
-            jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName("org.opencontainers.image.title");
-            jsonWriter.WriteValue(depFileName);;
-            jsonWriter.WritePropertyName("dependencies");
-            jsonWriter.WriteValue(dependenciesStr);
-            jsonWriter.WriteEndObject();
-
-            jsonWriter.WriteEndObject();
-
-            jsonWriter.WriteEndArray();
-
-
-            jsonWriter.WritePropertyName("subject");
-            jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("application/vnd.oci.image.manifest.v1+json");
-            jsonWriter.WritePropertyName("digest");
-            jsonWriter.WriteValue($"sha256:{parentDigest}");
-            jsonWriter.WritePropertyName("size");
-            jsonWriter.WriteValue(parentSize);
-            jsonWriter.WriteEndObject();
-
-            jsonWriter.WriteEndObject();
-
-            return stringWriter.ToString();
-        }
-
-        private string CreateDependencyJsonContent(Hashtable dependencies)
-        {
-            StringBuilder stringBuilder = new StringBuilder();
-            StringWriter stringWriter = new StringWriter(stringBuilder);
-            JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter);
-
-            jsonWriter.Formatting = Newtonsoft.Json.Formatting.Indented;
-
-            jsonWriter.WriteStartObject();
-
-            foreach (string dependencyName in dependencies.Keys)
-            {
-                jsonWriter.WritePropertyName(dependencyName);
-                jsonWriter.WriteValue(dependencies[dependencyName]);
-            }
-
-            jsonWriter.WriteEndObject();
-
-            return stringWriter.ToString();
-        }
-
         private bool CreateDigest(string fileName, out string digest, out ErrorRecord error)
         {
             FileInfo fileInfo = new FileInfo(fileName);
@@ -1585,50 +1207,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                     digest = stringBuilder.ToString();
                     // Write the name and hash value of the file to the console.
                     _cmdletPassedIn.WriteVerbose($"{fileInfo.Name}: {digest}");
-                    error = null;
-                }
-                catch (IOException ex)
-                {
-                    var IOError = new ErrorRecord(ex, $"IOException for .nupkg file: {ex.Message}", ErrorCategory.InvalidOperation, null);
-                    error = IOError;
-                }
-                catch (UnauthorizedAccessException ex)
-                {
-                    var AuthorizationError = new ErrorRecord(ex, $"UnauthorizedAccessException for .nupkg file: {ex.Message}", ErrorCategory.PermissionDenied, null);
-                    error = AuthorizationError;
-                }
-            }
-            if (error != null)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        private bool CreateDependencyDigest(out string digest, out ErrorRecord error)
-        {
-            SHA256 mySHA256 = SHA256.Create();
-            string myGuid = new Guid().ToString();
-            byte[] byteArray = Encoding.UTF8.GetBytes(myGuid);
-
-            using (MemoryStream memStream = new MemoryStream(byteArray))
-            {
-                digest = string.Empty;
-
-                try
-                {
-                    // Create a MemoryStream for the Guid.
-                    // Be sure it's positioned to the beginning of the stream.
-                    memStream.Position = 0;
-                    // Compute the hash of the MemoryStream.
-                    byte[] hashValue = mySHA256.ComputeHash(memStream);
-                    StringBuilder stringBuilder = new StringBuilder();
-                    foreach (byte b in hashValue)
-                        stringBuilder.AppendFormat("{0:x2}", b);
-                    digest = stringBuilder.ToString();
-                    // Write the name and hash value of the file to the console.
-                    _cmdletPassedIn.WriteVerbose($"dependency digest: {digest}");
                     error = null;
                 }
                 catch (IOException ex)
@@ -1686,6 +1264,117 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             return jsonString;
+        }
+
+        private Hashtable[] FindPackagesWithVersionHelper(string packageName, VersionType versionType, VersionRange versionRange, NuGetVersion requiredVersion, bool includePrerelease, bool getOnlyLatest, out ErrorRecord errRecord)
+        {
+            string accessToken = string.Empty;
+            string tenantID = string.Empty;
+            string registryUrl = Repository.Uri.ToString();
+            string packageNameLowercase = packageName.ToLower();
+
+            string acrAccessToken = GetAcrAccessToken(Repository, out errRecord);
+            if (errRecord != null)
+            {
+                return emptyHashResponses;
+            }
+
+            var foundTags = FindAcrImageTags(Registry, packageNameLowercase, "*", acrAccessToken, out errRecord);
+            if (errRecord != null || foundTags == null)
+            {
+                return emptyHashResponses;
+            }
+
+            List<Hashtable> latestVersionResponse = new List<Hashtable>();
+            List<JToken> allVersionsList = foundTags["tags"].ToList();
+
+            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, versionType, versionRange, requiredVersion, packageNameLowercase, includePrerelease, out errRecord);
+            if (errRecord != null)
+            {
+                return emptyHashResponses;
+            }
+
+            var pkgsInDescendingOrder = sortedQualifyingPkgs.Reverse();
+
+            foreach(var pkgVersionTag in pkgsInDescendingOrder)
+            {
+                string exactTagVersion = pkgVersionTag.Value.ToString();
+                Hashtable metadata = GetACRMetadata(Registry, packageNameLowercase, exactTagVersion, acrAccessToken, out errRecord);
+                if (errRecord != null || metadata.Count == 0)
+                {
+                    return emptyHashResponses;
+                }
+
+                latestVersionResponse.Add(metadata);
+                if (getOnlyLatest)
+                {
+                    // getOnlyLatest will be true for FindName(), as only the latest criteria satisfying version should be returned
+                    break;
+                }
+            }   
+
+            return latestVersionResponse.ToArray();
+        }
+
+        private SortedDictionary<NuGet.Versioning.SemanticVersion, string> GetPackagesWithRequiredVersion(List<JToken> allPkgVersions, VersionType versionType, VersionRange versionRange, NuGetVersion specificVersion, string packageName, bool includePrerelease, out ErrorRecord errRecord)
+        {
+            errRecord = null;
+            // we need NuGetVersion to sort versions by order, and string pkgVersionString (which is the exact tag from the server) to call GetACRMetadata() later with exact version tag.
+            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedPkgs = new SortedDictionary<SemanticVersion, string>(VersionComparer.Default);
+            bool isSpecificVersionSearch = versionType == VersionType.SpecificVersion;
+
+            foreach (var pkgVersionTagInfo in allPkgVersions)
+            {
+                using (JsonDocument pkgVersionEntry = JsonDocument.Parse(pkgVersionTagInfo.ToString()))
+                {
+                    JsonElement rootDom = pkgVersionEntry.RootElement;
+                    if (!rootDom.TryGetProperty("name", out JsonElement pkgVersionElement))
+                    {
+                        errRecord = new ErrorRecord(
+                            new InvalidOrEmptyResponse($"Response does not contain version element ('name') for package '{packageName}' in '{Repository.Name}'."),
+                            "FindNameFailure",
+                            ErrorCategory.InvalidResult,
+                            this);
+
+                        return null;
+                    }
+
+                    string pkgVersionString = pkgVersionElement.ToString();
+                    // determine if the package version that is a repository tag is a valid NuGetVersion
+                    if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
+                    {
+                        errRecord = new ErrorRecord(
+                            new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version."),
+                            "FindNameFailure",
+                            ErrorCategory.InvalidArgument,
+                            this);
+
+                        return null;
+                    }
+
+                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+
+                    if (isSpecificVersionSearch)
+                    {
+                        if (pkgVersion.ToNormalizedString() == specificVersion.ToNormalizedString())
+                        {
+                            // accounts for FindVersion() scenario
+                            sortedPkgs.Add(pkgVersion, pkgVersionString);
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if (versionRange.Satisfies(pkgVersion) && (!pkgVersion.IsPrerelease || includePrerelease))
+                        {
+                            // accounts for FindVersionGlobbing() and FindName() scenario
+                            sortedPkgs.Add(pkgVersion, pkgVersionString);
+                        }
+                    }
+                }
+            }
+
+            return sortedPkgs;
         }
 
         #endregion
