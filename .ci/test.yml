@@ -109,7 +109,6 @@ jobs:
         $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
         New-Item -Path $acrRepositoryNamesFilePath
     displayName: 'Upload empty file for ACR functional tests to write test repository names to'
-    condition: eq(${{ parameters.useAzAuth }}, true)
 
   - task: AzurePowerShell@5
     inputs:
@@ -146,7 +145,6 @@ jobs:
           Remove-AzContainerRegistryRepository -Name $name -RegistryName $registryName
         }
     displayName: 'Delete test repositories from ACR'
-    condition: eq(${{ parameters.useAzAuth }}, true)
 
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
