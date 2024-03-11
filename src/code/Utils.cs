@@ -648,7 +648,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 ExcludeVisualStudioCodeCredential = true,
                 ExcludeVisualStudioCredential = true,
                 ExcludeWorkloadIdentityCredential = true,
-                ExcludeManagedIdentityCredential = false, // ManagedIdentityCredential makes the experience slow
+                ExcludeManagedIdentityCredential = true, // ManagedIdentityCredential makes the experience slow
 
                 ExcludeAzureCliCredential = false,
                 ExcludeAzurePowerShellCredential = false,
