@@ -156,9 +156,9 @@ jobs:
         $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
         Write-Verbose -Verbose $acrRepositoryNamesFilePath
         $repositoryNames = Get-Content -Path $acrRepositoryNamesFilePath
-        Write-Verbose -Verbose $repositoryNames
         foreach ($name in $repositoryNames)
         {
+          Write-Verbose -Verbose $name
           # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
           Remove-AzContainerRegistryRepository -Name $name -RegistryName $registryName
         }
