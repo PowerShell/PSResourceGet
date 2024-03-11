@@ -154,6 +154,7 @@ jobs:
         $registryName = 'psresourcegettest'
         $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
         $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
+        Write-Verbose -Verbose $acrRepositoryNamesFilePath
         $repositoryNames = Get-Content -Path $acrRepositoryNamesFilePath
         Write-Verbose -Verbose $repositoryNames
         foreach ($name in $repositoryNames)

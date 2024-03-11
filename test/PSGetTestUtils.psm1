@@ -756,9 +756,7 @@ function Set-TestACRRepositories
     )
 
     Write-Verbose -Verbose "in Set-TestACRRepositories"
-    $localAppDataPath = Get-PSGetLocalAppDataPath
-    Write-Verbose -Verbose $localAppDataPath
-    $acrRepositoryNamesFolder = Join-Path -Path $localAppDataPath -ChildPath 'TempModules'
+    $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
     Write-Verbose -Verbose $acrRepositoryNamesFolder
     $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
     Write-Verbose $acrRepositoryNamesFilePath
