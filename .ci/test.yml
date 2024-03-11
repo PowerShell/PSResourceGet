@@ -129,24 +129,6 @@ jobs:
     displayName: 'Execute functional tests with AzAuth'
     condition: eq(${{ parameters.useAzAuth }}, true)
 
-  - task: AzurePowerShell@5
-    inputs:
-      azureSubscription: PSResourceGetACR
-      azurePowerShellVersion: LatestVersion
-      ScriptType: InlineScript
-      inline: |
-        $registryName = 'psresourcegettest'
-        $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
-        $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
-        $repositoryNames = Get-Content -Path $acrRepositoryNamesFilePath
-        Write-Verbose -Verbose $repositoryNames
-        foreach ($name in $repositoryNames)
-        {
-          # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
-          Remove-AzContainerRegistryRepository -Name $name -RegistryName $registryName
-        }
-    displayName: 'Delete test repositories from ACR'
-
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
       $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
@@ -162,3 +144,21 @@ jobs:
     workingDirectory: ${{ parameters.buildDirectory }}
     errorActionPreference: continue
     condition: eq(${{ parameters.useAzAuth }}, false)
+
+  - task: AzurePowerShell@5
+  inputs:
+    azureSubscription: PSResourceGetACR
+    azurePowerShellVersion: LatestVersion
+    ScriptType: InlineScript
+    inline: |
+      $registryName = 'psresourcegettest'
+      $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
+      $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
+      $repositoryNames = Get-Content -Path $acrRepositoryNamesFilePath
+      Write-Verbose -Verbose $repositoryNames
+      foreach ($name in $repositoryNames)
+      {
+        # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
+        Remove-AzContainerRegistryRepository -Name $name -RegistryName $registryName
+      }
+  displayName: 'Delete test repositories from ACR'
