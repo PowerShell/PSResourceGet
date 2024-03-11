@@ -681,13 +681,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             // Check for package artifact type
             var resourceTypeJToken = annotations["resourceType"];
-            if (resourceTypeJToken == null)
-            {
-                exception = new InvalidOrEmptyResponse($"Response does not contain 'resourceType' element in manifest for package '{packageName}' in '{Repository.Name}'.");
-
-                return serverPkgInfo;
-            }
-            var resourceType = resourceTypeJToken.ToString();
+            var resourceType = resourceTypeJToken != null ? resourceTypeJToken.ToString() : string.Empty;
 
             return new ContainerRegistryInfo(metadataPkgName, metadata, resourceType);
         }
