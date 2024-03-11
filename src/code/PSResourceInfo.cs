@@ -810,6 +810,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public static bool TryConvertFromACRJson(
           string packageName,
           JsonDocument packageMetadata,
+          ResourceType? resourceType,
           out PSResourceInfo psGetInfo,
           PSRepositoryInfo repository, 
           out string errorMsg)
@@ -973,7 +974,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     { "NormalizedVersion", metadata["NormalizedVersion"].ToString() }
                 };
-
+               
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: additionalMetadataHashtable,
                     author: metadata["Authors"] as String,
@@ -996,7 +997,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     repository: repository.Name,
                     repositorySourceLocation: repository.Uri.ToString(),
                     tags: metadata["Tags"] as string[],
-                    type: ResourceType.None,
+                    type: resourceType ?? ResourceType.None,
                     updatedDate: null,
                     version: metadata["Version"] as Version);
 

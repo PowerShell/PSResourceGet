@@ -243,7 +243,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: acrFindResponseType);
             }
-            
+
             _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{requiredVersion}'");
             bool includePrereleaseVersions = requiredVersion.IsPrerelease;
 
@@ -563,7 +563,7 @@ namespace Microsoft.PowerShell.PSResourceGet
              *   }
              */
 
-            Tuple<string,string> metadataTuple = GetMetadataProperty(foundTags, packageName, out Exception exception);
+            var serverPkgInfo = GetMetadataProperty(foundTags, packageName, out Exception exception);
             if (exception != null)
             {
                 errRecord = new ErrorRecord(exception, "FindNameFailure", ErrorCategory.InvalidResult, this);
@@ -571,10 +571,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return requiredVersionResponse;
             }
 
-            string metadataPkgName = metadataTuple.Item1;
-            string metadata = metadataTuple.Item2;
             string pkgVersionString = String.Empty;
-            using (JsonDocument metadataJSONDoc = JsonDocument.Parse(metadata))
+            using (JsonDocument metadataJSONDoc = JsonDocument.Parse(serverPkgInfo.Metadata))
             {
                 JsonElement rootDom = metadataJSONDoc.RootElement;
                 if (rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement))
@@ -587,7 +585,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                         pkgVersionString += $"-{pkgPrereleaseLabelElement.ToString()}";
                     }
                 }
-                else if(rootDom.TryGetProperty("Version", out pkgVersionElement))
+                else if (rootDom.TryGetProperty("Version", out pkgVersionElement))
                 {
                     // script metadata will have "Version" property
                     pkgVersionString = pkgVersionElement.ToString();
@@ -628,23 +626,23 @@ namespace Microsoft.PowerShell.PSResourceGet
                 _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
                 if (pkgVersion.ToNormalizedString() == requiredVersion.ToNormalizedString())
                 {
-                    requiredVersionResponse.Add(metadataPkgName, metadata);
+                    requiredVersionResponse = serverPkgInfo.ToHashtable();
                 }
             }
 
             return requiredVersionResponse;
         }
 
-        internal Tuple<string,string> GetMetadataProperty(JObject foundTags, string packageName, out Exception exception)
+        internal ContainerRegistryInfo GetMetadataProperty(JObject foundTags, string packageName, out Exception exception)
         {
             exception = null;
-            var emptyTuple = new Tuple<string, string>(string.Empty, string.Empty);
+            ContainerRegistryInfo serverPkgInfo = null;
             var layers = foundTags["layers"];
             if (layers == null || layers[0] == null)
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'layers' element in manifest for package '{packageName}' in '{Repository.Name}'.");
 
-                return emptyTuple;
+                return serverPkgInfo;
             }
 
             var annotations = layers[0]["annotations"];
@@ -652,35 +650,46 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'annotations' element in manifest for package '{packageName}' in '{Repository.Name}'.");
 
-                return emptyTuple;
+                return serverPkgInfo;
             }
 
-            if (annotations["metadata"] == null)
-            {
-                exception = new InvalidOrEmptyResponse($"Response does not contain 'metadata' element in manifest for package '{packageName}' in '{Repository.Name}'.");
-
-                return emptyTuple;
-            }
-
-            var metadata = annotations["metadata"].ToString();
-
-            var metadataPkgTitleJToken = annotations["org.opencontainers.image.title"];
-            if (metadataPkgTitleJToken == null)
+            // Check for package name
+            var pkgTitleJToken = annotations["org.opencontainers.image.title"];
+            if (pkgTitleJToken == null)
             {
                 exception = new InvalidOrEmptyResponse($"Response does not contain 'org.opencontainers.image.title' element for package '{packageName}' in '{Repository.Name}'.");
 
-                return emptyTuple;
+                return serverPkgInfo;
             }
-
-            string metadataPkgName = metadataPkgTitleJToken.ToString();
+            string metadataPkgName = pkgTitleJToken.ToString();
             if (string.IsNullOrWhiteSpace(metadataPkgName))
             {
                 exception = new InvalidOrEmptyResponse($"Response element 'org.opencontainers.image.title' is empty for package '{packageName}' in '{Repository.Name}'.");
 
-                return emptyTuple;
+                return serverPkgInfo;
             }
 
-            return new Tuple<string, string>(metadataPkgName, metadata);
+            // Check for package metadata
+            var pkgMetadataJToken = annotations["metadata"];
+            if (pkgMetadataJToken == null)
+            {
+                exception = new InvalidOrEmptyResponse($"Response does not contain 'metadata' element in manifest for package '{packageName}' in '{Repository.Name}'.");
+
+                return serverPkgInfo;
+            }
+            var metadata = pkgMetadataJToken.ToString();
+
+            // Check for package artifact type
+            var resourceTypeJToken = annotations["resourceType"];
+            if (resourceTypeJToken == null)
+            {
+                exception = new InvalidOrEmptyResponse($"Response does not contain 'resourceType' element in manifest for package '{packageName}' in '{Repository.Name}'.");
+
+                return serverPkgInfo;
+            }
+            var resourceType = resourceTypeJToken.ToString();
+
+            return new ContainerRegistryInfo(metadataPkgName, metadata, resourceType);
         }
 
         internal JObject FindAcrManifest(string registry, string packageName, string version, string acrAccessToken, out ErrorRecord errRecord)
@@ -1026,7 +1035,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             // Create and upload manifest 
-            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, pkgName, resourceType, metadataJson, configFilePath, 
+            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, pkgName, resourceType, metadataJson, configFilePath,
                 pkgNameLower, pkgVersion, acrAccessToken);
 
             return true;
@@ -1172,7 +1181,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             jsonWriter.WriteValue(fileName);
             jsonWriter.WritePropertyName("metadata");
             jsonWriter.WriteValue(metadata);
-            jsonWriter.WritePropertyName("artifactType");
+            jsonWriter.WritePropertyName("resourceType");
             jsonWriter.WriteValue(resourceType.ToString());
             jsonWriter.WriteEndObject(); // end of annotations object
 
@@ -1295,7 +1304,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             var pkgsInDescendingOrder = sortedQualifyingPkgs.Reverse();
 
-            foreach(var pkgVersionTag in pkgsInDescendingOrder)
+            foreach (var pkgVersionTag in pkgsInDescendingOrder)
             {
                 string exactTagVersion = pkgVersionTag.Value.ToString();
                 Hashtable metadata = GetACRMetadata(Registry, packageNameLowercase, exactTagVersion, acrAccessToken, out errRecord);
@@ -1310,7 +1319,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     // getOnlyLatest will be true for FindName(), as only the latest criteria satisfying version should be returned
                     break;
                 }
-            }   
+            }
 
             return latestVersionResponse.ToArray();
         }

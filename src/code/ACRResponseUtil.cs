@@ -42,20 +42,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string responseConversionError = String.Empty;
                 PSResourceInfo pkg = null;
 
-                string packageName = string.Empty;
-                string packageMetadata = null;
-
-                foreach (DictionaryEntry entry in response)
+                // Hashtable should have keys for Name, Metadata, ResourceType
+                if (!response.ContainsKey("Name") && string.IsNullOrWhiteSpace(response["Name"].ToString()))
                 {
-                    packageName = (string)entry.Key;
-                    packageMetadata = (string)entry.Value;
+                    yield return new PSResourceResult(returnedObject: pkg, exception: new ConvertToPSResourceException("Error retrieving package name from response."), isTerminatingError: true);
                 }
+
+                if (!response.ContainsKey("Metadata"))
+                {
+                    yield return new PSResourceResult(returnedObject: pkg, exception: new ConvertToPSResourceException("Error retrieving package metadata from response."), isTerminatingError: true);
+                }
+
+                ResourceType? resourceType = response.ContainsKey("ResourceType") ? response["ResourceType"] as ResourceType? : ResourceType.None;
 
                 try
                 {
-                    using (JsonDocument pkgVersionEntry = JsonDocument.Parse(packageMetadata))
+                    using (JsonDocument pkgVersionEntry = JsonDocument.Parse(response["Metadata"].ToString()))
                     {
-                        PSResourceInfo.TryConvertFromACRJson(packageName, pkgVersionEntry, out pkg, Repository, out responseConversionError);
+                        PSResourceInfo.TryConvertFromACRJson(response["Name"].ToString(), pkgVersionEntry, resourceType, out pkg, Repository, out responseConversionError);
                     }
                 }
                 catch (Exception e)
