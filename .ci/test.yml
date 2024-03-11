@@ -96,8 +96,8 @@ jobs:
       azurePowerShellVersion: LatestVersion
       ScriptType: InlineScript
       inline: |
-        Write-Verbose -Verbose $env:localappdata
-        $acrRepositoryNamesFolder = Join-Path -Path $env:localappdata -ChildPath 'TempModules'
+        Write-Verbose -Verbose ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData))
+        $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
         if (Test-Path -Path $acrRepositoryNamesFolder) {
           Write-Verbose -Verbose "Deleting existing temp acr repository names folder path: $acrRepositoryNamesFolder"
           Remove-Item -Path $acrRepositoryNamesFolder -Recurse -Force -ErrorAction Ignore
@@ -136,7 +136,7 @@ jobs:
       ScriptType: InlineScript
       inline: |
         $registryName = 'psresourcegettest'
-        $acrRepositoryNamesFolder = Join-Path -Path $env:localappdata -ChildPath 'TempModules'
+        $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
         $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
         $repositoryNames = Get-Content -Path $acrRepositoryNamesFilePath
         foreach ($name in $repositoryNames)
