@@ -96,6 +96,19 @@ jobs:
       azurePowerShellVersion: LatestVersion
       ScriptType: InlineScript
       inline: |
+        $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
+        Write-Verbose -Verbose "Creating new folder for acr repository names file to be placed with path: $acrRepositoryNamesFolder"
+        $null = New-Item -Path $acrRepositoryNamesFolder -ItemType Directory
+        $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
+        New-Item -Path $acrRepositoryNamesFilePath
+    displayName: 'Upload empty file for ACR functional tests to write test repository names to'
+
+  - task: AzurePowerShell@5
+    inputs:
+      azureSubscription: PSResourceGetACR
+      azurePowerShellVersion: LatestVersion
+      ScriptType: InlineScript
+      inline: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
         Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
@@ -124,3 +137,20 @@ jobs:
     workingDirectory: ${{ parameters.buildDirectory }}
     errorActionPreference: continue
     condition: eq(${{ parameters.useAzAuth }}, false)
+
+  - task: AzurePowerShell@5
+    inputs:
+      azureSubscription: PSResourceGetACR
+      azurePowerShellVersion: LatestVersion
+      ScriptType: InlineScript
+      inline: |
+        $registryName = 'psresourcegettest'
+        $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
+        $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
+        $repositoryNames = Get-Content -Path $acrRepositoryNamesFilePath
+        foreach ($name in $repositoryNames)
+        {
+          # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
+          Remove-AzContainerRegistryRepository -Name $name -RegistryName $registryName
+        }
+    displayName: 'Delete test repositories from ACR'
