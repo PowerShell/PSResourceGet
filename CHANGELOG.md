@@ -1,4 +1,9 @@
 # CHANGELOG
+## 1.0.3
+
+### Bug Fixes
+- Bug fix for null package version in `Install-PSResource`
+
 ## 1.0.2
 
 ### Bug Fixes
