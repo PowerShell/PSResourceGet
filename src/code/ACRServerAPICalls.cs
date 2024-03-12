@@ -566,68 +566,81 @@ namespace Microsoft.PowerShell.PSResourceGet
             var serverPkgInfo = GetMetadataProperty(foundTags, packageName, out Exception exception);
             if (exception != null)
             {
-                errRecord = new ErrorRecord(exception, "FindNameFailure", ErrorCategory.InvalidResult, this);
+                errRecord = new ErrorRecord(exception, "ParseMetadataFailure", ErrorCategory.InvalidResult, this);
 
                 return requiredVersionResponse;
             }
 
-            string pkgVersionString = String.Empty;
-            using (JsonDocument metadataJSONDoc = JsonDocument.Parse(serverPkgInfo.Metadata))
+            try
             {
-                JsonElement rootDom = metadataJSONDoc.RootElement;
-                if (rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement))
+                using (JsonDocument metadataJSONDoc = JsonDocument.Parse(serverPkgInfo.Metadata))
                 {
-                    // module metadata will have "ModuleVersion" property
-                    pkgVersionString = pkgVersionElement.ToString();
-                    if (rootDom.TryGetProperty("PrivateData", out JsonElement pkgPrivateDataElement) && pkgPrivateDataElement.TryGetProperty("PSData", out JsonElement pkgPSDataElement)
-                        && pkgPSDataElement.TryGetProperty("Prerelease", out JsonElement pkgPrereleaseLabelElement) && !String.IsNullOrEmpty(pkgPrereleaseLabelElement.ToString().Trim()))
+                    string pkgVersionString = String.Empty;
+                    JsonElement rootDom = metadataJSONDoc.RootElement;
+                    if (rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement))
                     {
-                        pkgVersionString += $"-{pkgPrereleaseLabelElement.ToString()}";
+                        // module metadata will have "ModuleVersion" property
+                        pkgVersionString = pkgVersionElement.ToString();
+                        if (rootDom.TryGetProperty("PrivateData", out JsonElement pkgPrivateDataElement) && pkgPrivateDataElement.TryGetProperty("PSData", out JsonElement pkgPSDataElement)
+                            && pkgPSDataElement.TryGetProperty("Prerelease", out JsonElement pkgPrereleaseLabelElement) && !String.IsNullOrEmpty(pkgPrereleaseLabelElement.ToString().Trim()))
+                        {
+                            pkgVersionString += $"-{pkgPrereleaseLabelElement.ToString()}";
+                        }
+                    }
+                    else if (rootDom.TryGetProperty("Version", out pkgVersionElement))
+                    {
+                        // script metadata will have "Version" property
+                        pkgVersionString = pkgVersionElement.ToString();
+                    }
+                    else
+                    {
+                        errRecord = new ErrorRecord(
+                            new InvalidOrEmptyResponse($"Response does not contain 'ModuleVersion' or 'Version' property in metadata for package '{packageName}' in '{Repository.Name}'."),
+                            "ParseMetadataFailure",
+                            ErrorCategory.InvalidResult,
+                            this);
+
+                        return requiredVersionResponse;
+                    }
+
+                    if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
+                    {
+                        errRecord = new ErrorRecord(
+                            new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version."),
+                            "ParseMetadataFailure",
+                            ErrorCategory.InvalidArgument,
+                            this);
+
+                        return requiredVersionResponse;
+                    }
+
+                    if (!NuGetVersion.TryParse(exactTagVersion, out NuGetVersion requiredVersion))
+                    {
+                        errRecord = new ErrorRecord(
+                            new ArgumentException($"Version {exactTagVersion} to be parsed from method input is not a valid NuGet version."),
+                            "ParseMetadataFailure",
+                            ErrorCategory.InvalidArgument,
+                            this);
+
+                        return requiredVersionResponse;
+                    }
+
+                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+                    if (pkgVersion.ToNormalizedString() == requiredVersion.ToNormalizedString())
+                    {
+                        requiredVersionResponse = serverPkgInfo.ToHashtable();
                     }
                 }
-                else if (rootDom.TryGetProperty("Version", out pkgVersionElement))
-                {
-                    // script metadata will have "Version" property
-                    pkgVersionString = pkgVersionElement.ToString();
-                }
-                else
-                {
-                    errRecord = new ErrorRecord(
-                        new InvalidOrEmptyResponse($"Response does not contain 'ModuleVersion' or 'Version' property in metadata for package '{packageName}' in '{Repository.Name}'."),
-                        "FindNameFailure",
-                        ErrorCategory.InvalidResult,
-                        this);
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                            new ArgumentException($"Error parsing server metadata: {e.Message}"),
+                            "ParseMetadataFailure",
+                            ErrorCategory.InvalidData,
+                            this);
 
-                    return requiredVersionResponse;
-                }
-
-                if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
-                {
-                    errRecord = new ErrorRecord(
-                        new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version."),
-                        "FindNameFailure",
-                        ErrorCategory.InvalidArgument,
-                        this);
-
-                    return requiredVersionResponse;
-                }
-
-                if (!NuGetVersion.TryParse(exactTagVersion, out NuGetVersion requiredVersion))
-                {
-                    errRecord = new ErrorRecord(
-                        new ArgumentException($"Version {exactTagVersion} to be parsed from method input is not a valid NuGet version."),
-                        "FindNameFailure",
-                        ErrorCategory.InvalidArgument,
-                        this);
-
-                    return requiredVersionResponse;
-                }
-
-                _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
-                if (pkgVersion.ToNormalizedString() == requiredVersion.ToNormalizedString())
-                {
-                    requiredVersionResponse = serverPkgInfo.ToHashtable();
-                }
+                return requiredVersionResponse;
             }
 
             return requiredVersionResponse;
