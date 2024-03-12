@@ -96,7 +96,6 @@ jobs:
       azurePowerShellVersion: LatestVersion
       ScriptType: InlineScript
       inline: |
-        Write-Verbose -Verbose ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData))
         $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
         if (Test-Path -Path $acrRepositoryNamesFolder) {
           Write-Verbose -Verbose "Deleting existing temp acr repository names folder path: $acrRepositoryNamesFolder"
@@ -154,16 +153,9 @@ jobs:
         $registryName = 'psresourcegettest'
         $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
         $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
-        Write-Verbose -Verbose $acrRepositoryNamesFilePath
         $repositoryNames = Get-Content -Path $acrRepositoryNamesFilePath
-        foreach ($rName in $repositoryNames)
-        {
-          Write-Verbose -Verbose $rName
-        }
-
         foreach ($name in $repositoryNames)
         {
-          Write-Verbose -Verbose $name
           # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
           Remove-AzContainerRegistryRepository -Name $name -RegistryName $registryName
         }
