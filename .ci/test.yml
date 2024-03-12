@@ -156,6 +156,11 @@ jobs:
         $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
         Write-Verbose -Verbose $acrRepositoryNamesFilePath
         $repositoryNames = Get-Content -Path $acrRepositoryNamesFilePath
+        foreach ($rName in $repositoryNames)
+        {
+          Write-Verbose -Verbose $rName
+        }
+
         foreach ($name in $repositoryNames)
         {
           Write-Verbose -Verbose $name

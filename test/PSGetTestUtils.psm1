@@ -762,6 +762,11 @@ function Set-TestACRRepositories
     Write-Verbose $acrRepositoryNamesFilePath
     $fileExists = Test-Path -Path $acrRepositoryNamesFilePath
     Write-Verbose -Verbose $fileExists
+    foreach ($rName in $repositoryNames)
+    {
+        Write-Verbose -Verbose $rName
+    }
+
     if ($fileExists)
     {
         $repositoryNames | Out-File -FilePath $acrRepositoryNamesFilePath
