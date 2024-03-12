@@ -755,17 +755,9 @@ function Set-TestACRRepositories
         $repositoryNames
     )
 
-    Write-Verbose -Verbose "in Set-TestACRRepositories"
     $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
-    Write-Verbose -Verbose $acrRepositoryNamesFolder
     $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
-    Write-Verbose $acrRepositoryNamesFilePath
     $fileExists = Test-Path -Path $acrRepositoryNamesFilePath
-    Write-Verbose -Verbose $fileExists
-    foreach ($rName in $repositoryNames)
-    {
-        Write-Verbose -Verbose $rName
-    }
 
     if ($fileExists)
     {
