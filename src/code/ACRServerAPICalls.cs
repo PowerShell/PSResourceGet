@@ -312,7 +312,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             errRecord = null;
             string accessToken = string.Empty;
             string tenantID = string.Empty;
-            string packageNameLowercase = packageName.ToLower();
             string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempPath);
 
@@ -324,8 +323,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             string registry = Repository.Uri.Host;
-            _cmdletPassedIn.WriteVerbose($"Getting manifest for {packageNameLowercase} - {moduleVersion}");
-            var manifest = GetAcrRepositoryManifestAsync(registry, packageNameLowercase, moduleVersion, acrAccessToken, out errRecord);
+            _cmdletPassedIn.WriteVerbose($"Getting manifest for {packageName} - {moduleVersion}");
+            var manifest = GetAcrRepositoryManifestAsync(registry, packageName, moduleVersion, acrAccessToken, out errRecord);
             if (errRecord != null)
             {
                 return null;
@@ -336,9 +335,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return null;
             }
 
-            _cmdletPassedIn.WriteVerbose($"Downloading blob for {packageNameLowercase} - {moduleVersion}");
+            _cmdletPassedIn.WriteVerbose($"Downloading blob for {packageName} - {moduleVersion}");
             // TODO: error handling here?
-            var responseContent = GetAcrBlobAsync(registry, packageNameLowercase, digest, acrAccessToken).Result;
+            var responseContent = GetAcrBlobAsync(registry, packageName, digest, acrAccessToken).Result;
 
             return responseContent.ReadAsStreamAsync().Result;
         }

@@ -97,14 +97,8 @@ jobs:
       ScriptType: InlineScript
       inline: |
         $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
-        if (Test-Path -Path $acrRepositoryNamesFolder) {
-          Write-Verbose -Verbose "Deleting existing temp acr repository names folder path: $acrRepositoryNamesFolder"
-          Remove-Item -Path $acrRepositoryNamesFolder -Recurse -Force -ErrorAction Ignore
-        }
-        if (! (Test-Path -Path $acrRepositoryNamesFolder)) {
-          Write-Verbose -Verbose "Creating new folder for acr repository names file to be placed with path: $acrRepositoryNamesFolder"
-          $null = New-Item -Path $acrRepositoryNamesFolder -ItemType Directory
-        }
+        Write-Verbose -Verbose "Creating new folder for acr repository names file to be placed with path: $acrRepositoryNamesFolder"
+        $null = New-Item -Path $acrRepositoryNamesFolder -ItemType Directory
         $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
         New-Item -Path $acrRepositoryNamesFilePath
     displayName: 'Upload empty file for ACR functional tests to write test repository names to'
