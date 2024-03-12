@@ -305,7 +305,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         }
 
         private Stream InstallVersion(
-            string packageName,
+            string moduleName,
             string moduleVersion,
             out ErrorRecord errRecord)
         {
@@ -323,8 +323,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             string registry = Repository.Uri.Host;
-            _cmdletPassedIn.WriteVerbose($"Getting manifest for {packageName} - {moduleVersion}");
-            var manifest = GetAcrRepositoryManifestAsync(registry, packageName, moduleVersion, acrAccessToken, out errRecord);
+            _cmdletPassedIn.WriteVerbose($"Getting manifest for {moduleName} - {moduleVersion}");
+            var manifest = GetAcrRepositoryManifestAsync(registry, moduleName, moduleVersion, acrAccessToken, out errRecord);
             if (errRecord != null)
             {
                 return null;
@@ -335,9 +335,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return null;
             }
 
-            _cmdletPassedIn.WriteVerbose($"Downloading blob for {packageName} - {moduleVersion}");
+            _cmdletPassedIn.WriteVerbose($"Downloading blob for {moduleName} - {moduleVersion}");
             // TODO: error handling here?
-            var responseContent = GetAcrBlobAsync(registry, packageName, digest, acrAccessToken).Result;
+            var responseContent = GetAcrBlobAsync(registry, moduleName, digest, acrAccessToken).Result;
 
             return responseContent.ReadAsStreamAsync().Result;
         }
