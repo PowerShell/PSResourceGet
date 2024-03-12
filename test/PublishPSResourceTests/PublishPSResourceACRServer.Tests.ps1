@@ -71,14 +71,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         }
 		$script:PublishModuleBaseUNC = $script:PublishModuleBase -Replace '^(.):', '\\localhost\$1$'
 
-        #Create dependency module
-        $script:DependencyModuleName = "temp-packagemanagement"
-        $script:DependencyModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:DependencyModuleName
-        if(!(Test-Path $script:DependencyModuleBase))
-        {
-            New-Item -Path $script:DependencyModuleBase -ItemType Directory -Force
-        }
-
         # create names of other modules and scripts that will be referenced in test
         $script:ModuleWithoutRequiredModuleName = "temp-testmodulewithoutrequiredmodule-" + [System.Guid]::NewGuid()
         $script:ScriptName = "temp-testscript" + [System.Guid]::NewGuid()
@@ -113,6 +105,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     AfterAll {
         Get-RevertPSResourceRepositoryFile
 
+        # Note: all repository names provided as test packages for ACR, must have lower cased names, otherwise the Az cmdlets will not be able to properly find and delete it.
         $acrRepositoryNames = @($script:PublishModuleName, $script:ModuleWithoutRequiredModuleName, $script:ScriptName, $script:ScriptWithExternalDeps)
         Set-TestACRRepositories $acrRepositoryNames
     }
