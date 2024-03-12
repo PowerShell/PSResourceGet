@@ -649,11 +649,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 ExcludeVisualStudioCredential = true,
                 ExcludeWorkloadIdentityCredential = true,
                 ExcludeManagedIdentityCredential = true, // ManagedIdentityCredential makes the experience slow
-
+                ExcludeSharedTokenCacheCredential = true, // SharedTokenCacheCredential is not supported on macOS
                 ExcludeAzureCliCredential = false,
                 ExcludeAzurePowerShellCredential = false,
-                ExcludeInteractiveBrowserCredential = false,
-                ExcludeSharedTokenCacheCredential = false
+                ExcludeInteractiveBrowserCredential = false
             };
 
             var dCred = new DefaultAzureCredential(credOptions);
