@@ -63,7 +63,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         # Create module
         $script:tmpModulesPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
-        $script:PublishModuleName = "Temp-TestModule" + [System.Guid]::NewGuid();
+        $script:PublishModuleName = "temp-testmodule" + [System.Guid]::NewGuid();
         $script:PublishModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:PublishModuleName
         if(!(Test-Path $script:PublishModuleBase))
         {
@@ -72,7 +72,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 		$script:PublishModuleBaseUNC = $script:PublishModuleBase -Replace '^(.):', '\\localhost\$1$'
 
         #Create dependency module
-        $script:DependencyModuleName = "Temp-PackageManagement"
+        $script:DependencyModuleName = "temp-packagemanagement"
         $script:DependencyModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:DependencyModuleName
         if(!(Test-Path $script:DependencyModuleBase))
         {
@@ -80,9 +80,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         }
 
         # create names of other modules and scripts that will be referenced in test
-        $script:ModuleWithoutRequiredModuleName = "Temp-ModuleWithoutRequiredModule-" + [System.Guid]::NewGuid()
-        $script:ScriptName = "Temp-TestScript" + [System.Guid]::NewGuid()
-        $script:ScriptWithExternalDeps = "Temp-TestScriptWithExternalDeps" + [System.Guid]::NewGuid()
+        $script:ModuleWithoutRequiredModuleName = "temp-testmodulewithoutrequiredmodule-" + [System.Guid]::NewGuid()
+        $script:ScriptName = "temp-testscript" + [System.Guid]::NewGuid()
+        $script:ScriptWithExternalDeps = "temp-testscriptwithexternaldeps" + [System.Guid]::NewGuid()
 
         # Create temp destination path
         $script:destinationPath = [IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"))
