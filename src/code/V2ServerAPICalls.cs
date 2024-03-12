@@ -1161,7 +1161,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // eg: https://pkgs.dev.azure.com/<org>/<project>/_packaging/<feed>/nuget/v2?id=test_module&version=5.0.0
                 requestUrlV2 = $"{Repository.Uri}?id={packageName}&version={version}";
             }
-            if (_isJFrogRepo)
+            else if (_isJFrogRepo)
             {
                 // eg: https://<project>.jfrog.io/artifactory/api/nuget/<feed>/Download/test_module/5.0.0
                 requestUrlV2 = $"{Repository.Uri}/Download/{packageName}/{version}";
