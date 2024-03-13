@@ -78,8 +78,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $script:ScriptWithoutEmptyLinesInMetadata = "temp-scriptwithoutemptylinesinmetadata" + [System.Guid]::NewGuid()
         $script:ScriptWithoutEmptyLinesBetweenCommentBlocks = "temp-scriptwithoutemptylinesbetweencommentblocks" + [System.Guid]::NewGuid()
 
-        
-
         # Create temp destination path
         $script:destinationPath = [IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"))
         $null = New-Item $script:destinationPath -ItemType directory -Force
