@@ -25,12 +25,29 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public ServerApiCall(PSRepositoryInfo repository, NetworkCredential networkCredential)
         {
             this.Repository = repository;
-            HttpClientHandler handler = new HttpClientHandler()
+            
+            HttpClientHandler handler = new HttpClientHandler();
+            bool token = false;
+
+            if(networkCredential != null) 
             {
-                Credentials = networkCredential
+                token = String.Equals("token", networkCredential.UserName) ? true : false;
             };
 
-            _sessionClient = new HttpClient(handler);
+            if (token)
+            {
+                string credString = string.Format(":{0}", networkCredential.Password);
+                byte[] byteArray = Encoding.ASCII.GetBytes(credString);
+
+                _sessionClient = new HttpClient(handler);
+                _sessionClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+
+            } else {
+
+                handler.Credentials = networkCredential;
+                
+                _sessionClient = new HttpClient(handler);
+            };
         }
 
         #endregion
