@@ -75,6 +75,10 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $script:ModuleWithoutRequiredModuleName = "temp-testmodulewithoutrequiredmodule-" + [System.Guid]::NewGuid()
         $script:ScriptName = "temp-testscript" + [System.Guid]::NewGuid()
         $script:ScriptWithExternalDeps = "temp-testscriptwithexternaldeps" + [System.Guid]::NewGuid()
+        $script:ScriptWithoutEmptyLinesInMetadata = "temp-scriptwithoutemptylinesinmetadata" + [System.Guid]::NewGuid()
+        $script:ScriptWithoutEmptyLinesBetweenCommentBlocks = "temp-scriptwithoutemptylinesbetweencommentblocks" + [System.Guid]::NewGuid()
+
+        
 
         # Create temp destination path
         $script:destinationPath = [IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath "tmpDestinationPath"))
@@ -106,7 +110,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
 
         # Note: all repository names provided as test packages for ACR, must have lower cased names, otherwise the Az cmdlets will not be able to properly find and delete it.
-        $acrRepositoryNames = @($script:PublishModuleName, $script:ModuleWithoutRequiredModuleName, $script:ScriptName, $script:ScriptWithExternalDeps)
+        $acrRepositoryNames = @($script:PublishModuleName, $script:ModuleWithoutRequiredModuleName, $script:ScriptName, $script:ScriptWithExternalDeps, $script:ScriptWithoutEmptyLinesInMetadata, $script:ScriptWithoutEmptyLinesBetweenCommentBlocks)
         Set-TestACRRepositories $acrRepositoryNames
     }
 
@@ -360,36 +364,40 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $scriptPath -Repository $ACRRepoName
 
-        $results = Find-PSResource -Name $script:ScriptName -Repository $ACRRepoName
-        $results | Should -Not -BeNullOrEmpty
-        $results[0].Name | Should -Be $script:ScriptName
-        $results[0].Version | Should -Be $scriptVersion
+        $result = Find-PSResource -Name $script:ScriptName -Repository $ACRRepoName
+        $result | Should -Not -BeNullOrEmpty
+        $result.Name | Should -Be $script:ScriptName
+        $result.Version | Should -Be $scriptVersion
     }
 
     It "Should publish a script without lines in between comment blocks locally" {
         $scriptName = "ScriptWithoutEmptyLinesBetweenCommentBlocks"
         $scriptVersion = "1.0"
-        $scriptPath = (Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1")
+        $scriptSrcPath = Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1"
+        $scriptDestPath = Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$script:ScriptWithoutEmptyLinesBetweenCommentBlocks.ps1"
+        Copy-Item -Path $scriptSrcPath -Destination $scriptDestPath
 
-        Publish-PSResource -Path $scriptPath -Repository $ACRRepoName
+        Publish-PSResource -Path $scriptDestPath -Repository $ACRRepoName
 
-        $results = Find-PSResource -Name $scriptName -Repository $ACRRepoName
-        $results | Should -Not -BeNullOrEmpty
-        $results[0].Name | Should -Be $scriptName
-        $results[0].Version | Should -Be $scriptVersion
+        $result = Find-PSResource -Name $scriptName -Repository $ACRRepoName
+        $result | Should -Not -BeNullOrEmpty
+        $result.Name | Should -Be $script:ScriptWithoutEmptyLinesBetweenCommentBlocks
+        $result.Version | Should -Be $scriptVersion
     }
 
     It "Should publish a script without lines in help block locally" {
         $scriptName = "ScriptWithoutEmptyLinesInMetadata"
         $scriptVersion = "1.0"
-        $scriptPath = (Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1")
+        $scriptSrcPath = Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1"
+        $scriptDestPath = Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$script:ScriptWithoutEmptyLinesInMetadata.ps1"
+        Copy-Item -Path $scriptSrcPath -Destination $scriptDestPath
 
-        Publish-PSResource -Path $scriptPath -Repository $ACRRepoName
+        Publish-PSResource -Path $scriptDestPath -Repository $ACRRepoName
 
-        $results = Find-PSResource -Name $scriptName -Repository $ACRRepoName
-        $results | Should -Not -BeNullOrEmpty
-        $results[0].Name | Should -Be $scriptName
-        $results[0].Version | Should -Be $scriptVersion
+        $result = Find-PSResource -Name $Script:ScriptWithoutEmptyLinesInMetadata -Repository $ACRRepoName
+        $result | Should -Not -BeNullOrEmpty
+        $results.Name | Should -Be $Script:ScriptWithoutEmptyLinesInMetadata
+        $results.Version | Should -Be $scriptVersion
     }
 
     It "Should publish a script with ExternalModuleDependencies that are not published" {
