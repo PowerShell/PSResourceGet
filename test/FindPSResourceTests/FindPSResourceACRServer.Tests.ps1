@@ -198,11 +198,10 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
     }
 
     It "Should find and return correct resource type - module" {
-        $moduleName = "test_dependency_mod"
-        $res = Find-PSResource -Name $moduleName -Repository $ACRRepoName
+        $res = Find-PSResource -Name $testModuleName -Repository $ACRRepoName
         $res | Should -Not -BeNullOrEmpty
-        $res.Name | Should -BeExactly $moduleName
-        $res.Version | Should -Be "1.0.0"
+        $res.Name | Should -BeExactly $testModuleName
+        $res.Version | Should -Be "5.0.0"
         $res.Type.ToString() | Should -Be "Module"
     }
 
@@ -211,7 +210,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res = Find-PSResource -Name $scriptName -Repository $ACRRepoName
         $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -BeExactly $scriptName
-        $res.Version | Should -Be "1.0.0"
+        $res.Version | Should -Be "3.0.0"
         $res.Type.ToString() | Should -Be "Script"
     }
 

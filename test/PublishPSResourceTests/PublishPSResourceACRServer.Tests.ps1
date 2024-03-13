@@ -377,7 +377,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $scriptDestPath -Repository $ACRRepoName
 
-        $result = Find-PSResource -Name $scriptName -Repository $ACRRepoName
+        $result = Find-PSResource -Name $script:ScriptWithoutEmptyLinesBetweenCommentBlocks -Repository $ACRRepoName
         $result | Should -Not -BeNullOrEmpty
         $result.Name | Should -Be $script:ScriptWithoutEmptyLinesBetweenCommentBlocks
         $result.Version | Should -Be $scriptVersion
