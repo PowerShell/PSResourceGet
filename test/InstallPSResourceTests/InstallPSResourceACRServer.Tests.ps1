@@ -241,6 +241,22 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $res = Install-PSResource -Name $testModuleName -Repository $ACRRepoName -PassThru -TrustRepository
         $res.Name | Should -Contain $testModuleName
     }
+
+    It "Install module with varying case sensitivity" {
+        Install-PSResource -Name "test-camelCaseModule" -Repository $ACRRepoName
+        $res = Get-InstalledPSResource -Name "test-camelCaseModule"
+        $res.Name | Should -BeExactly "test-camelCaseModule"
+        $res.Version | Should -Be "1.0.0"
+        $res.Type.ToString() | Should -Be "Module"
+    }
+
+    It "Install script with varying case sensitivity" {
+        Install-PSResource -Name "test-camelCaseScript" -Repository $ACRRepoName
+        $res = Get-InstalledPSResource -Name "test-camelCaseScript"
+        $res.Name | Should -BeExactly "test-camelCaseScript"
+        $res.Version | Should -Be "1.0.0"
+        $res.Type.ToString() | Should -Be "Script"
+    }
 }
 
 Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidationOnly' {

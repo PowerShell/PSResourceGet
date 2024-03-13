@@ -210,4 +210,18 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "1.0.0"
         $res.Type.ToString() | Should -Be "Script"
     }
+
+    It "Should find module with varying case sensitivity" {
+        $res = Find-PSResource -Name "test-camelCaseModule" -Repository $ACRRepoName
+        $res.Name | Should -BeExactly "test-camelCaseModule"
+        $res.Version | Should -Be "1.0.0"
+        $res.Type.ToString() | Should -Be "Module"
+    }
+
+    It "Should find script with varying case sensitivity" {
+        $res = Find-PSResource -Name "test-camelCaseScript" -Repository $ACRRepoName
+        $res.Name | Should -BeExactly "test-camelCaseScript"
+        $res.Version | Should -Be "1.0.0"
+        $res.Type.ToString() | Should -Be "Script"
+    }
 }
