@@ -312,7 +312,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     WriteError(new ErrorRecord(
                         manifestReadError,
-                        "ManifestFileReadParseForACRPublishError",
+                        "ManifestFileReadParseForContainerRegistryPublishError",
                         ErrorCategory.ReadError,
                         this));
 
@@ -496,12 +496,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (repository.ApiVersion == PSRepositoryInfo.APIVersion.ContainerRegistry)
                 {
-                    ACRServerAPICalls acrServer = new ACRServerAPICalls(repository, this, _networkCredential, userAgentString);
+                    ContainerRegistryServerAPICalls containerRegistryServer = new ContainerRegistryServerAPICalls(repository, this, _networkCredential, userAgentString);
 
                     var pkgMetadataFile = (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish;
-                    if (!acrServer.PushNupkgACR(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, repository, resourceType, parsedMetadata, dependencies, out ErrorRecord pushNupkgACRError))
+                    if (!containerRegistryServer.PushNupkgContainerRegistry(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, repository, resourceType, parsedMetadata, dependencies, out ErrorRecord pushNupkgContainerRegistryError))
                     {
-                        WriteError(pushNupkgACRError);
+                        WriteError(pushNupkgContainerRegistryError);
                         // exit out of processing
                         return;
                     }

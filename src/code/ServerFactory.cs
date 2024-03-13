@@ -60,7 +60,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case PSRepositoryInfo.APIVersion.ContainerRegistry:
-                    currentServer = new ACRServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
+                    currentServer = new ContainerRegistryServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
                     break;
 
                 case PSRepositoryInfo.APIVersion.Unknown:
