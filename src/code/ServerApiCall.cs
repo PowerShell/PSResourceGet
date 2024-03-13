@@ -6,6 +6,7 @@ using System.IO;
 using System.Net.Http;
 using NuGet.Versioning;
 using System.Net;
+using System.Text;
 using System.Runtime.ExceptionServices;
 using System.Management.Automation;
 
