@@ -804,10 +804,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         }
 
         /// <summary>
-        /// Converts ACR JsonDocument entry to PSResourceInfo instance
-        /// used for ACR Server API call find response conversion to PSResourceInfo object
+        /// Converts ContainerRegistry JsonDocument entry to PSResourceInfo instance
+        /// used for ContainerRegistry Server API call find response conversion to PSResourceInfo object
         /// </summary>
-        public static bool TryConvertFromACRJson(
+        public static bool TryConvertFromContainerRegistryJson(
           string packageName,
           JsonDocument packageMetadata,
           ResourceType? resourceType,
@@ -820,7 +820,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             if (packageMetadata == null)
             {
-                errorMsg = "TryConvertFromACRJson: Invalid json object. Object cannot be null.";
+                errorMsg = "TryConvertFromContainerRegistryJson: Invalid json object. Object cannot be null.";
                 return false;
             }
 
@@ -865,7 +865,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     errorMsg = string.Format(
                         CultureInfo.InvariantCulture,
-                        @"TryConvertFromACRJson: Neither 'ModuleVersion' nor 'Version' could be found in package metadata");
+                        @"TryConvertFromContainerRegistryJson: Neither 'ModuleVersion' nor 'Version' could be found in package metadata");
 
                     return false;
                 }
@@ -874,7 +874,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     errorMsg = string.Format(
                         CultureInfo.InvariantCulture,
-                        @"TryConvertFromACRJson: Cannot parse NormalizedVersion or System.Version from version in metadata.");
+                        @"TryConvertFromContainerRegistryJson: Cannot parse NormalizedVersion or System.Version from version in metadata.");
 
                     return false;
                 }
@@ -967,7 +967,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // Dependencies
                 if (rootDom.TryGetProperty("RequiredModules", out JsonElement requiredModulesElement))
                 {
-                    metadata["Dependencies"] = ParseACRDependencies(requiredModulesElement, out errorMsg).ToArray();
+                    metadata["Dependencies"] = ParseContainerRegistryDependencies(requiredModulesElement, out errorMsg).ToArray();
                 }
 
                 var additionalMetadataHashtable = new Dictionary<string, string>
@@ -1008,7 +1008,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 errorMsg = string.Format(
                     CultureInfo.InvariantCulture,
-                    @"TryConvertFromACRJson: Cannot parse PSResourceInfo from json object with error: {0}",
+                    @"TryConvertFromContainerRegistryJson: Cannot parse PSResourceInfo from json object with error: {0}",
                     ex.Message);
                     
                 return false;
@@ -1519,7 +1519,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return dependencyList.ToArray();
         }
 
-        internal static List<Dependency> ParseACRDependencies(JsonElement requiredModulesElement, out string errorMsg)
+        internal static List<Dependency> ParseContainerRegistryDependencies(JsonElement requiredModulesElement, out string errorMsg)
         {
             errorMsg = string.Empty;
             List<Dependency> pkgDeps = new List<Dependency>();

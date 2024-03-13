@@ -31,7 +31,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case PSRepositoryInfo.APIVersion.ContainerRegistry:
-                    currentResponseUtil = new ACRResponseUtil(repository);
+                    currentResponseUtil = new ContainerRegistryResponseUtil(repository);
                     break;
 
                 case PSRepositoryInfo.APIVersion.Unknown:

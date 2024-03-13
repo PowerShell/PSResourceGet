@@ -74,7 +74,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public int Priority { get; }
 
         /// <summary>
-        /// the type of repository provider (eg, AzureDevOps, ACR, etc.)
+        /// the type of repository provider (eg, AzureDevOps, ContainerRegistry, etc.)
         /// </summary>
         public RepositoryProviderType RepositoryProvider { get; }
 

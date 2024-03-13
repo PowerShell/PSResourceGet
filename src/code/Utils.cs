@@ -661,7 +661,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return token.Token;
         }
 
-        public static string GetACRAccessTokenFromSecretManagement(
+        public static string GetContainerRegistryAccessTokenFromSecretManagement(
             string repositoryName,
             PSCredentialInfo repositoryCredentialInfo,
             PSCmdlet cmdletPassedIn)
@@ -701,7 +701,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         new PSInvalidOperationException(
                             message: $"Microsoft.PowerShell.SecretManagement\\Get-Secret encountered an error while reading secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" for PSResourceRepository ({repositoryName}) authentication.",
                             innerException: terminatingError),
-                        "ACRRepositoryCannotGetSecretFromVault",
+                        "ContainerRegistryRepositoryCannotGetSecretFromVault",
                         ErrorCategory.InvalidOperation,
                         cmdletPassedIn));
             }
@@ -720,7 +720,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             cmdletPassedIn.ThrowTerminatingError(
                 new ErrorRecord(
                     new PSNotSupportedException($"Secret \"{repositoryCredentialInfo.SecretName}\" from vault \"{repositoryCredentialInfo.VaultName}\" has an invalid type. The only supported type is PSCredential."),
-                    "ACRRepositoryTokenIsInvalidSecretType",
+                    "ContainerRegistryRepositoryTokenIsInvalidSecretType",
                     ErrorCategory.InvalidType,
                     cmdletPassedIn));
 
