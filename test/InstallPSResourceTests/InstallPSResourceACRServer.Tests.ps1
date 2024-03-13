@@ -162,7 +162,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     }
 
     It "Install resource with copyright, description and repository source location and validate properties" {
-        Install-PSResource -Name $testModuleName -Version "7.0.0" -Repository $ACRRepoName -TrustRepository
+        Install-PSResource -Name $testModuleName -Version "3.0.0" -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "3.0.0"

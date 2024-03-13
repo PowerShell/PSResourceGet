@@ -392,9 +392,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $scriptDestPath -Repository $ACRRepoName
 
-        $result = Find-PSResource -Name $Script:ScriptWithoutEmptyLinesInMetadata -Repository $ACRRepoName
+        $result = Find-PSResource -Name $script:ScriptWithoutEmptyLinesInMetadata -Repository $ACRRepoName
         $result | Should -Not -BeNullOrEmpty
-        $results.Name | Should -Be $Script:ScriptWithoutEmptyLinesInMetadata
+        $results.Name | Should -Be $script:ScriptWithoutEmptyLinesInMetadata
         $results.Version | Should -Be $scriptVersion
     }
 
