@@ -394,8 +394,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         $result = Find-PSResource -Name $script:ScriptWithoutEmptyLinesInMetadata -Repository $ACRRepoName
         $result | Should -Not -BeNullOrEmpty
-        $results.Name | Should -Be $script:ScriptWithoutEmptyLinesInMetadata
-        $results.Version | Should -Be $scriptVersion
+        $result.Name | Should -Be $script:ScriptWithoutEmptyLinesInMetadata
+        $result.Version | Should -Be $scriptVersion
     }
 
     It "Should publish a script with ExternalModuleDependencies that are not published" {
