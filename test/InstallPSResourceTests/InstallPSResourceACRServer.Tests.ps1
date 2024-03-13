@@ -8,11 +8,13 @@ Import-Module $modPath -Force -Verbose
 Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     BeforeAll {
-        $testModuleName = "test_local_mod"
-        $testModuleName2 = "test_local_mod2"
+        $testModuleName = "test-module"
+        $testModuleName2 = "test-module2"
+        $testCamelCaseModuleName = "test-camelCaseModule"
+        $testCamelCaseScriptName = "test-camelCaseScript"
         $testModuleParentName = "test_parent_mod"
         $testModuleDependencyName = "test_dependency_mod"
-        $testScriptName = "testscript"
+        $testScriptName = "test-script"
         $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io/"
         Get-NewPSResourceRepositoryFile
@@ -31,7 +33,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     }
 
     AfterEach {
-        Uninstall-PSResource $testModuleName, $testModuleName2, $testScriptName -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource $testModuleName, $testModuleName2, $testCamelCaseModuleName, $testScriptName, $testCamelCaseScriptName -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -39,8 +41,8 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     }
 
     $testCases = @{Name="*";                        ErrorId="NameContainsWildcard"},
-                 @{Name="Test_local_m*";            ErrorId="NameContainsWildcard"},
-                 @{Name="Test?local","Test[local";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
+                 @{Name="Test-mod*";                ErrorId="NameContainsWildcard"},
+                 @{Name="Test?modu","Test[module";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
 
     It "Should not install resource with wildcard in name" -TestCases $testCases {
         param($Name, $ErrorId)
@@ -62,7 +64,8 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         Install-PSResource -Name $testScriptName -Repository $ACRRepoName -TrustRepository
         $pkg = Get-InstalledPSResource $testScriptName
         $pkg.Name | Should -BeExactly $testScriptName
-        $pkg.Version | Should -Be "2.0.0"
+        $pkg.Version | Should -Be "3.0.0"
+        $pkg.Type.ToString() | Should -Be "Script"
     }
 
     It "Install script resource by name and version" {
@@ -148,7 +151,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.2.5"
-        $pkg.Prerelease | Should -Be "alpha001"
+        $pkg.Prerelease | Should -Be "alpha"
     }
 
     It "Install resource via InputObject by piping from Find-PSresource" {
@@ -159,11 +162,10 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     }
 
     It "Install resource with copyright, description and repository source location and validate properties" {
-        $testModule = "test_module"
-        Install-PSResource -Name $testModule -Version "7.0.0" -Repository $ACRRepoName -TrustRepository
-        $pkg = Get-InstalledPSResource $testModule
-        $pkg.Name | Should -Be $testModule
-        $pkg.Version | Should -Be "7.0.0"
+        Install-PSResource -Name $testModuleName -Version "3.0.0" -Repository $ACRRepoName -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleName
+        $pkg.Name | Should -Be $testModuleName
+        $pkg.Version | Should -Be "3.0.0"
         $pkg.Copyright | Should -Be "(c) Anam Navied. All rights reserved."
         $pkg.Description | Should -Be "This is a test module, for PSGallery team internal testing. Do not take a dependency on this package. This version contains tags for the package."
         $pkg.RepositorySourceLocation | Should -Be $ACRRepoUri
@@ -231,7 +233,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     }
 
     It "Install PSResourceInfo object piped in" {
-        Find-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $ACRRepoName | Install-PSResource -TrustRepository
+        Find-PSResource -Name $testModuleName -Version "1.0.0" -Repository $ACRRepoName | Install-PSResource -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleName
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "1.0.0"
@@ -240,6 +242,22 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     It "Install module using -PassThru" {
         $res = Install-PSResource -Name $testModuleName -Repository $ACRRepoName -PassThru -TrustRepository
         $res.Name | Should -Contain $testModuleName
+    }
+
+    It "Install module with varying case sensitivity" {
+        Install-PSResource -Name $testCamelCaseModuleName -Repository $ACRRepoName -TrustRepository
+        $res = Get-InstalledPSResource -Name $testCamelCaseModuleName
+        $res.Name | Should -BeExactly $testCamelCaseModuleName
+        $res.Version | Should -Be "1.0.0"
+        $res.Type.ToString() | Should -Be "Module"
+    }
+
+    It "Install script with varying case sensitivity" {
+        Install-PSResource -Name $testCamelCaseScriptName -Repository $ACRRepoName -TrustRepository
+        $res = Get-InstalledPSResource -Name $testCamelCaseScriptName
+        $res.Name | Should -BeExactly $testCamelCaseScriptName
+        $res.Version | Should -Be "1.0.0"
+        $res.Type.ToString() | Should -Be "Script"
     }
 }
 
