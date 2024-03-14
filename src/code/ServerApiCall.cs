@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using System;
 using System.IO;
 using System.Net.Http;
 using NuGet.Versioning;
