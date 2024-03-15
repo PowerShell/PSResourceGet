@@ -137,8 +137,8 @@ extends:
             Language: csharp
 
         - pwsh: |
-            Write-Host "Get-Module Microsoft.PowerShell.PSResourceGet"
-            Get-Module Microsoft.PowerShell.PSResourceGet
+            Write-Host "Get-Module Microsoft.PowerShell.PSResourceGet -ListAvailable"
+            Get-Module Microsoft.PowerShell.PSResourceGet -ListAvailable
 
             Write-Host "$PSVersionTable.PSVersion"
             $PSVersionTable.PSVersion
