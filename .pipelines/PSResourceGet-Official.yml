@@ -192,7 +192,7 @@ extends:
           displayName: Setup SBOM Package Version
 
       - job: nupkg
-        dependsOn: jobbuild
+        dependsOn: build
         displayName: Package Microsoft.PowerShell.PSResourceGet
         variables:
           - name: ob_outputDirectory
