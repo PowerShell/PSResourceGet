@@ -294,12 +294,9 @@ extends:
         - download: current
           displayName: Download artifact
 
-      - task: DownloadPipelineArtifact@2
-        displayName: 'Download PSResourceGet module artifacts'
-        inputs:
-          artifact: PSResourceGet
-          patterns: '**/*.nupkg'
-          downloadPath: '$(Pipeline.Workspace)/nuget'
+      - pwsh: |
+          Get-ChildItem $(Pipeline.Workspace) -Recurse
+        displayName: Capture environment
 
       - pwsh: |
           $package = (Get-ChildItem '$(Pipeline.Workspace)/nuget/PowerShellGet.*.nupkg').FullName
@@ -312,7 +309,7 @@ extends:
         displayName: Push PowerShellGet module artifacts to PSGallery feed
         inputs:
           command: push
-          packagesToPush: '$(NugetPkgPath)'
+          packagesToPush: '**/Microsoft.PowerShell.PSResourceGet.*.nupkg'
           nuGetFeedType: external
           publishFeedCredentials: PSGet-PSGalleryPush
 
