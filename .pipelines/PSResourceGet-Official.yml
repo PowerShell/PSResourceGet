@@ -69,10 +69,10 @@ extends:
       #   suppressionFile: $(Build.SourcesDirectory)\.gdn\global.gdnsuppress
 
     stages:
-    - stage: stagebuild
+    - stage: build
       displayName: Build and Package Microsoft.PowerShell.PSResourceGet
       jobs:
-      - job: jobbuild
+      - job: main
         displayName: Build Microsoft.PowerShell.PSResourceGet Files
         #pool:
         #  type: windows  # read more about custom job pool types at https://aka.ms/obpipelines/yaml/jobs
@@ -265,3 +265,55 @@ extends:
           inputs:
             Contents: "$(repoRoot)/**/Microsoft.PowerShell.PSResourceGet.*.nupkg"
             TargetFolder: $(ob_outputDirectory)
+
+    - stage: release
+      dependsOn: build
+      variables:
+        version: $[ stageDependencies.build.main.outputs['package.version'] ]
+        drop: $(Pipeline.Workspace)/drop_build_main
+      jobs:
+      - job: validation
+        displayName: Manual validation
+        pool:
+          type: agentless
+        timeoutInMinutes: 1440
+        steps:
+        - task: ManualValidation@0
+          displayName: Wait 24 hours for validation
+          inputs:
+            #notifyUsers: $(Build.RequestedForEmail)
+            instructions: Please validate the release
+            timeoutInMinutes: 1440
+      - job: PSGalleryPublish
+        displayName: Publish to PSGallery
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: $(Build.SourcesDirectory)/out
+        steps:
+        - download: current
+          displayName: Download artifact
+
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download PSResourceGet module artifacts'
+        inputs:
+          artifact: PSResourceGet
+          patterns: '**/*.nupkg'
+          downloadPath: '$(Pipeline.Workspace)/nuget'
+
+      - pwsh: |
+          $package = (Get-ChildItem '$(Pipeline.Workspace)/nuget/PowerShellGet.*.nupkg').FullName
+          $vstsCommandString = "vso[task.setvariable variable=NugetPkgPath]${package}"
+          Write-Host "sending " + $vstsCommandString
+          Write-Host "##$vstsCommandString"
+        displayName: 'Capture PowerShellGet module NuGet package path and set environment variable'
+        
+        - task: NuGetCommand@2
+          displayName: Push PowerShellGet module artifacts to PSGallery feed
+          inputs:
+            command: push
+            packagesToPush: '$(NugetPkgPath)'
+            nuGetFeedType: external
+            publishFeedCredentials: PSGet-PSGalleryPush
+
+
