@@ -137,12 +137,11 @@ extends:
             Language: csharp
 
         - pwsh: |
-            Write-Host "Get-Module Microsoft.PowerShell.PSResourceGet -ListAvailable"
-            Get-Module Microsoft.PowerShell.PSResourceGet -ListAvailable
-
-            Write-Host "$PSVersionTable.PSVersion"
-            $PSVersionTable.PSVersion
-          displayName: Capture PSResourceGet version and PowerShell version used for build
+            $module = 'Microsoft.PowerShell.PSResourceGet'
+            Write-Verbose "installing $module..." -verbose
+            $ProgressPreference = 'SilentlyContinue'
+            Install-Module $module -AllowClobber -Force
+          displayName: Install PSResourceGet 0.9.0 or above for build.psm1
           #condition: always()
           env:
             ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
