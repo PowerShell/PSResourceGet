@@ -294,23 +294,16 @@ extends:
         - download: current
           displayName: Download artifact
 
-      - pwsh: |
-          Get-ChildItem $(Pipeline.Workspace) -Recurse
-        displayName: Capture environment
+        - pwsh: |
+            Get-ChildItem $(Pipeline.Workspace) -Recurse
+          displayName: Capture environment
 
-      - pwsh: |
-          $package = (Get-ChildItem '$(Pipeline.Workspace)/nuget/PowerShellGet.*.nupkg').FullName
-          $vstsCommandString = "vso[task.setvariable variable=NugetPkgPath]${package}"
-          Write-Host "sending " + $vstsCommandString
-          Write-Host "##$vstsCommandString"
-        displayName: 'Capture PowerShellGet module NuGet package path and set environment variable'
-        
-      - task: NuGetCommand@2
-        displayName: Push PowerShellGet module artifacts to PSGallery feed
-        inputs:
-          command: push
-          packagesToPush: '**/Microsoft.PowerShell.PSResourceGet.*.nupkg'
-          nuGetFeedType: external
-          publishFeedCredentials: PSGet-PSGalleryPush
+        - task: NuGetCommand@2
+          displayName: Push PowerShellGet module artifacts to PSGallery feed
+          inputs:
+            command: push
+            packagesToPush: '**/Microsoft.PowerShell.PSResourceGet.*.nupkg'
+            nuGetFeedType: external
+            publishFeedCredentials: PSGet-PSGalleryPush
 
 
