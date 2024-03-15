@@ -268,7 +268,7 @@ extends:
 
     - stage: release
       displayName: Release PSResourceGet
-      dependsOn: jobbuild
+      dependsOn: stagebuild
       variables:
         version: $[ stageDependencies.build.main.outputs['package.version'] ]
         drop: $(Pipeline.Workspace)/drop_build_main
