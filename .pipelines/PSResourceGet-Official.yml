@@ -72,7 +72,7 @@ extends:
     - stage: build
       displayName: Build and Package Microsoft.PowerShell.PSResourceGet
       jobs:
-      - job: main
+      - job: build
         displayName: Build Microsoft.PowerShell.PSResourceGet Files
         #pool:
         #  type: windows  # read more about custom job pool types at https://aka.ms/obpipelines/yaml/jobs
