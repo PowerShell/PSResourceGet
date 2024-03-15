@@ -7,9 +7,13 @@
 # Retail Tasks:   https://aka.ms/obpipelines/tasks                              #
 # Support:        https://aka.ms/onebranchsup                                   #
 #################################################################################
-
+name: PSResourceGet-Release-$(Build.BuildId)
 trigger: none # https://aka.ms/obpipelines/triggers
-
+pr:
+  branches:
+    include:
+    - main
+    - release*
 parameters: # parameters are shown up in ADO UI in a build queue time
 - name: 'debug'
   displayName: 'Enable debug output'
@@ -17,154 +21,223 @@ parameters: # parameters are shown up in ADO UI in a build queue time
   default: false
 
 variables:
-  CDP_DEFINITION_BUILD_COUNT: $[counter('', 0)] # needed for onebranch.pipeline.version task https://aka.ms/obpipelines/versioning
-  system.debug: ${{ parameters.debug }}
-
-  BuildSolution: $(Build.SourcesDirectory)\dirs.proj
-  BuildConfiguration: Release
-
-  WindowsContainerImage: 'onebranch.azurecr.io/windows/ltsc2019/vse2022:latest' # Docker image which is used to build the project https://aka.ms/obpipelines/containers
+  - name: DOTNET_CLI_TELEMETRY_OPTOUT
+    value: 1
+  - name: POWERSHELL_TELEMETRY_OPTOUT
+    value: 1
+  - name: WindowsContainerImage
+    value: onebranch.azurecr.io/windows/ltsc2022/vse2022:latest # Docker image which is used to build the project https://aka.ms/obpipelines/containers
 
 resources:
   repositories: 
-    - repository: templates
+    - repository: onebranchTemplates
       type: git
       name: OneBranch.Pipelines/GovernedTemplates
       ref: refs/heads/main
 
 extends:
-  template: v2/OneBranch.Official.CrossPlat.yml@templates # https://aka.ms/obpipelines/templates
+  template: v2/OneBranch.Official.CrossPlat.yml@onebranchTemplates # https://aka.ms/obpipelines/templates
   parameters:
-    cloudvault: # https://aka.ms/obpipelines/cloudvault
-      enabled: false
-    globalSdl: # https://aka.ms/obpipelines/sdl
-      asyncSdl:
+    featureFlags:
+      WindowsHostVersion: '1ESWindows2022'
+    customTags: 'ES365AIMigrationTooling'
+    globalSdl:
+      disableLegacyManifest: true
+      sbom:
         enabled: true
-        tsaOptionsFile: .config/tsaoptions.json
+        packageName: Microsoft.PowerShell.PSResourceGet
+      codeql:
+        compiled:
+          enabled: true
+      asyncSdl: # https://aka.ms/obpipelines/asyncsdl
+        enabled: true
+        forStages: [Build]
+        credscan:
+          enabled: true
+          scanFolder:  $(Build.SourcesDirectory)\OSS_Microsoft_PSResourceGet
+        binskim:
+          enabled: true
+        apiscan:
+          enabled: false    
       # tsa:
       #  enabled: false # onebranch publish all sdl results to TSA. If TSA is disabled all SDL tools will forced into 'break' build mode.
       # credscan:
       #   suppressionsFile: $(Build.SourcesDirectory)\.config\CredScanSuppressions.json
-      policheck:
-        break: true # always break the build on policheck issues. You can disable it by setting to 'false'
+      #policheck:
+      #  break: true # always break the build on policheck issues. You can disable it by setting to 'false'
       # suppression:
       #   suppressionFile: $(Build.SourcesDirectory)\.gdn\global.gdnsuppress
 
     stages:
-    - stage: build
+    - stage: stagebuild
+      displayName: Build and Package Microsoft.PowerShell.PSResourceGet
       jobs:
-      - job: main
-        pool:
-          type: windows  # read more about custom job pool types at https://aka.ms/obpipelines/yaml/jobs
+      - job: jobbuild
+        displayName: Build Microsoft.PowerShell.PSResourceGet Files
+        #pool:
+        #  type: windows  # read more about custom job pool types at https://aka.ms/obpipelines/yaml/jobs
         
         variables: # More settings at https://aka.ms/obpipelines/yaml/jobs
-          ob_outputDirectory: '$(Build.SourcesDirectory)\out' # this directory is uploaded to pipeline artifacts, reddog and cloudvault. More info at https://aka.ms/obpipelines/artifacts
-          # https://aka.ms/obpipelines/sdl
-          ob_sdl_binskim_break: true # always break the build on binskim issues, even if TSA enabled. You can disable it by setting to 'false'
-          ob_sdl_roslyn_break: true
-          ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}: # conditionally enable symbolsPublishing for main branch only
-            ob_symbolsPublishing_enabled: true # https://aka.ms/obpipelines/symbols
-          # ob_sdl_suppression_suppressionFile: $(Build.SourcesDirectory)\.gdn\job.gdnsuppress
-
+        - name: ob_outputDirectory
+          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+        - name: repoRoot
+          value: $(Build.SourcesDirectory)\OSS_Microsoft_PSResourceGet
+        - name: ob_sdl_tsa_configFile
+          value: $(Build.SourcesDirectory)\OSS_Microsoft_PSResourceGet\.config\tsaoptions.json
+        - name: signSrcPath
+          value: $(repoRoot)/out
+        - name: ob_sdl_sbom_enabled
+          value: true
+        - name: ob_signing_setup_enabled
+          value: true
+        #CodeQL tasks added manually to workaround signing failures
+        - name: ob_sdl_codeql_compiled_enabled
+          value: false
+        
+        pool:
+          type: windows
         steps:
-          - task: UseDotNet@2
-            continueOnError: true
-            inputs:
-              packageType: 'sdk'
-              useGlobalJson: true
-              performMultiLevelLookup: true
+        - checkout: self
+          env:
+            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
-          - task: onebranch.pipeline.version@1 # generates automatic version. For other versioning options check https://aka.ms/obpipelines/versioning
-            displayName: 'Setup BuildNumber'
-            inputs:
-              system: 'RevisionCounter'
-              major: '1'
-              minor: '0'
-              exclude_commit: true
+       - pwsh: |
+            if (-not (Test-Path $(repoRoot)/.config/tsaoptions.json)) {
+              Get-ChildItem $(Build.SourcesDirectory) -recurse -ErrorAction SilentlyContinue
+              throw "tsaoptions.json does not exist under $(repoRoot)/.config"
+            }
+          displayName: Test if tsaoptions.json exists
+          env:
+            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
-          - task: DotNetCoreCLI@2
-            displayName: 'DotNetCore restore'
-            inputs:
-              command: 'custom'
-              projects: $(BuildSolution)
-              custom: 'restore'
+        - task: UseDotNet@2
+          displayName: 'Install .NET dependencies'
+          env:
+            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
+          inputs:
+            packageType: 'sdk'
+            useGlobalJson: true
+            # this is to ensure that we are installing the dotnet at the same location as container by default install the dotnet sdks
+            installationPath: 'C:\Program Files\dotnet\'
+            workingDirectory: $(repoRoot)
 
-          # roslynanalyzers task wraps around dotnet build to enable static analysis
-          - task: RoslynAnalyzers@3
-            displayName: 'DotNetCore build with RoslynAnalyzers'
-            inputs:
-              userProvideBuildInfo: 'msBuildInfo'
-              msBuildCommandline: 'dotnet.exe build $(BuildSolution) --no-restore --configuration $(BuildConfiguration)'
+        - task: CodeQL3000Init@0 # Add CodeQL Init task right before your 'Build' step.
+          env:
+            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
+          inputs:
+            Enabled: true
+            AnalyzeInPipeline: true
+            Language: csharp
 
-          - task: DotNetCoreCLI@2
-            displayName: 'DotNetCore test'
-            inputs:
-              command: 'test'
-              projects: $(BuildSolution)
-              arguments: '--no-build --no-restore --configuration $(BuildConfiguration) --logger trx --blame --collect "Code coverage" --results-directory $(Build.SourcesDirectory)\TestResults\'
-              publishTestResults: false
+        # this is installing .NET
+        - pwsh: |
+            Set-Location "$(repoRoot)"
+            try { ./build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net472'} catch { throw $_ }
+          displayName: Execute build
+          env:
+            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
-          - task: PublishTestResults@2
-            displayName: 'Publish test results'
-            inputs:
-              testResultsFormat: VSTest
-              testResultsFiles: '$(Build.SourcesDirectory)\TestResults\**\*.trx'
-              failTaskOnFailedTests: true
+        - task: CodeQL3000Finalize@0 # Add CodeQL Finalize task right after your 'Build' step.
+          condition: always()
+          env:
+            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
-          - task: DotNetCoreCLI@2
-            displayName: 'DotNetCore publish'
-            inputs:
-              command: 'publish'
-              publishWebProjects: false
-              projects: $(BuildSolution)
-              arguments: '--no-build --no-restore --configuration $(BuildConfiguration) --output $(Build.SourcesDirectory)\out'
-              zipAfterPublish: false
+        - task: onebranch.pipeline.signing@1
+          displayName: Sign 1st party files
+          inputs:
+            command: 'sign'
+            signing_profile: external_distribution
+            files_to_sign: '**\*.psd1;**\*.psm1;**\*.ps1xml;**\Microsoft*.dll'
+            search_root: $(signSrcPath)
 
-          - task: onebranch.pipeline.signing@1
-            displayName: 'Sign output'
-            inputs:
-              command: 'sign'
-              signing_environment: 'azure-ado'
-              files_to_sign: '**/*.exe;**/*.dll;**/*.ps1;**/*.psm1'
-              search_root: '$(Build.SourcesDirectory)\out'
-# uncomment this section and edit parameters to enable VSTest instead of dotnet tests. When you enable this you dont need publish test results and codecoverage steps
-         # - task: VSTest@3
-         #   inputs:
-          #    testSelector: 'testAssemblies'
-           #   testAssemblyVer2: |
-            #    **\*test*.dll
-             #   !**\*TestAdapter.dll
-              #  !**\obj\**
-             # searchFolder: '$(Build.SourcesDirectory)\out' ## or use '$(Agent.BuildDirectory)'
-              ##testFiltercriteria: 'TestCategory=UnitTests'   ## update
-              #resultsFolder: '$(Build.SourcesDirectory)\out\logs\TestResults'
-              #runInParallel: true ## this setting helps to speed up test case execution but if youhave depdencies between tests you change or remove this but having it enabled is always recommended
-              #codeCoverageEnabled: true
-              #testRunTitle: 'release_x64' ## Update this for a custom readable way of taggin your test run when you query in ADO test runs view
-              #platform: 'x64' ## you can modify this as needed
-              #configuration: 'release'
-              #publishRunAttachments: false
-              #failOnMinTestsNotRun: true
-              #rerunFailedTests: true
-              #rerunFailedThreshold: '70' 
-# https://aka.ms/obpipelines/cloudtest
-# uncomment this section and edit parameters to enable CloudTest
-    # - stage: cloudtest
-    #   dependsOn: build_stage
-    #   jobs:
-    #   - job: cloudtestjob
-    #     pool:
-    #       type: cloudtestagentless
-    #     continueOnError: true
-    #     steps:
-    #     - task: CloudTestServerBuildTask@1
-    #       displayName: 'CloudTest'
-    #       inputs:
-    #         connectedServiceName: 'CloudTest-prod'
-    #         cloudTestTenant: 'onebranchtest'
-    #         testMapLocation: '[BuildRoot]\ClassLibrary.UnitTest\TestMapCdp.xml'
-    #         pipelineArtifactName: 'drop_build_main'
-    #         pipelineArtifactBuildUrl: '$(System.TaskDefinitionsUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)'
-    #         parserProperties: 'worker:VsTestVersion=V150;CodeCoverageType=Dynamic;worker:TestVar=$(RUN_PIPELINE_VARIABLE)'
-    #         cacheEnabled: false
-    #         scheduleBuildRequesterAlias: 'azbldrun'
+        - task: onebranch.pipeline.signing@1
+          displayName: Sign 3rd Party files
+          inputs:
+            command: 'sign'
+            signing_profile: 135020002
+            files_to_sign: '**/Dependencies/*.dll'
+            search_root: $(signSrcPath)
+
+        - task: CopyFiles@2
+          displayName: "Copy signed files to ob_outputDirectory - '$(ob_outputDirectory)'"
+          inputs:
+            SourceFolder: "$(signSrcPath)"
+            Contents: '**'
+            TargetFolder: $(ob_outputDirectory)
+
+        - pwsh: |
+            $moduleData = Import-PowerShellDataFile "$(repoRoot)/src/Microsoft.PowerShell.PSResourceGet.psd1"  
+            $moduleVersion = $moduleData.ModuleVersion
+            $vstsCommandString = "vso[task.setvariable variable=ob_sdl_sbom_packageversion]${moduleVersion}"
+
+            Write-Host "sending $vstsCommandString"
+            Write-Host "##$vstsCommandString"
+          displayName: Setup SBOM Package Version
+
+      - job: nupkg
+        dependsOn: jobbuild
+        displayName: Package Microsoft.PowerShell.PSResourceGet
+        variables:
+          - name: ob_outputDirectory
+            value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+          - name: repoRoot
+            value: $(Build.SourcesDirectory)\OSS_Microsoft_PSResourceGet
+          - name: ob_sdl_tsa_configFile
+            value: $(Build.SourcesDirectory)\OSS_Microsoft_PSResourceGet\.config\tsaoptions.json
+         # Disable because SBOM was already built in the previous job
+          - name: ob_sdl_sbom_enabled
+            value: false
+          - name: signOutPath
+            value: $(repoRoot)/signed
+          - name: ob_signing_setup_enabled
+            value: true
+         # This job is not compiling code, so disable codeQL
+          - name: ob_sdl_codeql_compiled_enabled
+            value: false
+
+        pool:
+          type: windows
+        steps:
+        - checkout: self
+
+        - pwsh: |
+            if (-not (Test-Path $(repoRoot)/.config/tsaoptions.json)) {
+              Get-ChildItem $(Build.SourcesDirectory) -recurse -ErrorAction SilentlyContinue
+              throw "tsaoptions.json does not exist under $(repoRoot)/.config"
+            }
+          displayName: Test if tsaoptions.json exists
+
+        - task: DownloadPipelineArtifact@2
+          displayName: 'Download build files'
+          inputs:
+            targetPath: $(signOutPath)
+            artifact: drop_stagebuild_jobbuild
+
+        - pwsh: |
+            Set-Location "$(signOutPath)"
+            dir -dir -recurse *
+          displayName: Capture artifacts structure
+
+        - pwsh: |
+            Set-Location "$(repoRoot)"
+            ./build.ps1 -Publish -Signed
+          displayName: Create nupkg for publishing
+
+        - task: onebranch.pipeline.signing@1
+          displayName: Sign nupkg
+          inputs:
+            command: 'sign'
+            signing_profile: external_distribution
+            files_to_sign: '**\*.nupkg'
+            search_root: $(signOutPath)
+
+        - pwsh: |
+            Set-Location "$(repoRoot)"
+            dir -file -recurse *.nupkg
+          displayName: Find Nupkg
+
+        - task: CopyFiles@2
+          displayName: "Copy nupkg to ob_outputDirectory - '$(ob_outputDirectory)'"
+          inputs:
+            Contents: "$(repoRoot)/**/Microsoft.PowerShell.PSResourceGet.*.nupkg"
+            TargetFolder: $(ob_outputDirectory)
