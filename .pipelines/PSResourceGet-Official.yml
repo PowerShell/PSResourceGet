@@ -69,10 +69,10 @@ extends:
       #   suppressionFile: $(Build.SourcesDirectory)\.gdn\global.gdnsuppress
 
     stages:
-    - stage: build
+    - stage: stagebuild
       displayName: Build and Package Microsoft.PowerShell.PSResourceGet
       jobs:
-      - job: build
+      - job: jobbuild
         displayName: Build Microsoft.PowerShell.PSResourceGet Files
         #pool:
         #  type: windows  # read more about custom job pool types at https://aka.ms/obpipelines/yaml/jobs
@@ -192,7 +192,7 @@ extends:
           displayName: Setup SBOM Package Version
 
       - job: nupkg
-        dependsOn: build
+        dependsOn: jobbuild
         displayName: Package Microsoft.PowerShell.PSResourceGet
         variables:
           - name: ob_outputDirectory
@@ -267,7 +267,8 @@ extends:
             TargetFolder: $(ob_outputDirectory)
 
     - stage: release
-      dependsOn: build
+      displayName: Release PSResourceGet
+      dependsOn: jobbuild
       variables:
         version: $[ stageDependencies.build.main.outputs['package.version'] ]
         drop: $(Pipeline.Workspace)/drop_build_main
