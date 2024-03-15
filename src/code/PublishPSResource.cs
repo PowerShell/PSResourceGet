@@ -499,7 +499,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ContainerRegistryServerAPICalls containerRegistryServer = new ContainerRegistryServerAPICalls(repository, this, _networkCredential, userAgentString);
 
                     var pkgMetadataFile = (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish;
-                    if (!containerRegistryServer.PushNupkgContainerRegistry(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, repository, resourceType, parsedMetadata, dependencies, out ErrorRecord pushNupkgContainerRegistryError))
+                    if (!containerRegistryServer.PushNupkgContainerRegistry(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, resourceType, parsedMetadata, dependencies, out ErrorRecord pushNupkgContainerRegistryError))
                     {
                         WriteError(pushNupkgContainerRegistryError);
                         // exit out of processing

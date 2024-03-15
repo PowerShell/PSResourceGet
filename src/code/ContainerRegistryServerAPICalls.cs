@@ -34,7 +34,8 @@ namespace Microsoft.PowerShell.PSResourceGet
         private readonly PSCmdlet _cmdletPassedIn;
         private HttpClient _sessionClient { get; set; }
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[] { };
-        public FindResponseType containerRegistryFindResponseType = FindResponseType.ResponseString;
+        private static FindResponseType containerRegistryFindResponseType = FindResponseType.ResponseString;
+        private static readonly FindResults emptyResponseResults = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
 
         const string containerRegistryRefreshTokenTemplate = "grant_type=access_token&service={0}&tenant={1}&access_token={2}"; // 0 - registry, 1 - tenant, 2 - access token
         const string containerRegistryAccessTokenTemplate = "grant_type=refresh_token&service={0}&scope=repository:*:*&refresh_token={1}"; // 0 - registry, 1 - refresh token
@@ -72,9 +73,6 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
-        /// Examples: Search -Repository PSGallery
-        /// API call:
-        /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion
         /// </summary>
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
@@ -85,14 +83,11 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
+            return emptyResponseResults;
         }
 
         /// <summary>
         /// Find method which allows for searching for packages with tag from a repository and returns latest version for each.
-        /// Examples: Search -Tag "JSON" -Repository PSGallery
-        /// API call:
-        /// - Include prerelease: https://www.powershellgallery.com/api/v2/Search()?includePrerelease=true&$filter=IsAbsoluteLatestVersion and substringof('PSModule', Tags) eq true and substringof('CrescendoBuilt', Tags) eq true&$orderby=Id desc&$inlinecount=allpages&$skip=0&$top=6000
         /// </summary>
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ErrorRecord errRecord)
         {
@@ -103,7 +98,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
+            return emptyResponseResults;
         }
 
         /// <summary>
@@ -118,16 +113,13 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
+            return emptyResponseResults;
         }
 
         /// <summary>
         /// Find method which allows for searching for single name and returns latest version.
         /// Name: no wildcard support
         /// Examples: Search "PowerShellGet"
-        /// API call:
-        /// - No prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
-        /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
@@ -138,7 +130,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             Hashtable[] pkgResult = FindPackagesWithVersionHelper(packageName, VersionType.VersionRange, versionRange: VersionRange.All, requiredVersion: null, includePrerelease, getOnlyLatest: true, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
+                return emptyResponseResults;
             }
 
             return new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResult.ToArray(), responseType: containerRegistryFindResponseType);
@@ -148,7 +140,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// Find method which allows for searching for single name and tag and returns latest version.
         /// Name: no wildcard support
         /// Examples: Search "PowerShellGet" -Tag "Provider"
-        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
         /// </summary>
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
@@ -159,15 +150,13 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
+            return emptyResponseResults;
         }
 
         /// <summary>
         /// Find method which allows for searching for single name with wildcards and returns latest version.
         /// Name: supports wildcards
         /// Examples: Search "PowerShell*"
-        /// API call:
-        /// - No prerelease: http://www.powershellgallery.com/api/v2/Search()?$filter=IsLatestVersion&searchTerm='az*'
         /// Implementation Note: filter additionally and verify ONLY package name was a match.
         /// </summary>
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
@@ -179,7 +168,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
+            return emptyResponseResults;
         }
 
         /// <summary>
@@ -197,7 +186,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
+            return emptyResponseResults;
         }
 
         /// <summary>
@@ -206,7 +195,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// Version: supports wildcards
         /// Examples: Search "PowerShellGet" "[3.0.0.0, 5.0.0.0]"
         ///           Search "PowerShellGet" "3.*"
-        /// API Call: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation note: Returns all versions, including prerelease ones. Later (in the API client side) we'll do filtering on the versions to satisfy what user provided.
         /// </summary>
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
@@ -217,7 +205,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             Hashtable[] pkgResults = FindPackagesWithVersionHelper(packageName, VersionType.VersionRange, versionRange: versionRange, requiredVersion: null, includePrerelease, getOnlyLatest: false, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
+                return emptyResponseResults;
             }
 
             return new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResults.ToArray(), responseType: containerRegistryFindResponseType);
@@ -228,7 +216,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// Name: no wildcard support
         /// Version: no wildcard support
         /// Examples: Search "PowerShellGet" "2.2.5"
-        /// API call: http://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet', Version='2.2.5')
         /// </summary>
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord)
         {
@@ -241,7 +228,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     ErrorCategory.InvalidArgument,
                     this);
 
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
+                return emptyResponseResults;
             }
 
             _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{requiredVersion}'");
@@ -251,7 +238,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             Hashtable[] pkgResult = FindPackagesWithVersionHelper(packageName, VersionType.SpecificVersion, versionRange: VersionRange.None, requiredVersion: requiredVersion, includePrereleaseVersions, getOnlyLatest: false, out errRecord);
             if (errRecord != null)
             {
-                return new FindResults(stringResponse: new string[] { }, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
+                return emptyResponseResults;
             }
 
             return new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResult.ToArray(), responseType: containerRegistryFindResponseType);
@@ -272,7 +259,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 ErrorCategory.InvalidOperation,
                 this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
+            return emptyResponseResults;
         }
 
         /**  INSTALL APIS **/
@@ -282,7 +269,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// User may request to install package with or without providing version (as seen in examples below), but prior to calling this method the package is located and package version determined.
         /// Therefore, package version should not be null in this method.
         /// Name: no wildcard support.
-        /// Examples: Install "PowerShellGet"
+        /// Examples: Install "PowerShellGet" -Version "3.5.0-alpha"
         ///           Install "PowerShellGet" -Version "3.0.0"
         /// </summary>
         public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
@@ -304,9 +291,13 @@ namespace Microsoft.PowerShell.PSResourceGet
             return results;
         }
 
+        /// <summary>
+        /// Installs a package with version specified.
+        /// Version can be prerelease or stable.
+        /// </summary>
         private Stream InstallVersion(
             string packageName,
-            string moduleVersion,
+            string packageVersion,
             out ErrorRecord errRecord)
         {
             errRecord = null;
@@ -314,18 +305,29 @@ namespace Microsoft.PowerShell.PSResourceGet
             string accessToken = string.Empty;
             string tenantID = string.Empty;
             string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            Directory.CreateDirectory(tempPath);
+            try
+            {
+                Directory.CreateDirectory(tempPath);
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "InstallVersionTempDirCreationError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
 
-            string registryUrl = Repository.Uri.ToString();
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(Repository, out errRecord);
+                return null;
+            }
+
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
             if (errRecord != null)
             {
                 return null;
             }
 
-            string registry = Repository.Uri.Host;
-            _cmdletPassedIn.WriteVerbose($"Getting manifest for {packageNameLowercase} - {moduleVersion}");
-            var manifest = GetContainerRegistryRepositoryManifestAsync(registry, packageNameLowercase, moduleVersion, containerRegistryAccessToken, out errRecord);
+            _cmdletPassedIn.WriteVerbose($"Getting manifest for {packageNameLowercase} - {packageVersion}");
+            var manifest = GetContainerRegistryRepositoryManifest(packageNameLowercase, packageVersion, containerRegistryAccessToken, out errRecord);
             if (errRecord != null)
             {
                 return null;
@@ -336,17 +338,162 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return null;
             }
 
-            _cmdletPassedIn.WriteVerbose($"Downloading blob for {packageNameLowercase} - {moduleVersion}");
-            // TODO: error handling here?
-            var responseContent = GetContainerRegistryBlobAsync(registry, packageNameLowercase, digest, containerRegistryAccessToken).Result;
+            _cmdletPassedIn.WriteVerbose($"Downloading blob for {packageNameLowercase} - {packageVersion}");
+            HttpContent responseContent;
+            try
+            {
+                responseContent = GetContainerRegistryBlobAsync(packageNameLowercase, digest, containerRegistryAccessToken).Result;
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "InstallVersionGetContainerRegistryBlobAsyncError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+
+                return null;
+            }
 
             return responseContent.ReadAsStreamAsync().Result;
         }
 
         #endregion
 
+        #region Authentication and Token Methods
+
+        /// <summary>
+        /// Gets the access token for the container registry by following the below logic:
+        /// If a credential is provided when registering the repository, retrieve the token from SecretsManagement.
+        /// If no credential provided at registration then, check if the ACR endpoint can be accessed without a token. If not, try using Azure.Identity to get the az access token, then ACR refresh token and then ACR access token.
+        /// Note: Access token can be empty if the repository is unauthenticated
+        /// </summary>
+        internal string GetContainerRegistryAccessToken(out ErrorRecord errRecord)
+        {
+            string accessToken = string.Empty;
+            string containerRegistryAccessToken = string.Empty;
+            string tenantID = string.Empty;
+            errRecord = null;
+
+            var repositoryCredentialInfo = Repository.CredentialInfo;
+            if (repositoryCredentialInfo != null)
+            {
+                accessToken = Utils.GetContainerRegistryAccessTokenFromSecretManagement(
+                    Repository.Name,
+                    repositoryCredentialInfo,
+                    _cmdletPassedIn);
+
+                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
+
+                tenantID = repositoryCredentialInfo.SecretName;
+                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
+            }
+            else
+            {
+                bool isRepositoryUnauthenticated = IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), out errRecord);
+                if (errRecord != null)
+                {
+                    return null;
+                }
+
+                if (!isRepositoryUnauthenticated)
+                {
+                    accessToken = Utils.GetAzAccessToken();
+                    if (string.IsNullOrEmpty(accessToken))
+                    {
+                        errRecord = new ErrorRecord(
+                            new InvalidOperationException("Failed to get access token from Azure."),
+                            "AzAccessTokenFailure",
+                            ErrorCategory.AuthenticationError,
+                            this);
+
+                        return null;
+                    }
+                }
+            }
+
+            var containerRegistryRefreshToken = GetContainerRegistryRefreshToken(tenantID, accessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
+            containerRegistryAccessToken = GetContainerRegistryAccessTokenByRefreshToken(containerRegistryRefreshToken, out errRecord);
+            if (errRecord != null)
+            {
+                return null;
+            }
+
+            return containerRegistryAccessToken;
+        }
+
+        /// <summary>
+        /// Checks if container registry repository is unauthenticated.
+        /// </summary>
+        internal bool IsContainerRegistryUnauthenticated(string containerRegistyUrl, out ErrorRecord errRecord)
+        {
+            errRecord = null;
+            string endpoint = $"{containerRegistyUrl}/v2/";
+            HttpResponseMessage response;
+            try
+            {
+                response = s_client.SendAsync(new HttpRequestMessage(HttpMethod.Head, endpoint)).Result;
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    e,
+                    "RegistryUnauthenticationCheckError",
+                    ErrorCategory.InvalidResult,
+                    this);
+
+                return false;
+            }
+
+            return (response.StatusCode == HttpStatusCode.OK);
+        }
+
+        /// <summary>
+        /// Given the access token retrieved from credentials, gets the refresh token.
+        /// </summary>
+        internal string GetContainerRegistryRefreshToken(string tenant, string accessToken, out ErrorRecord errRecord)
+        {
+            string content = string.Format(containerRegistryRefreshTokenTemplate, Registry, tenant, accessToken);
+            var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
+            string exchangeUrl = string.Format(containerRegistryOAuthExchangeUrlTemplate, Registry);
+            var results = GetHttpResponseJObjectUsingContentHeaders(exchangeUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
+            if (errRecord != null || results == null || results["refresh_token"] == null)
+            {
+                return string.Empty;
+            }
+
+            return results["refresh_token"].ToString();
+        }
+
+        /// <summary>
+        /// Given the refresh token, gets the new access token with appropriate scope access permissions.
+        /// </summary>
+        internal string GetContainerRegistryAccessTokenByRefreshToken(string refreshToken, out ErrorRecord errRecord)
+        {
+            string content = string.Format(containerRegistryAccessTokenTemplate, Registry, refreshToken);
+            var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
+            string tokenUrl = string.Format(containerRegistryOAuthTokenUrlTemplate, Registry);
+            var results = GetHttpResponseJObjectUsingContentHeaders(tokenUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
+            if (errRecord != null || results == null || results["access_token"] == null)
+            {
+                return string.Empty;
+            }
+
+            return results["access_token"].ToString();
+        }
+
+        #endregion
+
         #region Private Methods
 
+        /// <summary>
+        /// Parses package manifest JObject to find digest entry, which is the SHA needed to identify and get the package.
+        /// </summary>
         private string GetDigestFromManifest(JObject manifest, out ErrorRecord errRecord)
         {
             errRecord = null;
@@ -387,119 +534,33 @@ namespace Microsoft.PowerShell.PSResourceGet
             return digest;
         }
 
-        // access token can be empty if the repository is unauthenticated
-        internal string GetContainerRegistryAccessToken(PSRepositoryInfo repositoryInfo, out ErrorRecord errRecord)
+        /// <summary>
+        /// Gets the manifest for a package (ie repository in container registry terms) from the repository (ie registry in container registry terms)
+        /// </summary>
+        internal JObject GetContainerRegistryRepositoryManifest(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
-            string accessToken = string.Empty;
-            string containerRegistryAccessToken = string.Empty;
-            string tenantID = string.Empty;
-            errRecord = null;
-
-            var repositoryCredentialInfo = Repository.CredentialInfo;
-            if (repositoryCredentialInfo != null)
-            {
-                accessToken = Utils.GetContainerRegistryAccessTokenFromSecretManagement(
-                    Repository.Name,
-                    repositoryCredentialInfo,
-                    _cmdletPassedIn);
-
-                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
-
-                tenantID = repositoryCredentialInfo.SecretName;
-                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
-            }
-            else
-            {
-                bool isRepositoryUnauthenticated = IsContainerRegistryUnauthenticated(repositoryInfo.Uri.ToString());
-
-                if (!isRepositoryUnauthenticated)
-                {
-                    accessToken = Utils.GetAzAccessToken();
-                    if (string.IsNullOrEmpty(accessToken))
-                    {
-                        errRecord = new ErrorRecord(
-                            new InvalidOperationException("Failed to get access token from Azure."),
-                            "AzAccessTokenFailure",
-                            ErrorCategory.AuthenticationError,
-                            this);
-
-                        return null;
-                    }
-                }
-            }
-
-            string registry = repositoryInfo.Uri.Host;
-
-            var containerRegistryRefreshToken = GetContainerRegistryRefreshToken(registry, tenantID, accessToken, out errRecord);
-            if (errRecord != null)
-            {
-                return null;
-            }
-
-            containerRegistryAccessToken = GetContainerRegistryAccessTokenByRefreshToken(registry, containerRegistryRefreshToken, out errRecord);
-            if (errRecord != null)
-            {
-                return null;
-            }
-
-            return containerRegistryAccessToken;
-        }
-
-        internal bool IsContainerRegistryUnauthenticated(string registryUrl)
-        {
-            string endpoint = $"{registryUrl}/v2/";
-            var response = s_client.SendAsync(new HttpRequestMessage(HttpMethod.Head, endpoint)).Result;
-            return (response.StatusCode == HttpStatusCode.OK);
-        }
-
-        internal string GetContainerRegistryRefreshToken(string registry, string tenant, string accessToken, out ErrorRecord errRecord)
-        {
-            string content = string.Format(containerRegistryRefreshTokenTemplate, registry, tenant, accessToken);
-            var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
-            string exchangeUrl = string.Format(containerRegistryOAuthExchangeUrlTemplate, registry);
-            var results = GetHttpResponseJObjectUsingContentHeaders(exchangeUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
-
-            if (results != null && results["refresh_token"] != null)
-            {
-                return results["refresh_token"].ToString();
-            }
-
-            return string.Empty;
-        }
-
-        internal string GetContainerRegistryAccessTokenByRefreshToken(string registry, string refreshToken, out ErrorRecord errRecord)
-        {
-            string content = string.Format(containerRegistryAccessTokenTemplate, registry, refreshToken);
-            var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
-            string tokenUrl = string.Format(containerRegistryOAuthTokenUrlTemplate, registry);
-            var results = GetHttpResponseJObjectUsingContentHeaders(tokenUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
-
-            if (results != null && results["access_token"] != null)
-            {
-                return results["access_token"].ToString();
-            }
-
-            return string.Empty;
-        }
-
-        internal JObject GetContainerRegistryRepositoryManifestAsync(string registry, string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
-        {
-            // the packageName parameter here maps to repositoryName in ContainerRegistry, but to not conflict with PSGet definition of repository we will call it packageName
             // example of manifestUrl: https://psgetregistry.azurecr.io/hello-world:3.0.0
-            string manifestUrl = string.Format(containerRegistryManifestUrlTemplate, registry, packageName, version);
-
+            string manifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, version);
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
             return GetHttpResponseJObjectUsingDefaultHeaders(manifestUrl, HttpMethod.Get, defaultHeaders, out errRecord);
         }
 
-        internal async Task<HttpContent> GetContainerRegistryBlobAsync(string registry, string repositoryName, string digest, string containerRegistryAccessToken)
+        /// <summary>
+        /// Get the blob for the package (ie repository in container registry terms) from the repositroy (ie registry in container registry terms)
+        /// Used when installing the package
+        /// </summary>
+        internal async Task<HttpContent> GetContainerRegistryBlobAsync(string packageName, string digest, string containerRegistryAccessToken)
         {
-            string blobUrl = string.Format(containerRegistryBlobDownloadUrlTemplate, registry, repositoryName, digest);
+            string blobUrl = string.Format(containerRegistryBlobDownloadUrlTemplate, Registry, packageName, digest);
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
             return await GetHttpContentResponseJObject(blobUrl, defaultHeaders);
         }
 
-        internal JObject FindContainerRegistryImageTags(string registry, string repositoryName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
+        /// <summary>
+        /// Gets the image tags associated with the package (i.e repository in container registry terms), where the tag corresponds to the package's versions.
+        /// If the package version is specified search for that specific tag for the image, if the package version is "*" search for all tags for the image.
+        /// </summary>
+        internal JObject FindContainerRegistryImageTags(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
             /* response returned looks something like:
              *   "registry": "myregistry.azurecr.io"
@@ -519,26 +580,23 @@ namespace Microsoft.PowerShell.PSResourceGet
              *       }
              *     }]
              */
-            try
-            {
-                string resolvedVersion = string.Equals(version, "*", StringComparison.OrdinalIgnoreCase) ? null : $"/{version}";
-                string findImageUrl = string.Format(containerRegistryFindImageVersionUrlTemplate, registry, repositoryName, resolvedVersion);
-                var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-                return GetHttpResponseJObjectUsingDefaultHeaders(findImageUrl, HttpMethod.Get, defaultHeaders, out errRecord);
-            }
-            catch (HttpRequestException e)
-            {
-                throw new HttpRequestException("Error finding ContainerRegistry artifact: " + e.Message);
-            }
+            string resolvedVersion = string.Equals(version, "*", StringComparison.OrdinalIgnoreCase) ? null : $"/{version}";
+            string findImageUrl = string.Format(containerRegistryFindImageVersionUrlTemplate, Registry, packageName, resolvedVersion);
+            var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
+            return GetHttpResponseJObjectUsingDefaultHeaders(findImageUrl, HttpMethod.Get, defaultHeaders, out errRecord);
         }
 
-        internal Hashtable GetContainerRegistryMetadata(string registry, string packageName, string exactTagVersion, string containerRegistryAccessToken, out ErrorRecord errRecord)
+        /// <summary>
+        /// Get metadata for a package version.
+        /// </summary>
+        internal Hashtable GetContainerRegistryMetadata(string packageName, string exactTagVersion, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
             Hashtable requiredVersionResponse = new Hashtable();
 
-            var foundTags = FindContainerRegistryManifest(registry, packageName, exactTagVersion, containerRegistryAccessToken, out errRecord);
+            var foundTags = FindContainerRegistryManifest(packageName, exactTagVersion, containerRegistryAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
+                // TODO: Anam wouldn't found tags == null have errRecord populated?
                 return requiredVersionResponse;
             }
 
@@ -564,16 +622,15 @@ namespace Microsoft.PowerShell.PSResourceGet
              *   }
              */
 
-            var serverPkgInfo = GetMetadataProperty(foundTags, packageName, out Exception exception);
-            if (exception != null)
+            var serverPkgInfo = GetMetadataProperty(foundTags, packageName, out errRecord);
+            if (errRecord != null)
             {
-                errRecord = new ErrorRecord(exception, "ParseMetadataFailure", ErrorCategory.InvalidResult, this);
-
                 return requiredVersionResponse;
             }
 
             try
             {
+                // TODO: Anam- isn't this better done as part of the ContainerRegistryInfo obj? like it parse the metadata when it has or perhaps a method called GetVersionFromMetadata()?
                 using (JsonDocument metadataJSONDoc = JsonDocument.Parse(serverPkgInfo.Metadata))
                 {
                     string pkgVersionString = String.Empty;
@@ -636,25 +693,45 @@ namespace Microsoft.PowerShell.PSResourceGet
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(
-                            new ArgumentException($"Error parsing server metadata: {e.Message}"),
-                            "ParseMetadataFailure",
-                            ErrorCategory.InvalidData,
-                            this);
+                    new ArgumentException($"Error parsing server metadata: {e.Message}"),
+                    "ParseMetadataFailure",
+                    ErrorCategory.InvalidData,
+                    this);
 
-                return requiredVersionResponse;
+                return requiredVersionResponse; // TODO: anam- redundant?
             }
 
             return requiredVersionResponse;
         }
 
-        internal ContainerRegistryInfo GetMetadataProperty(JObject foundTags, string packageName, out Exception exception)
+        /// <summary>
+        /// Get the manifest associated with the package version.
+        /// </summary>
+        internal JObject FindContainerRegistryManifest(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
-            exception = null;
+            var createManifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, version);
+            _cmdletPassedIn.WriteDebug($"GET manifest url:  {createManifestUrl}");
+
+            var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
+            return GetHttpResponseJObjectUsingDefaultHeaders(createManifestUrl, HttpMethod.Get, defaultHeaders, out errRecord);
+        }
+
+        /// <summary>
+        /// Get metadata for the package by parsing its manifest.
+        /// </summary>
+        internal ContainerRegistryInfo GetMetadataProperty(JObject foundTags, string packageName, out ErrorRecord errRecord)
+        {
+            errRecord = null;
             ContainerRegistryInfo serverPkgInfo = null;
+
             var layers = foundTags["layers"];
             if (layers == null || layers[0] == null)
             {
-                exception = new InvalidOrEmptyResponse($"Response does not contain 'layers' element in manifest for package '{packageName}' in '{Repository.Name}'.");
+                errRecord = new ErrorRecord(
+                    new InvalidOrEmptyResponse($"Response does not contain 'layers' element in manifest for package '{packageName}' in '{Repository.Name}'."),
+                    "GetMetadataPropertyLayersError",
+                    ErrorCategory.InvalidData,
+                    this);
 
                 return serverPkgInfo;
             }
@@ -662,7 +739,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             var annotations = layers[0]["annotations"];
             if (annotations == null)
             {
-                exception = new InvalidOrEmptyResponse($"Response does not contain 'annotations' element in manifest for package '{packageName}' in '{Repository.Name}'.");
+                errRecord = new ErrorRecord(
+                    new InvalidOrEmptyResponse($"Response does not contain 'annotations' element in manifest for package '{packageName}' in '{Repository.Name}'."),
+                    "GetMetadataPropertyAnnotationsError",
+                    ErrorCategory.InvalidData,
+                    this);
 
                 return serverPkgInfo;
             }
@@ -671,14 +752,23 @@ namespace Microsoft.PowerShell.PSResourceGet
             var pkgTitleJToken = annotations["org.opencontainers.image.title"];
             if (pkgTitleJToken == null)
             {
-                exception = new InvalidOrEmptyResponse($"Response does not contain 'org.opencontainers.image.title' element for package '{packageName}' in '{Repository.Name}'.");
+                errRecord = new ErrorRecord(
+                    new InvalidOrEmptyResponse($"Response does not contain 'org.opencontainers.image.title' element for package '{packageName}' in '{Repository.Name}'."),
+                    "GetMetadataPropertyOCITitleError",
+                    ErrorCategory.InvalidData,
+                    this);
 
                 return serverPkgInfo;
             }
+
             string metadataPkgName = pkgTitleJToken.ToString();
             if (string.IsNullOrWhiteSpace(metadataPkgName))
             {
-                exception = new InvalidOrEmptyResponse($"Response element 'org.opencontainers.image.title' is empty for package '{packageName}' in '{Repository.Name}'.");
+                errRecord = new ErrorRecord(
+                    new InvalidOrEmptyResponse($"Response element 'org.opencontainers.image.title' is empty for package '{packageName}' in '{Repository.Name}'."),
+                    "GetMetadataPropertyOCITitleEmptyError",
+                    ErrorCategory.InvalidData,
+                    this);
 
                 return serverPkgInfo;
             }
@@ -687,68 +777,32 @@ namespace Microsoft.PowerShell.PSResourceGet
             var pkgMetadataJToken = annotations["metadata"];
             if (pkgMetadataJToken == null)
             {
-                exception = new InvalidOrEmptyResponse($"Response does not contain 'metadata' element in manifest for package '{packageName}' in '{Repository.Name}'.");
+                errRecord = new ErrorRecord(
+                    new InvalidOrEmptyResponse($"Response does not contain 'metadata' element in manifest for package '{packageName}' in '{Repository.Name}'."),
+                    "GetMetadataPropertyMetadataError",
+                    ErrorCategory.InvalidData,
+                    this);
 
                 return serverPkgInfo;
             }
+
             var metadata = pkgMetadataJToken.ToString();
 
             // Check for package artifact type
             var resourceTypeJToken = annotations["resourceType"];
-            var resourceType = resourceTypeJToken != null ? resourceTypeJToken.ToString() : string.Empty;
+            var resourceType = resourceTypeJToken != null ? resourceTypeJToken.ToString() : string.Empty; // TODO: Anam should this be "None" ie valid enum value?
 
             return new ContainerRegistryInfo(metadataPkgName, metadata, resourceType);
         }
 
-        internal JObject FindContainerRegistryManifest(string registry, string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
+        /// <summary>
+        /// Upload manifest for the package, used for publishing.
+        /// </summary>
+        internal async Task<HttpResponseMessage> UploadManifest(string packageName, string packageVersion, string configPath, bool isManifest, string containerRegistryAccessToken)
         {
             try
             {
-                var createManifestUrl = string.Format(containerRegistryManifestUrlTemplate, registry, packageName, version);
-                _cmdletPassedIn.WriteDebug($"GET manifest url:  {createManifestUrl}");
-
-                var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-                return GetHttpResponseJObjectUsingDefaultHeaders(createManifestUrl, HttpMethod.Get, defaultHeaders, out errRecord);
-            }
-            catch (HttpRequestException e)
-            {
-                throw new HttpRequestException("Error finding ContainerRegistry manifest: " + e.Message);
-            }
-        }
-
-        internal async Task<string> GetStartUploadBlobLocation(string pkgName, string containerRegistryAccessToken)
-        {
-            try
-            {
-                var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-                var startUploadUrl = string.Format(containerRegistryStartUploadTemplate, Registry, pkgName);
-                return (await GetHttpResponseHeader(startUploadUrl, HttpMethod.Post, defaultHeaders)).Location.ToString();
-            }
-            catch (HttpRequestException e)
-            {
-                throw new HttpRequestException("Error starting publishing to ContainerRegistry: " + e.Message);
-            }
-        }
-
-        internal async Task<HttpResponseMessage> EndUploadBlob(string location, string filePath, string digest, bool isManifest, string containerRegistryAccessToken)
-        {
-            try
-            {
-                var endUploadUrl = string.Format(containerRegistryEndUploadTemplate, Registry, location, digest);
-                var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-                return await PutRequestAsync(endUploadUrl, filePath, isManifest, defaultHeaders);
-            }
-            catch (HttpRequestException e)
-            {
-                throw new HttpRequestException("Error occured while trying to uploading module to ContainerRegistry: " + e.Message);
-            }
-        }
-
-        internal async Task<HttpResponseMessage> UploadManifest(string pkgName, string pkgVersion, string configPath, bool isManifest, string containerRegistryAccessToken)
-        {
-            try
-            {
-                var createManifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, pkgName, pkgVersion);
+                var createManifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, packageVersion);
                 var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
                 return await PutRequestAsync(createManifestUrl, configPath, isManifest, defaultHeaders);
             }
@@ -772,6 +826,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
+        /// <summary>
+        /// Get response object when using default headers in the request.
+        /// </summary>
         internal JObject GetHttpResponseJObjectUsingDefaultHeaders(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders, out ErrorRecord errRecord)
         {
             try
@@ -818,16 +875,25 @@ namespace Microsoft.PowerShell.PSResourceGet
             return null;
         }
 
+        /// <summary>
+        /// Get response object when using content headers in the request.
+        /// </summary>
         internal JObject GetHttpResponseJObjectUsingContentHeaders(string url, HttpMethod method, string content, Collection<KeyValuePair<string, string>> contentHeaders, out ErrorRecord errRecord)
         {
+            errRecord = null;
             try
             {
-                errRecord = null;
                 HttpRequestMessage request = new HttpRequestMessage(method, url);
 
                 if (string.IsNullOrEmpty(content))
                 {
-                    throw new ArgumentNullException("content");
+                    errRecord = new ErrorRecord(
+                    exception: new ArgumentNullException($"Content is null or empty and cannot be used to make a request as its content headers."),
+                    "RequestContentHeadersNullOrEmpty",
+                    ErrorCategory.InvalidData,
+                    _cmdletPassedIn);
+
+                    return null;
                 }
 
                 request.Content = new StringContent(content);
@@ -878,6 +944,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             return null;
         }
 
+        /// <summary>
+        /// Get response headers.
+        /// </summary>
         internal static async Task<HttpResponseHeaders> GetHttpResponseHeader(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders)
         {
             try
@@ -892,6 +961,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
+        /// <summary>
+        /// Set default headers for HttpClient.
+        /// </summary>
         private static void SetDefaultHeaders(Collection<KeyValuePair<string, string>> defaultHeaders)
         {
             s_client.DefaultRequestHeaders.Clear();
@@ -915,6 +987,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
+        /// <summary>
+        /// Sends request for content.
+        /// </summary>
         private static async Task<HttpContent> SendContentRequestAsync(HttpRequestMessage message)
         {
             try
@@ -923,18 +998,22 @@ namespace Microsoft.PowerShell.PSResourceGet
                 response.EnsureSuccessStatusCode();
                 return response.Content;
             }
-            catch (HttpRequestException e)
+            catch (Exception e)
             {
-                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+                throw new SendRequestException($"Error occured while sending request to Container Registry server with: {e.GetType()} '{e.Message}'", e);
             }
         }
 
+        /// <summary>
+        /// Sends HTTP request.
+        /// </summary>
         private static async Task<JObject> SendRequestAsync(HttpRequestMessage message)
         {
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
 
+                // TODO: Anam- should I move this to outside catch so that we don't throw a nested exception?
                 switch (response.StatusCode)
                 {
                     case HttpStatusCode.OK:
@@ -959,6 +1038,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
+        /// <summary>
+        /// Send request to get response headers.
+        /// </summary>
         private static async Task<HttpResponseHeaders> SendRequestHeaderAsync(HttpRequestMessage message)
         {
             try
@@ -973,6 +1055,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
+        /// <summary>
+        /// Sends a PUT request, used for publishing to container registry.
+        /// </summary>
         private static async Task<HttpResponseMessage> PutRequestAsync(string url, string filePath, bool isManifest, Collection<KeyValuePair<string, string>> contentHeaders)
         {
             try
@@ -992,16 +1077,18 @@ namespace Microsoft.PowerShell.PSResourceGet
                         httpContent.Headers.Add("Content-Type", "application/octet-stream");
                     }
 
-                    return await s_client.PutAsync(url, httpContent); ;
+                    return await s_client.PutAsync(url, httpContent);
                 }
             }
-            catch (HttpRequestException e)
+            catch (Exception e)
             {
-                throw new HttpRequestException("Error occured while trying to uploading module to ContainerRegistry: " + e.Message);
+                throw new SendRequestException($"Error occured while uploading module to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
             }
-
         }
 
+        /// <summary>
+        /// Get the default headers associated with the access token.
+        /// </summary>
         private static Collection<KeyValuePair<string, string>> GetDefaultHeaders(string containerRegistryAccessToken)
         {
             var defaultHeaders = new Collection<KeyValuePair<string, string>>();
@@ -1016,128 +1103,258 @@ namespace Microsoft.PowerShell.PSResourceGet
             return defaultHeaders;
         }
 
-        internal bool PushNupkgContainerRegistry(string psd1OrPs1File, string outputNupkgDir, string pkgName, NuGetVersion pkgVersion, PSRepositoryInfo repository, ResourceType resourceType, Hashtable parsedMetadataHash, Hashtable dependencies, out ErrorRecord errRecord)
+        #endregion
+
+        #region Publish Methods
+
+        /// <summary>
+        /// Helper method that publishes a package to the container registry.
+        /// This gets called from Publish-PSResource.
+        /// </summary>
+        internal bool PushNupkgContainerRegistry(string psd1OrPs1File,
+            string outputNupkgDir,
+            string packageName,
+            NuGetVersion packageVersion,
+            ResourceType resourceType,
+            Hashtable parsedMetadataHash, 
+            Hashtable dependencies, 
+            out ErrorRecord errRecord)
         {
-            string fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, pkgName + "." + pkgVersion.ToNormalizedString() + ".nupkg");
-            string pkgNameLower = pkgName.ToLower();
+            string fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
+            string packageNameLowercase = packageName.ToLower();
 
             // Get access token (includes refresh tokens)
-            var containerRegistryAccessToken = GetContainerRegistryAccessToken(Repository, out errRecord);
+            var containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
+            if (errRecord != null)
+            {
+                return false;
+            }
 
             // Upload .nupkg
-            TryUploadNupkg(pkgNameLower, containerRegistryAccessToken, fullNupkgFile, out string nupkgDigest);
+            TryUploadNupkg(packageNameLowercase, containerRegistryAccessToken, fullNupkgFile, out string nupkgDigest, out errRecord);
+            if (errRecord != null)
+            {
+                // TODO: Anam- should I also check if false was returned? is that an error/termination case?
+                return false;
+            }
 
             // Create and upload an empty file-- needed by ContainerRegistry server
-            TryCreateAndUploadEmptyFile(outputNupkgDir, pkgNameLower, containerRegistryAccessToken);
+            TryCreateAndUploadEmptyFile(outputNupkgDir, packageNameLowercase, containerRegistryAccessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return false;
+            }
 
             // Create config.json file
             var configFilePath = System.IO.Path.Combine(outputNupkgDir, "config.json");
-            TryCreateConfig(configFilePath, out string configDigest);
+            TryCreateConfig(configFilePath, out string configDigest, out errRecord);
+            if (errRecord != null)
+            {
+                return false;
+            }
 
             _cmdletPassedIn.WriteVerbose("Create package version metadata as JSON string");
             // Create module metadata string
-            string metadataJson = CreateMetadataContent(psd1OrPs1File, resourceType, parsedMetadataHash, out ErrorRecord metadataCreationError);
-            if (metadataCreationError != null)
+            string metadataJson = CreateMetadataContent(psd1OrPs1File, resourceType, parsedMetadataHash, out errRecord);
+            if (errRecord != null)
             {
-                _cmdletPassedIn.ThrowTerminatingError(metadataCreationError);
+                return false;
             }
 
             // Create and upload manifest 
-            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, pkgName, resourceType, metadataJson, configFilePath,
-                pkgNameLower, pkgVersion, containerRegistryAccessToken);
+            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, packageName, resourceType, metadataJson, configFilePath, packageVersion, containerRegistryAccessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return false;
+            }
 
             return true;
         }
 
-        private bool TryUploadNupkg(string pkgNameLower, string containerRegistryAccessToken, string fullNupkgFile, out string nupkgDigest)
+        /// <summary>
+        /// Upload the nupkg file, by creating a digest for it and uploading as blob.
+        /// Note: ContainerRegistry registries will only accept a name that is all lowercase.
+        /// </summary>
+        private bool TryUploadNupkg(string packageNameLowercase, string containerRegistryAccessToken, string fullNupkgFile, out string nupkgDigest, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteVerbose("Start uploading blob");
-            // Note:  ContainerRegistry registries will only accept a name that is all lowercase.
-            var moduleLocation = GetStartUploadBlobLocation(pkgNameLower, containerRegistryAccessToken).Result;
+            nupkgDigest = string.Empty;
+            bool uploadSuccessful = false;
+            string moduleLocation;
+            try
+            {
+                moduleLocation = GetStartUploadBlobLocation(packageNameLowercase, containerRegistryAccessToken).Result;
+            }
+            catch (Exception startUploadException)
+            {
+                errRecord = new ErrorRecord(
+                        startUploadException,
+                        "StartUploadBlobLocationError",
+                        ErrorCategory.InvalidResult,
+                        _cmdletPassedIn);
+
+                return uploadSuccessful;
+            }
 
             _cmdletPassedIn.WriteVerbose("Computing digest for .nupkg file");
-            bool nupkgDigestCreated = CreateDigest(fullNupkgFile, out nupkgDigest, out ErrorRecord nupkgDigestError);
-            if (!nupkgDigestCreated)
+            bool nupkgDigestCreated = CreateDigest(fullNupkgFile, out nupkgDigest, out errRecord);
+            if (!nupkgDigestCreated || errRecord != null)
             {
-                _cmdletPassedIn.ThrowTerminatingError(nupkgDigestError);
+                return uploadSuccessful;
             }
 
             _cmdletPassedIn.WriteVerbose("Finish uploading blob");
-            var responseNupkg = EndUploadBlob(moduleLocation, fullNupkgFile, nupkgDigest, false, containerRegistryAccessToken).Result;
+            try
+            {
+                var responseNupkg = EndUploadBlob(moduleLocation, fullNupkgFile, nupkgDigest, isManifest: false, containerRegistryAccessToken).Result;
+                uploadSuccessful = responseNupkg.IsSuccessStatusCode;
+            }
+            catch (Exception endUploadException)
+            {
+                errRecord = new ErrorRecord(
+                    endUploadException,
+                    "EndUploadBlobError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
 
-            return responseNupkg.IsSuccessStatusCode;
+                return uploadSuccessful;
+            }
+
+            return uploadSuccessful;
         }
 
-        private bool TryCreateAndUploadEmptyFile(string outputNupkgDir, string pkgNameLower, string containerRegistryAccessToken)
+        /// <summary>
+        /// Uploads an empty file at the start of publish due to: TODO Anam- explain why we do this.
+        /// </summary>
+        private bool TryCreateAndUploadEmptyFile(string outputNupkgDir, string pkgNameLower, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
+            bool uploadSuccessful = false;
             _cmdletPassedIn.WriteVerbose("Create an empty file");
-            string emptyFileName = "empty.txt";
+            string emptyFileName = "empty.txt"; // TODO: Anam- shouldn't we just make this a file name with GUID to begin with?
             var emptyFilePath = System.IO.Path.Combine(outputNupkgDir, emptyFileName);
             // Rename the empty file in case such a file already exists in the temp folder (although highly unlikely)
             while (File.Exists(emptyFilePath))
             {
                 emptyFilePath = Guid.NewGuid().ToString() + ".txt";
             }
-            Utils.CreateFile(emptyFilePath);
 
-            _cmdletPassedIn.WriteVerbose("Start uploading an empty file");
-            var emptyLocation = GetStartUploadBlobLocation(pkgNameLower, containerRegistryAccessToken).Result;
-            _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
-            bool emptyDigestCreated = CreateDigest(emptyFilePath, out string emptyDigest, out ErrorRecord emptyDigestError);
-            if (!emptyDigestCreated)
+            try
             {
-                _cmdletPassedIn.ThrowTerminatingError(emptyDigestError);
-            }
-            _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
-            var emptyResponse = EndUploadBlob(emptyLocation, emptyFilePath, emptyDigest, false, containerRegistryAccessToken).Result;
+                Utils.CreateFile(emptyFilePath);
 
-            return emptyResponse.IsSuccessStatusCode;
+                _cmdletPassedIn.WriteVerbose("Start uploading an empty file");
+                var emptyLocation = GetStartUploadBlobLocation(pkgNameLower, containerRegistryAccessToken).Result;
+
+                _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
+                bool emptyDigestCreated = CreateDigest(emptyFilePath, out string emptyDigest, out errRecord);
+                if (errRecord != null)
+                {
+                    return uploadSuccessful;
+                }
+
+                _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
+                var emptyResponse = EndUploadBlob(emptyLocation, emptyFilePath, emptyDigest, false, containerRegistryAccessToken).Result;
+                uploadSuccessful = emptyResponse.IsSuccessStatusCode;
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    e,
+                    "UploadEmptyFileError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+
+                return uploadSuccessful;
+            }
+
+            return uploadSuccessful;
         }
 
-        private bool TryCreateConfig(string configFilePath, out string configDigest)
+        /// <summary>
+        /// Create config file associated with the package (i.e repository in container registry terms) as is needed for the package's manifest config layer
+        /// </summary>
+        private bool TryCreateConfig(string configFilePath, out string configDigest, out ErrorRecord errRecord)
         {
+            bool configDigestCreated;
+            configDigest = string.Empty;
             _cmdletPassedIn.WriteVerbose("Create the config file");
             while (File.Exists(configFilePath))
             {
                 configFilePath = Guid.NewGuid().ToString() + ".json";
             }
-            Utils.CreateFile(configFilePath);
 
-            _cmdletPassedIn.WriteVerbose("Computing digest for config");
-            bool configDigestCreated = CreateDigest(configFilePath, out configDigest, out ErrorRecord configDigestError);
-            if (!configDigestCreated)
+            try
             {
-                _cmdletPassedIn.ThrowTerminatingError(configDigestError);
+                Utils.CreateFile(configFilePath);
+
+                _cmdletPassedIn.WriteVerbose("Computing digest for config");
+                configDigestCreated = CreateDigest(configFilePath, out configDigest, out errRecord);
+                if (errRecord != null)
+                {
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    e,
+                    "CreateConfigFileError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+
+                return false;
             }
 
             return configDigestCreated;
         }
 
-        private bool TryCreateAndUploadManifest(string fullNupkgFile, string nupkgDigest, string configDigest, string pkgName, ResourceType resourceType, string metadataJson, string configFilePath,
-            string pkgNameLower, NuGetVersion pkgVersion, string containerRegistryAccessToken)
+        /// <summary>
+        /// Create the manifest for the package and upload it
+        /// </summary>
+        private bool TryCreateAndUploadManifest(string fullNupkgFile,
+            string nupkgDigest,
+            string configDigest,
+            string packageName,
+            ResourceType resourceType,
+            string metadataJson,
+            string configFilePath,
+            NuGetVersion pkgVersion,
+            string containerRegistryAccessToken,
+            out ErrorRecord errRecord)
         {
+            errRecord = null;
+            string packageNameLowercase = packageName.ToLower();
             FileInfo nupkgFile = new FileInfo(fullNupkgFile);
             var fileSize = nupkgFile.Length;
             var fileName = System.IO.Path.GetFileName(fullNupkgFile);
-            string fileContent = CreateManifestContent(nupkgDigest, configDigest, fileSize, fileName, pkgName, resourceType, metadataJson);
+            string fileContent = CreateManifestContent(nupkgDigest, configDigest, fileSize, fileName, packageName, resourceType, metadataJson);
             File.WriteAllText(configFilePath, fileContent);
 
             _cmdletPassedIn.WriteVerbose("Create the manifest layer");
-            HttpResponseMessage manifestResponse = UploadManifest(pkgNameLower, pkgVersion.OriginalVersion, configFilePath, true, containerRegistryAccessToken).Result;
-            bool manifestCreated = manifestResponse.IsSuccessStatusCode;
-            if (!manifestCreated)
+            bool manifestCreated = false;
+            try
             {
-                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new ArgumentException("Error uploading package manifest"),
-                        "PackageManifestUploadError",
-                        ErrorCategory.InvalidResult,
-                        _cmdletPassedIn));
-                return false;
+                HttpResponseMessage manifestResponse = UploadManifest(packageNameLowercase, pkgVersion.OriginalVersion, configFilePath, true, containerRegistryAccessToken).Result;
+                manifestCreated = manifestResponse.IsSuccessStatusCode;
+            }
+            catch (Exception e)
+            {
+                // TODO: Anam- perhaps custom exception? "Error uploading package manifest"
+                errRecord = new ErrorRecord(
+                    e,
+                    "PackageManifestUploadError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+
+                return manifestCreated;
             }
 
             return manifestCreated;
         }
 
+        /// <summary>
+        /// Create the content for the manifest for the packge.
+        /// </summary>
         private string CreateManifestContent(
             string nupkgDigest,
             string configDigest,
@@ -1201,8 +1418,12 @@ namespace Microsoft.PowerShell.PSResourceGet
             return stringWriter.ToString();
         }
 
-        private bool CreateDigest(string fileName, out string digest, out ErrorRecord error)
+        /// <summary>
+        /// Create SHA256 digest that will be associated with .nupkg, config file or empty file.
+        /// </summary>
+        private bool CreateDigest(string fileName, out string digest, out ErrorRecord errRecord)
         {
+            errRecord = null;
             FileInfo fileInfo = new FileInfo(fileName);
             SHA256 mySHA256 = SHA256.Create();
 
@@ -1223,35 +1444,39 @@ namespace Microsoft.PowerShell.PSResourceGet
                     digest = stringBuilder.ToString();
                     // Write the name and hash value of the file to the console.
                     _cmdletPassedIn.WriteVerbose($"{fileInfo.Name}: {digest}");
-                    error = null;
                 }
                 catch (IOException ex)
                 {
-                    var IOError = new ErrorRecord(ex, $"IOException for .nupkg file: {ex.Message}", ErrorCategory.InvalidOperation, null);
-                    error = IOError;
+                    errRecord = new ErrorRecord(ex, $"IOException for .nupkg file: {ex.Message}", ErrorCategory.InvalidOperation, null);
+                    return false;
                 }
                 catch (UnauthorizedAccessException ex)
                 {
-                    var AuthorizationError = new ErrorRecord(ex, $"UnauthorizedAccessException for .nupkg file: {ex.Message}", ErrorCategory.PermissionDenied, null);
-                    error = AuthorizationError;
+                    errRecord = new ErrorRecord(ex, $"UnauthorizedAccessException for .nupkg file: {ex.Message}", ErrorCategory.PermissionDenied, null);
+                    return false;
                 }
-            }
-            if (error != null)
-            {
-                return false;
+                catch (Exception ex)
+                {
+                    // TODO: Anam- probably create exception class for this
+                    errRecord = new ErrorRecord(ex, $"Exception when creating digest: {ex.Message}", ErrorCategory.PermissionDenied, null);
+                    return false;
+                }
             }
 
             return true;
         }
 
-        private string CreateMetadataContent(string manifestFilePath, ResourceType resourceType, Hashtable parsedMetadata, out ErrorRecord metadataCreationError)
+        /// <summary>
+        /// Create metadata for the package that will be populated in the manifest.
+        /// </summary>
+        private string CreateMetadataContent(string manifestFilePath, ResourceType resourceType, Hashtable parsedMetadata, out ErrorRecord errRecord)
         {
-            metadataCreationError = null;
+            errRecord = null;
             string jsonString = string.Empty;
 
             if (parsedMetadata == null || parsedMetadata.Count == 0)
             {
-                metadataCreationError = new ErrorRecord(
+                errRecord = new ErrorRecord(
                     new ArgumentException("Hashtable created from .ps1 or .psd1 containing package metadata was null or empty"),
                     "MetadataHashtableEmptyError",
                     ErrorCategory.InvalidArgument,
@@ -1268,6 +1493,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 parsedMetadata.Remove("Version");
                 parsedMetadata["Version"] = pkgNuGetVersion.ToString();
             }
+            // TODO Anam- could it alternatively contain ModuleVersion? Or do I handle that in Publish-PSResource before? Error handle if it isn;t there.
 
             try
             {
@@ -1275,13 +1501,56 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception ex)
             {
-                metadataCreationError = new ErrorRecord(ex, "JsonSerializationError", ErrorCategory.InvalidResult, _cmdletPassedIn);
+                errRecord = new ErrorRecord(ex, "JsonSerializationError", ErrorCategory.InvalidResult, _cmdletPassedIn);
                 return jsonString;
             }
 
             return jsonString;
         }
 
+        /// <summary>
+        /// Get start location when uploading blob, used during publish.
+        /// </summary>
+        internal async Task<string> GetStartUploadBlobLocation(string packageName, string containerRegistryAccessToken)
+        {
+            try
+            {
+                var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
+                var startUploadUrl = string.Format(containerRegistryStartUploadTemplate, Registry, packageName);
+                return (await GetHttpResponseHeader(startUploadUrl, HttpMethod.Post, defaultHeaders)).Location.ToString();
+            }
+            catch (HttpRequestException e)
+            {
+                // TODO: Anam- catch Exception e and throw custom exception
+                throw new HttpRequestException("Error starting publishing to ContainerRegistry: " + e.Message);
+            }
+        }
+
+        /// <summary>
+        /// Upload blob, used for publishing
+        /// </summary>
+        internal async Task<HttpResponseMessage> EndUploadBlob(string location, string filePath, string digest, bool isManifest, string containerRegistryAccessToken)
+        {
+            try
+            {
+                var endUploadUrl = string.Format(containerRegistryEndUploadTemplate, Registry, location, digest);
+                var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
+                return await PutRequestAsync(endUploadUrl, filePath, isManifest, defaultHeaders);
+            }
+            catch (HttpRequestException e)
+            {
+                // TODO: Anam- catch Exception e and throw custom exception
+                throw new HttpRequestException("Error occured while trying to uploading module to ContainerRegistry: " + e.Message);
+            }
+        }
+
+        #endregion
+
+        #region Find Helper Methods
+
+        /// <summary>
+        /// Helper method for find scenarios.
+        /// </summary>
         private Hashtable[] FindPackagesWithVersionHelper(string packageName, VersionType versionType, VersionRange versionRange, NuGetVersion requiredVersion, bool includePrerelease, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             string accessToken = string.Empty;
@@ -1289,13 +1558,13 @@ namespace Microsoft.PowerShell.PSResourceGet
             string registryUrl = Repository.Uri.ToString();
             string packageNameLowercase = packageName.ToLower();
 
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(Repository, out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
             if (errRecord != null)
             {
                 return emptyHashResponses;
             }
 
-            var foundTags = FindContainerRegistryImageTags(Registry, packageNameLowercase, "*", containerRegistryAccessToken, out errRecord);
+            var foundTags = FindContainerRegistryImageTags(packageNameLowercase, "*", containerRegistryAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
                 return emptyHashResponses;
@@ -1315,7 +1584,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             foreach (var pkgVersionTag in pkgsInDescendingOrder)
             {
                 string exactTagVersion = pkgVersionTag.Value.ToString();
-                Hashtable metadata = GetContainerRegistryMetadata(Registry, packageNameLowercase, exactTagVersion, containerRegistryAccessToken, out errRecord);
+                Hashtable metadata = GetContainerRegistryMetadata(packageNameLowercase, exactTagVersion, containerRegistryAccessToken, out errRecord);
                 if (errRecord != null || metadata.Count == 0)
                 {
                     return emptyHashResponses;
@@ -1332,6 +1601,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             return latestVersionResponse.ToArray();
         }
 
+        /// <summary>
+        /// Helper method used for find scenarios that resolves versions required from all versions found.
+        /// </summary>
         private SortedDictionary<NuGet.Versioning.SemanticVersion, string> GetPackagesWithRequiredVersion(List<JToken> allPkgVersions, VersionType versionType, VersionRange versionRange, NuGetVersion specificVersion, string packageName, bool includePrerelease, out ErrorRecord errRecord)
         {
             errRecord = null;

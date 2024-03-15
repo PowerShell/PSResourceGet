@@ -76,4 +76,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
         }
     }
+
+    public class SendRequestException : Exception
+    {
+        public SendRequestException(string message, Exception innerException = null)
+            : base(message)
+            {
+            }
+    }
 }
