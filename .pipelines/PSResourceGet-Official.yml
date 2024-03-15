@@ -308,12 +308,12 @@ extends:
           Write-Host "##$vstsCommandString"
         displayName: 'Capture PowerShellGet module NuGet package path and set environment variable'
         
-        - task: NuGetCommand@2
-          displayName: Push PowerShellGet module artifacts to PSGallery feed
-          inputs:
-            command: push
-            packagesToPush: '$(NugetPkgPath)'
-            nuGetFeedType: external
-            publishFeedCredentials: PSGet-PSGalleryPush
+      - task: NuGetCommand@2
+        displayName: Push PowerShellGet module artifacts to PSGallery feed
+        inputs:
+          command: push
+          packagesToPush: '$(NugetPkgPath)'
+          nuGetFeedType: external
+          publishFeedCredentials: PSGet-PSGalleryPush
 
 
