@@ -81,9 +81,9 @@ extends:
         - name: ob_outputDirectory
           value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
         - name: repoRoot
-          value: $(Build.SourcesDirectory)\OSS_Microsoft_PSResourceGet
+          value: $(Build.SourcesDirectory)\PSResourceGet
         - name: ob_sdl_tsa_configFile
-          value: $(Build.SourcesDirectory)\OSS_Microsoft_PSResourceGet\.config\tsaoptions.json
+          value: $(Build.SourcesDirectory)\PSResourceGet\.config\tsaoptions.json
         - name: signSrcPath
           value: $(repoRoot)/out
         - name: ob_sdl_sbom_enabled
@@ -181,9 +181,9 @@ extends:
           - name: ob_outputDirectory
             value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
           - name: repoRoot
-            value: $(Build.SourcesDirectory)\OSS_Microsoft_PSResourceGet
+            value: $(Build.SourcesDirectory)\PSResourceGet
           - name: ob_sdl_tsa_configFile
-            value: $(Build.SourcesDirectory)\OSS_Microsoft_PSResourceGet\.config\tsaoptions.json
+            value: $(Build.SourcesDirectory)\PSResourceGet\.config\tsaoptions.json
          # Disable because SBOM was already built in the previous job
           - name: ob_sdl_sbom_enabled
             value: false
