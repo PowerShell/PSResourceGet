@@ -243,9 +243,14 @@ extends:
           displayName: Install PSResourceGet 0.9.0 or above for build.psm1
 
         - pwsh: |
-            Set-Location "$(signSrcPath)"
+            Set-Location "$(repoRoot)"
             ./build.ps1 -Publish -Signed
           displayName: Create nupkg for publishing
+
+        - pwsh: |
+            Set-Location "$(repoRoot)"
+            cp -Recurse -Force -Verbose -Path "$(repoRoot)/**/*.nupkg" -Destination "$(Pipeline.Workspace)" 
+          displayName: move nupkg folder
 
         - task: onebranch.pipeline.signing@1
           displayName: Sign nupkg
