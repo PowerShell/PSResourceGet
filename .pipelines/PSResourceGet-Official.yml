@@ -243,7 +243,7 @@ extends:
           displayName: Install PSResourceGet 0.9.0 or above for build.psm1
 
         - pwsh: |
-            Set-Location "$(repoRoot)"
+            Set-Location "$(signSrcPath)"
             ./build.ps1 -Publish -Signed
           displayName: Create nupkg for publishing
 
@@ -274,15 +274,15 @@ extends:
         #drop: $(Pipeline.Workspace)/drop_stagebuild_jobmain
         - name: ob_outputDirectory
           value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
-        - name: repoRoot
-          value: $(Build.SourcesDirectory)\PSResourceGet
+        - name: repoRootOut
+          value: $(Build.SourcesDirectory)\PSResourceGet\out
         - name: ob_sdl_tsa_configFile
           value: $(Build.SourcesDirectory)\PSResourceGet\.config\tsaoptions.json
         # Disable because SBOM was already built in the previous job
         - name: ob_sdl_sbom_enabled
           value: false
         - name: signOutPath
-          value: $(repoRoot)/signed
+          value: $(repoRootOut)/signed
         - name: ob_signing_setup_enabled
           value: true
         # This job is not compiling code, so disable codeQL
@@ -312,7 +312,9 @@ extends:
           displayName: Download artifact
 
         - pwsh: |
-            Get-ChildItem $(signOutPath) -Recurse
+            Get-ChildItem $(repoRootOut) -Recurse
+            Write-Host "---------------------"
+            Get-ChildItem $($(Build.SourcesDirectory)/out) -Recurse
             Write-Host "---------------------"
             Get-ChildItem $(Pipeline.Workspace) -Recurse
           displayName: Capture environment
