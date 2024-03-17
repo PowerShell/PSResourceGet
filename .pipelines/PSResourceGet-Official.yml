@@ -263,17 +263,7 @@ extends:
             signing_profile: external_distribution
             files_to_sign: '**\*.nupkg'
             search_root: $(signOutPath)
-
-        - task: PublishPipelineArtifact@1
-          inputs:
-            targetPath: '$(signOutPath)' # string. Alias: path. Required. File or directory path. Default: $(Pipeline.Workspace).
-            #artifact: # string. Alias: artifactName. Artifact name. 
-            publishLocation: 'pipeline' # 'pipeline' | 'filepath'. Alias: artifactType. Required. Artifact publish location. Default: pipeline.
-            #fileSharePath: # string. Required when artifactType = filepath. File share path. 
-            #parallel: false # boolean. Optional. Use when artifactType = filepath. Parallel copy. Default: false.
-            #parallelCount: '8' # string. Optional. Use when artifactType = filepath && parallel = true. Parallel count. Default: 8.
-            #properties: # string. Custom properties.
-
+            
         - pwsh: |
             Write-Host "------Get-Childitem $(signOutPath)--------------"
             Get-ChildItem $(signOutPath) -Recurse
