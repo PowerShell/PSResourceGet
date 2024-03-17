@@ -72,322 +72,194 @@ extends:
     - stage: stagebuild
         displayName: Build and Package Microsoft.PowerShell.PSResourceGet
         jobs:
-    #   - job: jobbuild
-    #     displayName: Build Microsoft.PowerShell.PSResourceGet Files
-    #     #pool:
-    #     #  type: windows  # read more about custom job pool types at https://aka.ms/obpipelines/yaml/jobs
-        
-    #     variables: # More settings at https://aka.ms/obpipelines/yaml/jobs
-    #     - name: ob_outputDirectory
-    #       value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
-    #     - name: repoRoot
-    #       value: $(Build.SourcesDirectory)\PSResourceGet
-    #     - name: ob_sdl_tsa_configFile
-    #       value: $(Build.SourcesDirectory)\PSResourceGet\.config\tsaoptions.json
-    #     - name: signSrcPath
-    #       value: $(repoRoot)/out
-        # - name: ob_sdl_sbom_enabled
-        #   value: true
-        # - name: ob_signing_setup_enabled
-        #   value: true
-        # #CodeQL tasks added manually to workaround signing failures
-        # - name: ob_sdl_codeql_compiled_enabled
-        #   value: false
-        
-        # pool:
-        #   type: windows
-        # steps:
-        # - checkout: self
-        #   env:
-        #     ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
+        - job: nupkg
+          dependsOn: jobbuild
+          displayName: Package Microsoft.PowerShell.PSResourceGet
+          variables:
+            - name: ob_outputDirectory
+              value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+            - name: repoRoot
+              value: $(Build.SourcesDirectory)\PSResourceGet
+            - name: ob_sdl_tsa_configFile
+              value: $(Build.SourcesDirectory)\PSResourceGet\.config\tsaoptions.json
+          # Disable because SBOM was already built in the previous job
+            - name: ob_sdl_sbom_enabled
+              value: false
+            - name: signOutPath
+              value: $(repoRoot)/signed
+            - name: ob_signing_setup_enabled
+              value: true
+          # This job is not compiling code, so disable codeQL
+            - name: ob_sdl_codeql_compiled_enabled
+              value: false
 
-        # - pwsh: |
-        #     if (-not (Test-Path $(repoRoot)/.config/tsaoptions.json)) {
-        #       Get-ChildItem $(Build.SourcesDirectory) -recurse -ErrorAction SilentlyContinue
-        #       throw "tsaoptions.json does not exist under $(repoRoot)/.config"
-        #     }
-        #   displayName: Test if tsaoptions.json exists
-        #   env:
-        #     ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
+          pool:
+            type: windows
+          steps:
+          - checkout: self
 
-        # - pwsh: |
-        #     Get-ChildItem env:
-        #   displayName: Capture Environment
-        #   #condition: always()
-        #   env:
-        #     ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
+          - pwsh: |
+              if (-not (Test-Path $(repoRoot)/.config/tsaoptions.json)) {
+                Get-ChildItem $(Build.SourcesDirectory) -recurse -ErrorAction SilentlyContinue
+                throw "tsaoptions.json does not exist under $(repoRoot)/.config"
+              }
+            displayName: Test if tsaoptions.json exists
 
-        # - task: UseDotNet@2
-        #   displayName: 'Install .NET dependencies'
-        #   env:
-        #     ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
-        #   inputs:
-        #     packageType: 'sdk'
-        #     useGlobalJson: true
-        #     # this is to ensure that we are installing the dotnet at the same location as container by default install the dotnet sdks
-        #     installationPath: 'C:\Program Files\dotnet\'
-        #     workingDirectory: $(repoRoot)
+          # - task: DownloadPipelineArtifact@2
+          #   displayName: 'Download build files'
+          #   inputs:
+          #     targetPath: $(signOutPath)
+          #     artifact: drop_stagebuild_jobbuild
 
-        # - task: CodeQL3000Init@0 # Add CodeQL Init task right before your 'Build' step.
-        #   env:
-        #     ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
-        #   inputs:
-        #     Enabled: true
-        #     AnalyzeInPipeline: true
-        #     Language: csharp
+          # - pwsh: |
+          #     Set-Location "$(signOutPath)"
+          #     dir -dir -recurse *
+          #   displayName: Capture artifacts structure
 
-        # - pwsh: |
-        #     $module = 'Microsoft.PowerShell.PSResourceGet'
-        #     Write-Verbose "installing $module..." -verbose
-        #     $ProgressPreference = 'SilentlyContinue'
-        #     Install-Module $module -AllowClobber -Force
-        #   displayName: Install PSResourceGet 0.9.0 or above for build.psm1
-        #   #condition: always()
-        #   env:
-        #     ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
-
-        # # this is installing .NET
-        # - pwsh: |
-        #     Set-Location "$(repoRoot)"
-        #     try { ./build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net472'} catch { throw $_ }
-        #   displayName: Execute build
-        #   env:
-        #     ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
-
-        # - task: CodeQL3000Finalize@0 # Add CodeQL Finalize task right after your 'Build' step.
-        #   condition: always()
-        #   env:
-        #     ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
-
-        # - task: onebranch.pipeline.signing@1
-        #   displayName: Sign 1st party files
-        #   inputs:
-        #     command: 'sign'
-        #     signing_profile: external_distribution
-        #     files_to_sign: '**\*.psd1;**\*.psm1;**\*.ps1xml;**\Microsoft*.dll'
-        #     search_root: $(signSrcPath)
-
-        # - task: onebranch.pipeline.signing@1
-        #   displayName: Sign 3rd Party files
-        #   inputs:
-        #     command: 'sign'
-        #     signing_profile: 135020002
-        #     files_to_sign: '**/Dependencies/*.dll'
-        #     search_root: $(signSrcPath)
-
-        # - task: CopyFiles@2
-        #   displayName: "Copy signed files to ob_outputDirectory - '$(ob_outputDirectory)'"
-        #   inputs:
-        #     SourceFolder: "$(signSrcPath)"
-        #     Contents: '**'
-        #     TargetFolder: $(ob_outputDirectory)
-
-        # - pwsh: |
-        #     $moduleData = Import-PowerShellDataFile "$(repoRoot)/src/Microsoft.PowerShell.PSResourceGet.psd1"  
-        #     $moduleVersion = $moduleData.ModuleVersion
-        #     $vstsCommandString = "vso[task.setvariable variable=ob_sdl_sbom_packageversion]${moduleVersion}"
-
-        #     Write-Host "sending $vstsCommandString"
-        #     Write-Host "##$vstsCommandString"
-        #   displayName: Setup SBOM Package Version
+          # - pwsh: |
+          #     $module = 'Microsoft.PowerShell.PSResourceGet'
+          #     Write-Verbose "installing $module..." -verbose
+          #     $ProgressPreference = 'SilentlyContinue'
+          #     Install-Module $module -AllowClobber -Force
+          #   displayName: Install PSResourceGet 0.9.0 or above for build.psm1
 
 
 
+  ### new 
+          - pwsh: |
+              Get-ChildItem -Path env:
+              Get-ChildItem -Path . -Recurse -Directory
+            displayName: Capture environment for build
+            condition: succeededOrFailed()
+            
+          - pwsh: |
+              $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+              if (Test-Path -Path $modulePath) {
+                Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
+                Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
+              }
+              if (! (Test-Path -Path $modulePath)) {
+                Write-Verbose -Verbose "Creating new temp module path: $modulePath"
+                $null = New-Item -Path $modulePath -ItemType Directory
+              }
+            displayName: Create temporary module path
+
+          - pwsh: |
+              $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+              Write-Verbose -Verbose "Install PSResourceGet to temp module path"
+              Save-Module -Name Microsoft.PowerShell.PSResourceGet -MinimumVersion 0.9.0 -Path $modulePath -AllowPrerelease -Force
+            displayName: Install Microsoft.PowerShell.PSResourceGet v3
+
+          - pwsh: |
+              $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+              $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+              Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+              Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
+              #
+              # Build for net472 framework
+              $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net472'
+            displayName: Build and publish artifact
+
+          # - pwsh: |
+          #     $signSrcPath = "$($config.BuildOutputPath)"            
+          #     $vstsCommandString = "vso[task.setvariable variable=signSrcPath]${signSrcPath}"
+          #     Write-Host "sending " + $vstsCommandString
+          #     Write-Host "##$vstsCommandString"
+          #     #
+          #     $outSignPath = "$($config.BuildOutputPath)"
+          #     $vstsCommandString = "vso[task.setvariable variable=signOutPath]${outSignPath}"
+          #     Write-Host "sending " + $vstsCommandString
+          #     Write-Host "##$vstsCommandString"
+          #   displayName: Create fake source and output variables for signing template and no signing
+          #   condition: and(succeeded(), eq(variables['SkipSigning'], 'True'))
 
 
+          - task: CodeQL3000Finalize@0 # Add CodeQL Finalize task right after your 'Build' step.
+            condition: always()
+            env:
+              ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
+          - task: onebranch.pipeline.signing@1
+            displayName: Sign 1st party files
+            inputs:
+              command: 'sign'
+              signing_profile: external_distribution
+              files_to_sign: '**\*.psd1;**\*.psm1;**\*.ps1xml;**\Microsoft*.dll'
+              search_root: $(signSrcPath)
 
+          - task: onebranch.pipeline.signing@1
+            displayName: Sign 3rd Party files
+            inputs:
+              command: 'sign'
+              signing_profile: 135020002
+              files_to_sign: '**/Dependencies/*.dll'
+              search_root: $(signSrcPath)
 
+          - task: CopyFiles@2
+            displayName: "Copy signed files to ob_outputDirectory - '$(ob_outputDirectory)'"
+            inputs:
+              SourceFolder: "$(signSrcPath)"
+              Contents: '**'
+              TargetFolder: $(ob_outputDirectory)
 
+          # - pwsh: |
+          #     $moduleData = Import-PowerShellDataFile "$(repoRoot)/src/Microsoft.PowerShell.PSResourceGet.psd1"  
+          #     $moduleVersion = $moduleData.ModuleVersion
+          #     $vstsCommandString = "vso[task.setvariable variable=ob_sdl_sbom_packageversion]${moduleVersion}"
 
-      - job: nupkg
-        dependsOn: jobbuild
-        displayName: Package Microsoft.PowerShell.PSResourceGet
-        variables:
-          - name: ob_outputDirectory
-            value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
-          - name: repoRoot
-            value: $(Build.SourcesDirectory)\PSResourceGet
-          - name: ob_sdl_tsa_configFile
-            value: $(Build.SourcesDirectory)\PSResourceGet\.config\tsaoptions.json
-         # Disable because SBOM was already built in the previous job
-          - name: ob_sdl_sbom_enabled
-            value: false
-          - name: signOutPath
-            value: $(repoRoot)/signed
-          - name: ob_signing_setup_enabled
-            value: true
-         # This job is not compiling code, so disable codeQL
-          - name: ob_sdl_codeql_compiled_enabled
-            value: false
-
-        pool:
-          type: windows
-        steps:
-        - checkout: self
-
-        - pwsh: |
-            if (-not (Test-Path $(repoRoot)/.config/tsaoptions.json)) {
-              Get-ChildItem $(Build.SourcesDirectory) -recurse -ErrorAction SilentlyContinue
-              throw "tsaoptions.json does not exist under $(repoRoot)/.config"
-            }
-          displayName: Test if tsaoptions.json exists
-
-        # - task: DownloadPipelineArtifact@2
-        #   displayName: 'Download build files'
-        #   inputs:
-        #     targetPath: $(signOutPath)
-        #     artifact: drop_stagebuild_jobbuild
-
-        # - pwsh: |
-        #     Set-Location "$(signOutPath)"
-        #     dir -dir -recurse *
-        #   displayName: Capture artifacts structure
-
-        # - pwsh: |
-        #     $module = 'Microsoft.PowerShell.PSResourceGet'
-        #     Write-Verbose "installing $module..." -verbose
-        #     $ProgressPreference = 'SilentlyContinue'
-        #     Install-Module $module -AllowClobber -Force
-        #   displayName: Install PSResourceGet 0.9.0 or above for build.psm1
-
-
-
-### new 
-        - pwsh: |
-            Get-ChildItem -Path env:
-            Get-ChildItem -Path . -Recurse -Directory
-          displayName: Capture environment for build
-          condition: succeededOrFailed()
-          
-        - pwsh: |
-            $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-            if (Test-Path -Path $modulePath) {
-              Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
-              Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
-            }
-            if (! (Test-Path -Path $modulePath)) {
-              Write-Verbose -Verbose "Creating new temp module path: $modulePath"
-              $null = New-Item -Path $modulePath -ItemType Directory
-            }
-          displayName: Create temporary module path
-
-        - pwsh: |
-            $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-            Write-Verbose -Verbose "Install PSResourceGet to temp module path"
-            Save-Module -Name Microsoft.PowerShell.PSResourceGet -MinimumVersion 0.9.0 -Path $modulePath -AllowPrerelease -Force
-          displayName: Install Microsoft.PowerShell.PSResourceGet v3
+          #     Write-Host "sending $vstsCommandString"
+          #     Write-Host "##$vstsCommandString"
+          #   displayName: Setup SBOM Package Version
 
         - pwsh: |
             $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
             $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
             Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
             Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
-            #
-            # Build for net472 framework
-            $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net472'
-          displayName: Build and publish artifact
 
-        # - pwsh: |
-        #     $signSrcPath = "$($config.BuildOutputPath)"            
-        #     $vstsCommandString = "vso[task.setvariable variable=signSrcPath]${signSrcPath}"
-        #     Write-Host "sending " + $vstsCommandString
-        #     Write-Host "##$vstsCommandString"
-        #     #
-        #     $outSignPath = "$($config.BuildOutputPath)"
-        #     $vstsCommandString = "vso[task.setvariable variable=signOutPath]${outSignPath}"
-        #     Write-Host "sending " + $vstsCommandString
-        #     Write-Host "##$vstsCommandString"
-        #   displayName: Create fake source and output variables for signing template and no signing
-        #   condition: and(succeeded(), eq(variables['SkipSigning'], 'True'))
+            $config = Get-BuildConfiguration
 
+            # Set signing src path variable
+            $vstsCommandString = "vso[task.setvariable variable=signSrcPathCreated]${ob_outputDirectory}"
+            Write-Host "sending " + $vstsCommandString
+            Write-Host "##$vstsCommandString"
 
-        - task: CodeQL3000Finalize@0 # Add CodeQL Finalize task right after your 'Build' step.
-          condition: always()
-          env:
-            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
+            # Set signing out path variable
+            $vstsCommandString = "vso[task.setvariable variable=signOutPathCreated]${signOutPath}"
+            Write-Host "sending " + $vstsCommandString
+            Write-Host "##$vstsCommandString"
+            
+            # Upload symbol pdb file
+            $moduleName = "$($config.ModuleName)"
+            $symbolFilePath = Join-Path -Path $srcPath -ChildPath "$moduleName.pdb"
+            $folderName = "symbolResult"
+            $artifactName = "symbolfile"
+          # $vstsCommandString = "vso[artifact.upload containerfolder=${folderName};artifactname=${artifactName}]${symbolFilePath}"
+            Write-Host "sending " + $vstsCommandString
+            Write-Host "##$vstsCommandString"
+          displayName: Set up for module created files code signing
+          condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
 
-        - task: onebranch.pipeline.signing@1
-          displayName: Sign 1st party files
-          inputs:
-            command: 'sign'
-            signing_profile: external_distribution
-            files_to_sign: '**\*.psd1;**\*.psm1;**\*.ps1xml;**\Microsoft*.dll'
-            search_root: $(signSrcPath)
+        - pwsh: |
+            Write-Host "ob_outputDirectory-----------------------"
+            Get-ChildItem -Path $(ob_outputDirectory) -Recurse
+          displayName: Capture created files to sign source
+          condition: succeededOrFailed()
 
-        - task: onebranch.pipeline.signing@1
-          displayName: Sign 3rd Party files
-          inputs:
-            command: 'sign'
-            signing_profile: 135020002
-            files_to_sign: '**/Dependencies/*.dll'
-            search_root: $(signSrcPath)
+        - pwsh: |
+            Get-ChildItem -Path env:
+          displayName: Capture environment for created files signing
+          condition: succeededOrFailed()
 
-        - task: CopyFiles@2
-          displayName: "Copy signed files to ob_outputDirectory - '$(ob_outputDirectory)'"
-          inputs:
-            SourceFolder: "$(signSrcPath)"
-            Contents: '**'
-            TargetFolder: $(ob_outputDirectory)
+        - pwsh: |
+            $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+            $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+            Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+            Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
 
-        # - pwsh: |
-        #     $moduleData = Import-PowerShellDataFile "$(repoRoot)/src/Microsoft.PowerShell.PSResourceGet.psd1"  
-        #     $moduleVersion = $moduleData.ModuleVersion
-        #     $vstsCommandString = "vso[task.setvariable variable=ob_sdl_sbom_packageversion]${moduleVersion}"
-
-        #     Write-Host "sending $vstsCommandString"
-        #     Write-Host "##$vstsCommandString"
-        #   displayName: Setup SBOM Package Version
-
-      - pwsh: |
-          $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-          $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
-          Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
-
-          $config = Get-BuildConfiguration
-
-          # Set signing src path variable
-          $vstsCommandString = "vso[task.setvariable variable=signSrcPathCreated]${ob_outputDirectory}"
-          Write-Host "sending " + $vstsCommandString
-          Write-Host "##$vstsCommandString"
-
-          # Set signing out path variable
-          $vstsCommandString = "vso[task.setvariable variable=signOutPathCreated]${signOutPath}"
-          Write-Host "sending " + $vstsCommandString
-          Write-Host "##$vstsCommandString"
-          
-          # Upload symbol pdb file
-          $moduleName = "$($config.ModuleName)"
-          $symbolFilePath = Join-Path -Path $srcPath -ChildPath "$moduleName.pdb"
-          $folderName = "symbolResult"
-          $artifactName = "symbolfile"
-         # $vstsCommandString = "vso[artifact.upload containerfolder=${folderName};artifactname=${artifactName}]${symbolFilePath}"
-          Write-Host "sending " + $vstsCommandString
-          Write-Host "##$vstsCommandString"
-        displayName: Set up for module created files code signing
-        condition: and(and(succeeded(), eq(variables['Build.Reason'], 'Manual')), ne(variables['SkipSigning'], 'True'))
-
-      - pwsh: |
-          Write-Host "ob_outputDirectory-----------------------"
-          Get-ChildItem -Path $(ob_outputDirectory) -Recurse
-        displayName: Capture created files to sign source
-        condition: succeededOrFailed()
-
-      - pwsh: |
-          Get-ChildItem -Path env:
-        displayName: Capture environment for created files signing
-        condition: succeededOrFailed()
-
-      - pwsh: |
-          $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
-          $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
-          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
-          Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
-
-          $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
-        displayName: Publish module nuget package and upload package artifact
-        condition: succeeded()
+            $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
+          displayName: Publish module nuget package and upload package artifact
+          condition: succeeded()
 
 
 
