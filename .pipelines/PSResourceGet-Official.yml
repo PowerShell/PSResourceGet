@@ -257,8 +257,11 @@ extends:
           displayName: Install PSResourceGet 0.9.0 or above for build.psm1
 
         - pwsh: |
-            Set-Location "$(repoRoot)"
+            Set-Location "$(signOutPath)\Microsoft.PowerShell.PSResourceGet"
             
+            New-Item -ItemType Directory -Path "$(signOutPath)\PublishedNupkg" -Force
+            Register-PSResourceRepository -Name 'localRepo' -SourceLocation "$(signOutPath)\PublishedNupkg"
+            Publish-PSResource -Path "$(signOutPath)\Microsoft.PowerShell.PSResourceGet" -Repository 'localRepo' -Verbose
           displayName: Create nupkg for publishing
 
         - task: onebranch.pipeline.signing@1
@@ -267,18 +270,24 @@ extends:
             command: 'sign'
             signing_profile: external_distribution
             files_to_sign: '**\*.nupkg'
-            search_root: $(signOutPath)
+            search_root: "$(signOutPath)\PublishedNupkg"
 
         - pwsh: |
-            Set-Location "$(repoRoot)"
-            dir -file -recurse *.nupkg
+            Set-Location "$(signOutPath)\PublishedNupkg"
+            Write-Host "signOutPath ---------------------"
+            Get-ChildItem "$(signOutPath)" -Recurse 
           displayName: Find Nupkg
 
         - task: CopyFiles@2
           displayName: "Copy nupkg to ob_outputDirectory - '$(ob_outputDirectory)'"
           inputs:
-            Contents: "$(repoRoot)/**/Microsoft.PowerShell.PSResourceGet.*.nupkg"
+            Contents: "$(signOutPath)\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg"
             TargetFolder: $(ob_outputDirectory)
+        
+        - pwsh: |
+            Write-Host "ob_outputDirectory ---------------------"
+            Get-ChildItem "$(ob_outputDirectory)" -Recurse 
+          displayName: Find Signed Nupkg
 
     - stage: release
       displayName: Release PSResourceGet
