@@ -277,14 +277,14 @@ extends:
           #parallel: false # boolean. Optional. Use when artifactType = filepath. Parallel copy. Default: false.
           #parallelCount: '8' # string. Optional. Use when artifactType = filepath && parallel = true. Parallel count. Default: 8.
           #properties: # string. Custom properties.
-          
-        - pwsh: |
-            Write-Host "------Get-Childitem $(signOutPath)--------------"
-            Get-ChildItem $(signOutPath) -Recurse
-            Write-Host "------Get-Childitem $(ob_outputDirectory)--------------"
-            Get-ChildItem $(ob_outputDirectory) -Recurse
 
-          displayName: Create nupkg for publishing
+      - pwsh: |
+          Write-Host "------Get-Childitem $(signOutPath)--------------"
+          Get-ChildItem $(signOutPath) -Recurse
+          Write-Host "------Get-Childitem $(ob_outputDirectory)--------------"
+          Get-ChildItem $(ob_outputDirectory) -Recurse
+
+        displayName: Create nupkg for publishing
 
     - stage: release
       displayName: Release PSResourceGet
