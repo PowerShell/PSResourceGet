@@ -260,7 +260,7 @@ extends:
             Set-Location "$(signOutPath)\Microsoft.PowerShell.PSResourceGet"
             
             New-Item -ItemType Directory -Path "$(signOutPath)\PublishedNupkg" -Force
-            Register-PSResourceRepository -Name 'localRepo' -SourceLocation "$(signOutPath)\PublishedNupkg"
+            Register-PSResourceRepository -Name 'localRepo' -Uri "$(signOutPath)\PublishedNupkg"
             Publish-PSResource -Path "$(signOutPath)\Microsoft.PowerShell.PSResourceGet" -Repository 'localRepo' -Verbose
           displayName: Create nupkg for publishing
 
