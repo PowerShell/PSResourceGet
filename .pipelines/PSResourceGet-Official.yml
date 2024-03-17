@@ -330,8 +330,7 @@ extends:
           displayName: Push PowerShellGet module artifacts to PSGallery feed
           inputs:
             command: push
-            packagesToPush: '**/Microsoft.PowerShell.PSResourceGet.*.nupkg'
-            nuGetFeedType: external
+            packagesToPush: "$(Pipeline.Workspace\drop_stagebuild_nupkg\PSResourceGet\signed\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg"            nuGetFeedType: external
             publishFeedCredentials: PSGet-PSGalleryPush
 
 
