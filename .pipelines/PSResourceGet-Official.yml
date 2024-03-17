@@ -313,7 +313,7 @@ extends:
         pool:
           type: windows
         variables:
-          ob_outputDirectory: $(Build.SourcesDirectory)/out
+          ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
         steps:
         - download: current
           displayName: Download artifact
@@ -321,6 +321,11 @@ extends:
         - pwsh: |
             Get-ChildItem $(Pipeline.Workspace) -Recurse
           displayName: Capture environment
+
+        - pwsh: |
+            Write-Host "ob_outputDirectory ---------------------"
+            Get-ChildItem "$(ob_outputDirectory)" -Recurse 
+          displayName: Find nupkg and paths environment
 
         - task: NuGetCommand@2
           displayName: Push PowerShellGet module artifacts to PSGallery feed
