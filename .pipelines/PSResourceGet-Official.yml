@@ -191,6 +191,15 @@ extends:
             Write-Host "##$vstsCommandString"
           displayName: Setup SBOM Package Version
 
+
+
+
+
+
+
+
+
+
       - job: nupkg
         dependsOn: jobbuild
         displayName: Package Microsoft.PowerShell.PSResourceGet
@@ -247,11 +256,6 @@ extends:
             ./build.ps1 -Publish -Signed
           displayName: Create nupkg for publishing
 
-        - pwsh: |
-            Set-Location "$(repoRoot)"
-            cp -Recurse -Force -Verbose -Path "$(repoRoot)/**/*.nupkg" -Destination "$(Pipeline.Workspace)" 
-          displayName: move nupkg folder
-
         - task: onebranch.pipeline.signing@1
           displayName: Sign nupkg
           inputs:
@@ -260,16 +264,18 @@ extends:
             files_to_sign: '**\*.nupkg'
             search_root: $(signOutPath)
 
-        - pwsh: |
-            Set-Location "$(repoRoot)"
-            dir -file -recurse *.nupkg
-          displayName: Find Nupkg
+        - publish: $(signOutPath)\**\*.nupkg
+          artifact: Microsoft.PowerShell.PSResourceGet-nupkg
+          displayName: Publish artifact nupkg
 
-        - task: CopyFiles@2
-          displayName: "Copy nupkg to ob_outputDirectory - '$(ob_outputDirectory)'"
-          inputs:
-            Contents: "$(repoRoot)/**/Microsoft.PowerShell.PSResourceGet.*.nupkg"
-            TargetFolder: $(ob_outputDirectory)
+
+        - pwsh: |
+            Write-Host "------Get-Childitem $(signOutPath)--------------"
+            Get-ChildItem $(signOutPath) -Recurse
+            Write-Host "------Get-Childitem $(ob_outputDirectory)--------------"
+            Get-ChildItem $(ob_outputDirectory) -Recurse
+
+          displayName: Create nupkg for publishing
 
     - stage: release
       displayName: Release PSResourceGet
