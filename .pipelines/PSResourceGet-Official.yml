@@ -285,7 +285,7 @@ extends:
             TargetFolder: $(ob_outputDirectory)
         
         - pwsh: |
-            Write-Host "ob_outputDirectory ---------------------"
+            Write-Host "drop_stagebuild_nupkg\PSResourceGet\signed\PublishedNupkg ---------------------"
             Get-ChildItem "$(ob_outputDirectory)" -Recurse 
           displayName: Find Signed Nupkg
 
@@ -323,9 +323,8 @@ extends:
           displayName: Capture environment
 
         - pwsh: |
-            Write-Host "ob_outputDirectory ---------------------"
-            Get-ChildItem "$(ob_outputDirectory)" -Recurse 
-          displayName: Find nupkg and paths environment
+            Get-ChildItem "$(Pipeline.Workspace)/drop_stagebuild_nupkg" -Recurse
+          displayName: Find Nupkg and paths env
 
         - task: NuGetCommand@2
           displayName: Push PowerShellGet module artifacts to PSGallery feed
