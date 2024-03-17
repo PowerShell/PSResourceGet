@@ -70,8 +70,8 @@ extends:
 
     stages:
     - stage: stagebuild
-    #   displayName: Build and Package Microsoft.PowerShell.PSResourceGet
-    #   jobs:
+        displayName: Build and Package Microsoft.PowerShell.PSResourceGet
+        jobs:
     #   - job: jobbuild
     #     displayName: Build Microsoft.PowerShell.PSResourceGet Files
     #     #pool:
