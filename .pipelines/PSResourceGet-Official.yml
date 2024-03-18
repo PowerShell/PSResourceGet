@@ -173,7 +173,6 @@ extends:
             Get-ChildItem $(signSrcPath) -Recurse
             Write-Host "Displaying contents of ob_outputDirectory:"
             Get-ChildItem $(ob_outputDirectory) -Recurse
-            "vso[task.setvariable variable=newTestVar]$(signSrcPath)"
           displayName: Get contents of dirs with signed files
 
        # - pwsh: |
@@ -285,7 +284,6 @@ extends:
         - task: ManualValidation@0
           displayName: Wait 24 hours for validation
           inputs:
-            #notifyUsers: $(Build.RequestedForEmail)
             instructions: Please validate the release
             timeoutInMinutes: 1440
       - job: PSGalleryPublish
@@ -293,8 +291,8 @@ extends:
         dependsOn: validation
         pool:
           type: windows
-        #variables:
-        #  ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+        variables:
+          ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
         steps:
         - download: current
           displayName: Download artifact
