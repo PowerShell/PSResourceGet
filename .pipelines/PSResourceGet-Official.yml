@@ -59,14 +59,6 @@ extends:
           enabled: true
         apiscan:
           enabled: false    
-      # tsa:
-      #  enabled: false # onebranch publish all sdl results to TSA. If TSA is disabled all SDL tools will forced into 'break' build mode.
-      # credscan:
-      #   suppressionsFile: $(Build.SourcesDirectory)\.config\CredScanSuppressions.json
-      #policheck:
-      #  break: true # always break the build on policheck issues. You can disable it by setting to 'false'
-      # suppression:
-      #   suppressionFile: $(Build.SourcesDirectory)\.gdn\global.gdnsuppress
 
     stages:
     - stage: stagebuild
@@ -74,9 +66,6 @@ extends:
       jobs:
       - job: jobbuild
         displayName: Build Microsoft.PowerShell.PSResourceGet Files
-        #pool:
-        #  type: windows  # read more about custom job pool types at https://aka.ms/obpipelines/yaml/jobs
-        
         variables: # More settings at https://aka.ms/obpipelines/yaml/jobs
         - name: ob_outputDirectory
           value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
@@ -93,7 +82,6 @@ extends:
         #CodeQL tasks added manually to workaround signing failures
         - name: ob_sdl_codeql_compiled_enabled
           value: false
-        
         pool:
           type: windows
         steps:
@@ -113,7 +101,6 @@ extends:
         - pwsh: |
             Get-ChildItem env:
           displayName: Capture Environment
-          #condition: always()
           env:
             ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
@@ -142,7 +129,6 @@ extends:
             $ProgressPreference = 'SilentlyContinue'
             Install-Module $module -AllowClobber -Force
           displayName: Install PSResourceGet 0.9.0 or above for build.psm1
-          #condition: always()
           env:
             ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
@@ -175,35 +161,29 @@ extends:
             files_to_sign: '**/Dependencies/*.dll'
             search_root: $(signSrcPath)
 
-        - task: CopyFiles@2
-          displayName: "Copy signed files to ob_outputDirectory - '$(ob_outputDirectory)'"
-          inputs:
-            SourceFolder: "$(signSrcPath)"
-            Contents: '**'
-            TargetFolder: $(ob_outputDirectory)
+        #- task: CopyFiles@2
+        #  displayName: "Copy signed files to ob_outputDirectory - '$(ob_outputDirectory)'"
+        #  inputs:
+        #    SourceFolder: "$(signSrcPath)"
+        #    Contents: '**'
+        #    TargetFolder: $(ob_outputDirectory)
 
         - pwsh: |
-            Write-Host "displaying contents of signSrcPath--------------------------"
+            Write-Host "Displaying contents of signSrcPath:"
             Get-ChildItem $(signSrcPath) -Recurse
-            Write-Host "displaying contents of ob_outputDirectory--------------------------"
+            Write-Host "Displaying contents of ob_outputDirectory:"
             Get-ChildItem $(ob_outputDirectory) -Recurse
-            write-host "-----------------------------"
             "vso[task.setvariable variable=newTestVar]$(signSrcPath)"
-          displayName: GCI signed files
+          displayName: Get contents of dirs with signed files
 
-        - pwsh: |
-            $moduleData = Import-PowerShellDataFile "$(repoRoot)/src/Microsoft.PowerShell.PSResourceGet.psd1"  
-            $moduleVersion = $moduleData.ModuleVersion
-            $vstsCommandString = "vso[task.setvariable variable=ob_sdl_sbom_packageversion]${moduleVersion}"
+       # - pwsh: |
+       #     $moduleData = Import-PowerShellDataFile "$(repoRoot)/src/Microsoft.PowerShell.PSResourceGet.psd1"  
+       #     $moduleVersion = $moduleData.ModuleVersion
+       #     $vstsCommandString = "vso[task.setvariable variable=ob_sdl_sbom_packageversion]${moduleVersion}"
 
-            Write-Host "sending $vstsCommandString"
-            Write-Host "##$vstsCommandString"
-          displayName: Setup SBOM Package Version
-
-
-
-
-
+       #     Write-Host "sending $vstsCommandString"
+       #     Write-Host "##$vstsCommandString"
+       #   displayName: Setup SBOM Package Version
 
       - job: nupkg
         dependsOn: jobbuild
@@ -246,8 +226,9 @@ extends:
 
         - pwsh: |
             Set-Location "$(signOutPath)"
+            Write-Host "Contents of signOutPath:"
             Get-ChildItem $(signOutPath) -Recurse
-          displayName: Capture artifacts structure
+          displayName: Capture artifacts directory structure
 
         - pwsh: |
             $module = 'Microsoft.PowerShell.PSResourceGet'
@@ -258,7 +239,6 @@ extends:
 
         - pwsh: |
             Set-Location "$(signOutPath)\Microsoft.PowerShell.PSResourceGet"
-            
             New-Item -ItemType Directory -Path "$(signOutPath)\PublishedNupkg" -Force
             Register-PSResourceRepository -Name 'localRepo' -Uri "$(signOutPath)\PublishedNupkg"
             Publish-PSResource -Path "$(signOutPath)\Microsoft.PowerShell.PSResourceGet" -Repository 'localRepo' -Verbose
@@ -274,20 +254,20 @@ extends:
 
         - pwsh: |
             Set-Location "$(signOutPath)\PublishedNupkg"
-            Write-Host "signOutPath ---------------------"
+            Write-Host "Contents of signOutPath:"
             Get-ChildItem "$(signOutPath)" -Recurse 
           displayName: Find Nupkg
 
-        - task: CopyFiles@2
-          displayName: "Copy nupkg to ob_outputDirectory - '$(ob_outputDirectory)'"
-          inputs:
-            Contents: $(signOutPath)\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg
-            TargetFolder: $(ob_outputDirectory)
+        #- task: CopyFiles@2
+        #  displayName: "Copy nupkg to ob_outputDirectory - '$(ob_outputDirectory)'"
+        #  inputs:
+        #    Contents: $(signOutPath)\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg
+        #    TargetFolder: $(ob_outputDirectory)
         
-        - pwsh: |
-            Write-Host "drop_stagebuild_nupkg\PSResourceGet\signed\PublishedNupkg ---------------------"
-            Get-ChildItem "$(ob_outputDirectory)" -Recurse 
-          displayName: Find Signed Nupkg
+        #- pwsh: |
+        #    Write-Host "drop_stagebuild_nupkg\PSResourceGet\signed\PublishedNupkg ---------------------"
+        #    Get-ChildItem "$(ob_outputDirectory)" -Recurse 
+        #  displayName: Find Signed Nupkg
 
     - stage: release
       displayName: Release PSResourceGet
@@ -313,8 +293,8 @@ extends:
         dependsOn: validation
         pool:
           type: windows
-        variables:
-          ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+        #variables:
+        #  ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
         steps:
         - download: current
           displayName: Download artifact
@@ -325,7 +305,7 @@ extends:
 
         - pwsh: |
             Get-ChildItem "$(Pipeline.Workspace)/drop_stagebuild_nupkg" -Recurse
-          displayName: Find Nupkg and paths env
+          displayName: Find signed Nupkg
 
         - task: NuGetCommand@2
           displayName: Push PowerShellGet module artifacts to PSGallery feed
@@ -334,5 +314,3 @@ extends:
             packagesToPush: '$(Pipeline.Workspace)\drop_stagebuild_nupkg\PSResourceGet\signed\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg'
             nuGetFeedType: external
             publishFeedCredentials: PSGet-PSGalleryPush
-
-
