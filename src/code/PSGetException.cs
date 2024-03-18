@@ -76,4 +76,20 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
         }
     }
+
+    public class SendRequestException : Exception
+    {
+        public SendRequestException(string message, Exception innerException = null)
+            : base(message)
+        {
+        }
+    }
+
+    public class UploadBlobException : Exception
+    {
+        public UploadBlobException(string message, Exception innerException = null)
+            : base(message)
+        {
+        }
+    }
 }
