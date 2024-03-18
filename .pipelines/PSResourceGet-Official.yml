@@ -161,12 +161,12 @@ extends:
             files_to_sign: '**/Dependencies/*.dll'
             search_root: $(signSrcPath)
 
-        #- task: CopyFiles@2
-        #  displayName: "Copy signed files to ob_outputDirectory - '$(ob_outputDirectory)'"
-        #  inputs:
-        #    SourceFolder: "$(signSrcPath)"
-        #    Contents: '**'
-        #    TargetFolder: $(ob_outputDirectory)
+        - task: CopyFiles@2
+          displayName: "Copy signed files to ob_outputDirectory - '$(ob_outputDirectory)'"
+          inputs:
+            SourceFolder: "$(signSrcPath)"
+            Contents: '**'
+            TargetFolder: $(ob_outputDirectory)
 
         - pwsh: |
             Write-Host "Displaying contents of signSrcPath:"
