@@ -258,16 +258,16 @@ extends:
             Get-ChildItem "$(signOutPath)" -Recurse 
           displayName: Find Nupkg
 
-        #- task: CopyFiles@2
-        #  displayName: "Copy nupkg to ob_outputDirectory - '$(ob_outputDirectory)'"
-        #  inputs:
-        #    Contents: $(signOutPath)\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg
-        #    TargetFolder: $(ob_outputDirectory)
+        - task: CopyFiles@2
+          displayName: "Copy nupkg to ob_outputDirectory - '$(ob_outputDirectory)'"
+          inputs:
+            Contents: $(signOutPath)\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg
+            TargetFolder: $(ob_outputDirectory)
         
-        #- pwsh: |
-        #    Write-Host "drop_stagebuild_nupkg\PSResourceGet\signed\PublishedNupkg ---------------------"
-        #    Get-ChildItem "$(ob_outputDirectory)" -Recurse 
-        #  displayName: Find Signed Nupkg
+        - pwsh: |
+            Write-Host "Contents of ob_outputDirectory:"
+            Get-ChildItem "$(ob_outputDirectory)" -Recurse 
+          displayName: Find Signed Nupkg
 
     - stage: release
       displayName: Release PSResourceGet
