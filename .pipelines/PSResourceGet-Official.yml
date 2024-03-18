@@ -310,6 +310,7 @@ extends:
             timeoutInMinutes: 1440
       - job: PSGalleryPublish
         displayName: Publish to PSGallery
+        dependsOn: validation
         pool:
           type: windows
         variables:
