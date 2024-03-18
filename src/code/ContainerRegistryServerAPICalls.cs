@@ -20,6 +20,7 @@ using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
@@ -410,6 +411,10 @@ namespace Microsoft.PowerShell.PSResourceGet
                         return null;
                     }
                 }
+                else
+                {
+                    _cmdletPassedIn.WriteVerbose("Repository is unauthenticated");
+                }
             }
 
             var containerRegistryRefreshToken = GetContainerRegistryRefreshToken(tenantID, accessToken, out errRecord);
@@ -594,9 +599,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             Hashtable requiredVersionResponse = new Hashtable();
 
             var foundTags = FindContainerRegistryManifest(packageName, exactTagVersion, containerRegistryAccessToken, out errRecord);
-            if (errRecord != null || foundTags == null)
+            if (errRecord != null)
             {
-                // TODO: Anam wouldn't found tags == null have errRecord populated?
                 return requiredVersionResponse;
             }
 
@@ -630,7 +634,6 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             try
             {
-                // TODO: Anam- isn't this better done as part of the ContainerRegistryInfo obj? like it parse the metadata when it has or perhaps a method called GetVersionFromMetadata()?
                 using (JsonDocument metadataJSONDoc = JsonDocument.Parse(serverPkgInfo.Metadata))
                 {
                     string pkgVersionString = String.Empty;
@@ -698,7 +701,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     ErrorCategory.InvalidData,
                     this);
 
-                return requiredVersionResponse; // TODO: anam- redundant?
+                return requiredVersionResponse;
             }
 
             return requiredVersionResponse;
@@ -790,7 +793,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             // Check for package artifact type
             var resourceTypeJToken = annotations["resourceType"];
-            var resourceType = resourceTypeJToken != null ? resourceTypeJToken.ToString() : string.Empty; // TODO: Anam should this be "None" ie valid enum value?
+            var resourceType = resourceTypeJToken != null ? resourceTypeJToken.ToString() : "None";
 
             return new ContainerRegistryInfo(metadataPkgName, metadata, resourceType);
         }
@@ -1000,7 +1003,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception e)
             {
-                throw new SendRequestException($"Error occured while sending request to Container Registry server with: {e.GetType()} '{e.Message}'", e);
+                throw new SendRequestException($"Error occured while sending request to Container Registry server for content with: {e.GetType()} '{e.Message}'", e);
             }
         }
 
@@ -1012,29 +1015,26 @@ namespace Microsoft.PowerShell.PSResourceGet
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
-
-                // TODO: Anam- should I move this to outside catch so that we don't throw a nested exception?
                 switch (response.StatusCode)
                 {
                     case HttpStatusCode.OK:
                         break;
 
                     case HttpStatusCode.Unauthorized:
-                        throw new UnauthorizedException($"Response unauthorized: {response.ReasonPhrase}.");
+                        throw new UnauthorizedException($"Response returned status code unauthorized: {response.ReasonPhrase}.");
 
                     case HttpStatusCode.NotFound:
-                        throw new ResourceNotFoundException($"Package not found: {response.ReasonPhrase}.");
+                        throw new ResourceNotFoundException($"Response returned status code package not found: {response.ReasonPhrase}.");
 
-                    // all other errors
                     default:
-                        throw new HttpRequestException($"Response returned error with status code {response.StatusCode}: {response.ReasonPhrase}.");
+                        throw new Exception($"Response returned error with status code {response.StatusCode}: {response.ReasonPhrase}.");
                 }
 
                 return JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
             }
-            catch (HttpRequestException e)
+            catch (Exception e)
             {
-                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+                throw new SendRequestException($"Error occured while sending request to Container Registry server with: {e.GetType()} '{e.Message}'", e);
             }
         }
 
@@ -1131,15 +1131,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             // Upload .nupkg
-            TryUploadNupkg(packageNameLowercase, containerRegistryAccessToken, fullNupkgFile, out string nupkgDigest, out errRecord);
+            string nupkgDigest = UploadNupkgFile(packageNameLowercase, containerRegistryAccessToken, fullNupkgFile, out errRecord);
             if (errRecord != null)
             {
-                // TODO: Anam- should I also check if false was returned? is that an error/termination case?
                 return false;
             }
 
             // Create and upload an empty file-- needed by ContainerRegistry server
-            TryCreateAndUploadEmptyFile(outputNupkgDir, packageNameLowercase, containerRegistryAccessToken, out errRecord);
+            CreateAndUploadEmptyFile(outputNupkgDir, packageNameLowercase, containerRegistryAccessToken, out errRecord);
             if (errRecord != null)
             {
                 return false;
@@ -1147,7 +1146,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             // Create config.json file
             var configFilePath = System.IO.Path.Combine(outputNupkgDir, "config.json");
-            TryCreateConfig(configFilePath, out string configDigest, out errRecord);
+            string configDigest = CreateConfigFile(configFilePath, out errRecord);
             if (errRecord != null)
             {
                 return false;
@@ -1155,7 +1154,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             _cmdletPassedIn.WriteVerbose("Create package version metadata as JSON string");
             // Create module metadata string
-            string metadataJson = CreateMetadataContent(psd1OrPs1File, resourceType, parsedMetadataHash, out errRecord);
+            string metadataJson = CreateMetadataContent(resourceType, parsedMetadataHash, out errRecord);
             if (errRecord != null)
             {
                 return false;
@@ -1175,11 +1174,11 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// Upload the nupkg file, by creating a digest for it and uploading as blob.
         /// Note: ContainerRegistry registries will only accept a name that is all lowercase.
         /// </summary>
-        private bool TryUploadNupkg(string packageNameLowercase, string containerRegistryAccessToken, string fullNupkgFile, out string nupkgDigest, out ErrorRecord errRecord)
+        private string UploadNupkgFile(string packageNameLowercase, string containerRegistryAccessToken, string fullNupkgFile, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteVerbose("Start uploading blob");
-            nupkgDigest = string.Empty;
-            bool uploadSuccessful = false;
+            string nupkgDigest = string.Empty;
+            errRecord = null;
             string moduleLocation;
             try
             {
@@ -1193,21 +1192,32 @@ namespace Microsoft.PowerShell.PSResourceGet
                         ErrorCategory.InvalidResult,
                         _cmdletPassedIn);
 
-                return uploadSuccessful;
+                return nupkgDigest;
             }
 
             _cmdletPassedIn.WriteVerbose("Computing digest for .nupkg file");
-            bool nupkgDigestCreated = CreateDigest(fullNupkgFile, out nupkgDigest, out errRecord);
-            if (!nupkgDigestCreated || errRecord != null)
+            nupkgDigest = CreateDigest(fullNupkgFile, out errRecord);
+            if (errRecord != null)
             {
-                return uploadSuccessful;
+                return nupkgDigest;
             }
 
             _cmdletPassedIn.WriteVerbose("Finish uploading blob");
             try
             {
                 var responseNupkg = EndUploadBlob(moduleLocation, fullNupkgFile, nupkgDigest, isManifest: false, containerRegistryAccessToken).Result;
-                uploadSuccessful = responseNupkg.IsSuccessStatusCode;
+                bool uploadSuccessful = responseNupkg.IsSuccessStatusCode;
+
+                if (!uploadSuccessful)
+                {
+                    errRecord = new ErrorRecord(
+                    new UploadBlobException("Uploading of blob for publish failed."),
+                    "EndUploadBlobError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+
+                    return nupkgDigest;
+                }
             }
             catch (Exception endUploadException)
             {
@@ -1217,44 +1227,49 @@ namespace Microsoft.PowerShell.PSResourceGet
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
 
-                return uploadSuccessful;
+                return nupkgDigest;
             }
 
-            return uploadSuccessful;
+            return nupkgDigest;
         }
 
         /// <summary>
-        /// Uploads an empty file at the start of publish due to: TODO Anam- explain why we do this.
+        /// Uploads an empty file at the start of publish as is needed.
         /// </summary>
-        private bool TryCreateAndUploadEmptyFile(string outputNupkgDir, string pkgNameLower, string containerRegistryAccessToken, out ErrorRecord errRecord)
+        private void CreateAndUploadEmptyFile(string outputNupkgDir, string pkgNameLower, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
-            bool uploadSuccessful = false;
             _cmdletPassedIn.WriteVerbose("Create an empty file");
-            string emptyFileName = "empty.txt"; // TODO: Anam- shouldn't we just make this a file name with GUID to begin with?
+            string emptyFileName = "empty" + Guid.NewGuid().ToString() + ".txt";
             var emptyFilePath = System.IO.Path.Combine(outputNupkgDir, emptyFileName);
-            // Rename the empty file in case such a file already exists in the temp folder (although highly unlikely)
-            while (File.Exists(emptyFilePath))
-            {
-                emptyFilePath = Guid.NewGuid().ToString() + ".txt";
-            }
 
             try
             {
                 Utils.CreateFile(emptyFilePath);
 
                 _cmdletPassedIn.WriteVerbose("Start uploading an empty file");
-                var emptyLocation = GetStartUploadBlobLocation(pkgNameLower, containerRegistryAccessToken).Result;
+                string emptyLocation = GetStartUploadBlobLocation(pkgNameLower, containerRegistryAccessToken).Result;
 
                 _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
-                bool emptyDigestCreated = CreateDigest(emptyFilePath, out string emptyDigest, out errRecord);
+                string emptyFileDigest = CreateDigest(emptyFilePath, out errRecord);
                 if (errRecord != null)
                 {
-                    return uploadSuccessful;
+                    return;
                 }
 
                 _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
-                var emptyResponse = EndUploadBlob(emptyLocation, emptyFilePath, emptyDigest, false, containerRegistryAccessToken).Result;
-                uploadSuccessful = emptyResponse.IsSuccessStatusCode;
+                var emptyResponse = EndUploadBlob(emptyLocation, emptyFilePath, emptyFileDigest, false, containerRegistryAccessToken).Result;
+                bool uploadSuccessful = emptyResponse.IsSuccessStatusCode;
+
+                if (!uploadSuccessful)
+                {
+                    errRecord = new ErrorRecord(
+                        new UploadBlobException($"Error occurred while uploading blob, response code was: {emptyResponse.StatusCode} with reason {emptyResponse.ReasonPhrase}"),
+                        "UploadEmptyFileError",
+                        ErrorCategory.InvalidResult,
+                        _cmdletPassedIn);
+
+                    return;
+                }
             }
             catch (Exception e)
             {
@@ -1264,19 +1279,16 @@ namespace Microsoft.PowerShell.PSResourceGet
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
 
-                return uploadSuccessful;
+                return;
             }
-
-            return uploadSuccessful;
         }
 
         /// <summary>
         /// Create config file associated with the package (i.e repository in container registry terms) as is needed for the package's manifest config layer
         /// </summary>
-        private bool TryCreateConfig(string configFilePath, out string configDigest, out ErrorRecord errRecord)
+        private string CreateConfigFile(string configFilePath, out ErrorRecord errRecord)
         {
-            bool configDigestCreated;
-            configDigest = string.Empty;
+            string configFileDigest = string.Empty;
             _cmdletPassedIn.WriteVerbose("Create the config file");
             while (File.Exists(configFilePath))
             {
@@ -1288,10 +1300,10 @@ namespace Microsoft.PowerShell.PSResourceGet
                 Utils.CreateFile(configFilePath);
 
                 _cmdletPassedIn.WriteVerbose("Computing digest for config");
-                configDigestCreated = CreateDigest(configFilePath, out configDigest, out errRecord);
+                configFileDigest = CreateDigest(configFilePath, out errRecord);
                 if (errRecord != null)
                 {
-                    return false;
+                    return configFileDigest;
                 }
             }
             catch (Exception e)
@@ -1302,10 +1314,10 @@ namespace Microsoft.PowerShell.PSResourceGet
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
 
-                return false;
+                return configFileDigest;
             }
 
-            return configDigestCreated;
+            return configFileDigest;
         }
 
         /// <summary>
@@ -1339,9 +1351,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception e)
             {
-                // TODO: Anam- perhaps custom exception? "Error uploading package manifest"
                 errRecord = new ErrorRecord(
-                    e,
+                    new UploadBlobException($"Error occured while uploading package manifest to ContainerRegistry: {e.GetType()} '{e.Message}'", e),
                     "PackageManifestUploadError",
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
@@ -1421,16 +1432,15 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Create SHA256 digest that will be associated with .nupkg, config file or empty file.
         /// </summary>
-        private bool CreateDigest(string fileName, out string digest, out ErrorRecord errRecord)
+        private string CreateDigest(string fileName, out ErrorRecord errRecord)
         {
             errRecord = null;
+            string digest = string.Empty;
             FileInfo fileInfo = new FileInfo(fileName);
             SHA256 mySHA256 = SHA256.Create();
 
             using (FileStream fileStream = fileInfo.Open(FileMode.Open, FileAccess.Read))
             {
-                digest = string.Empty;
-
                 try
                 {
                     // Create a fileStream for the file.
@@ -1440,7 +1450,10 @@ namespace Microsoft.PowerShell.PSResourceGet
                     byte[] hashValue = mySHA256.ComputeHash(fileStream);
                     StringBuilder stringBuilder = new StringBuilder();
                     foreach (byte b in hashValue)
+                    {
                         stringBuilder.AppendFormat("{0:x2}", b);
+                    }
+
                     digest = stringBuilder.ToString();
                     // Write the name and hash value of the file to the console.
                     _cmdletPassedIn.WriteVerbose($"{fileInfo.Name}: {digest}");
@@ -1448,28 +1461,32 @@ namespace Microsoft.PowerShell.PSResourceGet
                 catch (IOException ex)
                 {
                     errRecord = new ErrorRecord(ex, $"IOException for .nupkg file: {ex.Message}", ErrorCategory.InvalidOperation, null);
-                    return false;
+                    return digest;
                 }
                 catch (UnauthorizedAccessException ex)
                 {
                     errRecord = new ErrorRecord(ex, $"UnauthorizedAccessException for .nupkg file: {ex.Message}", ErrorCategory.PermissionDenied, null);
-                    return false;
+                    return digest;
                 }
                 catch (Exception ex)
                 {
-                    // TODO: Anam- probably create exception class for this
                     errRecord = new ErrorRecord(ex, $"Exception when creating digest: {ex.Message}", ErrorCategory.PermissionDenied, null);
-                    return false;
+                    return digest;
                 }
             }
 
-            return true;
+            if (String.IsNullOrEmpty(digest))
+            {
+                errRecord = new ErrorRecord(new ArgumentNullException("Digest created was null or empty."), "DigestNullOrEmptyError.", ErrorCategory.InvalidResult, null);
+            }
+
+            return digest;
         }
 
         /// <summary>
         /// Create metadata for the package that will be populated in the manifest.
         /// </summary>
-        private string CreateMetadataContent(string manifestFilePath, ResourceType resourceType, Hashtable parsedMetadata, out ErrorRecord errRecord)
+        private string CreateMetadataContent(ResourceType resourceType, Hashtable parsedMetadata, out ErrorRecord errRecord)
         {
             errRecord = null;
             string jsonString = string.Empty;
@@ -1489,11 +1506,12 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             if (parsedMetadata.ContainsKey("Version") && parsedMetadata["Version"] is NuGetVersion pkgNuGetVersion)
             {
-                // do not serialize NuGetVersion, this will populate more metadata than is needed and makes it harder to deserialize later
+                // For scripts, 'Version' entry will be present in hashtable and if it is of type NuGetVersion do not serialize NuGetVersion
+                // as this will populate more metadata than is needed and makes it harder to deserialize later.
+                // For modules, 'ModuleVersion' entry will already be present as type string which is correct.
                 parsedMetadata.Remove("Version");
                 parsedMetadata["Version"] = pkgNuGetVersion.ToString();
             }
-            // TODO Anam- could it alternatively contain ModuleVersion? Or do I handle that in Publish-PSResource before? Error handle if it isn;t there.
 
             try
             {
@@ -1519,10 +1537,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                 var startUploadUrl = string.Format(containerRegistryStartUploadTemplate, Registry, packageName);
                 return (await GetHttpResponseHeader(startUploadUrl, HttpMethod.Post, defaultHeaders)).Location.ToString();
             }
-            catch (HttpRequestException e)
+            catch (Exception e)
             {
-                // TODO: Anam- catch Exception e and throw custom exception
-                throw new HttpRequestException("Error starting publishing to ContainerRegistry: " + e.Message);
+                throw new UploadBlobException($"Error occured while starting to upload the blob location used for publishing to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
             }
         }
 
@@ -1537,10 +1554,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                 var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
                 return await PutRequestAsync(endUploadUrl, filePath, isManifest, defaultHeaders);
             }
-            catch (HttpRequestException e)
+            catch (Exception e)
             {
-                // TODO: Anam- catch Exception e and throw custom exception
-                throw new HttpRequestException("Error occured while trying to uploading module to ContainerRegistry: " + e.Message);
+                throw new UploadBlobException($"Error occured while uploading module to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
             }
         }
 

@@ -84,4 +84,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
             }
     }
+
+    public class UploadBlobException : Exception
+    {
+        public UploadBlobException(string message, Exception innerException = null)
+            : base(message)
+            {
+            }
+    }
 }
