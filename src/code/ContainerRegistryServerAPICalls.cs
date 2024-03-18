@@ -1012,30 +1012,32 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         private static async Task<JObject> SendRequestAsync(HttpRequestMessage message)
         {
+            HttpResponseMessage response;
             try
             {
-                HttpResponseMessage response = await s_client.SendAsync(message);
-                switch (response.StatusCode)
-                {
-                    case HttpStatusCode.OK:
-                        break;
-
-                    case HttpStatusCode.Unauthorized:
-                        throw new UnauthorizedException($"Response returned status code unauthorized: {response.ReasonPhrase}.");
-
-                    case HttpStatusCode.NotFound:
-                        throw new ResourceNotFoundException($"Response returned status code package not found: {response.ReasonPhrase}.");
-
-                    default:
-                        throw new Exception($"Response returned error with status code {response.StatusCode}: {response.ReasonPhrase}.");
-                }
-
-                return JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
+                response = await s_client.SendAsync(message);
             }
             catch (Exception e)
             {
                 throw new SendRequestException($"Error occured while sending request to Container Registry server with: {e.GetType()} '{e.Message}'", e);
             }
+
+            switch (response.StatusCode)
+            {
+                case HttpStatusCode.OK:
+                    break;
+
+                case HttpStatusCode.Unauthorized:
+                    throw new UnauthorizedException($"Response returned status code: {response.ReasonPhrase}.");
+
+                case HttpStatusCode.NotFound:
+                    throw new ResourceNotFoundException($"Response returned status code package: {response.ReasonPhrase}.");
+
+                default:
+                    throw new Exception($"Response returned error with status code {response.StatusCode}: {response.ReasonPhrase}.");
+            }
+
+            return JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
         }
 
         /// <summary>
