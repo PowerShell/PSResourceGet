@@ -969,7 +969,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     metadata["Dependencies"] = ParseContainerRegistryDependencies(requiredModulesElement, out errorMsg).ToArray();
                 }
-                if (string.Equals(packageName, "Az", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(packageName, "Az", StringComparison.OrdinalIgnoreCase) || packageName.StartsWith("Az.", StringComparison.OrdinalIgnoreCase))
                 {
                     if (rootDom.TryGetProperty("PrivateData", out JsonElement privateDataElement) && privateDataElement.TryGetProperty("PSData", out JsonElement psDataElement))
                     {
