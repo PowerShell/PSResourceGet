@@ -182,15 +182,17 @@ extends:
         - pwsh: |
             $newlySignedDepsPath = Join-Path -Path $(signSrcPath) -ChildPath "Microsoft.PowerShell.PSResourceGet" -AdditionalChildPath "UnsignedDependencies"
             $depsPath = Join-Path -Path $(signSrcPath) -ChildPath "Microsoft.PowerShell.PSResourceGet" -AdditionalChildPath "Dependencies"
+
+
             Get-ChildItem -Path $newlySignedDepsPath -Filter '*.dll' | Foreach-Object {
+              Write-Host "Validating file $($_.FullName) is signed by Microsoft"
               $sig = Get-AuthenticodeSignature -FilePath $_.FullName
+              Write-Host $sig.Status
+              Write-Host $sig.SignerCertificate.Subject
+              Write-Host $sig.SignerCertificate.Issuer
+    
               if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notlike '*Microsoft*' -or $sig.SignerCertificate.Issuer -notlike '*Microsoft Code Signing PCA*') {
-                # Copy for third party signing
                 Write-Error "File $($_.FileName) is not signed by Microsoft"
-              }
-              else {
-                # Copy for third party signing
-                Copy-Item -Path $_.FullName -Dest $depsPath -Force -Verbose
               }
             }
 
