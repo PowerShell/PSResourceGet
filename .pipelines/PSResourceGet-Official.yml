@@ -153,13 +153,46 @@ extends:
             files_to_sign: '**\*.psd1;**\*.psm1;**\*.ps1xml;**\Microsoft*.dll'
             search_root: $(signSrcPath)
 
+        - pwsh: |
+            $depsPath = Join-Path -Path $(signSrcPath) -ChildPath "Microsoft.PowerShell.PSResourceGet" -AdditionalChildPath "Dependencies"
+            $unsignedDepsPath = Join-Path -Path $(signSrcPath) -ChildPath "Microsoft.PowerShell.PSResourceGet" -AdditionalChildPath "UnsignedDependencies"
+            New-Item -Path $unsignedDepsPath -ItemType Directory -Force
+
+            Get-ChildItem -Path $depsPath -Filter '*.dll' | Foreach-Object {
+              $sig = Get-AuthenticodeSignature -FilePath $_.FullName
+              if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notlike '*Microsoft*' -or $sig.SignerCertificate.Issuer -notlike '*Microsoft Code Signing PCA*') {
+                # Copy for third party signing
+                Copy-Item -Path $_.FullName -Dest $unsignedDepsPath -Force -Verbose
+              }
+            }
+          displayName: Get contents of dirs with signed files
+          
         - task: onebranch.pipeline.signing@1
           displayName: Sign 3rd Party files
           inputs:
             command: 'sign'
             signing_profile: 135020002
             files_to_sign: '**/Dependencies/*.dll'
-            search_root: $(signSrcPath)
+            search_root: $(signSrcPath)/Microsoft.PowerShell.PSResourceGet/UnsignedDependencies 
+
+        - pwsh: |
+            $newlySignedDepsPath = Join-Path -Path $(signSrcPath) -ChildPath "Microsoft.PowerShell.PSResourceGet" -AdditionalChildPath "UnsignedDependencies"
+            $depsPath = Join-Path -Path $(signSrcPath) -ChildPath "Microsoft.PowerShell.PSResourceGet" -AdditionalChildPath "Dependencies"
+            Get-ChildItem -Path $newlySignedDepsPath -Filter '*.dll' | Foreach-Object {
+              $sig = Get-AuthenticodeSignature -FilePath $_.FullName
+              if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notlike '*Microsoft*' -or $sig.SignerCertificate.Issuer -notlike '*Microsoft Code Signing PCA*') {
+                # Copy for third party signing
+                Write-Error "File $($_.FileName) is not signed by Microsoft"
+              }
+              else {
+                # Copy for third party signing
+                Copy-Item -Path $_.FullName -Dest $depsPath -Force -Verbose
+              }
+            }
+
+            Remove-Item -Path $newlySignedDepsPath -Recurse -Force
+            
+          displayName: Validate 3rd party files were signed
 
         - task: CopyFiles@2
           displayName: "Copy signed files to ob_outputDirectory - '$(ob_outputDirectory)'"
