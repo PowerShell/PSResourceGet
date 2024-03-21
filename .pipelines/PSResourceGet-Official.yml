@@ -165,6 +165,10 @@ extends:
                 Copy-Item -Path $_.FullName -Dest $unsignedDepsPath -Force -Verbose
               }
             }
+
+
+            Write-Host "Displaying contents of unsignedDepsPath:"
+            Get-ChildItem $unsignedDepsPath -Recurse 
           displayName: Get contents of dirs with signed files
           
         - task: onebranch.pipeline.signing@1
@@ -172,7 +176,7 @@ extends:
           inputs:
             command: 'sign'
             signing_profile: 135020002
-            files_to_sign: '**/UnsignedDependencies/*.dll'
+            files_to_sign: '*.dll'
             search_root: $(signSrcPath)/Microsoft.PowerShell.PSResourceGet/UnsignedDependencies 
 
         - pwsh: |
