@@ -187,8 +187,10 @@ extends:
               if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notlike '*Microsoft*' -or $sig.SignerCertificate.Issuer -notlike '*Microsoft Windows Production PCA*') {
                 Write-Error "File $($_.FileName) is not signed by Microsoft"
               }
+              else {
+                Copy-Item -Path $_.FullName -Dest $depsPath -Force -Verbose
+              }
             }
-
             Remove-Item -Path $newlySignedDepsPath -Recurse -Force
 
           displayName: Validate 3rd party files were signed
