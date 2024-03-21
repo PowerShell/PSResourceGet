@@ -172,7 +172,7 @@ extends:
           inputs:
             command: 'sign'
             signing_profile: 135020002
-            files_to_sign: '**/Dependencies/*.dll'
+            files_to_sign: '**/UnsignedDependencies/*.dll'
             search_root: $(signSrcPath)/Microsoft.PowerShell.PSResourceGet/UnsignedDependencies 
 
         - pwsh: |
@@ -191,7 +191,7 @@ extends:
             }
 
             Remove-Item -Path $newlySignedDepsPath -Recurse -Force
-            
+
           displayName: Validate 3rd party files were signed
 
         - task: CopyFiles@2
