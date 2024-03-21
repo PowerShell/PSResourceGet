@@ -51,7 +51,7 @@ extends:
           enabled: true
       asyncSdl: # https://aka.ms/obpipelines/asyncsdl
         enabled: true
-        forStages: [Build]
+        forStages: [stagebuild]
         credscan:
           enabled: true
           scanFolder:  $(Build.SourcesDirectory)\PSResourceGet
