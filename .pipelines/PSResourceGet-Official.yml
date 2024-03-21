@@ -75,6 +75,8 @@ extends:
           value: $(Build.SourcesDirectory)\PSResourceGet\.config\tsaoptions.json
         - name: signSrcPath
           value: $(repoRoot)/out
+        - name: depsPath
+          value: $(signSrcPath)\Microsoft.PowerShell.PSResourceGet\Dependencies
         - name: ob_sdl_sbom_enabled
           value: true
         - name: ob_signing_setup_enabled
@@ -154,22 +156,17 @@ extends:
             search_root: $(signSrcPath)
 
         - pwsh: |
-            $depsPath = Join-Path -Path $(signSrcPath) -ChildPath "Microsoft.PowerShell.PSResourceGet" -AdditionalChildPath "Dependencies"
             $unsignedDepsPath = Join-Path -Path $(signSrcPath) -ChildPath "Microsoft.PowerShell.PSResourceGet" -AdditionalChildPath "UnsignedDependencies"
             New-Item -Path $unsignedDepsPath -ItemType Directory -Force
 
-            Get-ChildItem -Path $depsPath -Filter '*.dll' | Foreach-Object {
+            Get-ChildItem -Path $(depsPath) -Filter '*.dll' | Foreach-Object {
               $sig = Get-AuthenticodeSignature -FilePath $_.FullName
               if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notlike '*Microsoft*' -or $sig.SignerCertificate.Issuer -notlike '*Microsoft Code Signing PCA*') {
                 # Copy for third party signing
                 Copy-Item -Path $_.FullName -Dest $unsignedDepsPath -Force -Verbose
               }
             }
-
-
-            Write-Host "Displaying contents of unsignedDepsPath:"
-            Get-ChildItem $unsignedDepsPath -Recurse 
-          displayName: Get contents of dirs with signed files
+          displayName: Find all 3rd party files that need to be signed
           
         - task: onebranch.pipeline.signing@1
           displayName: Sign 3rd Party files
@@ -181,14 +178,13 @@ extends:
 
         - pwsh: |
             $newlySignedDepsPath = Join-Path -Path $(signSrcPath) -ChildPath "Microsoft.PowerShell.PSResourceGet" -AdditionalChildPath "UnsignedDependencies"
-            $depsPath = Join-Path -Path $(signSrcPath) -ChildPath "Microsoft.PowerShell.PSResourceGet" -AdditionalChildPath "Dependencies"
             Get-ChildItem -Path $newlySignedDepsPath -Filter '*.dll' | Foreach-Object {
               $sig = Get-AuthenticodeSignature -FilePath $_.FullName
               if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notlike '*Microsoft*' -or $sig.SignerCertificate.Issuer -notlike '*Microsoft Windows Production PCA*') {
                 Write-Error "File $($_.FileName) is not signed by Microsoft"
               }
               else {
-                Copy-Item -Path $_.FullName -Dest $depsPath -Force -Verbose
+                Copy-Item -Path $_.FullName -Dest $(depsPath) -Force -Verbose
               }
             }
             Remove-Item -Path $newlySignedDepsPath -Recurse -Force
