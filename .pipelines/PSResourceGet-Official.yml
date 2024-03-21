@@ -188,7 +188,6 @@ extends:
               }
             }
             Remove-Item -Path $newlySignedDepsPath -Recurse -Force
-
           displayName: Validate 3rd party files were signed
 
         - task: CopyFiles@2
