@@ -611,7 +611,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         }
                         else if (secretObject.BaseObject is SecureString secretString)
                         {
-                            return new PSCredential(repositoryCredentialInfo.SecretName, secretString);
+                            return new PSCredential("token", secretString);
                         }
                     }
 

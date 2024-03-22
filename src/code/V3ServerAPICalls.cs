@@ -9,6 +9,7 @@ using System.IO;
 using System.Net.Http;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections;
@@ -50,13 +51,30 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             this.Repository = repository;
             _cmdletPassedIn = cmdletPassedIn;
-            HttpClientHandler handler = new HttpClientHandler()
+            HttpClientHandler handler = new HttpClientHandler();
+            handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+            bool token = false;
+
+            if(networkCredential != null) 
             {
-                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                Credentials = networkCredential
+                token = String.Equals("token", networkCredential.UserName) ? true : false;
             };
 
-            _sessionClient = new HttpClient(handler);
+            if (token)
+            {
+                string credString = string.Format(":{0}", networkCredential.Password);
+                byte[] byteArray = Encoding.ASCII.GetBytes(credString);
+
+                _sessionClient = new HttpClient(handler);
+                _sessionClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+
+            } else {
+
+                handler.Credentials = networkCredential;
+                
+                _sessionClient = new HttpClient(handler);
+            };
+
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
 
             _isNuGetRepo = String.Equals(Repository.Uri.AbsoluteUri, nugetRepoUri, StringComparison.InvariantCultureIgnoreCase);
