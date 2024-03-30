@@ -52,8 +52,8 @@
                 'Linux',
                 'Mac',
                 'Windows')
-            ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
-            LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
+            ProjectUri   = 'https://github.com/PowerShell/PSResourceGet/'
+            LicenseUri   = 'https://github.com/PowerShell/PSResourceGet/blob/master/LICENSE'
             ReleaseNotes = @'
 ## 1.0.0
 
