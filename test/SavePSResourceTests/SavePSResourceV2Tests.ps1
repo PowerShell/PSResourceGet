@@ -175,6 +175,9 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
 
     It "Save script without using -IncludeXML" {
         Save-PSResource -Name $testScriptName -Repository $PSGalleryName -Path $SaveDir -TrustRepository | Should -Not -Throw
+
+        $SavedScriptFile = [System.IO.Path]::Combine($SaveDir,('{0}.ps1' -f $testScriptName))
+        [System.IO.File]::Exists($SavedScriptFile) | Should -BeTrue
     }
 
     It "Save script using -IncludeXML" {
