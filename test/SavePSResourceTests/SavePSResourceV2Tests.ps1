@@ -178,9 +178,9 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
     }
 
     It "Save script using -IncludeXML" {
-        Save-PSResource -Name $testScriptName -Repository $PSGalleryName -Path $SaveDir -TrustRepository
+        Save-PSResource -Name $testScriptName -Repository $PSGalleryName -Path $SaveDir -TrustRepository -IncludeXml
 
-        $scriptXML = $testScriptNamen + "_InstalledScriptInfo.xml"
+        $scriptXML = $testScriptName + "_InstalledScriptInfo.xml"
         $savedScriptFile = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "test_script.ps1"
         $savedScriptXML = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $scriptXML
         $savedScriptFile | Should -Not -BeNullOrEmpty
