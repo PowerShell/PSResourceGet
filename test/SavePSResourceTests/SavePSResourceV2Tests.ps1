@@ -125,7 +125,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         $pkgDirVersion.Name | Should -Be "5.2.5"
     }
 
-   It "Save a module with a dependency" {
+    It "Save a module with a dependency" {
         Save-PSResource -Name "TestModuleWithDependencyE" -Version "1.0.0.0" -Repository $PSGalleryName -Path $SaveDir -TrustRepository
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq "TestModuleWithDependencyE" -or $_.Name -eq "TestModuleWithDependencyC" -or $_.Name -eq "TestModuleWithDependencyB" -or $_.Name -eq "TestModuleWithDependencyD"}
         $pkgDirs.Count | Should -BeGreaterThan 1
@@ -148,7 +148,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName | Save-PSResource -Path $SaveDir -TrustRepository -Verbose
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
-        (Get-ChildItem -Path $pkgDir.FullName) | Should -HaveCount 1   
+        (Get-ChildItem -Path $pkgDir.FullName) | Should -HaveCount 1
     }
 
     It "Save module as a nupkg" {
@@ -171,6 +171,10 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -Path $SaveDir -PassThru -TrustRepository
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "1.0.0.0"
+    }
+
+    It "Save script without using -IncludeXML" {
+        Save-PSResource -Name $testScriptName -Repository $PSGalleryName -Path $SaveDir -TrustRepository | Should -Not -Throw
     }
 
     It "Save script using -IncludeXML" {
