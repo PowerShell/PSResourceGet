@@ -301,6 +301,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string packageVersion,
             out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::InstallVersion()");
             errRecord = null;
             string packageNameLowercase = packageName.ToLower();
             string accessToken = string.Empty;
@@ -371,6 +372,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal string GetContainerRegistryAccessToken(out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessToken()");
             string accessToken = string.Empty;
             string containerRegistryAccessToken = string.Empty;
             string tenantID = string.Empty;
@@ -437,6 +439,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal bool IsContainerRegistryUnauthenticated(string containerRegistyUrl, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::IsContainerRegistryUnauthenticated()");
             errRecord = null;
             string endpoint = $"{containerRegistyUrl}/v2/";
             HttpResponseMessage response;
@@ -463,6 +466,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal string GetContainerRegistryRefreshToken(string tenant, string accessToken, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryRefreshToken()");
             string content = string.Format(containerRegistryRefreshTokenTemplate, Registry, tenant, accessToken);
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
             string exchangeUrl = string.Format(containerRegistryOAuthExchangeUrlTemplate, Registry);
@@ -480,6 +484,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal string GetContainerRegistryAccessTokenByRefreshToken(string refreshToken, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessTokenByRefreshToken()");
             string content = string.Format(containerRegistryAccessTokenTemplate, Registry, refreshToken);
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
             string tokenUrl = string.Format(containerRegistryOAuthTokenUrlTemplate, Registry);
@@ -501,6 +506,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         private string GetDigestFromManifest(JObject manifest, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetDigestFromManifest()");
             errRecord = null;
             string digest = String.Empty;
 
@@ -544,6 +550,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal JObject GetContainerRegistryRepositoryManifest(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryRepositoryManifest()");
             // example of manifestUrl: https://psgetregistry.azurecr.io/hello-world:3.0.0
             string manifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, version);
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
@@ -556,6 +563,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal async Task<HttpContent> GetContainerRegistryBlobAsync(string packageName, string digest, string containerRegistryAccessToken)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryBlobAsync()");
             string blobUrl = string.Format(containerRegistryBlobDownloadUrlTemplate, Registry, packageName, digest);
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
             return await GetHttpContentResponseJObject(blobUrl, defaultHeaders);
@@ -585,6 +593,7 @@ namespace Microsoft.PowerShell.PSResourceGet
              *       }
              *     }]
              */
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindContainerRegistryImageTags()");
             string resolvedVersion = string.Equals(version, "*", StringComparison.OrdinalIgnoreCase) ? null : $"/{version}";
             string findImageUrl = string.Format(containerRegistryFindImageVersionUrlTemplate, Registry, packageName, resolvedVersion);
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
@@ -596,6 +605,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal Hashtable GetContainerRegistryMetadata(string packageName, string exactTagVersion, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryMetadata()");
             Hashtable requiredVersionResponse = new Hashtable();
 
             var foundTags = FindContainerRegistryManifest(packageName, exactTagVersion, containerRegistryAccessToken, out errRecord);
@@ -712,6 +722,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal JObject FindContainerRegistryManifest(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindContainerRegistryManifest()");
             var createManifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, version);
             _cmdletPassedIn.WriteDebug($"GET manifest url:  {createManifestUrl}");
 
@@ -724,6 +735,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal ContainerRegistryInfo GetMetadataProperty(JObject foundTags, string packageName, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetMetadataProperty()");
             errRecord = null;
             ContainerRegistryInfo serverPkgInfo = null;
 
@@ -803,6 +815,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal async Task<HttpResponseMessage> UploadManifest(string packageName, string packageVersion, string configPath, bool isManifest, string containerRegistryAccessToken)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::UploadManifest()");
             try
             {
                 var createManifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, packageVersion);
@@ -817,6 +830,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         internal async Task<HttpContent> GetHttpContentResponseJObject(string url, Collection<KeyValuePair<string, string>> defaultHeaders)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetHttpContentResponseJObject()");
             try
             {
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -834,6 +848,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal JObject GetHttpResponseJObjectUsingDefaultHeaders(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetHttpResponseJObjectUsingDefaultHeaders()");
             try
             {
                 errRecord = null;
@@ -883,6 +898,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal JObject GetHttpResponseJObjectUsingContentHeaders(string url, HttpMethod method, string content, Collection<KeyValuePair<string, string>> contentHeaders, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetHttpResponseJObjectUsingContentHeaders()");
             errRecord = null;
             try
             {
@@ -1122,6 +1138,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             Hashtable dependencies, 
             out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::PushNupkgContainerRegistry()");
             string fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
             string packageNameLowercase = packageName.ToLower();
 
@@ -1178,6 +1195,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         private string UploadNupkgFile(string packageNameLowercase, string containerRegistryAccessToken, string fullNupkgFile, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::UploadNupkgFile()");        
             _cmdletPassedIn.WriteVerbose("Start uploading blob");
             string nupkgDigest = string.Empty;
             errRecord = null;
@@ -1240,6 +1258,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         private void CreateAndUploadEmptyFile(string outputNupkgDir, string pkgNameLower, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::CreateAndUploadEmptyFile()");
             _cmdletPassedIn.WriteVerbose("Create an empty file");
             string emptyFileName = "empty" + Guid.NewGuid().ToString() + ".txt";
             var emptyFilePath = System.IO.Path.Combine(outputNupkgDir, emptyFileName);
@@ -1290,6 +1309,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         private string CreateConfigFile(string configFilePath, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::CreateConfigFile()");
             string configFileDigest = string.Empty;
             _cmdletPassedIn.WriteVerbose("Create the config file");
             while (File.Exists(configFilePath))
@@ -1336,6 +1356,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string containerRegistryAccessToken,
             out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::TryCreateAndUploadManifest()");
             errRecord = null;
             string packageNameLowercase = packageName.ToLower();
             FileInfo nupkgFile = new FileInfo(fullNupkgFile);
@@ -1377,6 +1398,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             ResourceType resourceType,
             string metadata)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::CreateManifestContent()");
             StringBuilder stringBuilder = new StringBuilder();
             StringWriter stringWriter = new StringWriter(stringBuilder);
             JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter);
@@ -1436,6 +1458,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         private string CreateDigest(string fileName, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::CreateDigest()");
             errRecord = null;
             string digest = string.Empty;
             FileInfo fileInfo = new FileInfo(fileName);
@@ -1490,6 +1513,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         private string CreateMetadataContent(ResourceType resourceType, Hashtable parsedMetadata, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::CreateMetadataContent()");
             errRecord = null;
             string jsonString = string.Empty;
 
@@ -1533,6 +1557,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal async Task<string> GetStartUploadBlobLocation(string packageName, string containerRegistryAccessToken)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetStartUploadBlobLocation()");
             try
             {
                 var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
@@ -1550,6 +1575,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal async Task<HttpResponseMessage> EndUploadBlob(string location, string filePath, string digest, bool isManifest, string containerRegistryAccessToken)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::EndUploadBlob()");
             try
             {
                 var endUploadUrl = string.Format(containerRegistryEndUploadTemplate, Registry, location, digest);
@@ -1571,6 +1597,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         private Hashtable[] FindPackagesWithVersionHelper(string packageName, VersionType versionType, VersionRange versionRange, NuGetVersion requiredVersion, bool includePrerelease, bool getOnlyLatest, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindPackagesWithVersionHelper()");
             string accessToken = string.Empty;
             string tenantID = string.Empty;
             string registryUrl = Repository.Uri.ToString();
@@ -1624,6 +1651,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         private SortedDictionary<NuGet.Versioning.SemanticVersion, string> GetPackagesWithRequiredVersion(List<JToken> allPkgVersions, VersionType versionType, VersionRange versionRange, NuGetVersion specificVersion, string packageName, bool includePrerelease, out ErrorRecord errRecord)
         {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetPackagesWithRequiredVersion()");
             errRecord = null;
             // we need NuGetVersion to sort versions by order, and string pkgVersionString (which is the exact tag from the server) to call GetContainerRegistryMetadata() later with exact version tag.
             SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedPkgs = new SortedDictionary<SemanticVersion, string>(VersionComparer.Default);
