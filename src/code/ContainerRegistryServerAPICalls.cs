@@ -389,7 +389,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                 _cmdletPassedIn.WriteVerbose("Access token retrieved.");
 
                 tenantID = repositoryCredentialInfo.SecretName;
-                _cmdletPassedIn.WriteVerbose($"Tenant ID: {tenantID}");
             }
             else
             {
@@ -1483,8 +1482,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                     }
 
                     digest = stringBuilder.ToString();
-                    // Write the name and hash value of the file to the console.
-                    _cmdletPassedIn.WriteVerbose($"{fileInfo.Name}: {digest}");
                 }
                 catch (IOException ex)
                 {
