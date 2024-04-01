@@ -1143,6 +1143,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string packageNameLowercase = packageName.ToLower();
 
             // Get access token (includes refresh tokens)
+            _cmdletPassedIn.WriteVerbose($"Get access token for container registry server.");
             var containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
             if (errRecord != null)
             {
@@ -1150,6 +1151,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             // Upload .nupkg
+            _cmdletPassedIn.WriteVerbose($"Upload .nupkg file: {fullNupkgFile}");
             string nupkgDigest = UploadNupkgFile(packageNameLowercase, containerRegistryAccessToken, fullNupkgFile, out errRecord);
             if (errRecord != null)
             {
@@ -1165,6 +1167,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             // Create config.json file
             var configFilePath = System.IO.Path.Combine(outputNupkgDir, "config.json");
+            _cmdletPassedIn.WriteVerbose($"Create config.json file at path: {configFilePath}");
             string configDigest = CreateConfigFile(configFilePath, out errRecord);
             if (errRecord != null)
             {
