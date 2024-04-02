@@ -16,9 +16,14 @@ on:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
-  #schedule:
-  #  - cron: '42 8 * * 4'
 
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  
 jobs:
   analyze:
     name: Analyze
