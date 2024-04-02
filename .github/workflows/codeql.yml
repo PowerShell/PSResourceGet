@@ -66,10 +66,6 @@ jobs:
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
     - run: |
-        Get-ChildItem -Path env:
-      name: Capture Environment
-
-    - run: |
         ..\..\build.ps1 -Clean -Build
       name: Build
       
