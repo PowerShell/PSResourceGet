@@ -12,7 +12,7 @@ trigger: none # https://aka.ms/obpipelines/triggers
 pr:
   branches:
     include:
-    - main
+    - master
     - release*
 parameters: # parameters are shown up in ADO UI in a build queue time
 - name: 'debug'
