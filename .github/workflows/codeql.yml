@@ -12,15 +12,19 @@ defaults:
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
-  
+
+permissions:
+  contents: read
+
 jobs:
   analyze:
+    permissions:
+      actions: read  # for github/codeql-action/init to get workflow details
+      contents: read  # for actions/checkout to fetch code
+      security-events: write  # for github/codeql-action/analyze to upload SARIF results
     name: Analyze
     runs-on: ubuntu-latest
-    permissions:
-      # required for all workflows
-      security-events: write
-
+   
     strategy:
       fail-fast: false
       matrix:
@@ -29,6 +33,7 @@ jobs:
           build-mode: manual
         # If you are analyzing a compiled language, you can modify the 'build-mode' for that language to customize how
         # your codebase is analyzed, see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -40,6 +45,7 @@ jobs:
         languages: ${{ matrix.language }}
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
+    
     - run: |
         Get-ChildItem .
       name: Capture env
