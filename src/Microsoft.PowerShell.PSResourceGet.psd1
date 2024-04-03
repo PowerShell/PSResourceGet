@@ -4,7 +4,7 @@
 @{
     RootModule             = './Microsoft.PowerShell.PSResourceGet.dll'
     NestedModules          = @('./Microsoft.PowerShell.PSResourceGet.psm1')
-    ModuleVersion          = '1.0.3'
+    ModuleVersion          = '1.0.4'
     CompatiblePSEditions   = @('Core', 'Desktop')
     GUID                   = 'e4e0bda1-0703-44a5-b70d-8fe704cd0643'
     Author                 = 'Microsoft Corporation'
@@ -55,6 +55,11 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.0.4
+
+### Patch
+- Dependency updates
+
 ## 1.0.3
 
 ### Bug Fixes

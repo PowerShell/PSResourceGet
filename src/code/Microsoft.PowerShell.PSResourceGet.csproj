@@ -5,21 +5,21 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Microsoft.PowerShell.PSResourceGet</RootNamespace>
     <AssemblyName>Microsoft.PowerShell.PSResourceGet</AssemblyName>
-    <AssemblyVersion>1.0.3.0</AssemblyVersion>
-    <FileVersion>1.0.3</FileVersion>
-    <InformationalVersion>1.0.3</InformationalVersion>
+    <AssemblyVersion>1.0.4.0</AssemblyVersion>
+    <FileVersion>1.0.4.0</FileVersion>
+    <InformationalVersion>1.0.4.0</InformationalVersion>
     <TargetFrameworks>net472;netstandard2.0</TargetFrameworks>
     <LangVersion>9.0</LangVersion>
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NuGet.Commands" Version="6.8.0" />
-    <PackageReference Include="NuGet.Common" Version="6.8.0" />
-    <PackageReference Include="NuGet.Configuration" Version="6.8.0" />
-    <PackageReference Include="NuGet.Packaging" Version="6.8.0" />
-    <PackageReference Include="NuGet.ProjectModel" Version="6.8.0" />
-    <PackageReference Include="NuGet.Protocol" Version="6.8.0" />
+    <PackageReference Include="NuGet.Commands" Version="6.9.1" />
+    <PackageReference Include="NuGet.Common" Version="6.9.1" />
+    <PackageReference Include="NuGet.Configuration" Version="6.9.1" />
+    <PackageReference Include="NuGet.Packaging" Version="6.9.1" />
+    <PackageReference Include="NuGet.ProjectModel" Version="6.9.1" />
+    <PackageReference Include="NuGet.Protocol" Version="6.9.1" />
     <PackageReference Include="PowerShellStandard.Library" Version="7.0.0-preview.1" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Text.Json" Version="8.0.0" />
