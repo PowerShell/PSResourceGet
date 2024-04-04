@@ -2,7 +2,7 @@
 ## 1.0.4
 
 ### Patch
-- Dependency updates
+- Dependency package updates
 
 ## 1.0.3
 
