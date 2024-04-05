@@ -433,8 +433,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     It "Publish a module to PSGallery using incorrect API key, should throw" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
-
-        Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery -APIKey "123456789" -ErrorAction SilentlyContinue
+        $APIKey = New-Guid
+        Publish-PSResource -Path $script:PublishModuleBase -Repository PSGallery -APIKey $APIKey -ErrorAction SilentlyContinue
 
         $Error[0].FullyQualifiedErrorId | Should -be "403Error,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
