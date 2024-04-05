@@ -63,6 +63,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             };
 
             _sessionClient = new HttpClient(handler);
+            _sessionClient.Timeout = TimeSpan.FromMinutes(10);
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
         }
 
