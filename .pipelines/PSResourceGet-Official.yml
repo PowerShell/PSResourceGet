@@ -257,6 +257,10 @@ extends:
           displayName: Install PSResourceGet 0.9.0 or above for build.psm1
 
         - pwsh: |
+            Remove-Item "$(signOutPath)\Microsoft.PowerShell.PSResourceGet\*.pdb" -Recurse -Force
+          displayName: Remove .pdb files
+
+        - pwsh: |
             Set-Location "$(signOutPath)\Microsoft.PowerShell.PSResourceGet"
             New-Item -ItemType Directory -Path "$(signOutPath)\PublishedNupkg" -Force
             Register-PSResourceRepository -Name 'localRepo' -Uri "$(signOutPath)\PublishedNupkg"
