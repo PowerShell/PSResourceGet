@@ -8,6 +8,7 @@ using NuGet.Versioning;
 using System.Net;
 using System.Runtime.ExceptionServices;
 using System.Management.Automation;
+using System;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {

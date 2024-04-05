@@ -20,7 +20,6 @@ using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
