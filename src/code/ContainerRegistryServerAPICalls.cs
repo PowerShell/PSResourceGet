@@ -48,8 +48,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         const string containerRegistryStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads/"; // 0 - registry, 1 - packagename
         const string containerRegistryEndUploadTemplate = "https://{0}{1}&digest=sha256:{2}"; // 0 - registry, 1 - location, 2 - digest
 
-        private static readonly HttpClient s_client = new HttpClient();
-
         #endregion
 
         #region Constructor
@@ -444,7 +442,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             HttpResponseMessage response;
             try
             {
-                response = s_client.SendAsync(new HttpRequestMessage(HttpMethod.Head, endpoint)).Result;
+                response = _sessionClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, endpoint)).Result;
             }
             catch (Exception e)
             {
@@ -965,7 +963,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Get response headers.
         /// </summary>
-        internal static async Task<HttpResponseHeaders> GetHttpResponseHeader(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders)
+        internal async Task<HttpResponseHeaders> GetHttpResponseHeader(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders)
         {
             try
             {
@@ -982,24 +980,24 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Set default headers for HttpClient.
         /// </summary>
-        private static void SetDefaultHeaders(Collection<KeyValuePair<string, string>> defaultHeaders)
+        private void SetDefaultHeaders(Collection<KeyValuePair<string, string>> defaultHeaders)
         {
-            s_client.DefaultRequestHeaders.Clear();
+            _sessionClient.DefaultRequestHeaders.Clear();
             if (defaultHeaders != null)
             {
                 foreach (var header in defaultHeaders)
                 {
                     if (string.Equals(header.Key, "Authorization", StringComparison.OrdinalIgnoreCase))
                     {
-                        s_client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", header.Value);
+                        _sessionClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", header.Value);
                     }
                     else if (string.Equals(header.Key, "Accept", StringComparison.OrdinalIgnoreCase))
                     {
-                        s_client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
+                        _sessionClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
                     }
                     else
                     {
-                        s_client.DefaultRequestHeaders.Add(header.Key, header.Value);
+                        _sessionClient.DefaultRequestHeaders.Add(header.Key, header.Value);
                     }
                 }
             }
@@ -1008,11 +1006,11 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Sends request for content.
         /// </summary>
-        private static async Task<HttpContent> SendContentRequestAsync(HttpRequestMessage message)
+        private async Task<HttpContent> SendContentRequestAsync(HttpRequestMessage message)
         {
             try
             {
-                HttpResponseMessage response = await s_client.SendAsync(message);
+                HttpResponseMessage response = await _sessionClient.SendAsync(message);
                 response.EnsureSuccessStatusCode();
                 return response.Content;
             }
@@ -1025,12 +1023,12 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Sends HTTP request.
         /// </summary>
-        private static async Task<JObject> SendRequestAsync(HttpRequestMessage message)
+        private async Task<JObject> SendRequestAsync(HttpRequestMessage message)
         {
             HttpResponseMessage response;
             try
             {
-                response = await s_client.SendAsync(message);
+                response = await _sessionClient.SendAsync(message);
             }
             catch (Exception e)
             {
@@ -1058,11 +1056,11 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Send request to get response headers.
         /// </summary>
-        private static async Task<HttpResponseHeaders> SendRequestHeaderAsync(HttpRequestMessage message)
+        private async Task<HttpResponseHeaders> SendRequestHeaderAsync(HttpRequestMessage message)
         {
             try
             {
-                HttpResponseMessage response = await s_client.SendAsync(message);
+                HttpResponseMessage response = await _sessionClient.SendAsync(message);
                 response.EnsureSuccessStatusCode();
                 return response.Headers;
             }
@@ -1075,7 +1073,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Sends a PUT request, used for publishing to container registry.
         /// </summary>
-        private static async Task<HttpResponseMessage> PutRequestAsync(string url, string filePath, bool isManifest, Collection<KeyValuePair<string, string>> contentHeaders)
+        private async Task<HttpResponseMessage> PutRequestAsync(string url, string filePath, bool isManifest, Collection<KeyValuePair<string, string>> contentHeaders)
         {
             try
             {
@@ -1094,7 +1092,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                         httpContent.Headers.Add("Content-Type", "application/octet-stream");
                     }
 
-                    return await s_client.PutAsync(url, httpContent);
+                    return await _sessionClient.PutAsync(url, httpContent);
                 }
             }
             catch (Exception e)
