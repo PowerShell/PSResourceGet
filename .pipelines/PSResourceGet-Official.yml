@@ -329,7 +329,7 @@ extends:
           displayName: Push PSResourceGet module to Azure feed
           inputs:
             command: push
-            packagesToPush: $(nugetPath)\Microsoft.PowerShell.PSResourceGet.*.nupkg
+            packagesToPush: '$(Pipeline.Workspace)\drop_stagebuild_nupkg\PSResourceGet\signed\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg'
             nuGetFeedType: external
             publishFeedCredentials: AzArtifactsFeed
 
