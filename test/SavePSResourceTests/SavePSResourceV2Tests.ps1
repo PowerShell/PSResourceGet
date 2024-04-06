@@ -125,7 +125,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         $pkgDirVersion.Name | Should -Be "5.2.5"
     }
 
-   It "Save a module with a dependency" {
+    It "Save a module with a dependency" {
         Save-PSResource -Name "TestModuleWithDependencyE" -Version "1.0.0.0" -Repository $PSGalleryName -Path $SaveDir -TrustRepository
         $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq "TestModuleWithDependencyE" -or $_.Name -eq "TestModuleWithDependencyC" -or $_.Name -eq "TestModuleWithDependencyB" -or $_.Name -eq "TestModuleWithDependencyD"}
         $pkgDirs.Count | Should -BeGreaterThan 1
@@ -148,7 +148,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName | Save-PSResource -Path $SaveDir -TrustRepository -Verbose
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
-        (Get-ChildItem -Path $pkgDir.FullName) | Should -HaveCount 1   
+        (Get-ChildItem -Path $pkgDir.FullName) | Should -HaveCount 1
     }
 
     It "Save module as a nupkg" {
@@ -173,10 +173,17 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "1.0.0.0"
     }
 
-    It "Save script using -IncludeXML" {
-        Save-PSResource -Name $testScriptName -Repository $PSGalleryName -Path $SaveDir -TrustRepository
+    It "Save script without using -IncludeXML" {
+        Save-PSResource -Name $testScriptName -Repository $PSGalleryName -Path $SaveDir -TrustRepository | Should -Not -Throw
 
-        $scriptXML = $testScriptNamen + "_InstalledScriptInfo.xml"
+        $SavedScriptFile = [System.IO.Path]::Combine($SaveDir,('{0}.ps1' -f $testScriptName))
+        [System.IO.File]::Exists($SavedScriptFile) | Should -BeTrue
+    }
+
+    It "Save script using -IncludeXML" {
+        Save-PSResource -Name $testScriptName -Repository $PSGalleryName -Path $SaveDir -TrustRepository -IncludeXml
+
+        $scriptXML = $testScriptName + "_InstalledScriptInfo.xml"
         $savedScriptFile = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "test_script.ps1"
         $savedScriptXML = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $scriptXML
         $savedScriptFile | Should -Not -BeNullOrEmpty
