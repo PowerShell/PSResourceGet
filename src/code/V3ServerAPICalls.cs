@@ -493,7 +493,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                         }
-                        if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem))
+                        if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem) && tags.Length != 0)
                         {
                             errRecord = new ErrorRecord(
                                 new InvalidOrEmptyResponse($"Response does not contain '{tagsName}' element for search with Name '{packageName}' in '{Repository.Name}'."),
@@ -603,7 +603,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                         }
-                        if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem))
+                        if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem) && tags.Length != 0)
                         {
                             errRecord = new ErrorRecord(
                                 new InvalidOrEmptyResponse($"Response does not contain '{tagsName}' element for search with name '{packageName}' and version '{version}' in repository '{Repository.Name}'."),
