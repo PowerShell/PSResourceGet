@@ -605,6 +605,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         {
                             return secretCredential;
                         }
+                        else if (secretObject.BaseObject is SecureString secretString)
+                        {
+                            return new PSCredential("token", secretString);
+                        }
                     }
 
                     cmdletPassedIn.ThrowTerminatingError(
