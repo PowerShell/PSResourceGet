@@ -11,6 +11,7 @@ using NuGet.Versioning;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Net;
+using System.Text;
 using System.Runtime.ExceptionServices;
 using System.Management.Automation;
 using System.Reflection;
@@ -51,9 +52,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             this.Repository = repository;
             _cmdletPassedIn = cmdletPassedIn;
-            HttpClientHandler handler = new HttpClientHandler()
+            HttpClientHandler handler = new HttpClientHandler();
+            bool token = false;
+
+            if(networkCredential != null) 
             {
-                Credentials = networkCredential
+                token = String.Equals("token", networkCredential.UserName) ? true : false;
+            };
+
+            if (token)
+            {
+                string credString = string.Format(":{0}", networkCredential.Password);
+                byte[] byteArray = Encoding.ASCII.GetBytes(credString);
+
+                _sessionClient = new HttpClient(handler);
+                _sessionClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+
+            } else {
+
+                handler.Credentials = networkCredential;
+                
+                _sessionClient = new HttpClient(handler);
             };
 
             _sessionClient = new HttpClient(handler);

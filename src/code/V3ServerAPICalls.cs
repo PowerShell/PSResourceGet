@@ -9,6 +9,7 @@ using System.IO;
 using System.Net.Http;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections;
@@ -50,10 +51,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             this.Repository = repository;
             _cmdletPassedIn = cmdletPassedIn;
-            HttpClientHandler handler = new HttpClientHandler()
+            HttpClientHandler handler = new HttpClientHandler();
+            handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+            bool token = false;
+
+            if(networkCredential != null) 
             {
-                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                Credentials = networkCredential
+                token = String.Equals("token", networkCredential.UserName) ? true : false;
+            };
+
+            if (token)
+            {
+                string credString = string.Format(":{0}", networkCredential.Password);
+                byte[] byteArray = Encoding.ASCII.GetBytes(credString);
+
+                _sessionClient = new HttpClient(handler);
+                _sessionClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+
+            } else {
+
+                handler.Credentials = networkCredential;
+                
+                _sessionClient = new HttpClient(handler);
             };
 
             _sessionClient = new HttpClient(handler);
@@ -493,7 +512,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                         }
-                        if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem))
+                        if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem) && tags.Length != 0)
                         {
                             errRecord = new ErrorRecord(
                                 new InvalidOrEmptyResponse($"Response does not contain '{tagsName}' element for search with Name '{packageName}' in '{Repository.Name}'."),
@@ -603,7 +622,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                         }
-                        if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem))
+                        if (!rootDom.TryGetProperty(tagsName, out JsonElement tagsItem) && tags.Length != 0)
                         {
                             errRecord = new ErrorRecord(
                                 new InvalidOrEmptyResponse($"Response does not contain '{tagsName}' element for search with name '{packageName}' and version '{version}' in repository '{Repository.Name}'."),
