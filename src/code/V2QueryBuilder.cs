@@ -75,9 +75,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         ///     Convert the builder's provided set of filter criteria into an OData-compatible <c>filter</c> string.
         /// </summary>
         /// <remarks>
-        ///     Criteria order is not guaranteed.
-        /// 
-        ///     Filter criteria are individually parenthesized, then combined with the <c>and</c> operator.
+        ///     Criteria order is not guaranteed. Filter criteria are combined with the <c>and</c> operator.
         /// </remarks>
         /// <returns>
         ///     Filter criteria combined into a single string.
@@ -86,10 +84,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         ///     The following example will emit one of the two values:
         ///     <list type="bullet">
         ///         <item>
-        ///             <description><c>(IsPrerelease eq false) and (Id eq 'Microsoft.PowerShell.PSResourceGet')</c></description>
+        ///             <description><c>IsPrerelease eq false and Id eq 'Microsoft.PowerShell.PSResourceGet'</c></description>
         ///         </item>
         ///         <item>
-        ///             <description><c>(Id eq 'Microsoft.PowerShell.PSResourceGet') and (IsPrerelease eq false)</c></description>
+        ///             <description><c>Id eq 'Microsoft.PowerShell.PSResourceGet' and IsPrerelease eq false</c></description>
         ///         </item>
         ///     </list>
         ///     <code>
@@ -107,10 +105,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return "";
             }
 
+            // Parenthesizing binary criteria (like "Id eq 'Foo'") would ideally provide better isolation/debuggability of mis-built filters.
+            // However, a $filter like "(IsLatestVersion)" appears to be rejected by PSGallery (possibly because grouping operators cannot be used with single unary operators).
+            // Parenthesizing only binary criteria requires more introspection into the underlying criteria, which we don't currently have with string-form criteria. 
+
             // Figure out the expected size of our filter string, based on:
             int ExpectedSize = FilterCriteria.Select(x => x.Length).Sum() // The length of the filter criteria themselves.
-                + 7 * (FilterCriteria.Count - 1) // The length of the combining string, ") and (", interpolated between the filters.
-                + 2; // The two outer parentheses.
+                + 5 * (FilterCriteria.Count - 1); // The length of the combining string, " and ", interpolated between the filters.
 
             // Allocate a StringBuilder with our calculated capacity. 
             // This helps right-size memory allocation and reduces performance impact from resizing the builder's internal capacity.
@@ -119,7 +120,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // StringBuilder.AppendJoin() is not available in .NET 4.8.1/.NET Standard 2,
             // so we have to make do with repeated calls to Append().
 
-            sb.Append("(");
 
             int CriteriaAdded = 0;
 
@@ -129,11 +129,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 CriteriaAdded++;
                 if (CriteriaAdded < FilterCriteria.Count)
                 {
-                    sb.Append(") and (");
-                }
-                else
-                {
-                    sb.Append(")");
+                    sb.Append(" and ");
                 }
             }
 
