@@ -16,6 +16,7 @@ using System.Runtime.ExceptionServices;
 using System.Management.Automation;
 using System.Reflection;
 using System.Data.Common;
+using System.Linq;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -872,23 +873,36 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string FindCommandOrDscResource(string[] tags, bool includePrerelease, bool isSearchingForCommands, int skip, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindCommandOrDscResource()");
-            // can only find from Modules endpoint
-            string paginationParam = _isPSGalleryRepo ? $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000" : $"&$inlinecount=allpages&$skip={skip}&$top=6000";
-            var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
 
-            var tagPrefix = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
-            string tagSearchTermPart = String.Empty;
-            foreach (string tag in tags)
-            {
-                if (!String.IsNullOrEmpty(tagSearchTermPart))
-                {
-                    tagSearchTermPart += " ";
-                }
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "$inlinecount", "allpages" },
+                { "$skip", skip.ToString()},
+                { "$top", "6000"}
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
 
-                tagSearchTermPart += $"tag:{tagPrefix}{tag}";
+            if (_isPSGalleryRepo) {
+                queryBuilder.AdditionalParameters["$orderby"] = "Id desc";
             }
 
-            var requestUrlV2 = $"{Repository.Uri}/Search()?{prereleaseFilter}&searchTerm='{tagSearchTermPart}'{paginationParam}";
+            if (includePrerelease) {
+                queryBuilder.AdditionalParameters["includePrerelease"] = "true";
+                filterBuilder.AddCriteria("IsAbsoluteLatestVersion");
+            } else {
+                filterBuilder.AddCriteria("IsLatestVersion");
+            }
+
+
+            // can only find from Modules endpoint
+            var tagPrefix = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
+
+            queryBuilder.SearchTerm = string.Join(
+                " ",
+                tags.Select(tag => $"tag:{tagPrefix}{tag}")
+            );
+                
+
+            var requestUrlV2 = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
