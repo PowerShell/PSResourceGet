@@ -355,9 +355,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             filterBuilder.AddCriteria(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
-            filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            if (type != ResourceType.None) {
+                filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            }
             
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById(){queryBuilder.BuildQueryString()}";
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
@@ -411,7 +413,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             filterBuilder.AddCriteria(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
-            filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            if (type != ResourceType.None) {
+                filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            }
 
             foreach (string tag in tags)
             {
@@ -635,7 +639,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             
             filterBuilder.AddCriteria($"NormalizedVersion eq '{version}'");
-            filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            if (type != ResourceType.None) {
+                filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            }
 
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response = HttpRequestCall(requestUrlV2, out errRecord);
@@ -689,7 +695,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             
             filterBuilder.AddCriteria($"NormalizedVersion eq '{version}'");
-            filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            if (type != ResourceType.None) {
+                filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            }
 
             foreach (string tag in tags)
             {
@@ -1072,7 +1080,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return string.Empty;
             }
-            filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            if (type != ResourceType.None) {
+                filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            }
             var requestUrlV2 = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);
@@ -1170,7 +1180,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 filterBuilder.AddCriteria($"substringof('{tag}', Tags) eq true");
             }
 
-            filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            if (type != ResourceType.None) {
+                filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            }
             var requestUrlV2 = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);
