@@ -18,12 +18,30 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         internal Dictionary<string, string> AdditionalParameters { get; private set; }
 
+        /// <summary>
+        ///     The filter to use when querying the NuGet API (query parameter <c>$filter</c>), if needed.
+        /// </summary>
+        /// <remarks>
+        ///     If no criteria are added with <seealso cref="NuGetV2FilterBuilder.AddCriterion(string)"/>, the built query string will not contain a <c>$filter</c> parameter unless <seealso cref="ShouldEmitEmptyFilter"/> is true.
+        /// </remarks>
         internal NuGetV2FilterBuilder FilterBuilder { get; private set; }
-
+        
+        /// <summary>
+        ///     Indicates whether an empty <c>$filter</c> parameter should be emitted if <seealso cref="FilterBuilder"/> contains no criteria.
+        /// </summary>
         internal bool ShouldEmitEmptyFilter = false;
 
+        /// <summary>
+        ///     The search term to pass to NuGet (<c>searchTerm</c> parameter), if needed.
+        /// </summary>
+        /// <remarks>
+        ///     No additional quote-encapsulation is performed on the string. A <seealso cref="null"/> string will cause the parameter to be omitted.
+        /// </remarks>
         internal string SearchTerm;
 
+        /// <summary>
+        ///     Construct a new <seealso cref="NuGetV2QueryBuilder"/> with no additional query parameters.
+        /// </summary>
         internal NuGetV2QueryBuilder()
         {
 
@@ -31,10 +49,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             AdditionalParameters = new Dictionary<string, string> { };
         }
 
+        /// <summary>
+        ///     Construct a new <seealso cref="NuGetV2QueryBuilder"/> with a user-specified collection of query parameters.
+        /// </summary>
+        /// <param name="parameters">
+        ///     The set of additional parameters to provide.
+        /// </param>
         internal NuGetV2QueryBuilder(Dictionary<string, string> parameters) : this()
         {
             AdditionalParameters = new Dictionary<string, string>(parameters);
         }
+
+        /// <summary>
+        ///     Serialize the instance to an HTTP-compatible query string.
+        /// </summary>
+        /// <remarks>
+        ///     Query key-value pairs from <seealso cref="AdditionalParameters"/> will take precedence.
+        /// </remarks>
+        /// <returns>
+        ///     A <seealso cref="string"/> containing URL-encoded query parameters separated by <c><![CDATA[&]]></c>. No <c>?</c> is prefixed at the beginning of the string.
+        /// </returns>
         internal string BuildQueryString()
         {
 
@@ -61,9 +95,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
     }
 
+    /// <summary>
+    ///     Helper class for building NuGet v2 (OData) filter strings based on a set of criteria
+    /// </summary>
     internal class NuGetV2FilterBuilder
     {
 
+        /// <summary>
+        ///     Construct a new <seealso cref="NuGetV2FilterBuilder"/> with an empty set of criteria.
+        /// </summary>
         internal NuGetV2FilterBuilder()
         {
 
@@ -137,19 +177,46 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         }
 
-        public bool AddCriteria(string criteria)
+        /// <summary>
+        ///     Add a given OData-compatible criterion to the object's internal criteria set.
+        /// </summary>
+        /// <param name="criterion">
+        ///     The criterion to add, e.g. <c>IsLatestVersion</c> or <c>Id eq 'Foo'</c>.
+        /// </param>
+        /// <returns>
+        ///     A boolean indicating whether the criterion was added to the set. <cref>false</cref> indicates the criteria set already contains the given string.
+        /// </returns>
+        /// <remarks>
+        ///     This method encapsulates over <seealso cref="HashSet{string}.Add(string)"/>. Similar comparison and equality semantics apply.
+        /// </remarks>
+        /// <exception cref="ArgumentException">
+        ///     The provided criterion string was null or empty.
+        /// </exception>
+        public bool AddCriterion(string criterion)
         {
-            if (string.IsNullOrEmpty(criteria))
+            if (string.IsNullOrEmpty(criterion))
             {
-                throw new ArgumentException("Criteria cannot be null or empty.", nameof(criteria));
+                throw new ArgumentException("Criteria cannot be null or empty.", nameof(criterion));
             }
             else
             {
-                return FilterCriteria.Add(criteria);
+                return FilterCriteria.Add(criterion);
             }
         }
 
-        public bool RemoveCriteria(string criteria) => FilterCriteria.Remove(criteria);
+        /// <summary>
+        ///     Remove a criterion from the instance's internal criteria set.
+        /// </summary>
+        /// <param name="criterion">
+        ///     The criteria to remove.
+        /// </param>
+        /// <returns>
+        ///     <cref>true</cref> if the criterion was removed, <cref>false</cref> if it was not found.
+        /// </returns>
+        /// <remarks>
+        ///     This method encapsulates over <seealso cref="HashSet{string}.Remove(string)"/>. Similar comparison and equality semantics apply.
+        /// </remarks>
+        public bool RemoveCriterion(string criterion) => FilterCriteria.Remove(criterion);
 
         public int CriteriaCount => FilterCriteria.Count;
 
