@@ -1090,6 +1090,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string minPart = String.Empty;
             string maxPart = String.Empty;
 
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string> {
+                {"inlinecount", "allpages"},
+                {"skip", skip.ToString()},
+                {"$orderby", "NormalizedVersion desc"},
+                {"id", $"'{packageName}'"}
+            });
+
+            var filterBuilder = queryBuilder.FilterBuilder;
+
             if (versionRange.MinVersion != null)
             {
                 string operation = versionRange.IsMinInclusive ? "ge" : "gt";
@@ -1117,46 +1126,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             string versionFilterParts = String.Empty;
-            if (!String.IsNullOrEmpty(minPart) && !String.IsNullOrEmpty(maxPart))
+            if (!String.IsNullOrEmpty(minPart))
             {
-                versionFilterParts += minPart + " and " + maxPart;
+                filterBuilder.AddCriteria(minPart);
             }
-            else if (!String.IsNullOrEmpty(minPart))
+            if (!String.IsNullOrEmpty(maxPart))
             {
-                versionFilterParts += minPart;
+                filterBuilder.AddCriteria(maxPart);
             }
-            else if (!String.IsNullOrEmpty(maxPart))
-            {
-                versionFilterParts += maxPart;
+            if (!includePrerelease) {
+                filterBuilder.AddCriteria("IsPrerelease eq false");
             }
-
-            string filterQuery = "&$filter=";
-            filterQuery += includePrerelease ? string.Empty : "IsPrerelease eq false";
-
-            string andOperator = " and ";
-            string joiningOperator = filterQuery.EndsWith("=") ? String.Empty : andOperator;
+            
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
 
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
             // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
-            string idFilterPart = $"{joiningOperator}";
-            idFilterPart += _isJFrogRepo ? "" : $"Id eq '{packageName}'";
-            filterQuery += idFilterPart;
-            filterQuery += type == ResourceType.Script ? $"{andOperator}substringof('PS{type.ToString()}', Tags) eq true" : String.Empty;
-
-            if (!String.IsNullOrEmpty(versionFilterParts))
-            {
-                // Check if includePrerelease is true, if it is we want to add "$filter"
-                // Single case where version is "*" (or "[,]") and includePrerelease is true, then we do not want to add "$filter" to the requestUrl.
-
-                // Note: could be null/empty if Version was "*" -> [,]
-                filterQuery +=  $"{andOperator}{versionFilterParts}";
+            if (!_isJFrogRepo) {
+                filterBuilder.AddCriteria($"Id eq '{packageName}'");
             }
 
-            string paginationParam = $"$inlinecount=allpages&$skip={skip}";
+            if (type == ResourceType.Script) {
+                filterBuilder.AddCriteria($"substringof('PS{type.ToString()}', Tags) eq true");
+            }
+            
 
-            filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
