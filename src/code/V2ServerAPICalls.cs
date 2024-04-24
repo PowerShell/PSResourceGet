@@ -902,9 +902,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
 
-            string extraParam = _isPSGalleryRepo ? $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=100" : $"&$inlinecount=allpages&$skip={skip}&$top=100";
-            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
-            string nameFilter;
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "$inlinecount", "allpages" },
+                { "$skip", skip.ToString()},
+                { "$top", "100"}
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+            if (_isPSGalleryRepo) {
+                queryBuilder.AdditionalParameters["$orderby"] = "Id desc";
+            }
+
+            if (includePrerelease) {
+                queryBuilder.AdditionalParameters["includePrerelease"] = "true";
+                filterBuilder.AddCriteria("IsAbsoluteLatestVersion");
+            } else {
+                filterBuilder.AddCriteria("IsLatestVersion");
+            }
+
 
             var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
 
@@ -923,17 +938,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (packageName.StartsWith("*") && packageName.EndsWith("*"))
                 {
                     // *get*
-                    nameFilter = $"substringof('{names[0]}', Id)";
+                    filterBuilder.AddCriteria($"substringof('{names[0]}', Id)");
                 }
                 else if (packageName.EndsWith("*"))
                 {
                     // PowerShell*
-                    nameFilter = $"startswith(Id, '{names[0]}')";
+                    filterBuilder.AddCriteria($"startswith(Id, '{names[0]}')");
                 }
                 else
                 {
                     // *ShellGet
-                    nameFilter = $"endswith(Id, '{names[0]}')";
+                    filterBuilder.AddCriteria($"endswith(Id, '{names[0]}')");
                 }
             }
             else if (names.Length == 2 && !packageName.StartsWith("*") && !packageName.EndsWith("*"))
@@ -942,7 +957,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // pow*get -> only support this
                 // pow*get*
                 // *pow*get
-                nameFilter = $"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')";
+                filterBuilder.AddCriteria($"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')");
             }
             else
             {
@@ -965,8 +980,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return string.Empty;
             }
-            string typeFilterPart = GetTypeFilterForRequest(type);
-            var requestUrlV2 = $"{Repository.Uri}/Search()?$filter={nameFilter}{typeFilterPart} and {prerelease}{extraParam}";
+            filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            var requestUrlV2 = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
 
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
