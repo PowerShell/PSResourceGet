@@ -19,6 +19,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         internal bool ShouldEmitEmptyFilter = false;
 
+        internal string SearchTerm;
+
         internal NuGetV2QueryBuilder()
         {
 
@@ -39,6 +41,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (FilterBuilder.CriteriaCount > 0 || ShouldEmitEmptyFilter)
             {
                 QueryParameters["$filter"] = FilterBuilder.BuildFilterString();
+            }
+
+            if (SearchTerm != null) {
+                QueryParameters["searchTerm"] = SearchTerm;
             }
 
             foreach (var parameter in AdditionalParameters)
