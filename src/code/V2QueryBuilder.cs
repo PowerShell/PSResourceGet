@@ -89,6 +89,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         ///             <description><c>(Id eq 'Microsoft.PowerShell.PSResourceGet') and (IsPrerelease eq false)</c></description>
         ///         </item>
         ///     </list>
+        ///     <code>
+        ///     var filter = new NuGetV2FilterBuilder();
+        ///     filter.AddCriteria("IsPrerelease eq false");
+        ///     filter.AddCriteria("Id eq 'Microsoft.PowerShell.PSResourceGet'");
+        ///     return filter.BuildFilterString();
+        ///     </code>
         /// </example>
         public string BuildFilterString()
         {
