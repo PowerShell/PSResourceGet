@@ -337,17 +337,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindName()");
             // Make sure to include quotations around the package name
-            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
 
             // This should return the latest stable version or the latest prerelease version (respectively)
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
 
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "$inlinecount", "allpages" },
+                { "id", $"'{packageName}'" },
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
+
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
             // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
-            string idFilterPart = _isJFrogRepo ? "": $" and Id eq '{packageName}'";
-            string typeFilterPart = GetTypeFilterForRequest(type);
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$inlinecount=allpages&$filter={prerelease}{idFilterPart}{typeFilterPart}";
+            if (!_isJFrogRepo) {
+                filterBuilder.AddCriteria($"Id eq '{packageName}'");
+            }
+
+            filterBuilder.AddCriteria(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
+            filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+            
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById(){queryBuilder.BuildQueryString()}";
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
@@ -383,23 +393,33 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindNameWithTag()");
             // Make sure to include quotations around the package name
-            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
 
             // This should return the latest stable version or the latest prerelease version (respectively)
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
 
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "$inlinecount", "allpages" },
+                { "id", $"'{packageName}'" },
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
+
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
             // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
-            string idFilterPart = _isJFrogRepo ? "" : $" and Id eq '{packageName}'";
-            string typeFilterPart = GetTypeFilterForRequest(type);
-            string tagFilterPart = String.Empty;
-            foreach (string tag in tags)
-            {
-                tagFilterPart += $" and substringof('{tag}', Tags) eq true";
+            if (!_isJFrogRepo) {
+                filterBuilder.AddCriteria($"Id eq '{packageName}'");
             }
 
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$inlinecount=allpages&$filter={prerelease}{idFilterPart}{typeFilterPart}{tagFilterPart}";
+            filterBuilder.AddCriteria(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
+            filterBuilder.AddCriteria(GetTypeFilterForRequest(type));
+
+            foreach (string tag in tags)
+            {
+                filterBuilder.AddCriteria($"substringof('{tag}', Tags) eq true");
+            }
+
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+            
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
