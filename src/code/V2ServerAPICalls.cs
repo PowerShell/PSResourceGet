@@ -891,7 +891,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // JFrog/Artifactory requires an empty search term to enumerate all packages in the feed
             if (_isJFrogRepo) {
-                queryBuilder.SearchTerm = "";
+                queryBuilder.SearchTerm = "''";
             }
 
             if (includePrerelease) {
@@ -931,7 +931,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // JFrog/Artifactory requires an empty search term to enumerate all packages in the feed
             if (_isJFrogRepo) {
-                queryBuilder.SearchTerm = "";
+                queryBuilder.SearchTerm = "''";
             }
 
             if (includePrerelease) {
@@ -982,10 +982,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // can only find from Modules endpoint
             var tagPrefix = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
 
-            queryBuilder.SearchTerm = string.Join(
+            queryBuilder.SearchTerm = "'" + string.Join(
                 " ",
                 tags.Select(tag => $"tag:{tagPrefix}{tag}")
-            );
+            ) + "'";
                 
 
             var requestUrlV2 = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
