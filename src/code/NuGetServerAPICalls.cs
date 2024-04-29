@@ -172,10 +172,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             });
             var filterBuilder = queryBuilder.FilterBuilder;
 
-            filterBuilder.AddCriteria(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
+            filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
 
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            filterBuilder.AddCriteria($"Id eq '{packageName}'");
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
             var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response = HttpRequestCall(requestUrl, out errRecord);
 
@@ -201,13 +201,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var filterBuilder = queryBuilder.FilterBuilder;
             
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            filterBuilder.AddCriteria($"Id eq '{packageName}'");
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
 
-            filterBuilder.AddCriteria(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
+            filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
 
             foreach (string tag in tags)
             {
-                filterBuilder.AddCriteria($"substringof('{tag}', Tags) eq true");
+                filterBuilder.AddCriterion($"substringof('{tag}', Tags) eq true");
             }
 
             var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
@@ -378,8 +378,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var filterBuilder = queryBuilder.FilterBuilder;
 
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            filterBuilder.AddCriteria($"Id eq '{packageName}'");
-            filterBuilder.AddCriteria($"NormalizedVersion eq '{packageName}'");
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
+            filterBuilder.AddCriterion($"NormalizedVersion eq '{packageName}'");
 
             var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response = HttpRequestCall(requestUrl, out errRecord);
@@ -403,12 +403,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var filterBuilder = queryBuilder.FilterBuilder;
 
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            filterBuilder.AddCriteria($"Id eq '{packageName}'");
-            filterBuilder.AddCriteria($"NormalizedVersion eq '{packageName}'");
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
+            filterBuilder.AddCriterion($"NormalizedVersion eq '{packageName}'");
 
             foreach (string tag in tags)
             {
-                filterBuilder.AddCriteria($"substringof('{tag}', Tags) eq true");
+                filterBuilder.AddCriterion($"substringof('{tag}', Tags) eq true");
             }
 
             var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
@@ -565,9 +565,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                filterBuilder.AddCriteria("IsAbsoluteLatestVersion");
+                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
             } else {
-                filterBuilder.AddCriteria("IsLatestVersion");
+                filterBuilder.AddCriterion("IsLatestVersion");
             }
             
             var requestUrl = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
@@ -593,14 +593,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                filterBuilder.AddCriteria("IsAbsoluteLatestVersion");
+                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
             } else {
-                filterBuilder.AddCriteria("IsLatestVersion");
+                filterBuilder.AddCriterion("IsLatestVersion");
             }
 
             foreach (string tag in tags)
             {
-                filterBuilder.AddCriteria($"substringof('{tag}', Tags) eq true");
+                filterBuilder.AddCriterion($"substringof('{tag}', Tags) eq true");
             }
 
             var requestUrl = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
@@ -628,9 +628,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                filterBuilder.AddCriteria("IsAbsoluteLatestVersion");
+                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
             } else {
-                filterBuilder.AddCriteria("IsLatestVersion");
+                filterBuilder.AddCriterion("IsLatestVersion");
             }
 
 
@@ -651,17 +651,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (packageName.StartsWith("*") && packageName.EndsWith("*"))
                 {
                     // *get*
-                    filterBuilder.AddCriteria($"substringof('{names[0]}', Id)");
+                    filterBuilder.AddCriterion($"substringof('{names[0]}', Id)");
                 }
                 else if (packageName.EndsWith("*"))
                 {
                     // PowerShell*
-                    filterBuilder.AddCriteria($"startswith(Id, '{names[0]}')");
+                    filterBuilder.AddCriterion($"startswith(Id, '{names[0]}')");
                 }
                 else
                 {
                     // *ShellGet
-                    filterBuilder.AddCriteria($"endswith(Id, '{names[0]}')");
+                    filterBuilder.AddCriterion($"endswith(Id, '{names[0]}')");
                 }
             }
             else if (names.Length == 2 && !packageName.StartsWith("*") && !packageName.EndsWith("*"))
@@ -670,7 +670,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // pow*get -> only support this
                 // pow*get*
                 // *pow*get
-                filterBuilder.AddCriteria($"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')");
+                filterBuilder.AddCriterion($"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')");
             }
             else
             {
@@ -707,10 +707,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var filterBuilder = queryBuilder.FilterBuilder;
 
             if (includePrerelease) {
-                filterBuilder.AddCriteria("IsAbsoluteLatestVersion");
+                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
             } else {
-                filterBuilder.AddCriteria("IsLatestVersion");
+                filterBuilder.AddCriterion("IsLatestVersion");
             }
 
             var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
@@ -730,17 +730,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (packageName.StartsWith("*") && packageName.EndsWith("*"))
                 {
                     // *get*
-                    filterBuilder.AddCriteria($"substringof('{names[0]}', Id)");
+                    filterBuilder.AddCriterion($"substringof('{names[0]}', Id)");
                 }
                 else if (packageName.EndsWith("*"))
                 {
                     // PowerShell*
-                    filterBuilder.AddCriteria($"startswith(Id, '{names[0]}')");
+                    filterBuilder.AddCriterion($"startswith(Id, '{names[0]}')");
                 }
                 else
                 {
                     // *ShellGet
-                    filterBuilder.AddCriteria($"endswith(Id, '{names[0]}')");
+                    filterBuilder.AddCriterion($"endswith(Id, '{names[0]}')");
                 }
             }
             else if (names.Length == 2 && !packageName.StartsWith("*") && !packageName.EndsWith("*"))
@@ -749,7 +749,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // pow*get -> only support this
                 // pow*get*
                 // *pow*get
-                filterBuilder.AddCriteria($"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')");
+                filterBuilder.AddCriterion($"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')");
             }
             else
             {
@@ -764,7 +764,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             foreach (string tag in tags)
             {
-                filterBuilder.AddCriteria($"substringof('{tag}', Tags) eq true");
+                filterBuilder.AddCriterion($"substringof('{tag}', Tags) eq true");
             }
 
             var requestUrl = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
@@ -832,19 +832,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string versionFilterParts = String.Empty;
             if (!String.IsNullOrEmpty(minPart))
             {
-                filterBuilder.AddCriteria(minPart);
+                filterBuilder.AddCriterion(minPart);
             }
             if (!String.IsNullOrEmpty(maxPart))
             {
-                filterBuilder.AddCriteria(maxPart);
+                filterBuilder.AddCriterion(maxPart);
             }
 
             if (!includePrerelease) {
-                filterBuilder.AddCriteria("IsPrerelease eq false");
+                filterBuilder.AddCriterion("IsPrerelease eq false");
             }
 
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            filterBuilder.AddCriteria($"Id eq '{packageName}'");
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
 
             var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
 
