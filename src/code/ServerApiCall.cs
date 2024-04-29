@@ -8,6 +8,7 @@ using NuGet.Versioning;
 using System.Net;
 using System.Runtime.ExceptionServices;
 using System.Management.Automation;
+using System;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -30,7 +31,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 Credentials = networkCredential
             };
 
-            _sessionClient = new HttpClient(handler);
+            if (token)
+            {
+                string credString = string.Format(":{0}", networkCredential.Password);
+                byte[] byteArray = Encoding.ASCII.GetBytes(credString);
+
+                _sessionClient = new HttpClient(handler);
+                _sessionClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+            } else {
+
+                handler.Credentials = networkCredential;
+                
+                _sessionClient = new HttpClient(handler);
+            };
+            _sessionClient.Timeout = TimeSpan.FromMinutes(10);
+
         }
 
         #endregion
