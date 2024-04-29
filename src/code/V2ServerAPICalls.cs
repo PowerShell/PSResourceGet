@@ -75,6 +75,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 _sessionClient = new HttpClient(handler);
             };
 
+            _sessionClient = new HttpClient(handler);
+            _sessionClient.Timeout = TimeSpan.FromMinutes(10);
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
             var repoURL = repository.Uri.ToString().ToLower();
             _isADORepo = repoURL.Contains("pkgs.dev.azure.com") || repoURL.Contains("pkgs.visualstudio.com");
