@@ -1152,7 +1152,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Single case where version is "*" (or "[,]") and includePrerelease is true, then we do not want to add "$filter" to the requestUrl.
 
                 // Note: could be null/empty if Version was "*" -> [,]
-                filterQuery +=  $"{andOperator}{versionFilterParts}";
+                filterQuery +=  $"{(filterQuery.EndsWith("=") ? String.Empty : andOperator)}{versionFilterParts}";
             }
 
             string paginationParam = $"$inlinecount=allpages&$skip={skip}";
