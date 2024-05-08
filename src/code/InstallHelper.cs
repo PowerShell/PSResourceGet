@@ -798,6 +798,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
+                // Concurrently Updates
                 // Find all dependencies
                 string pkgName = pkgToInstall.Name;
                 if (!skipDependencyCheck)
@@ -829,6 +830,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return updatedPackagesHash;
         }
 
+        // Concurrency Updates
         private List<PSResourceInfo> FindAllDependencies(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo pkgToInstall, PSRepositoryInfo repository)
         {
             if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
@@ -851,6 +853,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return allDependencies;
         }
 
+        // Concurrently Updates  
         private Hashtable InstallParentAndDependencyPackages(PSResourceInfo parentPkg, List<PSResourceInfo> allDependencies, ServerApiCall currentServer, string tempInstallPath, Hashtable packagesHash, Hashtable updatedPackagesHash, PSResourceInfo pkgToInstall)
         {
             List<ErrorRecord> errors = new List<ErrorRecord>();
@@ -1351,7 +1354,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                     }
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     /*_cmdletPassedIn.WriteError(new ErrorRecord(
                         new PSInvalidOperationException(

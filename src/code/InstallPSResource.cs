@@ -280,9 +280,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    Stopwatch stopwatch = new Stopwatch();
+                   // Stopwatch stopwatch = new Stopwatch();
                     // Start measuring time
-                    stopwatch.Start();
+                   // stopwatch.Start();
 
                     ProcessInstallHelper(
                         pkgNames: Name,
@@ -293,10 +293,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         reqResourceParams: null);
 
                     // Stop measuring time
-                    stopwatch.Stop();
+                   // stopwatch.Stop();
                     // Get the elapsed time in milliseconds
-                    long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
-                    // Console.WriteLine($"Total Elapsed Time: {elapsedMilliseconds} milliseconds");
+                  //  long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
+                  //  Console.WriteLine($"Total Elapsed Time: {elapsedMilliseconds} milliseconds");
 
                     break;
                     
