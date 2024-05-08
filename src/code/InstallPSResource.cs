@@ -6,7 +6,6 @@ using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
@@ -280,10 +279,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                   // Stopwatch stopwatch = new Stopwatch();
-                    // Start measuring time
-                   // stopwatch.Start();
-
                     ProcessInstallHelper(
                         pkgNames: Name,
                         pkgVersion: Version,
@@ -291,12 +286,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         pkgRepository: Repository,
                         pkgCredential: Credential,
                         reqResourceParams: null);
-
-                    // Stop measuring time
-                   // stopwatch.Stop();
-                    // Get the elapsed time in milliseconds
-                  //  long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
-                  //  Console.WriteLine($"Total Elapsed Time: {elapsedMilliseconds} milliseconds");
 
                     break;
                     
