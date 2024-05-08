@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using System.Collections;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Net;
@@ -14,7 +15,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             using (System.Management.Automation.PowerShell ps = System.Management.Automation.PowerShell.Create(RunspaceMode.CurrentRunspace))
             {
-                _psVersion = ps.AddScript("$PSVersionTable.PSVersion.ToString()").Invoke<string>()[0];
+                _psVersion = ps.AddScript("$PSVersionTable").Invoke<Hashtable>()[0]["PSVersion"].ToString();
             }
 
             _psResourceGetVersion = typeof(UserAgentInfo).Assembly.GetName().Version.ToString();
@@ -42,27 +43,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             switch (repoApiVersion)
             {
-                case PSRepositoryInfo.APIVersion.v2:
+                case PSRepositoryInfo.APIVersion.V2:
                     currentServer = new V2ServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
                     break;
 
-                case PSRepositoryInfo.APIVersion.v3:
+                case PSRepositoryInfo.APIVersion.V3:
                     currentServer = new V3ServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
                     break;
 
-                case PSRepositoryInfo.APIVersion.local:
+                case PSRepositoryInfo.APIVersion.Local:
                     currentServer = new LocalServerAPICalls(repository, cmdletPassedIn, networkCredential);
                     break;
 
-                case PSRepositoryInfo.APIVersion.nugetServer:
+                case PSRepositoryInfo.APIVersion.NugetServer:
                     currentServer = new NuGetServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
                     break;
 
-                case PSRepositoryInfo.APIVersion.acr:
-                    currentServer = new ACRServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
+                case PSRepositoryInfo.APIVersion.ContainerRegistry:
+                    currentServer = new ContainerRegistryServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
                     break;
 
-                case PSRepositoryInfo.APIVersion.unknown:
+                case PSRepositoryInfo.APIVersion.Unknown:
                     break;
             }
 

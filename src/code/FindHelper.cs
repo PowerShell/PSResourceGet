@@ -964,7 +964,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // After retrieving all packages find their dependencies
             if (_includeDependencies)
             {
-                if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+                if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V3)
                 {
                     _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
                     yield break;

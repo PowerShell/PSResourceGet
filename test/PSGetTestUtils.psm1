@@ -747,3 +747,20 @@ function CheckForExpectedPSGetInfo
     $psGetInfo.UpdatedDate.Year | Should -BeExactly 1
     $psGetInfo.Version | Should -Be "1.1.0"
 }
+
+function Set-TestACRRepositories
+{
+    Param(
+        [string[]]
+        $repositoryNames
+    )
+
+    $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
+    $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
+    $fileExists = Test-Path -Path $acrRepositoryNamesFilePath
+
+    if ($fileExists)
+    {
+        $repositoryNames | Out-File -FilePath $acrRepositoryNamesFilePath
+    }
+}

@@ -11,6 +11,7 @@ using NuGet.Versioning;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Net;
+using System.Text;
 using System.Runtime.ExceptionServices;
 using System.Management.Automation;
 using System.Reflection;
@@ -51,12 +52,31 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             this.Repository = repository;
             _cmdletPassedIn = cmdletPassedIn;
-            HttpClientHandler handler = new HttpClientHandler()
+            HttpClientHandler handler = new HttpClientHandler();
+            bool token = false;
+
+            if(networkCredential != null) 
             {
-                Credentials = networkCredential
+                token = String.Equals("token", networkCredential.UserName) ? true : false;
+            };
+
+            if (token)
+            {
+                string credString = string.Format(":{0}", networkCredential.Password);
+                byte[] byteArray = Encoding.ASCII.GetBytes(credString);
+
+                _sessionClient = new HttpClient(handler);
+                _sessionClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+
+            } else {
+
+                handler.Credentials = networkCredential;
+                
+                _sessionClient = new HttpClient(handler);
             };
 
             _sessionClient = new HttpClient(handler);
+            _sessionClient.Timeout = TimeSpan.FromMinutes(10);
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
             var repoURL = repository.Uri.ToString().ToLower();
             _isADORepo = repoURL.Contains("pkgs.dev.azure.com") || repoURL.Contains("pkgs.visualstudio.com");
@@ -1132,7 +1152,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Single case where version is "*" (or "[,]") and includePrerelease is true, then we do not want to add "$filter" to the requestUrl.
 
                 // Note: could be null/empty if Version was "*" -> [,]
-                filterQuery +=  $"{andOperator}{versionFilterParts}";
+                filterQuery +=  $"{(filterQuery.EndsWith("=") ? String.Empty : andOperator)}{versionFilterParts}";
             }
 
             string paginationParam = $"$inlinecount=allpages&$skip={skip}";
@@ -1161,7 +1181,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // eg: https://pkgs.dev.azure.com/<org>/<project>/_packaging/<feed>/nuget/v2?id=test_module&version=5.0.0
                 requestUrlV2 = $"{Repository.Uri}?id={packageName}&version={version}";
             }
-            if (_isJFrogRepo)
+            else if (_isJFrogRepo)
             {
                 // eg: https://<project>.jfrog.io/artifactory/api/nuget/<feed>/Download/test_module/5.0.0
                 requestUrlV2 = $"{Repository.Uri}/Download/{packageName}/{version}";

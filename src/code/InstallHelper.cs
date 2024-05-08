@@ -98,7 +98,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::BeginInstallPackages()");
             _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; VersionRange: '{1}'; NuGetVersion: '{2}'; VersionType: '{3}'; Version: '{4}'; Prerelease: '{5}'; Repository: '{6}'; " +
-                "AcceptLicense: '{7}'; Quiet: '{8}'; Reinstall: '{9}'; TrustRepository: '{10}'; NoClobber: '{11}'; AsNupkg: '{12}'; IncludeXml '{13}'; SavePackage '{14}'; TemporaryPath '{15}'; SkipDependencyCheck: '{16}'; " + 
+                "AcceptLicense: '{7}'; Quiet: '{8}'; Reinstall: '{9}'; TrustRepository: '{10}'; NoClobber: '{11}'; AsNupkg: '{12}'; IncludeXml '{13}'; SavePackage '{14}'; TemporaryPath '{15}'; SkipDependencyCheck: '{16}'; " +
                 "AuthenticodeCheck: '{17}'; PathsToInstallPkg: '{18}'; Scope '{19}'",
                 string.Join(",", names),
                 versionRange != null ? (versionRange.OriginalString != null ? versionRange.OriginalString : string.Empty) : string.Empty,
@@ -268,7 +268,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> repositoryNamesToSearch = new List<string>();
             bool sourceTrusted = false;
 
-            // Loop through all the repositories provided (in priority order) until there no more packages to install. 
+            // Loop through all the repositories provided (in priority order) until there no more packages to install.
             for (int i = 0; i < listOfRepositories.Count && _pkgNamesToInstall.Count > 0; i++)
             {
                 PSRepositoryInfo currentRepository = listOfRepositories[i];
@@ -318,7 +318,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 repositoryNamesToSearch.Add(repoName);
-                if ((currentRepository.ApiVersion == PSRepositoryInfo.APIVersion.v3) && (!installDepsForRepo))
+                if ((currentRepository.ApiVersion == PSRepositoryInfo.APIVersion.V3) && (!installDepsForRepo))
                 {
                     _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
                     installDepsForRepo = true;
@@ -525,8 +525,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                 }
                 else {
- //                   _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, scriptXML)));
-                    Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, scriptXML));
+                    if (_includeXml) {
+                        _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, scriptXML)));
+                        Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, scriptXML));
+                    }
                 }
 
  //               _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)));
@@ -597,6 +599,68 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         continue;
                     }
 
+                    Hashtable parentPkgInfo = packagesHash[parentPackage] as Hashtable;
+                    PSResourceInfo parentPkgObj = parentPkgInfo["psResourceInfoPkg"] as PSResourceInfo;
+
+                    if (!skipDependencyCheck)
+                    {
+                        if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V3)
+                        {
+                            _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
+                        }
+
+                        // Get the dependencies from the installed package.
+                        if (parentPkgObj.Dependencies.Length > 0)
+                        {
+                            bool depFindFailed = false;
+                            foreach (PSResourceInfo depPkg in findHelper.FindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository))
+                            {
+                                if (depPkg == null)
+                                {
+                                    depFindFailed = true;
+                                    continue;
+                                }
+
+                                if (String.Equals(depPkg.Name, parentPkgObj.Name, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    continue;
+                                }
+
+                                NuGetVersion depVersion = null;
+                                if (depPkg.AdditionalMetadata.ContainsKey("NormalizedVersion"))
+                                {
+                                    if (!NuGetVersion.TryParse(depPkg.AdditionalMetadata["NormalizedVersion"] as string, out depVersion))
+                                    {
+                                        NuGetVersion.TryParse(depPkg.Version.ToString(), out depVersion);
+                                    }
+                                }
+
+                                packagesHash = BeginPackageInstall(
+                                            searchVersionType: VersionType.SpecificVersion,
+                                            specificVersion: depVersion,
+                                            versionRange: null,
+                                            pkgNameToInstall: depPkg.Name,
+                                            repository: repository,
+                                            currentServer: currentServer,
+                                            currentResponseUtil: currentResponseUtil,
+                                            tempInstallPath: tempInstallPath,
+                                            packagesHash: packagesHash,
+                                            errRecord: out ErrorRecord installPkgErrRecord);
+
+                                if (installPkgErrRecord != null)
+                                {
+                                    _cmdletPassedIn.WriteError(installPkgErrRecord);
+                                    continue;
+                                }
+                            }
+
+                            if (depFindFailed)
+                            {
+                                continue;
+                            }
+                        }
+                    }
+
                     // If -WhatIf is passed in, early out.
                     if (!_cmdletPassedIn.ShouldProcess("Exit ShouldProcess"))
                     {
@@ -624,6 +688,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             _packagesOnMachine.Add($"{pkgName}{pkgInfo["pkgVersion"]}");
                         }
                     }
+                }
+                catch (Exception e)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                            e,
+                            "InstallPackageFailure",
+                            ErrorCategory.InvalidOperation,
+                            _cmdletPassedIn));
+
+                    throw e;
                 }
                 finally
                 {
@@ -700,14 +774,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
                     errRecord = new ErrorRecord(
-                        currentResult.exception, 
-                        "FindConvertToPSResourceFailure", 
-                        ErrorCategory.ObjectNotFound, 
+                        currentResult.exception,
+                        "FindConvertToPSResourceFailure",
+                        ErrorCategory.ObjectNotFound,
                         _cmdletPassedIn);
                 }
                 else if (searchVersionType == VersionType.VersionRange)
                 {
-                    // Check to see if version falls within version range 
+                    // Check to see if version falls within version range
                     PSResourceInfo foundPkg = currentResult.returnedObject;
                     string versionStr = $"{foundPkg.Version}";
                     if (foundPkg.IsPrerelease)
@@ -747,7 +821,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
                 {
                     _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
-                    
+
                     // Remove from tracking list of packages to install.
                     _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
 
@@ -1238,7 +1312,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Extracts files from .nupkg
-        /// Similar functionality as System.IO.Compression.ZipFile.ExtractToDirectory, 
+        /// Similar functionality as System.IO.Compression.ZipFile.ExtractToDirectory,
         /// but while ExtractToDirectory cannot overwrite files, this method can.
         /// </summary>
         private bool TryExtractToDirectory(string zipPath, string extractPath, out ErrorRecord error)

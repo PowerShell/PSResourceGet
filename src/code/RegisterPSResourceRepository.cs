@@ -339,11 +339,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (repo.ContainsKey("ApiVersion") && 
                 (repo["ApiVersion"] == null || String.IsNullOrEmpty(repo["ApiVersion"].ToString()) ||
-                !(repo["ApiVersion"].ToString().Equals("local") || repo["ApiVersion"].ToString().Equals("v2") || 
-                repo["ApiVersion"].ToString().Equals("v3") || repo["ApiVersion"].ToString().Equals("nugetServer") || repo["ApiVersion"].ToString().Equals("unknown"))))
+                !(repo["ApiVersion"].ToString().Equals("Local", StringComparison.OrdinalIgnoreCase) || repo["ApiVersion"].ToString().Equals("V2", StringComparison.OrdinalIgnoreCase) || 
+                repo["ApiVersion"].ToString().Equals("V3", StringComparison.OrdinalIgnoreCase) || repo["ApiVersion"].ToString().Equals("NugetServer", StringComparison.OrdinalIgnoreCase) || 
+                repo["ApiVersion"].ToString().Equals("Unknown", StringComparison.OrdinalIgnoreCase))))
             {
                 WriteError(new ErrorRecord(
-                    new PSInvalidOperationException("Repository ApiVersion must be either 'local', 'v2', 'v3', 'nugetServer' or 'unknown'"),
+                    new PSInvalidOperationException("Repository ApiVersion must be either 'Local', 'V2', 'V3', 'NugetServer', 'ContainRegistry' or 'Unknown'"),
                     "IncorrectApiVersionForRepositoriesParameterSetRegistration",
                     ErrorCategory.InvalidArgument,
                     this));

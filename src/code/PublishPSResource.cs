@@ -23,8 +23,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// <summary>
     /// Publishes a module, script, or nupkg to a designated repository.
     /// </summary>
-    [Cmdlet(VerbsData.Publish, 
-        "PSResource", 
+    [Cmdlet(VerbsData.Publish,
+        "PSResource",
         SupportsShouldProcess = true)]
     [Alias("pbres")]
     public sealed class PublishPSResource : PSCmdlet
@@ -261,7 +261,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                // parsedMetadata needs to be initialized for modules, will later be passed in to create nuspec
                 if (!string.IsNullOrEmpty(pathToModuleManifestToPublish))
                 {
                     _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToModuleManifestToPublish);
@@ -305,6 +304,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ErrorCategory.InvalidOperation,
                         this));
                 }
+
+                if (!Utils.TryReadManifestFile(
+                    manifestFilePath: pathToModuleManifestToPublish,
+                    manifestInfo: out parsedMetadata,
+                    error: out Exception manifestReadError))
+                {
+                    WriteError(new ErrorRecord(
+                        manifestReadError,
+                        "ManifestFileReadParseForContainerRegistryPublishError",
+                        ErrorCategory.ReadError,
+                        this));
+
+                    return;
+                }
             }
 
             // Create a temp folder to push the nupkg to and delete it later
@@ -327,7 +340,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 // Create a nuspec
-                // Right now parsedMetadataHash will be empty for modules and will contain metadata for scripts
                 Hashtable dependencies;
                 string nuspec = string.Empty;
                 try
@@ -482,14 +494,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 string repositoryUri = repository.Uri.AbsoluteUri;
 
-                if (repository.ApiVersion == PSRepositoryInfo.APIVersion.acr)
+                if (repository.ApiVersion == PSRepositoryInfo.APIVersion.ContainerRegistry)
                 {
-                    ACRServerAPICalls acrServer = new ACRServerAPICalls(repository, this, _networkCredential, userAgentString);
+                    ContainerRegistryServerAPICalls containerRegistryServer = new ContainerRegistryServerAPICalls(repository, this, _networkCredential, userAgentString);
 
                     var pkgMetadataFile = (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish;
-                    if (!acrServer.PushNupkgACR(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, repository, parsedMetadata, out ErrorRecord pushNupkgACRError))
+                    if (!containerRegistryServer.PushNupkgContainerRegistry(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, resourceType, parsedMetadata, dependencies, out ErrorRecord pushNupkgContainerRegistryError))
                     {
-                        WriteError(pushNupkgACRError);
+                        WriteError(pushNupkgContainerRegistryError);
                         // exit out of processing
                         return;
                     }
@@ -504,6 +516,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return;
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                ThrowTerminatingError(new ErrorRecord(
+                            e,
+                            "PublishPSResourceError",
+                            ErrorCategory.NotSpecified,
+                            this));
             }
             finally
             {
@@ -527,24 +547,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool isModule = resourceType != ResourceType.Script;
             requiredModules = new Hashtable();
 
-            // A script will already have the metadata parsed into the parsedMetadatahash,
-            // a module will still need the module manifest to be parsed.
-            if (isModule)
+            if (parsedMetadataHash == null || parsedMetadataHash.Count == 0)
             {
-                // Use the parsed module manifest data as 'parsedMetadataHash' instead of the passed-in data.
-                if (!Utils.TryReadManifestFile(
-                    manifestFilePath: filePath,
-                    manifestInfo: out parsedMetadataHash,
-                    error: out Exception manifestReadError))
-                {
-                    WriteError(new ErrorRecord(
-                        manifestReadError,
-                        "ManifestFileReadParseForNuspecError",
-                        ErrorCategory.ReadError,
-                        this));
+                WriteError(new ErrorRecord(new ArgumentException("Hashtable provided with package metadata was null or empty"),
+                    "PackageMetadataHashtableNullOrEmptyError",
+                    ErrorCategory.ReadError,
+                    this));
 
-                    return string.Empty;
-                }
+                return string.Empty;
             }
 
             // now we have parsedMetadatahash to fill out the nuspec information
@@ -806,7 +816,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!parsedMetadataHash.ContainsKey("requiredmodules"))
             {
                 return null;
-            }     
+            }
             LanguagePrimitives.TryConvertTo<object[]>(parsedMetadataHash["requiredmodules"], out object[] requiredModules);
 
             // Required modules can be:
@@ -839,7 +849,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     dependenciesHash.Add(moduleName, string.Empty);
                 }
             }
-            var externalModuleDeps = parsedMetadataHash.ContainsKey("ExternalModuleDependencies") ? 
+            var externalModuleDeps = parsedMetadataHash.ContainsKey("ExternalModuleDependencies") ?
                         parsedMetadataHash["ExternalModuleDependencies"] : null;
 
             if (externalModuleDeps != null && LanguagePrimitives.TryConvertTo<string[]>(externalModuleDeps, out string[] externalModuleNames))
@@ -1130,7 +1140,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WriteVerbose(string.Format("Successfully published the resource to '{0}'", repoUri));
             error = null;
             success = true;
-            
+
             return success;
         }
 
@@ -1154,7 +1164,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var networkCred = Credential == null ? _networkCredential : Credential.GetNetworkCredential();
             string key;
-          
+
             if (packageSource == null)
 
             {
@@ -1177,7 +1187,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 isPasswordClearText: true,
                 String.Empty));
         }
-    
+
         #endregion
     }
 }

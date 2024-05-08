@@ -7,8 +7,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Security.Cryptography;
-using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using static Microsoft.PowerShell.PSResourceGet.UtilClasses.PSRepositoryInfo;
@@ -63,7 +61,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 // Add PSGallery to the newly created store
                 Uri psGalleryUri = new Uri(PSGalleryRepoUri);
-                Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null, PSRepositoryInfo.APIVersion.v2, force: false);
+                Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null, PSRepositoryInfo.APIVersion.V2, force: false);
             }
 
             // Open file (which should exist now), if cannot/is corrupted then throw error
@@ -313,12 +311,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     errorMsg = $"Repository element does not contain neccessary 'Priority' attribute, in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
                     return null;
                 }
-                
+
                 if (node.Attribute("Trusted") == null)
                 {
                     errorMsg = $"Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
                     return null;
-                }    
+                }
 
                 if (node.Attribute("APIVersion") == null)
                 {
@@ -343,7 +341,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 // determine if existing repository node (which we wish to update) had Url or Uri attribute
                 Uri thisUrl = null;
-                if (repoUri != null) 
+                if (repoUri != null)
                 {
                     if (urlAttributeExists)
                     {
@@ -360,7 +358,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         apiVersion = GetRepoAPIVersion(repoUri);
                     }
                 }
-                else 
+                else
                 {
                     if (urlAttributeExists)
                     {
@@ -416,7 +414,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // Update APIVersion if necessary
-                PSRepositoryInfo.APIVersion resolvedAPIVersion = PSRepositoryInfo.APIVersion.unknown;
+                PSRepositoryInfo.APIVersion resolvedAPIVersion = PSRepositoryInfo.APIVersion.Unknown;
                 if (apiVersion != null)
                 {
                     resolvedAPIVersion = (PSRepositoryInfo.APIVersion)apiVersion;
@@ -424,7 +422,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
                 else
                 {
-                    resolvedAPIVersion = (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value);
+                    resolvedAPIVersion = (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true);
                 }
 
 
@@ -500,7 +498,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                     continue;
                 }
-                
+
                 if (node.Attribute("Trusted") == null)
                 {
                     tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
@@ -519,7 +517,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 if (!urlAttributeExists && !uriAttributeExists)
                 {
                     tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Url' or equivalent 'Uri' attribute (it must contain one per Repository), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
-                    continue;  
+                    continue;
                 }
 
                 string attributeUrlUriName = urlAttributeExists ? "Url" : "Uri";
@@ -531,7 +529,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         Int32.Parse(node.Attribute("Priority").Value),
                         Boolean.Parse(node.Attribute("Trusted").Value),
                         repoCredentialInfo,
-                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value)));
+                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true)));
 
                 // Remove item from file
                 node.Remove();
@@ -577,7 +575,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                         continue;
                     }
-                    
+
                     if (repo.Attribute("Trusted") == null)
                     {
                         tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
@@ -590,7 +588,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     if (!urlAttributeExists && !uriAttributeExists)
                     {
                         tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Url' or equivalent 'Uri' attribute (it must contain one), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
-                        continue;   
+                        continue;
                     }
 
                     Uri thisUrl = null;
@@ -661,7 +659,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         Int32.Parse(repo.Attribute("Priority").Value),
                         Boolean.Parse(repo.Attribute("Trusted").Value),
                         thisCredentialInfo,
-                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), repo.Attribute("APIVersion").Value));
+                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), repo.Attribute("APIVersion").Value, ignoreCase: true));
 
                     foundRepos.Add(currentRepoItem);
                 }
@@ -680,7 +678,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                             continue;
                         }
-                        
+
                         if (node.Attribute("Trusted") == null)
                         {
                             tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
@@ -695,7 +693,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         if (!urlAttributeExists && !uriAttributeExists)
                         {
                             tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Url' or equivalent 'Uri' attribute (it must contain one), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
-                            continue;   
+                            continue;
                         }
 
                         Uri thisUrl = null;
@@ -765,7 +763,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             Int32.Parse(node.Attribute("Priority").Value),
                             Boolean.Parse(node.Attribute("Trusted").Value),
                             thisCredentialInfo,
-                            (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value));
+                            (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true));
 
                         foundRepos.Add(currentRepoItem);
                     }
@@ -780,7 +778,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             errorList = tempErrorList.ToArray();
             // Sort by priority, then by repo name
             var reposToReturn = foundRepos.OrderBy(x => x.Priority).ThenBy(x => x.Name);
-            
+
             return reposToReturn.ToList();
         }
 
@@ -791,7 +789,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         private static XElement FindRepositoryElement(XDocument doc, string name)
         {
             return doc.Descendants("Repository").Where(
-                e => e.Attribute("Name") != null && 
+                e => e.Attribute("Name") != null &&
                     string.Equals(
                     e.Attribute("Name").Value,
                     name,
@@ -823,30 +821,30 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (repoUri.AbsoluteUri.EndsWith("/v2", StringComparison.OrdinalIgnoreCase))
             {
                 // Scenario: V2 server protocol repositories (i.e PSGallery)
-                return PSRepositoryInfo.APIVersion.v2;
+                return PSRepositoryInfo.APIVersion.V2;
             }
             else if (repoUri.AbsoluteUri.EndsWith("/index.json", StringComparison.OrdinalIgnoreCase))
             {
                 // Scenario: V3 server protocol repositories (i.e NuGet.org, Azure Artifacts (ADO), Artifactory, Github Packages, MyGet.org)
-                return PSRepositoryInfo.APIVersion.v3;
+                return PSRepositoryInfo.APIVersion.V3;
             }
             else if (repoUri.AbsoluteUri.EndsWith("/nuget", StringComparison.OrdinalIgnoreCase))
             {
                 // Scenario: ASP.Net application feed created with NuGet.Server to host packages
-                return PSRepositoryInfo.APIVersion.nugetServer;
+                return PSRepositoryInfo.APIVersion.NugetServer;
             }
             else if (repoUri.Scheme.Equals(Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase) || repoUri.Scheme.Equals("temp", StringComparison.OrdinalIgnoreCase))
             {
                 // repositories with Uri Scheme "temp" may have PSPath Uri's like: "Temp:\repo" and we should consider them as local repositories.
-                return PSRepositoryInfo.APIVersion.local;
+                return PSRepositoryInfo.APIVersion.Local;
             }
             else if (repoUri.AbsoluteUri.EndsWith(".azurecr.io") || repoUri.AbsoluteUri.EndsWith(".azurecr.io/"))
             {
-                return PSRepositoryInfo.APIVersion.acr;
+                return PSRepositoryInfo.APIVersion.ContainerRegistry;
             }
             else
             {
-                return PSRepositoryInfo.APIVersion.unknown;
+                return PSRepositoryInfo.APIVersion.Unknown;
             }
         }
 

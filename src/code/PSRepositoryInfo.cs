@@ -15,12 +15,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         public enum APIVersion
         {
-            unknown,
-            v2,
-            v3,
-            local,
-            nugetServer,
-            acr
+            Unknown,
+            V2,
+            V3,
+            Local,
+            NugetServer,
+            ContainerRegistry
         }
 
         #endregion
@@ -74,7 +74,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public int Priority { get; }
 
         /// <summary>
-        /// the type of repository provider (eg, AzureDevOps, ACR, etc.)
+        /// the type of repository provider (eg, AzureDevOps, ContainerRegistry, etc.)
         /// </summary>
         public RepositoryProviderType RepositoryProvider { get; }
 

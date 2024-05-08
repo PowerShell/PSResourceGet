@@ -14,3 +14,18 @@ updates:
     directory: "test/perf/benchmarks" # Location of package manifests
     schedule:
       interval: "daily"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /test/perf/benchmarks
+    schedule:
+      interval: daily

@@ -1,20 +1,32 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-<#
-# These tests are working with manual validation but there is currently no automated testing for ACR repositories. 
-
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
 Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 
     BeforeAll{
-        $testModuleName = "hello-world"
+        $testModuleName = "test-module"
+        $testModuleParentName = "test_parent_mod"
+        $testModuleDependencyName = "test_dependency_mod"
+        $testScriptName = "test-script"
         $ACRRepoName = "ACRRepo"
-        $ACRRepoUri = "https://psgetregistry.azurecr.io"
+        $ACRRepoUri = "https://psresourcegettest.azurecr.io"
         Get-NewPSResourceRepositoryFile
-        Register-PSResourceRepository -Name $ACRRepoName -Uri $ACRepoUri -ApiVersion "ACR"
+
+        $usingAzAuth = $env:USINGAZAUTH -eq 'true'
+
+        if ($usingAzAuth)
+        {
+            Write-Verbose -Verbose "Using Az module for authentication"
+            Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -Verbose
+        }
+        else
+        {
+            $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
+            Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
+        }
     }
 
     AfterAll {
@@ -28,19 +40,12 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
     }
 
-    It "Find resource given specific Name, Version null" {
-        # FindName()
-        $res = Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Prerelease
-        $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0-alpha001"
-    }
-
     It "Should not find resource given nonexistant Name" {
         # FindName()
         $res = Find-PSResource -Name NonExistantModule -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ACRPackageNotFoundFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 
@@ -77,6 +82,22 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Count | Should -BeGreaterOrEqual 1
     }
 
+    It "Find module and dependencies when -IncludeDependencies is specified" {
+        $res = Find-PSResource -Name $testModuleParentName -Repository $ACRRepoName -IncludeDependencies
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be @($testModuleParentName, $testModuleDependencyName)
+        $res.Version[0].ToString() | Should -Be "1.0.0"
+        $res.Version[1].ToString() | Should -Be "1.0.0"
+    }
+
+    It "Find resource given specific Name, Version null but allowing Prerelease" {
+        # FindName()
+        $res = Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Prerelease
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.2.5"
+        $res.Prerelease | Should -Be "alpha"
+    }
+
     It "Find resource with latest (including prerelease) version given Prerelease parameter" {
         # FindName()
         # test_local_mod resource's latest version is a prerelease version, before that it has a non-prerelease version
@@ -84,8 +105,8 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
 
         $resPrerelease = Find-PSResource -Name $testModuleName -Prerelease -Repository $ACRRepoName
-        $resPrerelease.Version | Should -Be "5.0.0"
-        $resPrerelease.Prerelease | Should -Be "alpha001"
+        $resPrerelease.Version | Should -Be "5.2.5"
+        $resPrerelease.Prerelease | Should -Be "alpha"
     }
 
     It "Find resources, including Prerelease version resources, when given Prerelease parameter" {
@@ -137,6 +158,73 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindAllFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
-}
 
-#>
+    It "Should find script given Name" {
+        # FindName()
+        $res = Find-PSResource -Name $testScriptName -Repository $ACRRepoName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -BeExactly $testScriptName
+        $res.Version | Should -Be "3.0.0"
+        $res.Type.ToString() | Should -Be "Script"
+    }
+
+    It "Should find script given Name and Prerelease" {
+        # latest version is a prerelease version
+        $res = Find-PSResource -Name $testScriptName -Prerelease -Repository $ACRRepoName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -BeExactly $testScriptName
+        $res.Version | Should -Be "5.0.0"
+        $res.Prerelease | Should -Be "alpha"
+        $res.Type.ToString() | Should -Be "Script"
+    }
+
+    It "Should find script given Name and Version" {
+        # FindVersion()
+        $res = Find-PSResource -Name $testScriptName -Version "1.0.0" -Repository $ACRRepoName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -BeExactly $testScriptName
+        $res.Version | Should -Be "1.0.0"
+        $res.Type.ToString() | Should -Be "Script"
+    }
+
+    It "Should find script given Name, Version and Prerelease" {
+        # latest version is a prerelease version
+        $res = Find-PSResource -Name $testScriptName -Version "5.0.0-alpha" -Prerelease -Repository $ACRRepoName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -BeExactly $testScriptName
+        $res.Version | Should -Be "5.0.0"
+        $res.Prerelease | Should -Be "alpha"
+        $res.Type.ToString() | Should -Be "Script"
+    }
+
+    It "Should find and return correct resource type - module" {
+        $res = Find-PSResource -Name $testModuleName -Repository $ACRRepoName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -BeExactly $testModuleName
+        $res.Version | Should -Be "5.0.0"
+        $res.Type.ToString() | Should -Be "Module"
+    }
+
+    It "Should find and return correct resource type - script" {
+        $scriptName = "test-script"
+        $res = Find-PSResource -Name $scriptName -Repository $ACRRepoName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -BeExactly $scriptName
+        $res.Version | Should -Be "3.0.0"
+        $res.Type.ToString() | Should -Be "Script"
+    }
+
+    It "Should find module with varying case sensitivity" {
+        $res = Find-PSResource -Name "test-camelCaseModule" -Repository $ACRRepoName
+        $res.Name | Should -BeExactly "test-camelCaseModule"
+        $res.Version | Should -Be "1.0.0"
+        $res.Type.ToString() | Should -Be "Module"
+    }
+
+    It "Should find script with varying case sensitivity" {
+        $res = Find-PSResource -Name "test-camelCaseScript" -Repository $ACRRepoName
+        $res.Name | Should -BeExactly "test-camelCaseScript"
+        $res.Version | Should -Be "1.0.0"
+        $res.Type.ToString() | Should -Be "Script"
+    }
+}

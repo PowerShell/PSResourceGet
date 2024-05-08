@@ -9,7 +9,7 @@ using System.Text.Json;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
-    internal class ACRResponseUtil : ResponseUtil
+    internal class ContainerRegistryResponseUtil : ResponseUtil
     {
         #region Members
 
@@ -19,7 +19,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Constructor
 
-        public ACRResponseUtil(PSRepositoryInfo repository) : base(repository)
+        public ContainerRegistryResponseUtil(PSRepositoryInfo repository) : base(repository)
         {
             Repository = repository;
         }
@@ -30,32 +30,30 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults)
         {
-            // in FindHelper:
-            // serverApi.FindName() -> return responses, and out errRecord
-            // check outErrorRecord
-            // 
-            // acrConverter.ConvertToPSResourceInfo(responses) -> return PSResourceResult
-            // check resourceResult for error, write if needed
             Hashtable[] responses = responseResults.HashtableResponse;
             foreach (Hashtable response in responses)
             {
                 string responseConversionError = String.Empty;
                 PSResourceInfo pkg = null;
 
-                string packageName = string.Empty;
-                string packageMetadata = null;
-
-                foreach (DictionaryEntry entry in response)
+                // Hashtable should have keys for Name, Metadata, ResourceType
+                if (!response.ContainsKey("Name") && string.IsNullOrWhiteSpace(response["Name"].ToString()))
                 {
-                    packageName = (string)entry.Key;
-                    packageMetadata = (string)entry.Value;
+                    yield return new PSResourceResult(returnedObject: pkg, exception: new ConvertToPSResourceException("Error retrieving package name from response."), isTerminatingError: true);
                 }
+
+                if (!response.ContainsKey("Metadata"))
+                {
+                    yield return new PSResourceResult(returnedObject: pkg, exception: new ConvertToPSResourceException("Error retrieving package metadata from response."), isTerminatingError: true);
+                }
+
+                ResourceType? resourceType = response.ContainsKey("ResourceType") ? response["ResourceType"] as ResourceType? : ResourceType.None;
 
                 try
                 {
-                    using (JsonDocument pkgVersionEntry = JsonDocument.Parse(packageMetadata))
+                    using (JsonDocument pkgVersionEntry = JsonDocument.Parse(response["Metadata"].ToString()))
                     {
-                        PSResourceInfo.TryConvertFromACRJson(packageName, pkgVersionEntry, out pkg, Repository, out responseConversionError);
+                        PSResourceInfo.TryConvertFromContainerRegistryJson(response["Name"].ToString(), pkgVersionEntry, resourceType, out pkg, Repository, out responseConversionError);
                     }
                 }
                 catch (Exception e)
