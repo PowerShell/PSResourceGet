@@ -881,7 +881,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
                 { "$inlinecount", "allpages" },
                 { "$skip", skip.ToString()},
-                { "$top", "100"}
+                { "$top", "6000"}
             });
             var filterBuilder = queryBuilder.FilterBuilder;
 
