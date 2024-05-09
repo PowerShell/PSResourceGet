@@ -164,14 +164,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindName()");
-            // Make sure to include quotations around the package name
-            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
-
             // This should return the latest stable version or the latest prerelease version (respectively)
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
+
+            // Make sure to include quotations around the package name
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "id", $"'{packageName}'" },
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+            filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
+
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $" and Id eq '{packageName}'";
-            var requestUrl = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{idFilterPart}";
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
+            var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response = HttpRequestCall(requestUrl, out errRecord);
 
             return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
@@ -186,20 +192,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindNameWithTag()");
-            // Make sure to include quotations around the package name
-            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion";
 
             // This should return the latest stable version or the latest prerelease version (respectively)
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
+            
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "id", $"'{packageName}'" },
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
+            
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $" and Id eq '{packageName}'";
-            string tagFilterPart = String.Empty;
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
+
+            filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
+
             foreach (string tag in tags)
             {
-                tagFilterPart += $" and substringof('{tag}', Tags) eq true";
+                filterBuilder.AddCriterion($"substringof('{tag}', Tags) eq true");
             }
 
-            var requestUrl = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter={prerelease}{idFilterPart}{tagFilterPart}";
+            var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response = HttpRequestCall(requestUrl, out errRecord);
 
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
@@ -360,9 +372,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindVersion()");
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true
             // Quotations around package name and version do not matter, same metadata gets returned.
+
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "id", $"'{packageName}'" },
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
+
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $" and Id eq '{packageName}'";
-            var requestUrl = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{idFilterPart}";
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
+            filterBuilder.AddCriterion($"NormalizedVersion eq '{packageName}'");
+
+            var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response = HttpRequestCall(requestUrl, out errRecord);
 
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
@@ -377,15 +397,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override FindResults FindVersionWithTag(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindVersionWithTag()");
+
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "id", $"'{packageName}'" },
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
+
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $" and Id eq '{packageName}'";
-            string tagFilterPart = String.Empty;
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
+            filterBuilder.AddCriterion($"NormalizedVersion eq '{packageName}'");
+
             foreach (string tag in tags)
             {
-                tagFilterPart += $" and substringof('{tag}', Tags) eq true";
+                filterBuilder.AddCriterion($"substringof('{tag}', Tags) eq true");
             }
 
-            var requestUrl = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$filter= NormalizedVersion eq '{version}'{idFilterPart}{tagFilterPart}";
+            var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response = HttpRequestCall(requestUrl, out errRecord);
 
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
@@ -527,9 +554,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string FindAllFromEndPoint(bool includePrerelease, int skip, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindAllFromEndPoint()");
-            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
-            var prereleaseFilter = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
-            var requestUrl = $"{Repository.Uri}/Search()?$filter={prereleaseFilter}{paginationParam}";
+
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string> {
+                { "$inlinecount", "allpages" },
+                { "$skip", skip.ToString() },
+                { "$top", "6000" },
+                { "$orderBy", "Id desc" },
+            });
+
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+            if (includePrerelease) {
+                queryBuilder.AdditionalParameters["includePrerelease"] = "true";
+                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
+            } else {
+                filterBuilder.AddCriterion("IsLatestVersion");
+            }
+            
+            var requestUrl = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
 
             return HttpRequestCall(requestUrl, out errRecord);
         }
@@ -540,16 +582,29 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string FindTagFromEndpoint(string[] tags, bool includePrerelease, int skip, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindTagFromEndpoint()");
-            string paginationParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=6000";
-            var prereleaseFilter = includePrerelease ? "$filter=IsAbsoluteLatestVersion&includePrerelease=true" : "$filter=IsLatestVersion";
 
-            string tagFilterPart = String.Empty;
-            foreach (string tag in tags)
-            {
-                tagFilterPart += $" and substringof('{tag}', Tags) eq true";
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string> {
+                { "$inlinecount", "allpages" },
+                { "$skip", skip.ToString() },
+                { "$top", "6000" },
+                { "$orderBy", "Id desc" },
+            });
+
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+            if (includePrerelease) {
+                queryBuilder.AdditionalParameters["includePrerelease"] = "true";
+                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
+            } else {
+                filterBuilder.AddCriterion("IsLatestVersion");
             }
 
-            var requestUrl = $"{Repository.Uri}/Search()?{prereleaseFilter}{tagFilterPart}{paginationParam}";
+            foreach (string tag in tags)
+            {
+                filterBuilder.AddCriterion($"substringof('{tag}', Tags) eq true");
+            }
+
+            var requestUrl = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
 
             return HttpRequestCall(requestUrl, out errRecord);
         }
@@ -563,9 +618,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
 
-            string extraParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=100";
-            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
-            string nameFilter;
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string> {
+                { "$inlinecount", "allpages" },
+                { "$skip", skip.ToString() },
+                { "$top", "100" },
+                { "$orderBy", "NormalizedVersion desc" },
+            });
+
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+            if (includePrerelease) {
+                queryBuilder.AdditionalParameters["includePrerelease"] = "true";
+                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
+            } else {
+                filterBuilder.AddCriterion("IsLatestVersion");
+            }
+
 
             var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
 
@@ -584,17 +652,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (packageName.StartsWith("*") && packageName.EndsWith("*"))
                 {
                     // *get*
-                    nameFilter = $"substringof('{names[0]}', Id)";
+                    filterBuilder.AddCriterion($"substringof('{names[0]}', Id)");
                 }
                 else if (packageName.EndsWith("*"))
                 {
                     // PowerShell*
-                    nameFilter = $"startswith(Id, '{names[0]}')";
+                    filterBuilder.AddCriterion($"startswith(Id, '{names[0]}')");
                 }
                 else
                 {
                     // *ShellGet
-                    nameFilter = $"endswith(Id, '{names[0]}')";
+                    filterBuilder.AddCriterion($"endswith(Id, '{names[0]}')");
                 }
             }
             else if (names.Length == 2 && !packageName.StartsWith("*") && !packageName.EndsWith("*"))
@@ -603,7 +671,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // pow*get -> only support this
                 // pow*get*
                 // *pow*get
-                nameFilter = $"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')";
+                filterBuilder.AddCriterion($"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')");
             }
             else
             {
@@ -616,7 +684,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return string.Empty;
             }
 
-            var requestUrl = $"{Repository.Uri}/Search()?$filter={nameFilter} and {prerelease}{extraParam}";
+            var requestUrl = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
 
             return HttpRequestCall(requestUrl, out errRecord);
         }
@@ -630,9 +698,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and startswith(Id, 'PowerShell') and IsLatestVersion (stable)
             // https://www.powershellgallery.com/api/v2/Search()?$filter=endswith(Id, 'Get') and IsAbsoluteLatestVersion&includePrerelease=true
 
-            string extraParam = $"&$orderby=Id desc&$inlinecount=allpages&$skip={skip}&$top=100";
-            var prerelease = includePrerelease ? "IsAbsoluteLatestVersion&includePrerelease=true" : "IsLatestVersion";
-            string nameFilter;
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string> {
+                { "$inlinecount", "allpages" },
+                { "$skip", skip.ToString() },
+                { "$top", "100" },
+                { "$orderBy", "Id desc" },
+            });
+
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+            if (includePrerelease) {
+                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
+                queryBuilder.AdditionalParameters["includePrerelease"] = "true";
+            } else {
+                filterBuilder.AddCriterion("IsLatestVersion");
+            }
 
             var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
 
@@ -651,17 +731,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (packageName.StartsWith("*") && packageName.EndsWith("*"))
                 {
                     // *get*
-                    nameFilter = $"substringof('{names[0]}', Id)";
+                    filterBuilder.AddCriterion($"substringof('{names[0]}', Id)");
                 }
                 else if (packageName.EndsWith("*"))
                 {
                     // PowerShell*
-                    nameFilter = $"startswith(Id, '{names[0]}')";
+                    filterBuilder.AddCriterion($"startswith(Id, '{names[0]}')");
                 }
                 else
                 {
                     // *ShellGet
-                    nameFilter = $"endswith(Id, '{names[0]}')";
+                    filterBuilder.AddCriterion($"endswith(Id, '{names[0]}')");
                 }
             }
             else if (names.Length == 2 && !packageName.StartsWith("*") && !packageName.EndsWith("*"))
@@ -670,7 +750,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // pow*get -> only support this
                 // pow*get*
                 // *pow*get
-                nameFilter = $"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')";
+                filterBuilder.AddCriterion($"startswith(Id, '{names[0]}') and endswith(Id, '{names[1]}')");
             }
             else
             {
@@ -683,13 +763,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return string.Empty;
             }
 
-            string tagFilterPart = String.Empty;
             foreach (string tag in tags)
             {
-                tagFilterPart += $" and substringof('{tag}', Tags) eq true";
+                filterBuilder.AddCriterion($"substringof('{tag}', Tags) eq true");
             }
 
-            var requestUrl = $"{Repository.Uri}/Search()?$filter={nameFilter}{tagFilterPart} and {prerelease}{extraParam}";
+            var requestUrl = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
 
             return HttpRequestCall(requestUrl, out errRecord);
         }
@@ -707,6 +786,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // will need to filter additionally, if IncludePrerelease=false, by default we get stable + prerelease both back
             // Current bug: Find PSGet -Version "2.0.*" -> https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= Version gt '2.0.*' and Version lt '2.1'
             // Make sure to include quotations around the package name
+
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string> {
+                { "id", $"'{packageName}'" },
+                { "$inlinecount", "allpages" },
+                { "$skip", skip.ToString() },
+                { "$top", getOnlyLatest ? "1" : "100" },
+                { "$orderBy", "NormalizedVersion desc" },
+            });
+
+            var filterBuilder = queryBuilder.FilterBuilder;
 
             //and IsPrerelease eq false
             // ex:
@@ -742,42 +831,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             string versionFilterParts = String.Empty;
-            if (!String.IsNullOrEmpty(minPart) && !String.IsNullOrEmpty(maxPart))
+            if (!String.IsNullOrEmpty(minPart))
             {
-                versionFilterParts += minPart + " and " + maxPart;
+                filterBuilder.AddCriterion(minPart);
             }
-            else if (!String.IsNullOrEmpty(minPart))
+            if (!String.IsNullOrEmpty(maxPart))
             {
-                versionFilterParts += minPart;
-            }
-            else if (!String.IsNullOrEmpty(maxPart))
-            {
-                versionFilterParts += maxPart;
+                filterBuilder.AddCriterion(maxPart);
             }
 
-            string filterQuery = "&$filter=";
-            filterQuery += includePrerelease ? string.Empty : "IsPrerelease eq false";
+            if (!includePrerelease) {
+                filterBuilder.AddCriterion("IsPrerelease eq false");
+            }
 
-            string andOperator = " and ";
-            string joiningOperator = filterQuery.EndsWith("=") ? String.Empty : andOperator;
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            string idFilterPart = $"{joiningOperator}Id eq '{packageName}'";
-            filterQuery += idFilterPart;
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
 
-            if (!String.IsNullOrEmpty(versionFilterParts))
-            {
-                // Check if includePrerelease is true, if it is we want to add "$filter"
-                // Single case where version is "*" (or "[,]") and includePrerelease is true, then we do not want to add "$filter" to the requestUrl.
-
-                // Note: could be null/empty if Version was "*" -> [,]
-                filterQuery +=  $"{andOperator}{versionFilterParts}";
-            }
-
-            string topParam = getOnlyLatest ? "$top=1" : "$top=100"; // only need 1 package if interested in latest
-            string paginationParam = $"$inlinecount=allpages&$skip={skip}&{topParam}";
-
-            filterQuery = filterQuery.EndsWith("=") ? string.Empty : filterQuery;
-            var requestUrl = $"{Repository.Uri}/FindPackagesById()?id='{packageName}'&$orderby=NormalizedVersion desc&{paginationParam}{filterQuery}";
+            var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
 
             return HttpRequestCall(requestUrl, out errRecord);
         }
