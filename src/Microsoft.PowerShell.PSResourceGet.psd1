@@ -4,7 +4,7 @@
 @{
     RootModule             = './Microsoft.PowerShell.PSResourceGet.dll'
     NestedModules          = @('./Microsoft.PowerShell.PSResourceGet.psm1')
-    ModuleVersion          = '1.0.4.1'
+    ModuleVersion          = '1.0.5'
     CompatiblePSEditions   = @('Core', 'Desktop')
     GUID                   = 'e4e0bda1-0703-44a5-b70d-8fe704cd0643'
     Author                 = 'Microsoft Corporation'
@@ -55,6 +55,20 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.0.5
+
+### Bug Fixes
+- Update `nuget.config` to use PowerShell packages feed (#1649)
+- Refactor V2ServerAPICalls and NuGetServerAPICalls to use object-oriented query/filter builder (#1645 Thanks @sean-r-williams!)
+- Fix unnecessary `and` for version globbing in V2ServerAPICalls (#1644 Thanks again @sean-r-williams!)
+- Fix requiring `tags` in server response (#1627 Thanks @evelyn-bi!)
+- Add 10 minute timeout to HTTPClient (#1626)
+- Fix save script without `-IncludeXml` (#1609, #1614 Thanks @o-l-a-v!)
+- PAT token fix to translate into HttpClient 'Basic Authorization'(#1599 Thanks @gerryleys!)
+- Fix incorrect request url when installing from ADO (#1597 Thanks @antonyoni!)
+- Improved exception handling (#1569)
+- Ensure that .NET methods are not called in order to enable use in Constrained Language Mode (#1564)
+
 ## 1.0.4.1
 
 - PSResourceGet packaging update
