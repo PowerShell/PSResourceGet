@@ -13,6 +13,7 @@ using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
+using System.Security;
 using Microsoft.PowerShell.Commands;
 using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Net.Http;
