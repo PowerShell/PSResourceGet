@@ -644,6 +644,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                             currentServer: currentServer,
                                             currentResponseUtil: currentResponseUtil,
                                             tempInstallPath: tempInstallPath,
+                                            skipDependencyCheck: skipDependencyCheck,
                                             packagesHash: packagesHash,
                                             errRecord: out ErrorRecord installPkgErrRecord);
 
@@ -907,7 +908,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         // Concurrency Updates
         private List<PSResourceInfo> FindAllDependencies(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo pkgToInstall, PSRepositoryInfo repository)
         {
-            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.v3)
+            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V3)
             {
                 _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
             }

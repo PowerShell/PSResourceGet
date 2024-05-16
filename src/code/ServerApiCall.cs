@@ -10,7 +10,6 @@ using System.Net;
 using System.Text;
 using System.Runtime.ExceptionServices;
 using System.Management.Automation;
-using System;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
