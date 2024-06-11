@@ -255,35 +255,55 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             FindResults findResponse = new FindResults();
             errRecord = null;
 
-            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
+            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.", WildcardOptions.IgnoreCase);
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
             string actualPkgName = packageName;
 
+            string regexPattern = $"{packageName}" + @".\d+\.\d+\.\d+(?:-\w+|.\d)*.nupkg";
+            Regex rx = new Regex(regexPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+            _cmdletPassedIn.WriteDebug($"pattern is: {regexPattern}");
+
             foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
-
-                if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
+                MatchCollection matches = rx.Matches(packageFullName);
+                if (matches.Count == 0)
                 {
-                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out errRecord);
-                    _cmdletPassedIn.WriteDebug($"Version parsed as '{nugetVersion}'");
+                    continue;
+                }
 
-                    if (errRecord != null)
-                    {
-                        return findResponse;
-                    }
+                Match match = matches[0];
 
-                    if ((!nugetVersion.IsPrerelease || includePrerelease) && (nugetVersion > latestVersion))
+                GroupCollection groups = match.Groups;
+                if (groups.Count == 0)
+                {
+                    continue;
+                }
+
+                Capture group = groups[0];
+
+                _cmdletPassedIn.WriteDebug($"package name is: {packageFullName}");
+                // string pkgFoundName = packageFullName.Substring(0, group.Index);
+
+                NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out errRecord);
+                _cmdletPassedIn.WriteDebug($"Version parsed as '{nugetVersion}'");
+
+                if (errRecord != null)
+                {
+                    return findResponse;
+                }
+
+                if ((!nugetVersion.IsPrerelease || includePrerelease) && (nugetVersion > latestVersion))
+                {
+                    if (nugetVersion > latestVersion)
                     {
-                        if (nugetVersion > latestVersion)
-                        {
-                            latestVersion = nugetVersion;
-                            latestVersionPath = path;
-                        }
+                        latestVersion = nugetVersion;
+                        latestVersionPath = path;
                     }
                 }
-            }
+            }            
 
             if (String.IsNullOrEmpty(latestVersionPath))
             {
@@ -880,6 +900,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // packageFullName will look like package.1.0.0.nupkg
             errRecord = null;
 
+            // Microsoft.Graph.Users
+            // Microsoft.Graph.Users.Actions
+            // packageName should contain the pkg name that the user searched for
+            // actualName will be the name with the casing package.nupkg had, which is the casing we use when returning to the user
             string[] packageWithoutName = packageFullName.ToLower().Split(new string[]{ $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
             string packageVersionAndExtension = packageWithoutName[0];
             string[] originalFileNameParts = packageFullName.Split(new string[]{ $".{packageVersionAndExtension}" }, StringSplitOptions.RemoveEmptyEntries);
