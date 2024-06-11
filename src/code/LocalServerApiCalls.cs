@@ -255,7 +255,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             FindResults findResponse = new FindResults();
             errRecord = null;
 
-            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.", WildcardOptions.IgnoreCase);
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
             string actualPkgName = packageName;
