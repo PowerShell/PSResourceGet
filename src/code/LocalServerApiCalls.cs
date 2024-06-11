@@ -283,9 +283,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 Capture group = groups[0];
 
-                _cmdletPassedIn.WriteDebug($"package name is: {packageFullName}");
-                // string pkgFoundName = packageFullName.Substring(0, group.Index);
-
                 NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out errRecord);
                 _cmdletPassedIn.WriteDebug($"Version parsed as '{nugetVersion}'");
 
@@ -302,7 +299,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         latestVersionPath = path;
                     }
                 }
-            }            
+            }
 
             if (String.IsNullOrEmpty(latestVersionPath))
             {
