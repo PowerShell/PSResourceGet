@@ -387,29 +387,45 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return findResponse;
             }
 
-            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
+            string regexPattern = $"{packageName}.{requiredVersion.ToNormalizedString()}" + @".nupkg";
+            Regex rx = new Regex(regexPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            _cmdletPassedIn.WriteDebug($"pattern is: {regexPattern}");
             string pkgPath = String.Empty;
             string actualPkgName = String.Empty;
+
             foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
-                if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
+                MatchCollection matches = rx.Matches(packageFullName);
+                if (matches.Count == 0)
                 {
-                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out errRecord);
-                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{nugetVersion}'");
+                    continue;
+                }
 
-                    if (errRecord != null)
-                    {
-                        return findResponse;
-                    }
+                Match match = matches[0];
 
-                    if (nugetVersion == requiredVersion)
-                    {
-                        _cmdletPassedIn.WriteDebug("Found matching version");
-                        string pkgFullName = $"{actualPkgName}.{nugetVersion.ToString()}.nupkg";
-                        pkgPath = Path.Combine(Repository.Uri.LocalPath, pkgFullName);
-                        break;
-                    }
+                GroupCollection groups = match.Groups;
+                if (groups.Count == 0)
+                {
+                    continue;
+                }
+
+                Capture group = groups[0];
+
+                NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out errRecord);
+                _cmdletPassedIn.WriteDebug($"Version parsed as '{nugetVersion}'");
+
+                if (errRecord != null)
+                {
+                    return findResponse;
+                }
+
+                if (nugetVersion == requiredVersion)
+                {
+                    _cmdletPassedIn.WriteDebug("Found matching version");
+                    string pkgFullName = $"{actualPkgName}.{nugetVersion.ToString()}.nupkg";
+                    pkgPath = Path.Combine(Repository.Uri.LocalPath, pkgFullName);
+                    break;
                 }
             }
 
