@@ -873,22 +873,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return pkgEntries;
             }
 
-            // Get initial response
             int skip = 0;
-            string query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
+            int skipAndTakeAmount = 100;
+            if (_isAWSCodeArtifactRepo) {
+                skipAndTakeAmount = 25;
+            }
+
+            // Get initial response
+            string query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take={skipAndTakeAmount}";
+
+            var itemList = GetJsonElementArr(query, dataName, out int initialCount, out errRecord).ToList();
+            pkgEntries.AddRange(itemList);
 
             // Get responses for all packages that contain the required tags
-            pkgEntries.AddRange(GetJsonElementArr(query, dataName, out int initialCount, out errRecord).ToList());
-
-            // check count (ie "totalHits") 425 ==> count/100  ~~> 4 calls ~~> + 1 = 5 calls
-            int count = initialCount / 100 + 1;
-            // if more than 100 count, loop and add response to list
-            while (count > 0)
-            {
-                skip += 100;
-                query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
-                pkgEntries.AddRange(GetJsonElementArr(query, dataName, out int unneededCount, out errRecord).ToList());
-                count--;
+            while (itemList.Count > 0) {
+                skip += skipAndTakeAmount;
+                query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take={skipAndTakeAmount}";
+                itemList = GetJsonElementArr(query, dataName, out int unneededCount, out errRecord).ToList();
+                if (itemList.Count == 0) {
+                    break;
+                }
+                pkgEntries.AddRange(itemList);
             }
 
             return pkgEntries;
