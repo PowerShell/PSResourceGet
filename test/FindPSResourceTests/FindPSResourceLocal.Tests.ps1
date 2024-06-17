@@ -14,6 +14,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $localUNCRepo = 'psgettestlocal3'
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
+        $similarTestModuleName = "test_local_mod.similar"
         $commandName = "cmd1"
         $dscResourceName = "dsc1"
         $prereleaseLabel = ""
@@ -31,6 +32,9 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
         New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tagsEscaped
         New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.2.5" -prereleaseLabel $prereleaseLabel -tags $tagsEscaped
+
+        New-TestModule -moduleName $similarTestModuleName -repoName $localRepo -packageVersion "4.0.0" -prereleaseLabel "" -tags $tagsEscaped
+        New-TestModule -moduleName $similarTestModuleName -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tagsEscaped
     }
 
     AfterAll {
@@ -74,11 +78,23 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
     }
 
     It "should not find resource given nonexistant Name" {
+        # FindName()
         $res = Find-PSResource -Name NonExistantModule -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
+    }
+
+    It "find resource given specific Name when another package with similar name (with period) exists" {
+        # FindName()
+        $res = Find-PSResource -Name $testModuleName -Repository $localRepo
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.0.0"
+
+        $res = Find-PSResource -Name $similarTestModuleName -Repository $localRepo
+        $res.Name | Should -Be $similarTestModuleName
+        $res.Version | Should -Be "5.0.0"
     }
 
     It "find resource(s) given wildcard Name" {
@@ -127,6 +143,22 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $resPrerelease = Find-PSResource -Name $testModuleName -Prerelease -Repository $localRepo
         $resPrerelease.Version | Should -Be "5.2.5"
         $resPrerelease.Prerelease | Should -Be "alpha001"
+    }
+
+    It "find resource given specific Name when another package with similar name (with period) exists" {
+        # FindVersion()
+        # Package $testModuleName version 4.0.0 does not exist
+        # previously if Find-PSResource -Version against local repo did not find that package's version it kept looking at
+        # similar named packages and would fault. This test is to ensure only the specified package and its version is checked
+        $res = Find-PSResource -Name $testModuleName -Version "4.0.0" -Repository $localRepo
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $res | Should -BeNullOrEmpty
+
+        $res = Find-PSResource -Name $similarTestModuleName -Version "4.0.0" -Repository $localRepo
+        $res.Name | Should -Be $similarTestModuleName
+        $res.Version | Should -Be "4.0.0"
     }
 
     It "find resources, including Prerelease version resources, when given Prerelease parameter" {
