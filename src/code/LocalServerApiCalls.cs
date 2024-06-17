@@ -913,10 +913,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // packageFullName will look like package.1.0.0.nupkg
             errRecord = null;
 
-            // Microsoft.Graph.Users
-            // Microsoft.Graph.Users.Actions
-            // packageName should contain the pkg name that the user searched for
-            // actualName will be the name with the casing package.nupkg had, which is the casing we use when returning to the user
             string[] packageWithoutName = packageFullName.ToLower().Split(new string[]{ $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
             string packageVersionAndExtension = packageWithoutName[0];
             string[] originalFileNameParts = packageFullName.Split(new string[]{ $".{packageVersionAndExtension}" }, StringSplitOptions.RemoveEmptyEntries);
