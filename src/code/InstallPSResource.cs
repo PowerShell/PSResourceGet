@@ -286,6 +286,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         pkgRepository: Repository,
                         pkgCredential: Credential,
                         reqResourceParams: null);
+
                     break;
                     
                 case InputObjectParameterSet:
