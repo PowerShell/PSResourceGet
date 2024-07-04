@@ -467,7 +467,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Delete the directory path before replacing it with the new module.
                         // If deletion fails (usually due to binary file in use), then attempt restore so that the currently
                         // installed module is not corrupted.
-                        _cmdletPassedIn.WriteVerbose($"Attempting to delete with restore on failure.'{finalModuleVersionDir}'");
+                        _cmdletPassedIn.WriteVerbose($"Attempting to delete with restore on failure. '{finalModuleVersionDir}'");
                         Utils.DeleteDirectoryWithRestore(finalModuleVersionDir);
                     }
 
