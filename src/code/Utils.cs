@@ -20,6 +20,8 @@ using System.Globalization;
 using System.Security;
 using Azure.Core;
 using Azure.Identity;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -1538,12 +1540,29 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             foreach (var dirFilePath in Directory.GetFiles(dirPath))
             {
+                // Remove read only file attribute if present
                 if (File.GetAttributes(dirFilePath).HasFlag(FileAttributes.ReadOnly))
                 {
-                    File.SetAttributes(dirFilePath, (File.GetAttributes(dirFilePath) & ~FileAttributes.ReadOnly));
+                    File.SetAttributes(dirFilePath, File.GetAttributes(dirFilePath) & ~FileAttributes.ReadOnly);
                 }
-
-                File.Delete(dirFilePath);
+                // Delete file
+                int maxAttempts = 5;
+                int msDelay = 5;
+                for (int i = 0; i < maxAttempts; ++i)
+                {
+                    try {
+                        File.Delete(dirFilePath);
+                        break;
+                    }
+                    catch (IOException)
+                    {
+                        Thread.Sleep(msDelay);
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        Thread.Sleep(msDelay);
+                    }
+                }
             }
 
             foreach (var dirSubPath in Directory.GetDirectories(dirPath))
