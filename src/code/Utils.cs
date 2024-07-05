@@ -1540,6 +1540,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// </Summary>
         public static void DeleteDirectory(string dirPath)
         {
+            // Delete files first
             foreach (var dirFilePath in Directory.GetFiles(dirPath))
             {
                 // Remove read only file attribute if present
@@ -1570,12 +1571,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
                 }
             }
-
+            // Delete child directories
             foreach (var dirSubPath in Directory.GetDirectories(dirPath))
             {
                 DeleteDirectory(dirSubPath);
             }
-
+            // Delete parent directory
             Directory.Delete(dirPath);
         }
 
