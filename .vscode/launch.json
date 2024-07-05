@@ -17,7 +17,7 @@
             "console": "externalTerminal",
             "stopAtEntry": false,
             "logging": {
-                "engineLogging": false,
+                "logging.diagnosticsLog.protocolMessages": false,
                 "moduleLoad": false,
                 "exceptions": false,
                 "browserStdOut": false
