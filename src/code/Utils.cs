@@ -1548,7 +1548,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     File.SetAttributes(dirFilePath, File.GetAttributes(dirFilePath) & ~FileAttributes.ReadOnly);
                 }
-                // Delete file
+                // Delete file, try multiple times before throwing ( #1662 )
                 int maxAttempts = 5;
                 int msDelay = 5;
                 for (int attempt = 1; attempt <= maxAttempts; ++attempt)
