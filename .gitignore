@@ -5,3 +5,5 @@ srcOld/code/obj
 out
 test/**/obj
 test/**/bin
+# Project file created by VSCode
+/*.sln
