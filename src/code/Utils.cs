@@ -1550,7 +1550,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // Delete file
                 int maxAttempts = 5;
                 int msDelay = 5;
-                for (int attempt = 1; i <= maxAttempts; ++i)
+                for (int attempt = 1; attempt <= maxAttempts; ++attempt)
                 {
                     try
                     {
