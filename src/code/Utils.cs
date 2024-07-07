@@ -1540,44 +1540,36 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// </Summary>
         public static void DeleteDirectory(string dirPath)
         {
-            // Delete files first
-            foreach (var dirFilePath in Directory.GetFiles(dirPath))
+            // Remove read only file attributes first
+            foreach (var dirFilePath in Directory.GetFiles(dirPath,"*",SearchOption.AllDirectories))
             {
-                // Remove read only file attribute if present
                 if (File.GetAttributes(dirFilePath).HasFlag(FileAttributes.ReadOnly))
                 {
                     File.SetAttributes(dirFilePath, File.GetAttributes(dirFilePath) & ~FileAttributes.ReadOnly);
                 }
-                // Delete file, try multiple times before throwing ( #1662 )
-                int maxAttempts = 5;
-                int msDelay = 5;
-                for (int attempt = 1; attempt <= maxAttempts; ++attempt)
+            }
+            // Delete directory recursive, try multiple times before throwing ( #1662 )
+            int maxAttempts = 5;
+            int msDelay = 5;
+            for (int attempt = 1; attempt <= maxAttempts; ++attempt)
+            {
+                try
                 {
-                    try
+                    Directory.Delete(dirPath,true);
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    if (attempt < maxAttempts && (ex is IOException || ex is UnauthorizedAccessException))
                     {
-                        File.Delete(dirFilePath);
-                        break;
+                        Thread.Sleep(msDelay);
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        if (attempt < maxAttempts && (ex is IOException || ex is UnauthorizedAccessException))
-                        {
-                            Thread.Sleep(msDelay);
-                        }
-                        else
-                        {
-                            throw;
-                        }
+                        throw;
                     }
                 }
             }
-            // Delete child directories
-            foreach (var dirSubPath in Directory.GetDirectories(dirPath))
-            {
-                DeleteDirectory(dirSubPath);
-            }
-            // Delete parent directory
-            Directory.Delete(dirPath);
         }
 
         /// <Summary>
