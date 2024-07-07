@@ -1556,7 +1556,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 try
                 {
                     Directory.Delete(dirPath,true);
-                    break;
+                    return;
                 }
                 catch (Exception ex)
                 {
