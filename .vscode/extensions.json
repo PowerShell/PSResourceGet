@@ -3,7 +3,8 @@
 	// Extension identifier format: ${publisher}.${name}. Example: vscode.csharp
 	// List of extensions which should be recommended for users of this workspace.
 	"recommendations": [
-		"ms-dotnettools.csdevkit",
+		"EditorConfig.EditorConfig",
+    "ms-dotnettools.csdevkit",
 		"ms-dotnettools.csharp",
 		"ms-vscode.powershell",
 		"patcx.vscode-nuget-gallery"
