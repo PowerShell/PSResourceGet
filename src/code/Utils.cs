@@ -995,24 +995,35 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             PSCmdlet psCmdlet,
             ScopeType? scope)
         {
-            GetStandardPlatformPaths(
-               psCmdlet,
-               out string myDocumentsPath,
-               out string programFilesPath);
-
-            List<string> resourcePaths = new List<string>();
-            if (scope is null || scope.Value is ScopeType.CurrentUser)
+            // Assets
+            List<string> resourcePaths = new();
+            string pathOverride = Environment.GetEnvironmentVariable(
+                "PSResourceGetInstallPathOverride",
+                (scope.Value is ScopeType.AllUsers) ? EnvironmentVariableTarget.Machine : EnvironmentVariableTarget.User
+            );
+            // Return override if present, else default paths
+            if (!string.IsNullOrEmpty(pathOverride) && Directory.Exists(pathOverride))
             {
-                resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
-                resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
+                resourcePaths.Add(Path.Combine(pathOverride, "Modules"));
+                resourcePaths.Add(Path.Combine(pathOverride, "Scripts"));
             }
-
-            if (scope.Value is ScopeType.AllUsers)
-            {
-                resourcePaths.Add(Path.Combine(programFilesPath, "Modules"));
-                resourcePaths.Add(Path.Combine(programFilesPath, "Scripts"));
+            else {
+                GetStandardPlatformPaths(
+                    psCmdlet,
+                    out string myDocumentsPath,
+                    out string programFilesPath
+                );
+                if (scope.Value is ScopeType.AllUsers)
+                {
+                    resourcePaths.Add(Path.Combine(programFilesPath, "Modules"));
+                    resourcePaths.Add(Path.Combine(programFilesPath, "Scripts"));
+                }
+                else
+                {
+                    resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
+                    resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
+                }
             }
-
             return resourcePaths;
         }
 
