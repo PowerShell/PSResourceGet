@@ -1017,6 +1017,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             // Return override if present, else use default paths
             if (!string.IsNullOrEmpty(pathOverride) && Path.IsPathRooted(pathOverride) && Directory.Exists(pathOverride))
             {
+                psCmdlet.WriteVerbose(string.Format("Path override was found, using '{0}' as base.",pathOverride));
                 resourcePaths.Add(Path.Combine(pathOverride, "Modules"));
                 resourcePaths.Add(Path.Combine(pathOverride, "Scripts"));
             }
