@@ -1002,20 +1002,20 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 "PSResourceGetInstallPathOverride",
                 (scope.Value is ScopeType.AllUsers) ? EnvironmentVariableTarget.Machine : EnvironmentVariableTarget.User
             );
-            // Try to resolve path override
+            // Try to expand path override
             if (!string.IsNullOrEmpty(pathOverride)) {
                 try
                 {
-                    pathOverride = Path.GetFullPath(pathOverride);
+                    pathOverride = Environment.ExpandEnvironmentVariables(pathOverride);
                 }
                 catch (ArgumentException)
                 {
                     pathOverride = string.Empty;
-                    psCmdlet.WriteVerbose("Path override was found, but could not be resolved to full path.");
+                    psCmdlet.WriteVerbose("Path override was found, but could not expand environment variable(s).");
                 }
             }
             // Return override if present, else use default paths
-            if (!string.IsNullOrEmpty(pathOverride) && Directory.Exists(pathOverride))
+            if (!string.IsNullOrEmpty(pathOverride) && Path.IsPathRooted(pathOverride) && Directory.Exists(pathOverride))
             {
                 resourcePaths.Add(Path.Combine(pathOverride, "Modules"));
                 resourcePaths.Add(Path.Combine(pathOverride, "Scripts"));
