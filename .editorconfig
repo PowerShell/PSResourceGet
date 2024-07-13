@@ -2,7 +2,7 @@
 # .NET coding convention settings for EditorConfig
 # https://learn.microsoft.com/visualstudio/ide/editorconfig-code-style-settings-reference
 #
-# This file was taken taken from PowerShell/PowerShell
+# This file was taken from PowerShell/PowerShell 2024-07-13
 # https://github.com/PowerShell/PowerShell/blob/master/.editorconfig
 
 # Top-most EditorConfig file
