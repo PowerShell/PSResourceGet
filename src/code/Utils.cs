@@ -997,11 +997,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             // Assets
             List<string> resourcePaths = new();
+
             // Get value of path override environment variable
             string pathOverride = Environment.GetEnvironmentVariable(
                 "PSResourceGetInstallPathOverride",
                 (scope.Value is ScopeType.AllUsers) ? EnvironmentVariableTarget.Machine : EnvironmentVariableTarget.User
             );
+
             // Try to expand path override
             if (!string.IsNullOrEmpty(pathOverride)) {
                 try
@@ -1014,6 +1016,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     psCmdlet.WriteVerbose("Path override was found, but could not expand environment variable(s).");
                 }
             }
+
             // Return override if present, else use default paths
             if (!string.IsNullOrEmpty(pathOverride) && Path.IsPathRooted(pathOverride) && Directory.Exists(pathOverride))
             {
@@ -1038,6 +1041,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
                 }
             }
+
+            // Return results
             return resourcePaths;
         }
 
