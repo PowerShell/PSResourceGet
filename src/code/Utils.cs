@@ -997,11 +997,30 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             // Assets
             List<string> resourcePaths = new();
-            string pathOverride = Environment.GetEnvironmentVariable(
-                "PSResourceGetInstallPathOverride",
-                (scope.Value is ScopeType.AllUsers) ? EnvironmentVariableTarget.Machine : EnvironmentVariableTarget.User
-            );
-            // Return override if present, else default paths
+            string pathOverride = string.Empty;
+            // To to get path override
+            try
+            {
+                 pathOverride = Environment.GetEnvironmentVariable(
+                    "PSResourceGetInstallPathOverride",
+                    (scope.Value is ScopeType.AllUsers) ? EnvironmentVariableTarget.Machine : EnvironmentVariableTarget.User
+                );
+            }
+            catch {
+                psCmdlet.WriteVerbose("Path override was not found.");
+            }
+            // Try to resolve path override
+            if (!string.IsNullOrEmpty(pathOverride)) {
+                try
+                {
+                    pathOverride = Path.GetFullPath(pathOverride);
+                }
+                catch
+                {
+                    psCmdlet.WriteVerbose("Path override was found, but could not be resolved to full path.");
+                }
+            }
+            // Return override if present, else use default paths
             if (!string.IsNullOrEmpty(pathOverride) && Directory.Exists(pathOverride))
             {
                 resourcePaths.Add(Path.Combine(pathOverride, "Modules"));
