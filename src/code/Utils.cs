@@ -1008,8 +1008,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     pathOverride = Path.GetFullPath(pathOverride);
                 }
-                catch
+                catch (ArgumentException)
                 {
+                    pathOverride = string.Empty;
                     psCmdlet.WriteVerbose("Path override was found, but could not be resolved to full path.");
                 }
             }
