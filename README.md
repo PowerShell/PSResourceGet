@@ -1,6 +1,7 @@
 # PSResourceGet
 
-> [!NOTE] `PSResourceGet` is short for the full name `Microsoft.PowerShell.PSResourceGet`
+> [!NOTE]
+> `PSResourceGet` is short for the full name `Microsoft.PowerShell.PSResourceGet`
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/PowerShell/PSResourceGet/blob/master/LICENSE)
 [![Documentation - PSResourceGet](https://img.shields.io/badge/Documentation-PowerShellGet-blue.svg)](https://docs.microsoft.com/en-us/powershell/module/powershellget/?view=powershell-7.1)
