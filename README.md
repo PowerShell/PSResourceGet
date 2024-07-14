@@ -39,10 +39,9 @@ Please use the [PowerShell Gallery](https://www.powershellgallery.com) to get th
 
 ### Get the source code
 
-* Download the latest source code from the release page (<https://github.com/PowerShell/PSResourceGet/releases>) OR clone the repository (requires git)
+* Download the latest source code from the release page (<https://github.com/PowerShell/PSResourceGet/releases>) OR clone the repository using git.
   ```powershell
-  PS > $ReposHomePath = [string] [System.IO.Path]::Combine($env:)
-  PS > Set-Location -Path 'C:\Repos'
+  PS > cd 'C:\Repos'
   PS C:\Repos> git clone https://github.com/PowerShell/PSResourceGet
   ```
 * Navigate to the local repository directory
