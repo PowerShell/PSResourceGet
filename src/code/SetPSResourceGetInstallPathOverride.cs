@@ -4,6 +4,8 @@
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
 using System.Collections.Specialized;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
 using System.Runtime.InteropServices;
 
@@ -12,7 +14,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// <summary>
     /// The Set-PSResourceGetInstallPathOverride cmdlet is used to override install path for PS resources.
     /// </summary>
-    [Cmdlet(VerbsCommon.Set,"PSResourceGetInstallPathOverride",SupportsShouldProcess = true)]
+    [Cmdlet(VerbsCommon.Set, "PSResourceGetInstallPathOverride", SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.Medium)]
     [Alias("Update-PSResourceGetInstallPathOverride")]
     [OutputType(typeof(void))]
 
@@ -23,8 +25,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Specifies the desired path for the override.
         /// </summary>
-        [Parameter(Position = 0, ValueFromPipeline = true, Mandatory = true)]
-        public string Path { get; set; }
+        [Parameter(Position = 0, ValueFromPipeline = true, Mandatory = true, HelpMessage = "Path for the override.")]
+        [ValidateNotNullOrEmpty]
+        public string Path
+        {
+            get
+            { return _path; }
+
+            set
+            {
+                if (WildcardPattern.ContainsWildcardCharacters(value))
+                {
+                    throw new PSArgumentException("Wildcard characters are not allowed in the path.");
+                }
+
+                // This will throw if path cannot be resolved
+                _path = GetResolvedProviderPathFromPSPath(
+                    Environment.ExpandEnvironmentVariables(value),
+                    out ProviderInfo provider
+                ).First();
+            }
+        }
+        private string _path;
 
         /// <summary>
         /// Specifies the scope of installation.
@@ -49,46 +71,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     )
                 );
             }
-
-            // Validate path is not null or empty
-            if (string.IsNullOrEmpty(Path)) {
-                ThrowTerminatingError(
-                    new ErrorRecord(
-                        new PSInvalidOperationException($"Error input path is null or empty: '{Path}'"),
-                        "InputPathIsEmpty",
-                        ErrorCategory.InvalidArgument,
-                        this
-                    )
-                );
-            }
-
-            // Validate path is absolute
-            if (!System.IO.Path.IsPathRooted(Path)) {
-                ThrowTerminatingError(
-                    new ErrorRecord(
-                        new PSInvalidOperationException($"Error input path is not rooted / absolute: '{Path}'"),
-                        "InputPathIsNotRooted",
-                        ErrorCategory.InvalidArgument,
-                        this
-                    )
-                );
-            }
-
-            // Validate path can be expanded
-            try {
-                Environment.ExpandEnvironmentVariables(Path);
-            }
-            catch (Exception)
-            {
-                ThrowTerminatingError(
-                    new ErrorRecord(
-                        new PSInvalidOperationException($"Error input path could not be expanded: '{Path}'"),
-                        "InputPathCannotBeExpanded",
-                        ErrorCategory.InvalidArgument,
-                        this
-                    )
-                );
-            }
         }
 
         #endregion
@@ -98,29 +80,68 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         protected override void ProcessRecord()
         {
             // Assets
-            EnvironmentVariableTarget envScope = (Scope is ScopeType.AllUsers) ? EnvironmentVariableTarget.Machine : EnvironmentVariableTarget.User;
+            EnvironmentVariableTarget EnvScope = (Scope is ScopeType.AllUsers) ? EnvironmentVariableTarget.Machine : EnvironmentVariableTarget.User;
 
             // Set env variable for install path override
-            Environment.SetEnvironmentVariable(
+            string PathOverrideCurrentValue = Environment.GetEnvironmentVariable(
                 "PSResourceGetInstallPathOverride",
-                Path,
-                envScope
+                EnvScope
             );
+            if (!String.IsNullOrEmpty(PathOverrideCurrentValue)) {
+                WriteVerbose(
+                    String.Format(
+                        "Current value of PSResourceGetInstallPathOverride in scope '{0}': '{1}'",
+                        EnvScope.ToString(),
+                        PathOverrideCurrentValue
+                    )
+                );
+            }
+            if (
+                !String.IsNullOrEmpty(PathOverrideCurrentValue) &&
+                String.Equals(
+                    Environment.ExpandEnvironmentVariables(PathOverrideCurrentValue),
+                    _path,
+                    StringComparison.Ordinal
+                )
+            )
+            {
+                WriteVerbose(
+                    String.Format(
+                        "PSResourceGetInstallPathOverride in scope '{0}' is already '{1}', no change needed.",
+                        EnvScope.ToString(),
+                        _path
+                    )
+                );
+            }
+            else {
+                Environment.SetEnvironmentVariable(
+                    "PSResourceGetInstallPathOverride",
+                    _path,
+                    EnvScope
+                );
+                WriteVerbose(
+                    String.Format(
+                        "PSResourceGetInstallPathOverride in scope '{0}' was successfully set to: '{1}'",
+                        EnvScope.ToString(),
+                        _path
+                    )
+                );
+            }
 
             // Add install path override to PSModule path
             string PSModulePath = Environment.GetEnvironmentVariable(
                 "PSModulePath",
-                envScope
+                EnvScope
             );
             if (String.IsNullOrEmpty(PSModulePath)) {
-                WriteVerbose(String.Format("PSModulePath in {0} context is empty.", envScope.ToString()));
+                WriteVerbose(String.Format("PSModulePath in {0} context is empty.", EnvScope.ToString()));
                 System.Environment.SetEnvironmentVariable(
                     "PSModulePath",
-                    Path,
-                    envScope
+                    _path,
+                    EnvScope
                 );
             }
-            WriteVerbose(string.Format("Current value of PSModulePath in {0} context: '{1}'", envScope.ToString(), PSModulePath));
+            WriteVerbose(string.Format("Current value of PSModulePath in {0} context: '{1}'", EnvScope.ToString(), PSModulePath));
             StringCollection PSModulePaths = new();
             foreach (string Item in PSModulePath.Trim(';').Split(';')) {
                 try {
@@ -130,25 +151,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     WriteVerbose(string.Format("Will not validate '{0}' as it could not be expanded.", Item));
                 }
             }
-            if (PSModulePaths.Contains(System.Environment.ExpandEnvironmentVariables(Path))) {
-                WriteVerbose(String.Format("Override install path is already in PSModulePath for scope '{0}'", envScope.ToString()));
+            if (PSModulePaths.Contains(_path)) {
+                WriteVerbose(String.Format("Override install path is already in PSModulePath for scope '{0}'", EnvScope.ToString()));
             }
             else {
                 WriteVerbose(
                     String.Format(
                         "Override install path is not already in PSModulePath for scope '{0}'",
-                        envScope.ToString()
+                        EnvScope.ToString()
                     )
                 );
                 System.Environment.SetEnvironmentVariable(
                     "PSModulePath",
-                    String.Format("{0};{1}", Path, PSModulePath),
-                    envScope
+                    String.Format("{0};{1}", _path, PSModulePath),
+                    EnvScope
                 );
                 WriteVerbose(
                     String.Format(
                         "Override install path was successfully added to PSModulePath for scope '{0}'.",
-                        envScope.ToString()
+                        EnvScope.ToString()
                     )
                 );
             }
