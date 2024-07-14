@@ -82,6 +82,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             // Assets
             EnvironmentVariableTarget EnvScope = (Scope is ScopeType.AllUsers) ? EnvironmentVariableTarget.Machine : EnvironmentVariableTarget.User;
+            string PathForModules = System.IO.Path.Combine(_path,"Modules");
+            string PathForScripts = System.IO.Path.Combine(_path,"Scripts");
 
             // Set env variable for install path override
             string PathOverrideCurrentValue = Environment.GetEnvironmentVariable(
@@ -132,47 +134,97 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            // Add install path override to PSModulePath
-            string PSModulePath = Environment.GetEnvironmentVariable(
+            // Add install path override for modules to PSModulePath
+            string CurrentPSModulePath = Environment.GetEnvironmentVariable(
                 "PSModulePath",
                 EnvScope
             );
-            if (String.IsNullOrEmpty(PSModulePath)) {
-                WriteVerbose(String.Format("PSModulePath in {0} context is empty.", EnvScope.ToString()));
-                if (this.ShouldProcess($"Set environment pariable 'PSModulePath' in scope '{EnvScope} to '{_path}"))
+            if (String.IsNullOrEmpty(CurrentPSModulePath)) {
+                WriteVerbose(String.Format("PSModulePath in scope '{0}' is empty.", EnvScope.ToString()));
+                if (this.ShouldProcess($"Set environment pariable 'PSModulePath' in scope '{EnvScope} to '{PathForModules}"))
                 {
                     System.Environment.SetEnvironmentVariable(
                         "PSModulePath",
-                        _path,
+                        PathForModules,
                         EnvScope
                     );
                 }
             }
-            WriteVerbose(string.Format("Current value of PSModulePath in {0} context: '{1}'", EnvScope.ToString(), PSModulePath));
-            StringCollection PSModulePaths = new();
-            foreach (string Item in PSModulePath.Trim(';').Split(';')) {
-                PSModulePaths.Add(System.Environment.ExpandEnvironmentVariables(Item));
+            WriteVerbose(string.Format("Current value of PSModulePath in {0} context: '{1}'", EnvScope.ToString(), CurrentPSModulePath));
+            StringCollection CurrentPSModulePaths = new();
+            foreach (string Item in CurrentPSModulePath.Trim(';').Split(';')) {
+                CurrentPSModulePaths.Add(System.Environment.ExpandEnvironmentVariables(Item));
             }
-            if (PSModulePaths.Contains(_path)) {
-                WriteVerbose(String.Format("Override install path is already in PSModulePath for scope '{0}'", EnvScope.ToString()));
+            if (CurrentPSModulePaths.Contains(PathForModules)) {
+                WriteVerbose(String.Format("PSModulePath in scope '{0}' already contains '{1}', no change needed.", EnvScope.ToString(),PathForModules));
             }
             else {
                 WriteVerbose(
                     String.Format(
-                        "Override install path is not already in PSModulePath for scope '{0}'",
-                        EnvScope.ToString()
+                        "PSModulePath in scope '{0}' does not already contain '{1}'",
+                        EnvScope.ToString(),
+                        PathForModules
                     )
                 );
-                if (this.ShouldProcess($"Add '{_path}' to environment pariable 'PSModulePath' in scope '{EnvScope}"))
+                if (this.ShouldProcess($"Add '{PathForModules}' to environment variable 'PSModulePath' in scope '{EnvScope}"))
                 {
                     System.Environment.SetEnvironmentVariable(
                         "PSModulePath",
-                        String.Format("{0};{1}", _path, PSModulePath),
+                        String.Format("{0};{1}", PathForModules, CurrentPSModulePath),
                         EnvScope
                     );
                     WriteVerbose(
                         String.Format(
-                            "Override install path was successfully added to PSModulePath for scope '{0}'.",
+                            "Successfully added '{0}' to PSModulePath in scope '{1}'",
+                            PathForModules,
+                            EnvScope.ToString()
+                        )
+                    );
+                }
+            }
+
+            // Add install path override for scripts to PATH
+            string CurrentPATH = Environment.GetEnvironmentVariable(
+                "PATH",
+                EnvScope
+            );
+            if (String.IsNullOrEmpty(CurrentPATH)) {
+                WriteVerbose(String.Format("PATH in scope '{0}' is empty.", EnvScope.ToString()));
+                if (this.ShouldProcess($"Set environment pariable 'PATH' in scope '{EnvScope} to '{PathForScripts}"))
+                {
+                    System.Environment.SetEnvironmentVariable(
+                        "PATH",
+                        PathForScripts,
+                        EnvScope
+                    );
+                }
+            }
+            WriteVerbose(string.Format("Current value of PATH in {0} context: '{1}'", EnvScope.ToString(), CurrentPSModulePath));
+            StringCollection CurrentPATHs = new();
+            foreach (string Item in CurrentPATH.Trim(';').Split(';')) {
+                CurrentPATHs.Add(System.Environment.ExpandEnvironmentVariables(Item));
+            }
+            if (CurrentPATHs.Contains(PathForScripts)) {
+                WriteVerbose(String.Format("PATH in scope '{0}' already contains '{1}', no change needed.", EnvScope.ToString(),PathForScripts));
+            }
+            else {
+                WriteVerbose(
+                    String.Format(
+                        "Override install path is not already in Path for scope '{0}'",
+                        EnvScope.ToString()
+                    )
+                );
+                if (this.ShouldProcess($"Add '{PathForScripts}' to environment variable 'PATH' in scope '{EnvScope}"))
+                {
+                    System.Environment.SetEnvironmentVariable(
+                        "PSModulePath",
+                        String.Format("{0};{1}", PathForScripts, CurrentPATH),
+                        EnvScope
+                    );
+                    WriteVerbose(
+                        String.Format(
+                            "Successfully added '{0}' to PATH in scope '{1}'",
+                            PathForScripts,
                             EnvScope.ToString()
                         )
                     );
