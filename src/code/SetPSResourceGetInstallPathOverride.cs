@@ -116,18 +116,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 );
             }
             else {
-                Environment.SetEnvironmentVariable(
-                    "PSResourceGetInstallPathOverride",
-                    _path,
-                    EnvScope
-                );
-                WriteVerbose(
-                    String.Format(
-                        "PSResourceGetInstallPathOverride in scope '{0}' was successfully set to: '{1}'",
-                        EnvScope.ToString(),
-                        _path
-                    )
-                );
+                if (this.ShouldProcess($"Set environment variable PSResourceGetPathOverride in scope '{EnvScope} to '{_path}"))
+                {
+                    Environment.SetEnvironmentVariable(
+                        "PSResourceGetInstallPathOverride",
+                        _path,
+                        EnvScope
+                    );
+                    WriteVerbose(
+                        String.Format(
+                            "PSResourceGetInstallPathOverride in scope '{0}' was successfully set to: '{1}'",
+                            EnvScope.ToString(),
+                            _path
+                        )
+                    );
+                }
             }
 
             // Add install path override to PSModulePath
@@ -137,11 +140,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             );
             if (String.IsNullOrEmpty(PSModulePath)) {
                 WriteVerbose(String.Format("PSModulePath in {0} context is empty.", EnvScope.ToString()));
-                System.Environment.SetEnvironmentVariable(
-                    "PSModulePath",
-                    _path,
-                    EnvScope
-                );
+                if (this.ShouldProcess($"Set environment pariable 'PSModulePath' in scope '{EnvScope} to '{_path}"))
+                {
+                    System.Environment.SetEnvironmentVariable(
+                        "PSModulePath",
+                        _path,
+                        EnvScope
+                    );
+                }
             }
             WriteVerbose(string.Format("Current value of PSModulePath in {0} context: '{1}'", EnvScope.ToString(), PSModulePath));
             StringCollection PSModulePaths = new();
@@ -158,17 +164,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         EnvScope.ToString()
                     )
                 );
-                System.Environment.SetEnvironmentVariable(
-                    "PSModulePath",
-                    String.Format("{0};{1}", _path, PSModulePath),
-                    EnvScope
-                );
-                WriteVerbose(
-                    String.Format(
-                        "Override install path was successfully added to PSModulePath for scope '{0}'.",
-                        EnvScope.ToString()
-                    )
-                );
+                if (this.ShouldProcess($"Add '{_path}' to environment pariable 'PSModulePath' in scope '{EnvScope}"))
+                {
+                    System.Environment.SetEnvironmentVariable(
+                        "PSModulePath",
+                        String.Format("{0};{1}", _path, PSModulePath),
+                        EnvScope
+                    );
+                    WriteVerbose(
+                        String.Format(
+                            "Override install path was successfully added to PSModulePath for scope '{0}'.",
+                            EnvScope.ToString()
+                        )
+                    );
+                }
             }
         }
 
