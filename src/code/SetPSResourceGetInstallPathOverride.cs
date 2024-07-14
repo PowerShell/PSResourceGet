@@ -4,6 +4,7 @@
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
 using System.Management.Automation;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -36,13 +37,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void BeginProcessing()
         {
+            // Only run on Windows for now, due to env variables on Unix being very different
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                ThrowTerminatingError(
+                    new ErrorRecord(
+                        new PSInvalidOperationException($"Error this only works on Windows for now'"),
+                        "PathMissingExpectedSubdirectories",
+                        ErrorCategory.InvalidOperation,
+                        this
+                    )
+                );
+            }
+
             // Validate path is not null or empty
             if (string.IsNullOrEmpty(Path)) {
                 ThrowTerminatingError(
                     new ErrorRecord(
                         new PSInvalidOperationException($"Error input path is null or empty: '{Path}'"),
                         "PathMissingExpectedSubdirectories",
-                        ErrorCategory.InvalidOperation,
+                        ErrorCategory.InvalidArgument,
                         this
                     )
                 );
@@ -54,7 +67,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     new ErrorRecord(
                         new PSInvalidOperationException($"Error input path is not rooted / absolute: '{Path}'"),
                         "PathMissingExpectedSubdirectories",
-                        ErrorCategory.InvalidOperation,
+                        ErrorCategory.InvalidArgument,
                         this
                     )
                 );

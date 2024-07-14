@@ -990,13 +990,46 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return new DirectoryInfo(pkgPath).Parent.Name;
         }
 
-        // Find all potential resource paths
-        public static List<string> GetPathsFromEnvVarAndScope(
+        // Get standard install paths given scope
+        public static List<string> GetStandardPathsForScope(
             PSCmdlet psCmdlet,
             ScopeType? scope)
         {
             // Assets
             List<string> resourcePaths = new();
+
+            // Get standard paths
+            GetStandardPlatformPaths(
+                psCmdlet,
+                out string myDocumentsPath,
+                out string programFilesPath
+            );
+
+            // Add paths to output
+            if (scope.Value is ScopeType.AllUsers)
+            {
+                resourcePaths.Add(Path.Combine(programFilesPath, "Modules"));
+                resourcePaths.Add(Path.Combine(programFilesPath, "Scripts"));
+            }
+            else
+            {
+                resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
+                resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
+            }
+
+            // Return results
+            return resourcePaths;
+        }
+
+        // Find all potential resource paths
+        public static List<string> GetPathsFromEnvVarAndScope(
+            PSCmdlet psCmdlet,
+            ScopeType? scope)
+        {
+            // Path override is only implemented for Windows so far
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                return GetStandardPathsForScope(psCmdlet,scope);
+            }
 
             // Get value of path override environment variable
             string pathOverride = Environment.GetEnvironmentVariable(
@@ -1004,46 +1037,37 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 (scope.Value is ScopeType.AllUsers) ? EnvironmentVariableTarget.Machine : EnvironmentVariableTarget.User
             );
 
-            // Try to expand path override
-            if (!string.IsNullOrEmpty(pathOverride)) {
+            // Return standard paths if no override was found, else try to expand paths found in override
+            if (string.IsNullOrEmpty(pathOverride)) {
+                return GetStandardPathsForScope(psCmdlet,scope);
+            }
+            else {
                 try
                 {
                     pathOverride = Environment.ExpandEnvironmentVariables(pathOverride);
                 }
                 catch (ArgumentException)
                 {
-                    pathOverride = string.Empty;
-                    psCmdlet.WriteVerbose("Path override was found, but could not expand environment variable(s).");
+                    psCmdlet.WriteWarning("Path override was found, but could not expand environment variable(s). Falling back to standard paths.");
+                    return GetStandardPathsForScope(psCmdlet,scope);
                 }
             }
 
             // Return override if present, else use default paths
             if (!string.IsNullOrEmpty(pathOverride) && Path.IsPathRooted(pathOverride) && Directory.Exists(pathOverride))
             {
-                psCmdlet.WriteVerbose(string.Format("Path override was found, using '{0}' as base.",pathOverride));
-                resourcePaths.Add(Path.Combine(pathOverride, "Modules"));
-                resourcePaths.Add(Path.Combine(pathOverride, "Scripts"));
+                psCmdlet.WriteVerbose(string.Format("Path override was found, using '{0}' as base.", pathOverride));
+                // Assets
+                List<string> resourcePaths = new()
+                {
+                    Path.Combine(pathOverride, "Modules"),
+                    Path.Combine(pathOverride, "Scripts")
+                };
+                return resourcePaths;
             }
             else {
-                GetStandardPlatformPaths(
-                    psCmdlet,
-                    out string myDocumentsPath,
-                    out string programFilesPath
-                );
-                if (scope.Value is ScopeType.AllUsers)
-                {
-                    resourcePaths.Add(Path.Combine(programFilesPath, "Modules"));
-                    resourcePaths.Add(Path.Combine(programFilesPath, "Scripts"));
-                }
-                else
-                {
-                    resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
-                    resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
-                }
+                return GetStandardPathsForScope(psCmdlet,scope);
             }
-
-            // Return results
-            return resourcePaths;
         }
 
         public static List<string> GetAllResourcePaths(
