@@ -121,7 +121,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 );
             }
             WriteVerbose(string.Format("Current value of PSModulePath in {0} context: '{1}'", envScope.ToString(), PSModulePath));
-            StringCollection PSModulePaths = new StringCollection();
+            StringCollection PSModulePaths = new();
             foreach (string Item in PSModulePath.Trim(';').Split(';')) {
                 try {
                     PSModulePaths.Add(System.Environment.ExpandEnvironmentVariables(Item));
