@@ -199,7 +199,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     );
                 }
             }
-            WriteVerbose(string.Format("Current value of Path in {0} context: '{1}'", EnvScope.ToString(), CurrentPSModulePath));
+            WriteVerbose(string.Format("Current value of Path in {0} context: '{1}'", EnvScope.ToString(), CurrentPath));
             StringCollection CurrentPaths = new();
             foreach (string Item in CurrentPath.Trim(';').Split(';')) {
                 CurrentPaths.Add(System.Environment.ExpandEnvironmentVariables(Item));
