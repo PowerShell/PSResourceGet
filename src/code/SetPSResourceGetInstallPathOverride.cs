@@ -217,7 +217,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (this.ShouldProcess($"Add '{PathForScripts}' to environment variable 'Path' in scope '{EnvScope}"))
                 {
                     System.Environment.SetEnvironmentVariable(
-                        "PSModulePath",
+                        "Path",
                         String.Format("{0};{1}", PathForScripts, CurrentPath),
                         EnvScope
                     );
