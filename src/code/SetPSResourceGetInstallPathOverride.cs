@@ -30,7 +30,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public string Path
         {
             get
-            { return _path; }
+            {
+                return _path;
+            }
 
             set
             {
