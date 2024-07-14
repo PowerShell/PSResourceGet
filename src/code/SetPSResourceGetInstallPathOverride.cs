@@ -33,15 +33,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region Methods
+        #region Method override - Begin
 
         protected override void BeginProcessing()
         {
             // Only run on Windows for now, due to env variables on Unix being very different
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 ThrowTerminatingError(
                     new ErrorRecord(
-                        new PSInvalidOperationException($"Error this only works on Windows for now'"),
+                        new PSInvalidOperationException($"Error this only works on Windows for now"),
                         "PathMissingExpectedSubdirectories",
                         ErrorCategory.InvalidOperation,
                         this
@@ -74,8 +74,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
         }
 
+        #endregion
+
+        #region Method override - Process
+
         protected override void ProcessRecord()
         {
+            // Assets
+            EnvironmentVariableTarget envScope = (Scope is ScopeType.AllUsers) ? EnvironmentVariableTarget.Machine : EnvironmentVariableTarget.User;
+
+            // Set env variable for install path override
+            Environment.SetEnvironmentVariable(
+                "PSResourceGetInstallPathOverride",
+                Path,
+                envScope
+            );
+
+            // Add install path override to PSModule path
+            string PSModulePath = Environment.GetEnvironmentVariable(
+                "PSModulePath",
+                envScope
+            );
+            WriteVerbose(string.Format("Current value of PSModulePath in {0} context: '{1}'", envScope.ToString(), PSModulePath));
         }
 
         #endregion
