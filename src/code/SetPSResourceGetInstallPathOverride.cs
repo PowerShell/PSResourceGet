@@ -130,7 +130,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 );
             }
 
-            // Add install path override to PSModule path
+            // Add install path override to PSModulePath
             string PSModulePath = Environment.GetEnvironmentVariable(
                 "PSModulePath",
                 EnvScope
