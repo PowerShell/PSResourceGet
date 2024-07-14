@@ -146,12 +146,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WriteVerbose(string.Format("Current value of PSModulePath in {0} context: '{1}'", EnvScope.ToString(), PSModulePath));
             StringCollection PSModulePaths = new();
             foreach (string Item in PSModulePath.Trim(';').Split(';')) {
-                try {
-                    PSModulePaths.Add(System.Environment.ExpandEnvironmentVariables(Item));
-                }
-                catch {
-                    WriteVerbose(string.Format("Will not validate '{0}' as it could not be expanded.", Item));
-                }
+                PSModulePaths.Add(System.Environment.ExpandEnvironmentVariables(Item));
             }
             if (PSModulePaths.Contains(_path)) {
                 WriteVerbose(String.Format("Override install path is already in PSModulePath for scope '{0}'", EnvScope.ToString()));
