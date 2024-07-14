@@ -2,24 +2,24 @@ using System.Net;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Azure.Core;
+using Azure.Identity;
+using Microsoft.PowerShell.Commands;
+using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
-using System.Runtime.InteropServices;
-using Microsoft.PowerShell.Commands;
-using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Net.Http;
-using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Security;
-using Azure.Core;
-using Azure.Identity;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
