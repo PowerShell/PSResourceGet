@@ -3,7 +3,6 @@
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
-using System.Collections.Specialized;
 using System.Linq;
 using System.Management.Automation;
 using System.Runtime.InteropServices;
@@ -143,7 +142,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 WriteVerbose(String.Format("PSModulePath in scope '{0}' is empty.", EnvScope.ToString()));
                 if (this.ShouldProcess($"Set environment pariable 'PSModulePath' in scope '{EnvScope} to '{PathForModules}"))
                 {
-                    System.Environment.SetEnvironmentVariable(
+                    Environment.SetEnvironmentVariable(
                         "PSModulePath",
                         PathForModules,
                         EnvScope
@@ -151,10 +150,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
             WriteVerbose(string.Format("Current value of PSModulePath in {0} context: '{1}'", EnvScope.ToString(), CurrentPSModulePath));
-            StringCollection CurrentPSModulePaths = new();
-            foreach (string Item in CurrentPSModulePath.Trim(';').Split(';')) {
-                CurrentPSModulePaths.Add(System.Environment.ExpandEnvironmentVariables(Item));
-            }
+            string[] CurrentPSModulePaths = CurrentPSModulePath.Trim(';').Split(';').Select(s => Environment.ExpandEnvironmentVariables(s)).ToArray();
             if (CurrentPSModulePaths.Contains(PathForModules)) {
                 WriteVerbose(String.Format("PSModulePath in scope '{0}' already contains '{1}', no change needed.", EnvScope.ToString(),PathForModules));
             }
@@ -168,7 +164,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 );
                 if (this.ShouldProcess($"Add '{PathForModules}' to environment variable 'PSModulePath' in scope '{EnvScope}"))
                 {
-                    System.Environment.SetEnvironmentVariable(
+                    Environment.SetEnvironmentVariable(
                         "PSModulePath",
                         String.Format("{0};{1}", PathForModules, CurrentPSModulePath),
                         EnvScope
@@ -192,7 +188,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 WriteVerbose(String.Format("Path in scope '{0}' is empty.", EnvScope.ToString()));
                 if (this.ShouldProcess($"Set environment pariable 'Path' in scope '{EnvScope} to '{PathForScripts}"))
                 {
-                    System.Environment.SetEnvironmentVariable(
+                    Environment.SetEnvironmentVariable(
                         "Path",
                         PathForScripts,
                         EnvScope
@@ -200,10 +196,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
             WriteVerbose(string.Format("Current value of Path in {0} context: '{1}'", EnvScope.ToString(), CurrentPath));
-            StringCollection CurrentPaths = new();
-            foreach (string Item in CurrentPath.Trim(';').Split(';')) {
-                CurrentPaths.Add(System.Environment.ExpandEnvironmentVariables(Item));
-            }
+            string[] CurrentPaths = CurrentPath.Trim(';').Split(';').Select(s => Environment.ExpandEnvironmentVariables(s)).ToArray();
             if (CurrentPaths.Contains(PathForScripts)) {
                 WriteVerbose(String.Format("Path in scope '{0}' already contains '{1}', no change needed.", EnvScope.ToString(),PathForScripts));
             }
@@ -216,7 +209,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 );
                 if (this.ShouldProcess($"Add '{PathForScripts}' to environment variable 'Path' in scope '{EnvScope}"))
                 {
-                    System.Environment.SetEnvironmentVariable(
+                    Environment.SetEnvironmentVariable(
                         "Path",
                         String.Format("{0};{1}", PathForScripts, CurrentPath),
                         EnvScope
