@@ -4,7 +4,6 @@
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
 using System.Collections.Specialized;
-using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Runtime.InteropServices;
