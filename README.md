@@ -41,7 +41,9 @@ Please use the [PowerShell Gallery](https://www.powershellgallery.com) to get th
 
 * Download the latest source code from the release page (<https://github.com/PowerShell/PSResourceGet/releases>) OR clone the repository (requires git)
   ```powershell
-  git clone https://github.com/PowerShell/PSResourceGet
+  PS > $ReposHomePath = [string] [System.IO.Path]::Combine($env:)
+  PS > Set-Location -Path 'C:\Repos'
+  PS C:\Repos> git clone https://github.com/PowerShell/PSResourceGet
   ```
 * Navigate to the local repository directory
   ```powershell
@@ -73,7 +75,7 @@ Requires the [PSPackageProject](https://www.powershellgallery.com/packages/PSPac
 PS C:\Repos\PSResourceGet> Invoke-PSPackageProjectTest -Type Functional
 ```
 
-* Import the module into a new PowerShell session
+### Import the built module into a new PowerShell session
 
 ```powershell
 # If running PowerShell 6+
