@@ -1,7 +1,7 @@
 # PSResourceGet
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/PowerShell/PSResourceGet/blob/master/LICENSE)
-[![Documentation - PSResourceGet](https://img.shields.io/badge/Documentation-PowerShellGet-blue.svg)](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.psresourceget/?view=powershellget-3.x)
+[![Documentation - PSResourceGet](https://img.shields.io/badge/Documentation-PowerShellGet-blue.svg)](https://learn.microsoft.com/powershell/module/microsoft.powershell.psresourceget)
 [![PowerShell Gallery - PSResourceGet](https://img.shields.io/badge/PowerShell%20Gallery-PSResourceGet-blue.svg)](https://www.powershellgallery.com/packages/Microsoft.PowerShell.PSResourceGet)
 [![Minimum Supported PowerShell Version](https://img.shields.io/badge/PowerShell-5.0-blue.svg)](https://github.com/PowerShell/PSResourceGet)
 
@@ -23,7 +23,7 @@ PSResourceGet is a PowerShell module with commands for discovering, installing, 
 
 ## Documentation
 
-Documentation for PSResourceGet is currently under its old name PowerShellGet v3, please [Click here](https://learn.microsoft.com/en-ca/powershell/module/microsoft.powershell.psresourceget/?view=powershellget-3.x) to reference the documentation.
+Documentation for PSResourceGet is currently under its old name PowerShellGet v3, please [Click here](https://learn.microsoft.com/powershell/module/microsoft.powershell.psresourceget) to reference the documentation.
 
 ## Requirements
 
