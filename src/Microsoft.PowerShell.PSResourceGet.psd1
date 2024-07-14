@@ -21,29 +21,32 @@
         'Get-PSResourceRepository',
         'Get-PSScriptFileInfo',
         'Install-PSResource',
+        'New-PSScriptFileInfo',
+        'Publish-PSResource',
         'Register-PSResourceRepository',
         'Save-PSResource',
+        'Set-PSResourceGetInstallPathOverride',
         'Set-PSResourceRepository',
-        'New-PSScriptFileInfo',
         'Test-PSScriptFileInfo',
-        'Update-PSScriptFileInfo',
-        'Publish-PSResource',
         'Uninstall-PSResource',
         'Unregister-PSResourceRepository',
         'Update-PSModuleManifest',
-        'Update-PSResource'
+        'Update-PSResource',
+        'Update-PSScriptFileInfo'
     )
     FunctionsToExport      = @(
         'Import-PSGetRepository'
     )
-    VariablesToExport = 'PSGetPath'
-    AliasesToExport = @(
+    VariablesToExport      = 'PSGetPath'
+    AliasesToExport        = @(
         'Get-PSResource',
         'fdres',
         'isres',
         'pbres',
-        'udres')
-    PrivateData = @{
+        'Update-PSResourceGetInstallPathOverride',
+        'udres'
+    )
+    PrivateData            = @{
         PSData = @{
             Prerelease   = 'preview1'
             Tags         = @('PackageManagement',
@@ -59,7 +62,7 @@
 
 ### New Features
 
-- Support for Azure Container Registries (#1495, #1497-#1499, #1501, #1502, #1505, #1522, #1545, #1548, #1550, #1554, #1560, #1567, 
+- Support for Azure Container Registries (#1495, #1497-#1499, #1501, #1502, #1505, #1522, #1545, #1548, #1550, #1554, #1560, #1567,
 #1573, #1576, #1587, #1588, #1589, #1594, #1598, #1600, #1602, #1604, #1615)
 
 ### Bug Fixes
@@ -111,7 +114,7 @@
 - Bug fix Artifactory v2 endpoint failures (#1428)
 - Bug fix Artifactory v3 endpoint failures (#1427)
 - Bug fix `-RequiredResource` silent failures (#1426)
-- Bug fix for v2 repository returning extra packages for `-Tag` based search with `-Prerelease` (#1405) 
+- Bug fix for v2 repository returning extra packages for `-Tag` based search with `-Prerelease` (#1405)
 
 ## 0.9.0-rc1
 
@@ -193,7 +196,7 @@
 - Improve error handling in Uninstall-PSResource (#1215)
 - Change resolved paths to use GetResolvedProviderPathFromPSPath (#1209)
 - Bug fix for Get-InstalledPSResource returning type of scripts as module (#1198)
-            
+
 
 ## 0.5.22-beta22
 
