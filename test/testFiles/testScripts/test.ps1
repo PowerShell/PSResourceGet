@@ -1,0 +1,42 @@
+<#PSScriptInfo
+
+.VERSION 1.0.0
+
+.GUID c2700d19-e962-4f5b-ad8a-3ce946f0c002
+
+.AUTHOR chungjustin
+
+.COMPANYNAME 
+
+.COPYRIGHT 
+
+.TAGS 
+
+.LICENSEURI 
+
+.PROJECTURI 
+
+.ICONURI 
+
+.EXTERNALMODULEDEPENDENCIES testModule
+
+.REQUIREDSCRIPTS 
+
+.EXTERNALSCRIPTDEPENDENCIES 
+
+.RELEASENOTES
+
+
+.PRIVATEDATA
+
+
+#>
+
+#Requires -Module testModule
+
+<#
+
+.DESCRIPTION
+test
+
+#>
