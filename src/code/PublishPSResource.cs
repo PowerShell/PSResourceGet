@@ -119,6 +119,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
         }
 
+        [Parameter]
+        [ValidateNotNullOrEmpty]
+        public string NupkgPath { get; set; }
+
+        #endregion
+
+        #region Constructors
+
+        internal PublishPSResource(bool isCompressPSResource, string path, string destinationPath, string resolvedPath)
+        {
+            _isCompressPSResource = isCompressPSResource;
+            Path = path;
+            DestinationPath = destinationPath;
+            this.resolvedPath = resolvedPath;
+        }
+
         #endregion
 
         #region Members
@@ -137,6 +153,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private ResourceType resourceType = ResourceType.None;
         private NetworkCredential _networkCredential;
         string userAgentString = UserAgentInfo.UserAgentString();
+        private readonly bool _isCompressPSResource = false;
+        private bool _isNupkgPathSpecified = false;
 
         #endregion
 
@@ -148,22 +166,384 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             _networkCredential = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
+            if (!string.IsNullOrEmpty(NupkgPath))
+            {
+                _isNupkgPathSpecified = true;
+            }
+
             // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
+            CheckAllParameterPaths();
+        }
+
+        protected override void EndProcessing()
+        {
+            PackAndPush();
+        }
+
+        #endregion
+        
+        #region Methods
+        internal void PackAndPush()
+        {
+            string outputDir = string.Empty;
+            Hashtable parsedMetadata = null;
+
+            if (!_isNupkgPathSpecified)
+            {
+                // Returns the name of the file or the name of the directory, depending on path
+                if (!ShouldProcess(string.Format("Publish resource '{0}' from the machine", resolvedPath)))
+                {
+                    WriteVerbose("ShouldProcess is set to false.");
+                    return;
+                }
+
+                parsedMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
+                if (resourceType == ResourceType.Script)
+                {
+                    if (!PSScriptFileInfo.TryTestPSScriptFileInfo(
+                        scriptFileInfoPath: pathToScriptFileToPublish,
+                        parsedScript: out PSScriptFileInfo scriptToPublish,
+                        out ErrorRecord[] errors,
+                        out string[] _
+                    ))
+                    {
+                        foreach (ErrorRecord error in errors)
+                        {
+                            WriteError(error);
+                        }
+
+                        return;
+                    }
+
+                    parsedMetadata = scriptToPublish.ToHashtable();
+
+                    _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToScriptFileToPublish);
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(pathToModuleManifestToPublish))
+                    {
+                        _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToModuleManifestToPublish);
+                    }
+                    else
+                    {
+                        // Search for module manifest
+                        foreach (FileInfo file in new DirectoryInfo(pathToModuleDirToPublish).EnumerateFiles())
+                        {
+                            if (file.Name.EndsWith(PSDataFileExt, StringComparison.OrdinalIgnoreCase))
+                            {
+                                pathToModuleManifestToPublish = file.FullName;
+                                _pkgName = System.IO.Path.GetFileNameWithoutExtension(file.Name);
+
+                                break;
+                            }
+                        }
+                    }
+
+                    // Validate that there's a module manifest
+                    if (!File.Exists(pathToModuleManifestToPublish))
+                    {
+                        WriteError(new ErrorRecord(
+                            new ArgumentException($"No file with a .psd1 extension was found in '{pathToModuleManifestToPublish}'. Please specify a path to a valid module manifest."),
+                            "moduleManifestNotFound",
+                            ErrorCategory.ObjectNotFound,
+                            this));
+
+                        return;
+                    }
+
+                    // The Test-ModuleManifest currently cannot process UNC paths. Disabling verification for now.
+                    if ((new Uri(pathToModuleManifestToPublish)).IsUnc)
+                        SkipModuleManifestValidate = true;
+                    // Validate that the module manifest has correct data
+                    if (!SkipModuleManifestValidate &&
+                        !Utils.ValidateModuleManifest(pathToModuleManifestToPublish, out string errorMsg))
+                    {
+                        ThrowTerminatingError(new ErrorRecord(
+                            new PSInvalidOperationException(errorMsg),
+                            "InvalidModuleManifest",
+                            ErrorCategory.InvalidOperation,
+                            this));
+                    }
+
+                    if (!Utils.TryReadManifestFile(
+                        manifestFilePath: pathToModuleManifestToPublish,
+                        manifestInfo: out parsedMetadata,
+                        error: out Exception manifestReadError))
+                    {
+                        WriteError(new ErrorRecord(
+                            manifestReadError,
+                            "ManifestFileReadParseForContainerRegistryPublishError",
+                            ErrorCategory.ReadError,
+                            this));
+
+                        return;
+                    }
+                }
+
+                // Create a temp folder to push the nupkg to and delete it later
+                outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+                try
+                {
+                    Directory.CreateDirectory(outputDir);
+                }
+                catch (Exception e)
+                {
+                    WriteError(new ErrorRecord(
+                        new ArgumentException(e.Message),
+                        "ErrorCreatingTempDir",
+                        ErrorCategory.InvalidData,
+                        this));
+
+                    return;
+                }
+            }
+
             try
             {
-                resolvedPath = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider).First();
+                PSRepositoryInfo repository = null;
+                string outputNupkgDir = string.Empty;
+                Hashtable dependencies = null;
+                string nuspec = string.Empty;
+
+                if (!_isNupkgPathSpecified)
+                {
+                    // Create a nuspec
+                    try
+                    {
+                        nuspec = CreateNuspec(
+                            outputDir: outputDir,
+                            filePath: (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish,
+                            parsedMetadataHash: parsedMetadata,
+                            requiredModules: out dependencies);
+                    }
+                    catch (Exception e)
+                    {
+                        WriteError(new ErrorRecord(
+                            new ArgumentException($"Nuspec creation failed: {e.Message}"),
+                            "NuspecCreationFailed",
+                            ErrorCategory.ObjectNotFound,
+                            this));
+
+                        return;
+                    }
+
+                    if (string.IsNullOrEmpty(nuspec))
+                    {
+                        // nuspec creation failed.
+                        WriteVerbose("Nuspec creation failed.");
+                        return;
+                    }
+                }
+                
+                if (!_isCompressPSResource)
+                {
+                    repository = RepositorySettings.Read(new[] { Repository }, out string[] _).FirstOrDefault();
+                    // Find repository
+                    if (repository == null)
+                    {
+                        WriteError(new ErrorRecord(
+                            new ArgumentException($"The resource repository '{Repository}' is not a registered. Please run 'Register-PSResourceRepository' in order to publish to this repository."),
+                            "RepositoryNotFound",
+                            ErrorCategory.ObjectNotFound,
+                            this));
+
+                        return;
+                    }
+                    else if (repository.Uri.Scheme == Uri.UriSchemeFile && !repository.Uri.IsUnc && !Directory.Exists(repository.Uri.LocalPath))
+                    {
+                        // this check to ensure valid local path is not for UNC paths (which are server based, instead of Drive based)
+                        WriteError(new ErrorRecord(
+                            new ArgumentException($"The repository '{repository.Name}' with uri: '{repository.Uri.AbsoluteUri}' is not a valid folder path which exists. If providing a file based repository, provide a repository with a path that exists."),
+                            "repositoryPathDoesNotExist",
+                            ErrorCategory.ObjectNotFound,
+                            this));
+
+                        return;
+                    }
+
+                    _networkCredential = Utils.SetNetworkCredential(repository, _networkCredential, this);
+
+                    // Check if dependencies already exist within the repo if:
+                    // 1) the resource to publish has dependencies and
+                    // 2) the -SkipDependenciesCheck flag is not passed in
+                    if (dependencies != null && !SkipDependenciesCheck)
+                    {
+                        // If error gets thrown, exit process record
+                        if (!CheckDependenciesExist(dependencies, repository.Name))
+                        {
+                            return;
+                        }
+                    }
+                }
+
+                if(!_isNupkgPathSpecified)
+                { 
+                    if (resourceType == ResourceType.Script)
+                    {
+                        // copy the script file to the temp directory
+                        File.Copy(pathToScriptFileToPublish, System.IO.Path.Combine(outputDir, _pkgName + PSScriptFileExt), true);
+                    }
+                    else
+                    {
+                        try
+                        {
+                            // If path is pointing to a file, get the parent directory, otherwise assumption is that path is pointing to the root directory
+                            string rootModuleDir = !string.IsNullOrEmpty(pathToModuleManifestToPublish) ? System.IO.Path.GetDirectoryName(pathToModuleManifestToPublish) : pathToModuleDirToPublish;
+
+                            // Create subdirectory structure in temp folder
+                            foreach (string dir in Directory.GetDirectories(rootModuleDir, "*", SearchOption.AllDirectories))
+                            {
+                                var dirName = dir.Substring(rootModuleDir.Length).Trim(_PathSeparators);
+                                Directory.CreateDirectory(System.IO.Path.Combine(outputDir, dirName));
+                            }
+
+                            // Copy files over to temp folder
+                            foreach (string fileNamePath in Directory.GetFiles(rootModuleDir, "*", SearchOption.AllDirectories))
+                            {
+                                var fileName = fileNamePath.Substring(rootModuleDir.Length).Trim(_PathSeparators);
+                                var newFilePath = System.IO.Path.Combine(outputDir, fileName);
+
+                                // The user may have a .nuspec defined in the module directory
+                                // If that's the case, we will not use that file and use the .nuspec that is generated via PSGet
+                                // The .nuspec that is already in in the output directory is the one that was generated via the CreateNuspec method
+                                if (!File.Exists(newFilePath))
+                                {
+                                    File.Copy(fileNamePath, newFilePath);
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            ThrowTerminatingError(new ErrorRecord(
+                                new ArgumentException("Error occured while creating directory to publish: " + e.Message),
+                                "ErrorCreatingDirectoryToPublish",
+                                ErrorCategory.InvalidOperation,
+                                this));
+                        }
+                    }
+
+                    if (!_isCompressPSResource)
+                    {
+                        outputNupkgDir = System.IO.Path.Combine(outputDir, "nupkg");
+                    }
+                    else
+                    {
+                        outputNupkgDir = DestinationPath;
+                    }
+
+                    // pack into .nupkg
+                    if (!PackNupkg(outputDir, outputNupkgDir, nuspec, out ErrorRecord packNupkgError))
+                    {
+                        WriteError(packNupkgError);
+                        // exit out of processing
+                        return;
+                    }
+
+                }
+
+                if (!_isCompressPSResource)
+                {
+                    // If -DestinationPath is specified then also publish the .nupkg there
+                    if (!string.IsNullOrWhiteSpace(DestinationPath))
+                    {
+                        if (!Directory.Exists(DestinationPath))
+                        {
+                            WriteError(new ErrorRecord(
+                                new ArgumentException($"Destination path does not exist: '{DestinationPath}'"),
+                                "InvalidDestinationPath",
+                                ErrorCategory.InvalidArgument,
+                                this));
+
+                            return;
+                        }
+
+                        if (!_isNupkgPathSpecified)
+                        {
+                            try
+                            {
+                                var nupkgName = _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg";
+                                File.Copy(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(DestinationPath, nupkgName));
+                            }
+                            catch (Exception e)
+                            {
+                                WriteError(new ErrorRecord(
+                                    new ArgumentException($"Error moving .nupkg into destination path '{DestinationPath}' due to: '{e.Message}'."),
+                                    "ErrorMovingNupkg",
+                                    ErrorCategory.NotSpecified,
+                                    this));
+
+                                // exit process record
+                                return;
+                            }
+                        }
+                    }
+
+                    string repositoryUri = repository.Uri.AbsoluteUri;
+
+                    if (repository.ApiVersion == PSRepositoryInfo.APIVersion.ContainerRegistry)
+                    {
+                        ContainerRegistryServerAPICalls containerRegistryServer = new ContainerRegistryServerAPICalls(repository, this, _networkCredential, userAgentString);
+
+                        var pkgMetadataFile = (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish;
+                        if (!containerRegistryServer.PushNupkgContainerRegistry(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, resourceType, parsedMetadata, dependencies, out ErrorRecord pushNupkgContainerRegistryError))
+                        {
+                            WriteError(pushNupkgContainerRegistryError);
+                            // exit out of processing
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        // This call does not throw any exceptions, but it will write unsuccessful responses to the console
+                        if (!PushNupkg(outputNupkgDir, repository.Name, repository.Uri.ToString(), out ErrorRecord pushNupkgError))
+                        {
+                            WriteError(pushNupkgError);
+                            // exit out of processing
+                            return;
+                        }
+                    }
+                }
             }
-            catch (MethodInvocationException)
+            catch (Exception e)
             {
-                // path does not exist
                 ThrowTerminatingError(new ErrorRecord(
-                    new ArgumentException("The path to the resource to publish does not exist, point to an existing path or file of the module or script to publish."),
-                    "SourcePathDoesNotExist",
-                    ErrorCategory.InvalidArgument,
-                    this));
+                            e,
+                            "PublishPSResourceError",
+                            ErrorCategory.NotSpecified,
+                            this));
+            }
+            finally
+            {
+                if (!_isCompressPSResource)
+                {
+                    WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
+                }
+
+                Utils.DeleteDirectory(outputDir);
+            }
+        }
+
+        internal void CheckAllParameterPaths()
+        {
+            if (!_isCompressPSResource)
+            {
+                try
+                {
+                    resolvedPath = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider).First();
+                }
+                catch (MethodInvocationException)
+                {
+                    // path does not exist
+                    ThrowTerminatingError(new ErrorRecord(
+                        new ArgumentException("The path to the resource to publish does not exist, point to an existing path or file of the module or script to publish."),
+                        "SourcePathDoesNotExist",
+                        ErrorCategory.InvalidArgument,
+                        this));
+                }
             }
 
             // Condition 1: path is to the root directory of the module to be published
@@ -193,7 +573,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 pathToScriptFileToPublish = resolvedPath;
                 resourceType = ResourceType.Script;
             }
-            else {
+            else
+            {
                 ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException($"The publish path provided, '{resolvedPath}', is not a valid. Please provide a path to the root module " +
                         "(i.e. './<ModuleToPublish>/') or path to the .psd1 (i.e. './<ModuleToPublish>/<ModuleToPublish>.psd1')."),
@@ -202,348 +583,45 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this));
             }
 
-            if (!String.IsNullOrEmpty(DestinationPath))
+            if (!_isCompressPSResource)
             {
-                string resolvedDestinationPath = GetResolvedProviderPathFromPSPath(DestinationPath, out ProviderInfo provider).First();
+                if (!String.IsNullOrEmpty(DestinationPath))
+                {
+                    string resolvedDestinationPath = GetResolvedProviderPathFromPSPath(DestinationPath, out ProviderInfo provider).First();
 
-                if (Directory.Exists(resolvedDestinationPath))
-                {
-                    DestinationPath = resolvedDestinationPath;
-                }
-                else
-                {
-                    try
+                    if (Directory.Exists(resolvedDestinationPath))
                     {
-                        Directory.CreateDirectory(resolvedDestinationPath);
+                        DestinationPath = resolvedDestinationPath;
                     }
-                    catch (Exception e)
+                    else
                     {
-                        ThrowTerminatingError(new ErrorRecord(
-                            new ArgumentException($"Destination path does not exist and cannot be created: {e.Message}"),
-                            "InvalidDestinationPath",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                        try
+                        {
+                            Directory.CreateDirectory(resolvedDestinationPath);
+                        }
+                        catch (Exception e)
+                        {
+                            ThrowTerminatingError(new ErrorRecord(
+                                new ArgumentException($"Destination path does not exist and cannot be created: {e.Message}"),
+                                "InvalidDestinationPath",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                        }
                     }
                 }
             }
         }
 
-        protected override void EndProcessing()
-        {
-            // Returns the name of the file or the name of the directory, depending on path
-            if (!ShouldProcess(string.Format("Publish resource '{0}' from the machine", resolvedPath)))
-            {
-                WriteVerbose("ShouldProcess is set to false.");
-                return;
-            }
-
-            Hashtable parsedMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
-            if (resourceType == ResourceType.Script)
-            {
-                if (!PSScriptFileInfo.TryTestPSScriptFileInfo(
-                    scriptFileInfoPath: pathToScriptFileToPublish,
-                    parsedScript: out PSScriptFileInfo scriptToPublish,
-                    out ErrorRecord[] errors,
-                    out string[] _
-                ))
-                {
-                    foreach (ErrorRecord error in errors)
-                    {
-                        WriteError(error);
-                    }
-
-                    return;
-                }
-
-                parsedMetadata = scriptToPublish.ToHashtable();
-
-                _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToScriptFileToPublish);
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(pathToModuleManifestToPublish))
-                {
-                    _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToModuleManifestToPublish);
-                }
-                else {
-                    // Search for module manifest
-                    foreach (FileInfo file in new DirectoryInfo(pathToModuleDirToPublish).EnumerateFiles())
-                    {
-                        if (file.Name.EndsWith(PSDataFileExt, StringComparison.OrdinalIgnoreCase))
-                        {
-                            pathToModuleManifestToPublish = file.FullName;
-                            _pkgName = System.IO.Path.GetFileNameWithoutExtension(file.Name);
-
-                            break;
-                        }
-                    }
-                }
-
-                // Validate that there's a module manifest
-                if (!File.Exists(pathToModuleManifestToPublish))
-                {
-                    WriteError(new ErrorRecord(
-                        new ArgumentException($"No file with a .psd1 extension was found in '{pathToModuleManifestToPublish}'. Please specify a path to a valid module manifest."),
-                        "moduleManifestNotFound",
-                        ErrorCategory.ObjectNotFound,
-                        this));
-
-                    return;
-                }
-
-				// The Test-ModuleManifest currently cannot process UNC paths. Disabling verification for now.
-				if ((new Uri(pathToModuleManifestToPublish)).IsUnc)
-					SkipModuleManifestValidate = true;
-                // Validate that the module manifest has correct data
-                if (! SkipModuleManifestValidate &&
-                    ! Utils.ValidateModuleManifest(pathToModuleManifestToPublish, out string errorMsg))
-                {
-                    ThrowTerminatingError(new ErrorRecord(
-                        new PSInvalidOperationException(errorMsg),
-                        "InvalidModuleManifest",
-                        ErrorCategory.InvalidOperation,
-                        this));
-                }
-
-                if (!Utils.TryReadManifestFile(
-                    manifestFilePath: pathToModuleManifestToPublish,
-                    manifestInfo: out parsedMetadata,
-                    error: out Exception manifestReadError))
-                {
-                    WriteError(new ErrorRecord(
-                        manifestReadError,
-                        "ManifestFileReadParseForContainerRegistryPublishError",
-                        ErrorCategory.ReadError,
-                        this));
-
-                    return;
-                }
-            }
-
-            // Create a temp folder to push the nupkg to and delete it later
-            string outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
-            try
-            {
-                Directory.CreateDirectory(outputDir);
-            }
-            catch (Exception e)
-            {
-                WriteError(new ErrorRecord(
-                    new ArgumentException(e.Message),
-                    "ErrorCreatingTempDir",
-                    ErrorCategory.InvalidData,
-                    this));
-
-                return;
-            }
-
-            try
-            {
-                // Create a nuspec
-                Hashtable dependencies;
-                string nuspec = string.Empty;
-                try
-                {
-                    nuspec = CreateNuspec(
-                        outputDir: outputDir,
-                        filePath: (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish,
-                        parsedMetadataHash: parsedMetadata,
-                        requiredModules: out dependencies);
-                }
-                catch (Exception e)
-                {
-                    WriteError(new ErrorRecord(
-                        new ArgumentException($"Nuspec creation failed: {e.Message}"),
-                        "NuspecCreationFailed",
-                        ErrorCategory.ObjectNotFound,
-                        this));
-
-                    return;
-                }
-
-                if (string.IsNullOrEmpty(nuspec))
-                {
-                    // nuspec creation failed.
-                    WriteVerbose("Nuspec creation failed.");
-                    return;
-                }
-
-                // Find repository
-                PSRepositoryInfo repository = RepositorySettings.Read(new[] { Repository }, out string[] _).FirstOrDefault();
-                if (repository == null)
-                {
-                    WriteError(new ErrorRecord(
-                        new ArgumentException($"The resource repository '{Repository}' is not a registered. Please run 'Register-PSResourceRepository' in order to publish to this repository."),
-                        "RepositoryNotFound",
-                        ErrorCategory.ObjectNotFound,
-                        this));
-
-                    return;
-                }
-                else if(repository.Uri.Scheme == Uri.UriSchemeFile && !repository.Uri.IsUnc && !Directory.Exists(repository.Uri.LocalPath))
-                {
-                    // this check to ensure valid local path is not for UNC paths (which are server based, instead of Drive based)
-                    WriteError(new ErrorRecord(
-                        new ArgumentException($"The repository '{repository.Name}' with uri: '{repository.Uri.AbsoluteUri}' is not a valid folder path which exists. If providing a file based repository, provide a repository with a path that exists."),
-                        "repositoryPathDoesNotExist",
-                        ErrorCategory.ObjectNotFound,
-                        this));
-
-                    return;
-                }
-
-                _networkCredential = Utils.SetNetworkCredential(repository, _networkCredential, this);
-
-                // Check if dependencies already exist within the repo if:
-                // 1) the resource to publish has dependencies and
-                // 2) the -SkipDependenciesCheck flag is not passed in
-                if (dependencies != null && !SkipDependenciesCheck)
-                {
-                    // If error gets thrown, exit process record
-                    if (!CheckDependenciesExist(dependencies, repository.Name))
-                    {
-                        return;
-                    }
-                }
-
-                if (resourceType == ResourceType.Script)
-                {
-                    // copy the script file to the temp directory
-                    File.Copy(pathToScriptFileToPublish, System.IO.Path.Combine(outputDir, _pkgName + PSScriptFileExt), true);
-                }
-                else
-                {
-                    try
-                    {
-                        // If path is pointing to a file, get the parent directory, otherwise assumption is that path is pointing to the root directory
-                        string rootModuleDir = !string.IsNullOrEmpty(pathToModuleManifestToPublish) ? System.IO.Path.GetDirectoryName(pathToModuleManifestToPublish) : pathToModuleDirToPublish;
-
-                        // Create subdirectory structure in temp folder
-                        foreach (string dir in Directory.GetDirectories(rootModuleDir, "*", SearchOption.AllDirectories))
-                        {
-                            var dirName = dir.Substring(rootModuleDir.Length).Trim(_PathSeparators);
-                            Directory.CreateDirectory(System.IO.Path.Combine(outputDir, dirName));
-                        }
-
-                        // Copy files over to temp folder
-                        foreach (string fileNamePath in Directory.GetFiles(rootModuleDir, "*", SearchOption.AllDirectories))
-                        {
-                            var fileName = fileNamePath.Substring(rootModuleDir.Length).Trim(_PathSeparators);
-                            var newFilePath = System.IO.Path.Combine(outputDir, fileName);
-
-                            // The user may have a .nuspec defined in the module directory
-                            // If that's the case, we will not use that file and use the .nuspec that is generated via PSGet
-                            // The .nuspec that is already in in the output directory is the one that was generated via the CreateNuspec method
-                            if (!File.Exists(newFilePath))
-                            {
-                                File.Copy(fileNamePath, newFilePath);
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                       ThrowTerminatingError(new ErrorRecord(
-                           new ArgumentException("Error occured while creating directory to publish: " + e.Message),
-                           "ErrorCreatingDirectoryToPublish",
-                           ErrorCategory.InvalidOperation,
-                           this));
-                    }
-                }
-
-                var outputNupkgDir = System.IO.Path.Combine(outputDir, "nupkg");
-
-                // pack into .nupkg
-                if (!PackNupkg(outputDir, outputNupkgDir, nuspec, out ErrorRecord packNupkgError))
-                {
-                    WriteError(packNupkgError);
-                    // exit out of processing
-                    return;
-                }
-
-                // If -DestinationPath is specified then also publish the .nupkg there
-                if (!string.IsNullOrWhiteSpace(DestinationPath))
-                {
-                    if (!Directory.Exists(DestinationPath))
-                    {
-                        WriteError(new ErrorRecord(
-                            new ArgumentException($"Destination path does not exist: '{DestinationPath}'"),
-                            "InvalidDestinationPath",
-                            ErrorCategory.InvalidArgument,
-                            this));
-
-                        return;
-                    }
-
-                    try
-                    {
-                        var nupkgName = _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg";
-                        File.Copy(System.IO.Path.Combine(outputNupkgDir, nupkgName), System.IO.Path.Combine(DestinationPath, nupkgName));
-                    }
-                    catch (Exception e)
-                    {
-                        WriteError(new ErrorRecord(
-                            new ArgumentException($"Error moving .nupkg into destination path '{DestinationPath}' due to: '{e.Message}'."),
-                            "ErrorMovingNupkg",
-                            ErrorCategory.NotSpecified,
-                            this));
-
-                        // exit process record
-                        return;
-                    }
-                }
-
-                string repositoryUri = repository.Uri.AbsoluteUri;
-
-                if (repository.ApiVersion == PSRepositoryInfo.APIVersion.ContainerRegistry)
-                {
-                    ContainerRegistryServerAPICalls containerRegistryServer = new ContainerRegistryServerAPICalls(repository, this, _networkCredential, userAgentString);
-
-                    var pkgMetadataFile = (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish;
-                    if (!containerRegistryServer.PushNupkgContainerRegistry(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, resourceType, parsedMetadata, dependencies, out ErrorRecord pushNupkgContainerRegistryError))
-                    {
-                        WriteError(pushNupkgContainerRegistryError);
-                        // exit out of processing
-                        return;
-                    }
-                }
-                else
-                {
-                    // This call does not throw any exceptions, but it will write unsuccessful responses to the console
-                    if (!PushNupkg(outputNupkgDir, repository.Name, repository.Uri.ToString(), out ErrorRecord pushNupkgError))
-                    {
-                        WriteError(pushNupkgError);
-                        // exit out of processing
-                        return;
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                ThrowTerminatingError(new ErrorRecord(
-                            e,
-                            "PublishPSResourceError",
-                            ErrorCategory.NotSpecified,
-                            this));
-            }
-            finally
-            {
-                WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
-
-                Utils.DeleteDirectory(outputDir);
-            }
-
-        }
-        #endregion
-
-        #region Private methods
-
-        private string CreateNuspec(
+        internal string CreateNuspec(
             string outputDir,
             string filePath,
             Hashtable parsedMetadataHash,
             out Hashtable requiredModules)
         {
-            WriteDebug("In PublishPSResource::CreateNuspec()");
+            if (!_isCompressPSResource)
+            {
+                WriteDebug("In PublishPSResource::CreateNuspec()");
+            }
             bool isModule = resourceType != ResourceType.Script;
             requiredModules = new Hashtable();
 
@@ -805,14 +883,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var nuspecFullName = System.IO.Path.Combine(outputDir, _pkgName + ".nuspec");
             doc.Save(nuspecFullName);
 
-            WriteVerbose("The newly created nuspec is: " + nuspecFullName);
+            if (!_isCompressPSResource)
+            {
+                WriteVerbose("The newly created nuspec is: " + nuspecFullName);
+            }
 
             return nuspecFullName;
         }
 
         private Hashtable ParseRequiredModules(Hashtable parsedMetadataHash)
         {
-            WriteDebug("In PublishPSResource::ParseRequiredModules()");
+            if(!_isCompressPSResource)
+            {
+                WriteDebug("In PublishPSResource::ParseRequiredModules()");
+            }
             if (!parsedMetadataHash.ContainsKey("requiredmodules"))
             {
                 return null;
@@ -868,7 +952,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private bool CheckDependenciesExist(Hashtable dependencies, string repositoryName)
         {
-            WriteDebug("In PublishPSResource::CheckDependenciesExist()");
+            if (!_isCompressPSResource)
+            {
+                WriteDebug("In PublishPSResource::CheckDependenciesExist()");
+            }
             // Check to see that all dependencies are in the repository
             // Searches for each dependency in the repository the pkg is being pushed to,
             // If the dependency is not there, error
@@ -915,9 +1002,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return true;
         }
 
-        private bool PackNupkg(string outputDir, string outputNupkgDir, string nuspecFile, out ErrorRecord error)
+        internal bool PackNupkg(string outputDir, string outputNupkgDir, string nuspecFile, out ErrorRecord error)
         {
-            WriteDebug("In PublishPSResource::PackNupkg()");
+            if (!_isCompressPSResource)
+            {
+                WriteDebug("In PublishPSResource::PackNupkg()");
+            }
             // Pack the module or script into a nupkg given a nuspec.
             var builder = new PackageBuilder();
             try
@@ -938,7 +1028,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (success)
                 {
-                    WriteVerbose("Successfully packed the resource into a .nupkg");
+                    if (!_isCompressPSResource)
+                    {
+                        WriteVerbose("Successfully packed the resource into a .nupkg");
+                    }
                 }
                 else
                 {
