@@ -49,6 +49,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
+        #region Members
+
+        private PSResourceHelper _psResourceHelper;
+
+        #endregion
+
         #region Method Overrides
 
         protected override void BeginProcessing()
