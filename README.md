@@ -8,7 +8,7 @@
 ## Important Notes
 
 > [!NOTE]
-> `PSResourceGet` is short for the full name `Microsoft.PowerShell.PSResourceGet`, which is what you'll see in the [PowerShell Gallery](https://www.powershellgallery.com/packages/Microsoft.PowerShell.PSResourceGet) and when using the module inside PowerShell.
+> `PSResourceGet` is short for the full name of the module, `Microsoft.PowerShell.PSResourceGet`.  The full name is what is used in PowerShell and when published to the [PowerShell Gallery](https://www.powershellgallery.com/packages/Microsoft.PowerShell.PSResourceGet).
 
 * If you were familiar with the PowerShellGet 3.0 project, we renamed the module to be PSResourceGet, for more information please read [this blog](https://devblogs.microsoft.com/powershell/powershellget-in-powershell-7-4-updates/).
 * If you would like to open a PR please open an issue first so that necessary discussion can take place.
@@ -23,7 +23,7 @@ PSResourceGet is a PowerShell module with commands for discovering, installing, 
 
 ## Documentation
 
-Documentation for PSResourceGet is currently under its old name PowerShellGet v3, please [Click here](https://learn.microsoft.com/powershell/module/microsoft.powershell.psresourceget) to reference the documentation.
+[Click here](https://learn.microsoft.com/powershell/module/microsoft.powershell.psresourceget) to reference the documentation.
 
 ## Requirements
 
@@ -61,26 +61,26 @@ PS C:\Repos\PSResourceGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -
 ```
 
 ### Publish the module to a local repository
+=======
+* Run functional tests
 
 ```powershell
-PS C:\Repos\PSResourceGet> .\build.ps1 -Publish
+PS C:\Repos\PSResourceGet> Invoke-Pester
 ```
 
-### Run functional tests
-
-Requires the [PSPackageProject](https://www.powershellgallery.com/packages/PSPackageProject) module.
-
 ```powershell
-PS C:\Repos\PSResourceGet> Invoke-PSPackageProjectTest -Type Functional
+PS C:\Repos\PSResourceGet> Invoke-Pester <file-name>
 ```
 
 ### Import the built module into a new PowerShell session
 
 ```powershell
 # If running PowerShell 6+
+C:\> pwsh
 C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet
 
 # If running Windows PowerShell
+c:\> PowerShell
 C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet\PSResourceGet.psd1
 ```
 
