@@ -21,6 +21,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     {
         #region Parameters
 
+        private const string PathParameterSet = "PathParameterSet";
+        private const string NupkgPathParameterSet = "NupkgPathParameterSet";
+
         /// <summary>
         /// Specifies the API key that you want to use to publish a module to the online gallery.
         /// </summary>
@@ -40,7 +43,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Specifies the path to the resource that you want to publish. This parameter accepts the path to the folder that contains the resource.
         /// Specifies a path to one or more locations. Wildcards are permitted. The default location is the current directory (.).
         /// </summary>
-        [Parameter (Mandatory = true, Position = 0, HelpMessage = "Path to the resource to be published.")]
+        [Parameter (Mandatory = true, Position = 0, ParameterSetName = PathParameterSet, HelpMessage = "Path to the resource to be published.")]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
 
@@ -109,7 +112,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
         }
 
-        [Parameter]
+        [Parameter(Mandatory = true, ParameterSetName = NupkgPathParameterSet, HelpMessage = "Path to the resource to be published.")]
         [ValidateNotNullOrEmpty]
         public string NupkgPath { get; set; }
 
@@ -135,6 +138,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!string.IsNullOrEmpty(NupkgPath))
             {
                 _isNupkgPathSpecified = true;
+                Path = NupkgPath;
             }
 
             // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
