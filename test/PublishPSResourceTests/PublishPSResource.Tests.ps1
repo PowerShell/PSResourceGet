@@ -571,7 +571,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
 
     It "should write error and not publish script when Author property is missing" {
-        Wait-Debugger
         $scriptName = "InvalidScriptMissingAuthor.ps1"
         $scriptVersion = "1.0.0"
 
