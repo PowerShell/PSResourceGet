@@ -118,11 +118,62 @@ Describe "Test Compress-PSResource" -tags 'CI' {
     It "Compress-PSResource compresses a module into a nupkg and saves it to the DestinationPath" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
-
-        Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:destinationPath
-
-        $expectedPath = Join-Path -Path $script:destinationPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-
-        (Get-ChildItem $script:destinationPath).FullName | Should -Be $expectedPath
+        
+        Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath
+        
+        $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
+
+    It "Compress a module using -Path positional parameter and -Destination positional parameter" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Compress-PSResource $script:PublishModuleBase $script:repositoryPath
+
+        $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
+    }
+
+    It "Compress-PSResource compresses a module and preserves file structure" {
+        $version = "1.0.0"
+        $testFile = Join-Path -Path "TestSubDirectory" -ChildPath "TestSubDirFile.ps1"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+        New-Item -Path (Join-Path -Path $script:PublishModuleBase -ChildPath $testFile) -Force
+
+        Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath
+
+        # Must change .nupkg to .zip so that Expand-Archive can work on Windows PowerShell
+        $nupkgPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
+        $zipPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.zip"
+        Rename-Item -Path $nupkgPath -NewName $zipPath 
+        $unzippedPath = Join-Path -Path $TestDrive -ChildPath "$script:PublishModuleName"
+        New-Item $unzippedPath -Itemtype directory -Force
+        Expand-Archive -Path $zipPath -DestinationPath $unzippedPath
+
+        Test-Path -Path (Join-Path -Path $unzippedPath -ChildPath $testFile) | Should -Be $True
+    }
+<# Test for Signing the nupkg. Signing doesn't work
+    It "Compressed Module is able to be signed with a certificate" {
+		$version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+		Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath2
+		
+		$expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
+		(Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+
+        # create test cert
+        # Create a self-signed certificate for code signing
+        $testCert = New-SelfSignedCertificate -Subject "CN=NuGet Test Developer, OU=Use for testing purposes ONLY" -FriendlyName "NuGetTestDeveloper" -Type CodeSigning -KeyUsage DigitalSignature -KeyLength 2048 -KeyAlgorithm RSA -HashAlgorithm SHA256 -Provider "Microsoft Enhanced RSA and AES Cryptographic Provider" -CertStoreLocation "Cert:\CurrentUser\My"
+        
+        # sign the nupkg
+        $nupkgPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
+        Set-AuthenticodeSignature -FilePath $nupkgPath -Certificate $testCert
+
+        # Verify the file was signed
+        $signature = Get-AuthenticodeSignature -FilePath $nupkgPath
+        $signature.Status | Should -Be 'Valid'
+	}
+    #>
 }
