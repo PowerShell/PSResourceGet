@@ -58,6 +58,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string ApiKey;
         private bool SkipModuleManifestValidate = true;
         private string outputDir = string.Empty;
+        internal bool ScriptError = false;
 
         #endregion
 
@@ -119,11 +120,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             _cmdlet.WriteError(error);
                         }
 
+                        ScriptError = true;
+
                         return;
                     }
 
                     parsedMetadata = scriptToPublish.ToHashtable();
-
+                    
                     _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToScriptFileToPublish);
             }
             else

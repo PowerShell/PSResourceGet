@@ -165,6 +165,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 _psResourceHelper.PackResource();
             }
 
+            if (_psResourceHelper.ScriptError)
+            {
+                return;
+            }
+
             _psResourceHelper.PushResource(Repository, SkipDependenciesCheck, _networkCredential);
         }
 
