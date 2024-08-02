@@ -193,23 +193,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
-                // Create a temp folder to push the nupkg to and delete it later
-                outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
-                
-                try
-                {
-                    Directory.CreateDirectory(outputDir);
-                }
-                catch (Exception e)
-                {
-                    _cmdlet.WriteError(new ErrorRecord(
-                        new ArgumentException(e.Message),
-                        "ErrorCreatingTempDir",
-                        ErrorCategory.InvalidData,
-                        this._cmdlet));
+            }
 
-                    return;
-                }
+            // Create a temp folder to push the nupkg to and delete it later
+            outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+            try
+            {
+                Directory.CreateDirectory(outputDir);
+            }
+            catch (Exception e)
+            {
+                _cmdlet.WriteError(new ErrorRecord(
+                    new ArgumentException(e.Message),
+                    "ErrorCreatingTempDir",
+                    ErrorCategory.InvalidData,
+                    this._cmdlet));
+
+                return;
             }
 
             try
