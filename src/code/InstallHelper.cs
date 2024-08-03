@@ -803,6 +803,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
             pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
             if (pkgVersion == null) {
+                // Not all NuGet providers (e.g. Artifactory, possibly others) send NormalizedVersion in NuGet package responses.
+                // If they don't, we need to manually construct the combined version+prerelease from pkgToInstall.Version and the prerelease string.
                 pkgVersion = pkgToInstall.Version.ToString();
                 if (!String.IsNullOrEmpty(pkgToInstall.Prerelease)) {
                     pkgVersion += $"-{pkgToInstall.Prerelease}";
