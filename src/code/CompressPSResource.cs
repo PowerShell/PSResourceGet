@@ -15,7 +15,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     [Cmdlet(VerbsData.Compress,
         "PSResource",
         SupportsShouldProcess = true)]
-    [Alias("cmpres")]
+    [Alias("cmres")]
     public sealed class CompressPSResource : PSCmdlet
     {
         #region Parameters
