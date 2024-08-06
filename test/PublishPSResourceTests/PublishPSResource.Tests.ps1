@@ -338,7 +338,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
      # These parameters are not going in the current release, but is open for discussion to include in the future.
 
     It "Publish a module with -Nuspec" {
-        Wait-Debugger
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1"
         # Create nuspec

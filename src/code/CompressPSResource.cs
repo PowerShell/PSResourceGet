@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
-using System;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
@@ -15,7 +14,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     [Cmdlet(VerbsData.Compress,
         "PSResource",
         SupportsShouldProcess = true)]
-    [Alias("cmpres")]
+    [Alias("cmres")]
     public sealed class CompressPSResource : PSCmdlet
     {
         #region Parameters
