@@ -32,15 +32,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Specifies the path where the compressed resource (as a .nupkg file) should be saved.
         /// This parameter allows you to save the package to a specified location on the local file system.
         /// </summary>
-        [Parameter]
+        [Parameter(Mandatory = true, Position = 1, HelpMessage = "Path to save the compressed resource.")]
         [ValidateNotNullOrEmpty]
         public string DestinationPath { get; set; }
+
+        /// <summary>
+        /// Bypasses validating a resource module manifest before publishing.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter SkipModuleManifestValidate { get; set; }
 
         #endregion
 
         #region Members
 
-        private PSResourceHelper _psResourceHelper;
+        private PublishHelper _publishHelper;
 
         #endregion
 
@@ -52,17 +58,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
-            _psResourceHelper = new PSResourceHelper(
+            _publishHelper = new PublishHelper(
                 this,
                 Path,
-                DestinationPath);
+                DestinationPath,
+                SkipModuleManifestValidate);
 
-            _psResourceHelper.CheckAllParameterPaths();
+            _publishHelper.CheckAllParameterPaths();
         }
 
         protected override void EndProcessing()
         {
-            _psResourceHelper.PackResource();
+            _publishHelper.PackResource();
         }
 
         #endregion

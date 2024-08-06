@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
-using NuGet.Versioning;
 using System;
 using System.Management.Automation;
 using System.Net;
@@ -123,7 +122,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private CancellationToken _cancellationToken;
         private NetworkCredential _networkCredential;
         private bool _isNupkgPathSpecified = false;
-        private PSResourceHelper _psResourceHelper;
+        private PublishHelper _publishHelper;
 
         #endregion
 
@@ -145,7 +144,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
-            _psResourceHelper = new PSResourceHelper(
+            _publishHelper = new PublishHelper(
                 this, 
                 Credential, 
                 ApiKey, 
@@ -155,22 +154,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 _cancellationToken,
                 _isNupkgPathSpecified);
 
-            _psResourceHelper.CheckAllParameterPaths();
+            _publishHelper.CheckAllParameterPaths();
         }
 
         protected override void EndProcessing()
         {
             if (!_isNupkgPathSpecified)
             {
-                _psResourceHelper.PackResource();
+                _publishHelper.PackResource();
             }
 
-            if (_psResourceHelper.ScriptError)
+            if (_publishHelper.ScriptError || !_publishHelper.ShouldProcess)
             {
                 return;
             }
 
-            _psResourceHelper.PushResource(Repository, SkipDependenciesCheck, _networkCredential);
+            _publishHelper.PushResource(Repository, SkipDependenciesCheck, _networkCredential);
         }
 
         #endregion
