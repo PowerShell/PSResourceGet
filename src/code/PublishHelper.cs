@@ -17,7 +17,7 @@ using System.Xml;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
-	internal class PSResourceHelper
+	internal class PublishHelper
     {
         #region Enums
         internal enum CallerCmdlet
@@ -32,6 +32,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private readonly CallerCmdlet _callerCmdlet;
         private readonly PSCmdlet _cmdlet;
+        private readonly string _cmdOperation;
         private readonly string Path;
         private string DestinationPath;
         private string resolvedPath;
@@ -56,23 +57,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private PSCredential Credential;
         private string outputNupkgDir;
         private string ApiKey;
-        private bool SkipModuleManifestValidate = true;
+        private bool SkipModuleManifestValidate = false;
         private string outputDir = string.Empty;
         internal bool ScriptError = false;
+        internal bool ShouldProcess = true;
 
         #endregion
 
         #region Constructors
 
-        internal PSResourceHelper(PSCmdlet cmdlet, string path, string destinationPath)
+        internal PublishHelper(PSCmdlet cmdlet, string path, string destinationPath, bool skipModuleManifestValidate)
         {
             _callerCmdlet = CallerCmdlet.CompressPSResource;
+            _cmdOperation = "Compress";
             _cmdlet = cmdlet;
             Path = path;
             DestinationPath = destinationPath;
+            SkipModuleManifestValidate = skipModuleManifestValidate;
+            outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+            outputNupkgDir = destinationPath;
         }
 
-        internal PSResourceHelper(PSCmdlet cmdlet, 
+        internal PublishHelper(PSCmdlet cmdlet, 
             PSCredential credential, 
             string apiKey, 
             string path, 
@@ -82,6 +88,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool isNupkgPathSpecified)
         {
             _callerCmdlet = CallerCmdlet.PublishPSResource;
+            _cmdOperation = "Publish";
             _cmdlet = cmdlet;
             Credential = credential;
             ApiKey = apiKey;
@@ -90,18 +97,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             SkipModuleManifestValidate = skipModuleManifestValidate;
             _cancellationToken = cancellationToken;
             _isNupkgPathSpecified = isNupkgPathSpecified;
+            outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+            outputNupkgDir = System.IO.Path.Combine(outputDir, "nupkg");
         }
 
         #endregion
 
-        #region Public Methods
+        #region Internal Methods
 
         internal void PackResource() 
         {
             // Returns the name of the file or the name of the directory, depending on path
-            if (!_cmdlet.ShouldProcess(string.Format("{0} '{1}' from the machine", _callerCmdlet, resolvedPath)))
+            if (!_cmdlet.ShouldProcess(string.Format("'{0}' from the machine", resolvedPath)))
             {
                 _cmdlet.WriteVerbose("ShouldProcess is set to false.");
+                ShouldProcess = false;
                 return;
             }
 
@@ -162,11 +172,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
-                if (_callerCmdlet == CallerCmdlet.CompressPSResource)
-                {
-                    SkipModuleManifestValidate = true;
-                }
-
                 // The Test-ModuleManifest currently cannot process UNC paths. Disabling verification for now.
                 if ((new Uri(pathToModuleManifestToPublish)).IsUnc)
                     SkipModuleManifestValidate = true;
@@ -199,7 +204,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // Create a temp folder to push the nupkg to and delete it later
-            outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
             try
             {
                 Directory.CreateDirectory(outputDir);
@@ -288,15 +292,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             ErrorCategory.InvalidOperation,
                             this._cmdlet));
                     }
-                }
-
-                if (_callerCmdlet == CallerCmdlet.PublishPSResource)
-                {
-                    outputNupkgDir = System.IO.Path.Combine(outputDir, "nupkg");
-                }
-                else
-                {
-                    outputNupkgDir = DestinationPath;
                 }
 
                 // pack into .nupkg
@@ -465,7 +460,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 // path does not exist
                 _cmdlet.ThrowTerminatingError(new ErrorRecord(
-                    new ArgumentException("The path to the resource to publish does not exist, point to an existing path or file of the module or script to publish."),
+                    new ArgumentException($"The path to the resource to {_cmdOperation.ToLower()} does not exist, point to an existing path or file of the module or script to {_cmdOperation.ToLower()}."),
                     "SourcePathDoesNotExist",
                     ErrorCategory.InvalidArgument,
                     this._cmdlet));
@@ -477,9 +472,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 // unsupported file path
                 _cmdlet.ThrowTerminatingError(new ErrorRecord(
-                    new ArgumentException("The path to the resource to publish is not in the correct format or does not exist. Please provide the path of the root module " +
-                        "(i.e. './<ModuleToPublish>/') or the path to the .psd1 (i.e. './<ModuleToPublish>/<ModuleToPublish>.psd1')."),
-                    "InvalidPublishPath",
+                    new ArgumentException($"The path to the resource to {_cmdOperation.ToLower()} is not in the correct format or does not exist. Please provide the path of the root module " +
+                        $"(i.e. './<ModuleTo{_cmdOperation}>/') or the path to the .psd1 (i.e. './<ModuleTo{_cmdOperation}>/<ModuleTo{_cmdOperation}>.psd1')."),
+                    $"Invalid{_cmdOperation}Path",
                     ErrorCategory.InvalidArgument,
                     this._cmdlet));
             }
@@ -498,7 +493,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 pathToScriptFileToPublish = resolvedPath;
                 resourceType = ResourceType.Script;
             }
-            else if (resolvedPath.EndsWith(NupkgFileExt, StringComparison.OrdinalIgnoreCase))
+            else if (resolvedPath.EndsWith(NupkgFileExt, StringComparison.OrdinalIgnoreCase) && _isNupkgPathSpecified)
             {
                 pathToNupkgToPublish = resolvedPath;
                 resourceType = ResourceType.Nupkg;
@@ -506,9 +501,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             else
             {
                 _cmdlet.ThrowTerminatingError(new ErrorRecord(
-                    new ArgumentException($"The publish path provided, '{resolvedPath}', is not a valid. Please provide a path to the root module " +
-                        "(i.e. './<ModuleToPublish>/') or path to the .psd1 (i.e. './<ModuleToPublish>/<ModuleToPublish>.psd1')."),
-                    "InvalidPublishPath",
+                    new ArgumentException($"The {_cmdOperation.ToLower()} path provided, '{resolvedPath}', is not a valid. Please provide a path to the root module " +
+                        $"(i.e. './<ModuleTo{_cmdOperation}>/') or path to the .psd1 (i.e. './<ModuleTo{_cmdOperation}>/<ModuleTo{_cmdOperation}>.psd1')."),
+                    $"Invalid{_cmdOperation}Path",
                     ErrorCategory.InvalidArgument,
                     this._cmdlet));
             }
@@ -545,7 +540,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private bool PackNupkg(string outputDir, string outputNupkgDir, string nuspecFile, out ErrorRecord error)
         {
-            _cmdlet.WriteDebug("In PublishPSResource::PackNupkg()");
+            _cmdlet.WriteDebug($"In {_callerCmdlet}::PackNupkg()");
             // Pack the module or script into a nupkg given a nuspec.
             var builder = new PackageBuilder();
             try
@@ -830,7 +825,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Hashtable parsedMetadataHash,
             out Hashtable requiredModules)
         {
-            _cmdlet.WriteDebug("In PublishPSResource::CreateNuspec()");
+            _cmdlet.WriteDebug($"In {_callerCmdlet}::CreateNuspec()");
 
             bool isModule = resourceType != ResourceType.Script;
             requiredModules = new Hashtable();
@@ -1101,7 +1096,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private Hashtable ParseRequiredModules(Hashtable parsedMetadataHash)
         {
-            _cmdlet.WriteDebug("In PublishPSResource::ParseRequiredModules()");
+            _cmdlet.WriteDebug($"In {_callerCmdlet}::ParseRequiredModules()");
            
             if (!parsedMetadataHash.ContainsKey("requiredmodules"))
             {
@@ -1161,7 +1156,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private bool CheckDependenciesExist(Hashtable dependencies, string repositoryName)
         {
-            _cmdlet.WriteDebug("In PublishPSResource::CheckDependenciesExist()");
+            _cmdlet.WriteDebug($"In {_callerCmdlet}::CheckDependenciesExist()");
             
             // Check to see that all dependencies are in the repository
             // Searches for each dependency in the repository the pkg is being pushed to,
@@ -1198,14 +1193,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
                     _cmdlet.WriteError(new ErrorRecord(
-                        new ArgumentException($"Dependency '{depName}' was not found in repository '{repositoryName}'.  Make sure the dependency is published to the repository before publishing this module."),
+                        new ArgumentException($"Dependency '{depName}' was not found in repository '{repositoryName}'.  Make sure the dependency is published to the repository before {_cmdOperation.ToLower()} this module."),
                         "DependencyNotFound",
                         ErrorCategory.ObjectNotFound,
                         this._cmdlet));
 
                     return false;
                 }
+
             }
+
             return true;
         }
 
