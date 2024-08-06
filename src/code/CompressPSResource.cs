@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
-using System;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
@@ -40,7 +39,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Members
 
-        private PSResourceHelper _psResourceHelper;
+        private PSResourceHelper _publishHelper Helper;
 
         #endregion
 
@@ -52,17 +51,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
-            _psResourceHelper = new PSResourceHelper(
+            _publishHelper = new PSResourceHelper(
                 this,
                 Path,
                 DestinationPath);
 
-            _psResourceHelper.CheckAllParameterPaths();
+            _publishHelper.CheckAllParameterPaths();
         }
 
         protected override void EndProcessing()
         {
-            _psResourceHelper.PackResource();
+            _publishHelper.PackResource();
         }
 
         #endregion
