@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
-using System;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
