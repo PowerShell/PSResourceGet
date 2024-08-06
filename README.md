@@ -65,25 +65,25 @@ PS C:\Repos\PSResourceGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -
 PS C:\Repos\PSResourceGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework netstandard2.0
 ```
 
-* Publish the module to a local repository
-
-```powershell
-PS C:\Repos\PSResourceGet> .\build.ps1 -Publish
-```
-
 * Run functional tests
 
 ```powershell
-PS C:\Repos\PSResourceGet> Invoke-PSPackageProjectTest -Type Functional
+PS C:\Repos\PSResourceGet> Invoke-Pester
+```
+
+```powershell
+PS C:\Repos\PSResourceGet> Invoke-Pester <file-name>
 ```
 
 * Import the module into a new PowerShell session
 
 ```powershell
 # If running PowerShell 6+
+C:\> pwsh
 C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet
 
 # If running Windows PowerShell
+c:\> PowerShell
 C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet\PSResourceGet.psd1
 ```
 
