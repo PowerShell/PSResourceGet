@@ -331,7 +331,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         # Pass the nupkg via -NupkgPath
         Publish-PSResource -NupkgPath $expectedPath -Repository $testRepository2
         $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
-        Get-ChildItem $script:repositoryPath2 | Should -Be $expectedPath
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
     }
 
     <# The following tests are related to passing in parameters to customize a nuspec.
@@ -567,6 +567,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
+
+        Remove-Item -Path $scriptPath
     }
 
     It "should write error and not publish script when Author property is missing" {
