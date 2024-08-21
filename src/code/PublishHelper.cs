@@ -1,4 +1,4 @@
-﻿using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using NuGet.Commands;
 using NuGet.Common;
 using NuGet.Configuration;
@@ -306,7 +306,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 _cmdlet.ThrowTerminatingError(new ErrorRecord(
                     e,
-                    $"{_callerCmdlet}Error",
+                    $"{this.GetType()}Error",
                     ErrorCategory.NotSpecified,
                     this._cmdlet));
             }
@@ -540,7 +540,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private bool PackNupkg(string outputDir, string outputNupkgDir, string nuspecFile, out ErrorRecord error)
         {
-            _cmdlet.WriteDebug($"In {_callerCmdlet}::PackNupkg()");
+            _cmdlet.WriteDebug("In PublishHelper::PackNupkg()");
             // Pack the module or script into a nupkg given a nuspec.
             var builder = new PackageBuilder();
             try
@@ -825,7 +825,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Hashtable parsedMetadataHash,
             out Hashtable requiredModules)
         {
-            _cmdlet.WriteDebug($"In {_callerCmdlet}::CreateNuspec()");
+            _cmdlet.WriteDebug("In PublishHelper::CreateNuspec()");
 
             bool isModule = resourceType != ResourceType.Script;
             requiredModules = new Hashtable();
@@ -1096,7 +1096,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private Hashtable ParseRequiredModules(Hashtable parsedMetadataHash)
         {
-            _cmdlet.WriteDebug($"In {_callerCmdlet}::ParseRequiredModules()");
+            _cmdlet.WriteDebug("In PublishHelper::ParseRequiredModules()");
            
             if (!parsedMetadataHash.ContainsKey("requiredmodules"))
             {
@@ -1156,7 +1156,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private bool CheckDependenciesExist(Hashtable dependencies, string repositoryName)
         {
-            _cmdlet.WriteDebug($"In {_callerCmdlet}::CheckDependenciesExist()");
+            _cmdlet.WriteDebug("In PublishHelper::CheckDependenciesExist()");
             
             // Check to see that all dependencies are in the repository
             // Searches for each dependency in the repository the pkg is being pushed to,
