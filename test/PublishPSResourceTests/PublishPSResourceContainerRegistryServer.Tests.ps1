@@ -511,6 +511,4 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
     }
-
-
 }
