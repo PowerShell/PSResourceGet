@@ -1,0 +1,42 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{159E704F-A6AE-48B3-9DA2-1CC0F9B58FAD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.PowerShell.PSResourceGet", "src\code\Microsoft.PowerShell.PSResourceGet.csproj", "{F364A75D-0F6D-4366-8BAC-3BFCADB3A0F8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{15ED7378-15F9-4EF8-B148-54BD2922D80D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "perf", "perf", "{7388DA6F-F752-462F-82D3-B3B6A19E1CC3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "benchmarks", "test\perf\benchmarks\benchmarks.csproj", "{9D965A5B-1460-426C-9FD4-87032EE7FA5A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F364A75D-0F6D-4366-8BAC-3BFCADB3A0F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F364A75D-0F6D-4366-8BAC-3BFCADB3A0F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F364A75D-0F6D-4366-8BAC-3BFCADB3A0F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F364A75D-0F6D-4366-8BAC-3BFCADB3A0F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9D965A5B-1460-426C-9FD4-87032EE7FA5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D965A5B-1460-426C-9FD4-87032EE7FA5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D965A5B-1460-426C-9FD4-87032EE7FA5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D965A5B-1460-426C-9FD4-87032EE7FA5A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F364A75D-0F6D-4366-8BAC-3BFCADB3A0F8} = {159E704F-A6AE-48B3-9DA2-1CC0F9B58FAD}
+		{7388DA6F-F752-462F-82D3-B3B6A19E1CC3} = {15ED7378-15F9-4EF8-B148-54BD2922D80D}
+		{9D965A5B-1460-426C-9FD4-87032EE7FA5A} = {7388DA6F-F752-462F-82D3-B3B6A19E1CC3}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {80B4FBC8-5D69-4ACD-ABFC-09E1A8F451DC}
+	EndGlobalSection
+EndGlobal
