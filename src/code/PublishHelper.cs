@@ -31,7 +31,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         #region Members
 
         private readonly CallerCmdlet _callerCmdlet;
-        private readonly PSCmdlet _cmdlet;
+        private readonly PSCmdlet _cmdletPassedIn;
         private readonly string _cmdOperation;
         private readonly string Path;
         private string DestinationPath;
@@ -70,7 +70,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _callerCmdlet = CallerCmdlet.CompressPSResource;
             _cmdOperation = "Compress";
-            _cmdlet = cmdlet;
+            _cmdletPassedIn = cmdlet;
             Path = path;
             DestinationPath = destinationPath;
             SkipModuleManifestValidate = skipModuleManifestValidate;
@@ -89,7 +89,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _callerCmdlet = CallerCmdlet.PublishPSResource;
             _cmdOperation = "Publish";
-            _cmdlet = cmdlet;
+            _cmdletPassedIn = cmdlet;
             Credential = credential;
             ApiKey = apiKey;
             Path = path;
@@ -108,9 +108,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         internal void PackResource() 
         {
             // Returns the name of the file or the name of the directory, depending on path
-            if (!_cmdlet.ShouldProcess(string.Format("'{0}' from the machine", resolvedPath)))
+            if (!_cmdletPassedIn.ShouldProcess(string.Format("'{0}' from the machine", resolvedPath)))
             {
-                _cmdlet.WriteVerbose("ShouldProcess is set to false.");
+                _cmdletPassedIn.WriteVerbose("ShouldProcess is set to false.");
                 ShouldProcess = false;
                 return;
             }
@@ -127,7 +127,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         foreach (ErrorRecord error in errors)
                         {
-                            _cmdlet.WriteError(error);
+                            _cmdletPassedIn.WriteError(error);
                         }
 
                         ScriptError = true;
@@ -163,11 +163,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Validate that there's a module manifest
                 if (!File.Exists(pathToModuleManifestToPublish))
                 {
-                    _cmdlet.WriteError(new ErrorRecord(
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
                         new ArgumentException($"No file with a .psd1 extension was found in '{pathToModuleManifestToPublish}'. Please specify a path to a valid module manifest."),
                         "moduleManifestNotFound",
                         ErrorCategory.ObjectNotFound,
-                        this._cmdlet));
+                        this));
 
                     return;
                 }
@@ -180,11 +180,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (!SkipModuleManifestValidate &&
                     !Utils.ValidateModuleManifest(pathToModuleManifestToPublish, out string errorMsg))
                 {
-                    _cmdlet.ThrowTerminatingError(new ErrorRecord(
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                         new PSInvalidOperationException(errorMsg),
                         "InvalidModuleManifest",
                         ErrorCategory.InvalidOperation,
-                        this._cmdlet));
+                        this));
                 }
 
                 if (!Utils.TryReadManifestFile(
@@ -192,11 +192,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     manifestInfo: out parsedMetadata,
                     error: out Exception manifestReadError))
                 {
-                    _cmdlet.WriteError(new ErrorRecord(
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
                         manifestReadError,
                         "ManifestFileReadParseForContainerRegistryPublishError",
                         ErrorCategory.ReadError,
-                        this._cmdlet));
+                        this));
 
                     return;
                 }
@@ -210,11 +210,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                _cmdlet.WriteError(new ErrorRecord(
+                _cmdletPassedIn.WriteError(new ErrorRecord(
                     new ArgumentException(e.Message),
                     "ErrorCreatingTempDir",
                     ErrorCategory.InvalidData,
-                    this._cmdlet));
+                    this));
 
                 return;
             }
@@ -234,11 +234,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 catch (Exception e)
                 {
-                    _cmdlet.WriteError(new ErrorRecord(
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
                         new ArgumentException($"Nuspec creation failed: {e.Message}"),
                         "NuspecCreationFailed",
                         ErrorCategory.ObjectNotFound,
-                        this._cmdlet));
+                        this));
 
                     return;
                 }
@@ -246,7 +246,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (string.IsNullOrEmpty(nuspec))
                 {
                     // nuspec creation failed.
-                    _cmdlet.WriteVerbose("Nuspec creation failed.");
+                    _cmdletPassedIn.WriteVerbose("Nuspec creation failed.");
                     return;
                 }
 
@@ -286,35 +286,35 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                     catch (Exception e)
                     {
-                        _cmdlet.ThrowTerminatingError(new ErrorRecord(
+                        _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                             new ArgumentException("Error occured while creating directory to publish: " + e.Message),
                             "ErrorCreatingDirectoryToPublish",
                             ErrorCategory.InvalidOperation,
-                            this._cmdlet));
+                            this));
                     }
                 }
 
                 // pack into .nupkg
                 if (!PackNupkg(outputDir, outputNupkgDir, nuspec, out ErrorRecord packNupkgError))
                 {
-                    _cmdlet.WriteError(packNupkgError);
+                    _cmdletPassedIn.WriteError(packNupkgError);
                     // exit out of processing
                     return;
                 }
             }
             catch (Exception e)
             {
-                _cmdlet.ThrowTerminatingError(new ErrorRecord(
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                     e,
                     $"{this.GetType()}Error",
                     ErrorCategory.NotSpecified,
-                    this._cmdlet));
+                    this));
             }
             finally
             {
                 if(_callerCmdlet == CallerCmdlet.CompressPSResource)
                 {
-                    _cmdlet.WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
+                    _cmdletPassedIn.WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
                     Utils.DeleteDirectory(outputDir);
                 }
             }
@@ -328,27 +328,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Find repository
                 if (repository == null)
                 {
-                    _cmdlet.WriteError(new ErrorRecord(
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
                         new ArgumentException($"The resource repository '{Repository}' is not a registered. Please run 'Register-PSResourceRepository' in order to publish to this repository."),
                         "RepositoryNotFound",
                         ErrorCategory.ObjectNotFound,
-                        this._cmdlet));
+                        this));
 
                     return;
                 }
                 else if (repository.Uri.Scheme == Uri.UriSchemeFile && !repository.Uri.IsUnc && !Directory.Exists(repository.Uri.LocalPath))
                 {
                     // this check to ensure valid local path is not for UNC paths (which are server based, instead of Drive based)
-                    _cmdlet.WriteError(new ErrorRecord(
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
                         new ArgumentException($"The repository '{repository.Name}' with uri: '{repository.Uri.AbsoluteUri}' is not a valid folder path which exists. If providing a file based repository, provide a repository with a path that exists."),
                         "repositoryPathDoesNotExist",
                         ErrorCategory.ObjectNotFound,
-                        this._cmdlet));
+                        this));
 
                     return;
                 }
 
-                _networkCredential = Utils.SetNetworkCredential(repository, _networkCredential, this._cmdlet);
+                _networkCredential = Utils.SetNetworkCredential(repository, _networkCredential, _cmdletPassedIn);
 
                 // Check if dependencies already exist within the repo if:
                 // 1) the resource to publish has dependencies and
@@ -367,11 +367,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     if (!Directory.Exists(DestinationPath))
                     {
-                        _cmdlet.WriteError(new ErrorRecord(
+                        _cmdletPassedIn.WriteError(new ErrorRecord(
                             new ArgumentException($"Destination path does not exist: '{DestinationPath}'"),
                             "InvalidDestinationPath",
                             ErrorCategory.InvalidArgument,
-                            this._cmdlet));
+                            this));
 
                         return;
                     }
@@ -391,11 +391,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                         catch (Exception e)
                         {
-                            _cmdlet.WriteError(new ErrorRecord(
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
                                 new ArgumentException($"Error moving .nupkg into destination path '{DestinationPath}' due to: '{e.Message}'."),
                                 "ErrorMovingNupkg",
                                 ErrorCategory.NotSpecified,
-                                this._cmdlet));
+                                this));
 
                             // exit process record
                             return;
@@ -407,12 +407,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (repository.ApiVersion == PSRepositoryInfo.APIVersion.ContainerRegistry)
                 {
-                    ContainerRegistryServerAPICalls containerRegistryServer = new ContainerRegistryServerAPICalls(repository, this._cmdlet, _networkCredential, userAgentString);
+                    ContainerRegistryServerAPICalls containerRegistryServer = new ContainerRegistryServerAPICalls(repository, _cmdletPassedIn, _networkCredential, userAgentString);
 
                     var pkgMetadataFile = (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish;
                     if (!containerRegistryServer.PushNupkgContainerRegistry(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, resourceType, parsedMetadata, dependencies, out ErrorRecord pushNupkgContainerRegistryError))
                     {
-                        _cmdlet.WriteError(pushNupkgContainerRegistryError);
+                        _cmdletPassedIn.WriteError(pushNupkgContainerRegistryError);
                         // exit out of processing
                         return;
                     }
@@ -426,7 +426,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // This call does not throw any exceptions, but it will write unsuccessful responses to the console
                     if (!PushNupkg(outputNupkgDir, repository.Name, repository.Uri.ToString(), out ErrorRecord pushNupkgError))
                     {
-                        _cmdlet.WriteError(pushNupkgError);
+                        _cmdletPassedIn.WriteError(pushNupkgError);
                         // exit out of processing
                         return;
                     }
@@ -434,17 +434,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                _cmdlet.ThrowTerminatingError(new ErrorRecord(
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                             e,
                             "PublishPSResourceError",
                             ErrorCategory.NotSpecified,
-                            this._cmdlet));
+                            this));
             }
             finally
             {
                 if (!_isNupkgPathSpecified)
                 {
-                    _cmdlet.WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
+                    _cmdletPassedIn.WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
                     Utils.DeleteDirectory(outputDir);
                 }
             }
@@ -454,16 +454,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             try
             {
-                resolvedPath = _cmdlet.GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider).First();
+                resolvedPath = _cmdletPassedIn.GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider).First();
             }
             catch (MethodInvocationException)
             {
                 // path does not exist
-                _cmdlet.ThrowTerminatingError(new ErrorRecord(
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException($"The path to the resource to {_cmdOperation.ToLower()} does not exist, point to an existing path or file of the module or script to {_cmdOperation.ToLower()}."),
                     "SourcePathDoesNotExist",
                     ErrorCategory.InvalidArgument,
-                    this._cmdlet));
+                    this));
             }
 
             // Condition 1: path is to the root directory of the module to be published
@@ -471,12 +471,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (string.IsNullOrEmpty(resolvedPath))
             {
                 // unsupported file path
-                _cmdlet.ThrowTerminatingError(new ErrorRecord(
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException($"The path to the resource to {_cmdOperation.ToLower()} is not in the correct format or does not exist. Please provide the path of the root module " +
                         $"(i.e. './<ModuleTo{_cmdOperation}>/') or the path to the .psd1 (i.e. './<ModuleTo{_cmdOperation}>/<ModuleTo{_cmdOperation}>.psd1')."),
                     $"Invalid{_cmdOperation}Path",
                     ErrorCategory.InvalidArgument,
-                    this._cmdlet));
+                    this));
             }
             else if (Directory.Exists(resolvedPath))
             {
@@ -500,17 +500,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                _cmdlet.ThrowTerminatingError(new ErrorRecord(
+                _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException($"The {_cmdOperation.ToLower()} path provided, '{resolvedPath}', is not a valid. Please provide a path to the root module " +
                         $"(i.e. './<ModuleTo{_cmdOperation}>/') or path to the .psd1 (i.e. './<ModuleTo{_cmdOperation}>/<ModuleTo{_cmdOperation}>.psd1')."),
                     $"Invalid{_cmdOperation}Path",
                     ErrorCategory.InvalidArgument,
-                    this._cmdlet));
+                    this));
             }
 
             if (!String.IsNullOrEmpty(DestinationPath))
             {
-                string resolvedDestinationPath = _cmdlet.GetResolvedProviderPathFromPSPath(DestinationPath, out ProviderInfo provider).First();
+                string resolvedDestinationPath = _cmdletPassedIn.GetResolvedProviderPathFromPSPath(DestinationPath, out ProviderInfo provider).First();
 
                 if (Directory.Exists(resolvedDestinationPath))
                 {
@@ -524,11 +524,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                     catch (Exception e)
                     {
-                        _cmdlet.ThrowTerminatingError(new ErrorRecord(
+                        _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                             new ArgumentException($"Destination path does not exist and cannot be created: {e.Message}"),
                             "InvalidDestinationPath",
                             ErrorCategory.InvalidArgument,
-                            this._cmdlet));
+                            this));
                     }
                 }
             }
@@ -540,7 +540,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private bool PackNupkg(string outputDir, string outputNupkgDir, string nuspecFile, out ErrorRecord error)
         {
-            _cmdlet.WriteDebug("In PublishHelper::PackNupkg()");
+            _cmdletPassedIn.WriteDebug("In PublishHelper::PackNupkg()");
             // Pack the module or script into a nupkg given a nuspec.
             var builder = new PackageBuilder();
             try
@@ -561,7 +561,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (success)
                 {
-                    _cmdlet.WriteVerbose("Successfully packed the resource into a .nupkg");
+                    _cmdletPassedIn.WriteVerbose("Successfully packed the resource into a .nupkg");
                 }
                 else
                 {
@@ -569,7 +569,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         new InvalidOperationException("Not able to successfully pack the resource into a .nupkg"),
                             "failedToPackIntoNupkg",
                             ErrorCategory.ObjectNotFound,
-                            this._cmdlet);
+                            this);
 
                     return false;
                 }
@@ -580,7 +580,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     new ArgumentException($"Unexpected error packing into .nupkg: '{e.Message}'."),
                     "ErrorPackingIntoNupkg",
                     ErrorCategory.NotSpecified,
-                    this._cmdlet);
+                    this);
 
                 // exit process record
                 return false;
@@ -592,7 +592,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private bool PushNupkg(string outputNupkgDir, string repoName, string repoUri, out ErrorRecord error)
         {
-            _cmdlet.WriteDebug("In PublishPSResource::PushNupkg()");
+            _cmdletPassedIn.WriteDebug("In PublishPSResource::PushNupkg()");
             
             string fullNupkgFile;
             if (_isNupkgPathSpecified)
@@ -642,7 +642,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (HttpRequestException e)
             {
-                _cmdlet.WriteVerbose(string.Format("Not able to publish resource to '{0}'", repoUri));
+                _cmdletPassedIn.WriteVerbose(string.Format("Not able to publish resource to '{0}'", repoUri));
                 //  look in PS repo for how httpRequestExceptions are handled
 
                 // Unfortunately there is no response message  are no status codes provided with the exception and no
@@ -656,7 +656,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             new ArgumentException($"Repository '{repoName}': Please try running again with the -ApiKey parameter and specific API key for the repository specified. For Azure Devops repository, set this to an arbitrary value, for example '-ApiKey AzureDevOps'"),
                             "400ApiKeyError",
                             ErrorCategory.AuthenticationError,
-                            this._cmdlet);
+                            this);
                     }
                     else
                     {
@@ -664,7 +664,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             ex,
                             "400Error",
                             ErrorCategory.PermissionDenied,
-                            this._cmdlet);
+                            this);
                     }
                 }
                 else if (e.Message.Contains("401"))
@@ -676,7 +676,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             new ArgumentException($"Could not publish to repository '{repoName}'. Please try running again with the -ApiKey parameter and the API key for the repository specified. Exception: '{e.Message}'"),
                             "401ApiKeyError",
                             ErrorCategory.AuthenticationError,
-                            this._cmdlet);
+                            this);
                     }
                     else
                     {
@@ -684,7 +684,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         error = new ErrorRecord(new ArgumentException($"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception: '{e.Message}'"),
                             "401Error",
                             ErrorCategory.PermissionDenied,
-                            this._cmdlet); ;
+                            this); ;
                     }
                 }
                 else if (e.Message.Contains("403"))
@@ -696,7 +696,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             new ArgumentException($"Could not publish to repository '{repoName}'. The ApiKey provided is incorrect or missing. Please try running again with the -ApiKey parameter and correct API key value for the repository. Exception: '{e.Message}'"),
                             "403Error",
                             ErrorCategory.PermissionDenied,
-                            this._cmdlet);
+                            this);
                     }
                     else if (repoUri.Contains(".jfrog.io"))
                     {
@@ -705,7 +705,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             new ArgumentException($"Could not publish to repository '{repoName}'. The ApiKey provided is not needed for JFrog Artifactory. Please try running again without the -ApiKey parameter but ensure that -Credential is provided with ApiKey as password. Exception: '{e.Message}'"),
                             "403Error",
                             ErrorCategory.PermissionDenied,
-                            this._cmdlet);
+                            this);
                     }
                     else
                     {
@@ -713,7 +713,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             ex,
                             "403Error",
                             ErrorCategory.PermissionDenied,
-                            this._cmdlet);
+                            this);
                     }
                 }
                 else if (e.Message.Contains("409"))
@@ -721,7 +721,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     error = new ErrorRecord(
                         ex,
                         "409Error",
-                        ErrorCategory.PermissionDenied, this._cmdlet);
+                        ErrorCategory.PermissionDenied, this);
                 }
                 else
                 {
@@ -729,7 +729,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ex,
                         "HTTPRequestError",
                         ErrorCategory.PermissionDenied,
-                        this._cmdlet);
+                        this);
                 }
 
                 return success;
@@ -743,7 +743,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         new ArgumentException($"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception '{e.InnerException.Message}'"),
                         "401FatalProtocolError",
                         ErrorCategory.AuthenticationError,
-                        this._cmdlet);
+                        this);
                 }
                 else
                 {
@@ -751,24 +751,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         new ArgumentException($"Repository '{repoName}': {e.InnerException.Message}"),
                         "ProtocolFailError",
                         ErrorCategory.ProtocolError,
-                        this._cmdlet);
+                        this);
                 }
 
                 return success;
             }
             catch (Exception e)
             {
-                _cmdlet.WriteVerbose($"Not able to publish resource to '{repoUri}'");
+                _cmdletPassedIn.WriteVerbose($"Not able to publish resource to '{repoUri}'");
                 error = new ErrorRecord(
                     new ArgumentException(e.Message),
                     "PushNupkgError",
                     ErrorCategory.InvalidResult,
-                    this._cmdlet);
+                    this);
 
                 return success;
             }
 
-            _cmdlet.WriteVerbose(string.Format("Successfully published the resource to '{0}'", repoUri));
+            _cmdletPassedIn.WriteVerbose(string.Format("Successfully published the resource to '{0}'", repoUri));
             error = null;
             success = true;
 
@@ -777,7 +777,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void InjectCredentialsToSettings(ISettings settings, IPackageSourceProvider sourceProvider, string source)
         {
-            _cmdlet.WriteDebug("In PublishPSResource::InjectCredentialsToSettings()");
+            _cmdletPassedIn.WriteDebug("In PublishPSResource::InjectCredentialsToSettings()");
             if (Credential == null && _networkCredential == null)
             {
                 return;
@@ -825,17 +825,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Hashtable parsedMetadataHash,
             out Hashtable requiredModules)
         {
-            _cmdlet.WriteDebug("In PublishHelper::CreateNuspec()");
+            _cmdletPassedIn.WriteDebug("In PublishHelper::CreateNuspec()");
 
             bool isModule = resourceType != ResourceType.Script;
             requiredModules = new Hashtable();
 
             if (parsedMetadataHash == null || parsedMetadataHash.Count == 0)
             {
-                _cmdlet.WriteError(new ErrorRecord(new ArgumentException("Hashtable provided with package metadata was null or empty"),
+                _cmdletPassedIn.WriteError(new ErrorRecord(new ArgumentException("Hashtable provided with package metadata was null or empty"),
                     "PackageMetadataHashtableNullOrEmptyError",
                     ErrorCategory.ReadError,
-                    this._cmdlet));
+                    this));
 
                 return string.Empty;
             }
@@ -870,11 +870,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             else
             {
                 // no version is specified for the nuspec
-                _cmdlet.WriteError(new ErrorRecord(
+                _cmdletPassedIn.WriteError(new ErrorRecord(
                     new ArgumentException("There is no package version specified. Please specify a version before publishing."),
                     "NoVersionFound",
                     ErrorCategory.InvalidArgument,
-                    this._cmdlet));
+                    this));
 
                 return string.Empty;
             }
@@ -1058,7 +1058,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    _cmdlet.WriteVerbose(string.Format("Creating XML element failed. Unable to get value from key '{0}'.", key));
+                    _cmdletPassedIn.WriteVerbose(string.Format("Creating XML element failed. Unable to get value from key '{0}'.", key));
                 }
             }
 
@@ -1089,14 +1089,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var nuspecFullName = System.IO.Path.Combine(outputDir, _pkgName + ".nuspec");
             doc.Save(nuspecFullName);
 
-            _cmdlet.WriteVerbose("The newly created nuspec is: " + nuspecFullName);
+            _cmdletPassedIn.WriteVerbose("The newly created nuspec is: " + nuspecFullName);
 
             return nuspecFullName;
         }
 
         private Hashtable ParseRequiredModules(Hashtable parsedMetadataHash)
         {
-            _cmdlet.WriteDebug("In PublishHelper::ParseRequiredModules()");
+            _cmdletPassedIn.WriteDebug("In PublishHelper::ParseRequiredModules()");
            
             if (!parsedMetadataHash.ContainsKey("requiredmodules"))
             {
@@ -1156,7 +1156,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private bool CheckDependenciesExist(Hashtable dependencies, string repositoryName)
         {
-            _cmdlet.WriteDebug("In PublishHelper::CheckDependenciesExist()");
+            _cmdletPassedIn.WriteDebug("In PublishHelper::CheckDependenciesExist()");
             
             // Check to see that all dependencies are in the repository
             // Searches for each dependency in the repository the pkg is being pushed to,
@@ -1176,15 +1176,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     versionType: out VersionType versionType,
                     error: out string error))
                 {
-                    _cmdlet.ThrowTerminatingError(new ErrorRecord(
+                    _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
                         new ArgumentException(error),
                         "IncorrectVersionFormat",
                         ErrorCategory.InvalidArgument,
-                        this._cmdlet));
+                        this));
                 }
 
                 // Search for and return the dependency if it's in the repository.
-                FindHelper findHelper = new FindHelper(_cancellationToken, this._cmdlet, _networkCredential);
+                FindHelper findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
 
                 var repository = new[] { repositoryName };
                 // Note: we set prerelease argument for FindByResourceName() to true because if no version is specified we want latest version (including prerelease).
@@ -1192,11 +1192,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var dependencyFound = findHelper.FindByResourceName(new string[] { depName }, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, prerelease: true, tag: null, repository, includeDependencies: false, suppressErrors: true);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
-                    _cmdlet.WriteError(new ErrorRecord(
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
                         new ArgumentException($"Dependency '{depName}' was not found in repository '{repositoryName}'.  Make sure the dependency is published to the repository before {_cmdOperation.ToLower()} this module."),
                         "DependencyNotFound",
                         ErrorCategory.ObjectNotFound,
-                        this._cmdlet));
+                        this));
 
                     return false;
                 }
