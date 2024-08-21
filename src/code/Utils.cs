@@ -20,7 +20,6 @@ using System.Management.Automation.Runspaces;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Security;
-using System.Threading.Tasks;
 using System.Threading;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
