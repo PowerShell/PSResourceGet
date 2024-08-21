@@ -567,8 +567,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
-
-        Remove-Item -Path $scriptPath
     }
 
     It "should write error and not publish script when Author property is missing" {
