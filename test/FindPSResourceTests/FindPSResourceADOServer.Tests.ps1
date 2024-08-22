@@ -9,7 +9,7 @@ Describe 'Test HTTP Find-PSResource for ADO Server Protocol' -tags 'CI' {
     BeforeAll{
         $testModuleName = "test_local_mod"
         $ADORepoName = "PSGetTestingPublicFeed"
-        $ADORepoUri = "https://pkgs.dev.azure.com/powershell/PowerShell/_packaging/powershell-public-test/nuget/v3/index.json"
+        $ADORepoUri = "https://pkgs.dev.azure.com/powershell/PowerShell/_packaging/psresourceget-public-test-ci/nuget/v3/index.json"
         Get-NewPSResourceRepositoryFile
         Register-PSResourceRepository -Name $ADORepoName -Uri $ADORepoUri
     }

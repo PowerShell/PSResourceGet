@@ -48,7 +48,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         $testModuleName = "test_local_mod"
         $ADOPublicRepoName = "PSGetTestingPublicFeed"
-        $ADOPublicRepoUri = "https://pkgs.dev.azure.com/powershell/PowerShell/_packaging/powershell-public-test/nuget/v3/index.json"
+        $ADOPublicRepoUri = "https://pkgs.dev.azure.com/powershell/PowerShell/_packaging/psresourceget-public-test-ci/nuget/v3/index.json"
         Register-PSResourceRepository -Name $ADOPublicRepoName -Uri $ADOPublicRepoUri
 
         $ADOPrivateRepoName = "PSGetTestFeedWithPrivateAccess"
