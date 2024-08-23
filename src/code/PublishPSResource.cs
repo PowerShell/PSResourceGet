@@ -3,6 +3,7 @@
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
+using System.Linq;
 using System.Management.Automation;
 using System.Net;
 using System.Threading;
@@ -16,12 +17,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         "PSResource",
         SupportsShouldProcess = true)]
     [Alias("pbres")]
-    public sealed class PublishPSResource : PSCmdlet
+    public sealed class PublishPSResource : PSCmdlet, IDynamicParameters
     {
         #region Parameters
 
         private const string PathParameterSet = "PathParameterSet";
         private const string NupkgPathParameterSet = "NupkgPathParameterSet";
+        private ContainerRegistryDynamicParameters _pkgPrefix;
 
         /// <summary>
         /// Specifies the API key that you want to use to publish a module to the online gallery.
@@ -117,6 +119,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
+        #region DynamicParameters
+        public object GetDynamicParameters()
+        {
+            PSRepositoryInfo repository = RepositorySettings.Read(new[] { Repository }, out string[] _).FirstOrDefault();
+            if (repository is not null && repository.ApiVersion == PSRepositoryInfo.APIVersion.ContainerRegistry)
+            {
+                _pkgPrefix = new ContainerRegistryDynamicParameters();
+                return _pkgPrefix;
+            }
+
+            return null;
+        }
+
+        #endregion
+
         #region Members
 
         private CancellationToken _cancellationToken;
@@ -145,10 +162,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             RepositorySettings.CheckRepositoryStore();
 
             _publishHelper = new PublishHelper(
-                this, 
-                Credential, 
-                ApiKey, 
-                Path, 
+                this,
+                Credential,
+                ApiKey,
+                Path,
                 DestinationPath,
                 SkipModuleManifestValidate,
                 _cancellationToken,
@@ -169,10 +186,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return;
             }
 
-            _publishHelper.PushResource(Repository, SkipDependenciesCheck, _networkCredential);
+            string modulePrefix = _pkgPrefix?.ModulePrefix;
+
+            _publishHelper.PushResource(Repository, modulePrefix, SkipDependenciesCheck, _networkCredential);
         }
 
         #endregion
 
+    }
+
+    public class ContainerRegistryDynamicParameters
+    {
+        [Parameter]
+        public string ModulePrefix { get; set; }
     }
 }

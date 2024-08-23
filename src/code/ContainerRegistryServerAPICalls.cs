@@ -1129,15 +1129,18 @@ namespace Microsoft.PowerShell.PSResourceGet
         internal bool PushNupkgContainerRegistry(string psd1OrPs1File,
             string outputNupkgDir,
             string packageName,
+            string modulePrefix,
             NuGetVersion packageVersion,
             ResourceType resourceType,
-            Hashtable parsedMetadataHash, 
-            Hashtable dependencies, 
+            Hashtable parsedMetadataHash,
+            Hashtable dependencies,
             out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::PushNupkgContainerRegistry()");
             string fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
-            string packageNameLowercase = packageName.ToLower();
+
+            string pkgNameForUpload = string.IsNullOrEmpty(modulePrefix) ? packageName : modulePrefix + "/" + packageName;
+            string packageNameLowercase = pkgNameForUpload.ToLower();
 
             // Get access token (includes refresh tokens)
             _cmdletPassedIn.WriteVerbose($"Get access token for container registry server.");
@@ -1179,8 +1182,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return false;
             }
 
-            // Create and upload manifest 
-            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, packageName, resourceType, metadataJson, configFilePath, packageVersion, containerRegistryAccessToken, out errRecord);
+            // Create and upload manifest
+            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, packageName, modulePrefix, resourceType, metadataJson, configFilePath, packageVersion, containerRegistryAccessToken, out errRecord);
             if (errRecord != null)
             {
                 return false;
@@ -1195,7 +1198,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         private string UploadNupkgFile(string packageNameLowercase, string containerRegistryAccessToken, string fullNupkgFile, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::UploadNupkgFile()");        
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::UploadNupkgFile()");
             _cmdletPassedIn.WriteVerbose("Start uploading blob");
             string nupkgDigest = string.Empty;
             errRecord = null;
@@ -1349,6 +1352,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string nupkgDigest,
             string configDigest,
             string packageName,
+            string modulePrefix,
             ResourceType resourceType,
             string metadataJson,
             string configFilePath,
@@ -1358,7 +1362,10 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::TryCreateAndUploadManifest()");
             errRecord = null;
-            string packageNameLowercase = packageName.ToLower();
+
+            string pkgNameForUpload = string.IsNullOrEmpty(modulePrefix) ? packageName : modulePrefix + "/" + packageName;
+            string packageNameLowercase = pkgNameForUpload.ToLower();
+
             FileInfo nupkgFile = new FileInfo(fullNupkgFile);
             var fileSize = nupkgFile.Length;
             var fileName = System.IO.Path.GetFileName(fullNupkgFile);

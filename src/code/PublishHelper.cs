@@ -78,12 +78,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             outputNupkgDir = destinationPath;
         }
 
-        internal PublishHelper(PSCmdlet cmdlet, 
-            PSCredential credential, 
-            string apiKey, 
-            string path, 
-            string destinationPath, 
-            bool skipModuleManifestValidate, 
+        internal PublishHelper(PSCmdlet cmdlet,
+            PSCredential credential,
+            string apiKey,
+            string path,
+            string destinationPath,
+            bool skipModuleManifestValidate,
             CancellationToken cancellationToken,
             bool isNupkgPathSpecified)
         {
@@ -105,7 +105,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Internal Methods
 
-        internal void PackResource() 
+        internal void PackResource()
         {
             // Returns the name of the file or the name of the directory, depending on path
             if (!_cmdletPassedIn.ShouldProcess(string.Format("'{0}' from the machine", resolvedPath)))
@@ -136,7 +136,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     parsedMetadata = scriptToPublish.ToHashtable();
-                    
+
                     _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToScriptFileToPublish);
             }
             else
@@ -320,7 +320,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
         }
 
-        internal void PushResource(string Repository, bool SkipDependenciesCheck, NetworkCredential _networkCrendential)
+        internal void PushResource(string Repository, string modulePrefix, bool SkipDependenciesCheck, NetworkCredential _networkCrendential)
         {
             try
             {
@@ -410,7 +410,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ContainerRegistryServerAPICalls containerRegistryServer = new ContainerRegistryServerAPICalls(repository, _cmdletPassedIn, _networkCredential, userAgentString);
 
                     var pkgMetadataFile = (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish;
-                    if (!containerRegistryServer.PushNupkgContainerRegistry(pkgMetadataFile, outputNupkgDir, _pkgName, _pkgVersion, resourceType, parsedMetadata, dependencies, out ErrorRecord pushNupkgContainerRegistryError))
+
+                    if (!containerRegistryServer.PushNupkgContainerRegistry(pkgMetadataFile, outputNupkgDir, _pkgName, modulePrefix, _pkgVersion, resourceType, parsedMetadata, dependencies, out ErrorRecord pushNupkgContainerRegistryError))
                     {
                         _cmdletPassedIn.WriteError(pushNupkgContainerRegistryError);
                         // exit out of processing
@@ -593,7 +594,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool PushNupkg(string outputNupkgDir, string repoName, string repoUri, out ErrorRecord error)
         {
             _cmdletPassedIn.WriteDebug("In PublishPSResource::PushNupkg()");
-            
+
             string fullNupkgFile;
             if (_isNupkgPathSpecified)
             {
@@ -1097,12 +1098,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private Hashtable ParseRequiredModules(Hashtable parsedMetadataHash)
         {
             _cmdletPassedIn.WriteDebug("In PublishHelper::ParseRequiredModules()");
-           
+
             if (!parsedMetadataHash.ContainsKey("requiredmodules"))
             {
                 return null;
             }
-            
+
             LanguagePrimitives.TryConvertTo<object[]>(parsedMetadataHash["requiredmodules"], out object[] requiredModules);
 
             // Required modules can be:
@@ -1136,7 +1137,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     dependenciesHash.Add(moduleName, string.Empty);
                 }
             }
-            
+
             var externalModuleDeps = parsedMetadataHash.ContainsKey("ExternalModuleDependencies") ?
                         parsedMetadataHash["ExternalModuleDependencies"] : null;
 
@@ -1157,7 +1158,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool CheckDependenciesExist(Hashtable dependencies, string repositoryName)
         {
             _cmdletPassedIn.WriteDebug("In PublishHelper::CheckDependenciesExist()");
-            
+
             // Check to see that all dependencies are in the repository
             // Searches for each dependency in the repository the pkg is being pushed to,
             // If the dependency is not there, error
