@@ -8,3 +8,4 @@ test/**/bin
 .vs
 .vscode
 src/code/.vs
+test/testFiles/testScripts/test.ps1
