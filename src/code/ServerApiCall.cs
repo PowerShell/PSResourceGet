@@ -2,15 +2,14 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using NuGet.Versioning;
 using System;
 using System.IO;
-using System.Net.Http;
-using NuGet.Versioning;
-using System.Net;
-using System.Text;
-using System.Runtime.ExceptionServices;
 using System.Management.Automation;
-using System;
+using System.Net;
+using System.Net.Http;
+using System.Runtime.ExceptionServices;
+using System.Text;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -28,11 +27,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public ServerApiCall(PSRepositoryInfo repository, NetworkCredential networkCredential)
         {
             this.Repository = repository;
-            
+
             HttpClientHandler handler = new HttpClientHandler();
             bool token = false;
 
-            if(networkCredential != null) 
+            if(networkCredential != null)
             {
                 token = String.Equals("token", networkCredential.UserName) ? true : false;
             };
@@ -47,7 +46,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             } else {
 
                 handler.Credentials = networkCredential;
-                
+
                 _sessionClient = new HttpClient(handler);
             };
             _sessionClient.Timeout = TimeSpan.FromMinutes(10);

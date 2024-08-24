@@ -89,7 +89,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     ThrowTerminatingError(new ErrorRecord(
                         new PSArgumentException($"Error: Could not resolve provided Path argument '{Path}' into a single path."),
-
                         "ErrorInvalidPathArgument",
                         ErrorCategory.InvalidArgument,
                         this));
@@ -153,7 +152,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> pkgsNotFound = new List<string>();
             foreach (string name in namesToSearch)
             {
-                if (!pkgsFound.Contains(name, StringComparer.OrdinalIgnoreCase)) 
+                if (!pkgsFound.Contains(name, StringComparer.OrdinalIgnoreCase))
                 {
                     if (name.Contains('*'))
                     {
