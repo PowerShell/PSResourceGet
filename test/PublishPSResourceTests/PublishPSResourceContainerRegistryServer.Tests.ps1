@@ -281,10 +281,10 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -Version $version
         $results | Should -Not -BeNullOrEmpty
-        $results[0].Name | Should -Be $script:PublishModuleName 
-        $results[0].Version | Should -Be $version 
-        $results[0].Dependencies.Name | Should -Be $dependencyName 
-        $results[0].Dependencies.VersionRange.MinVersion.ToString() | Should -Be $dependencyVersion 
+        $results[0].Name | Should -Be $script:PublishModuleName
+        $results[0].Version | Should -Be $version
+        $results[0].Dependencies.Name | Should -Be $dependencyName
+        $results[0].Dependencies.VersionRange.MinVersion.ToString() | Should -Be $dependencyVersion
     }
 
     It "Publish a module with multiple dependencies" {
@@ -296,18 +296,18 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         # New-ModuleManifest requires that the module be installed before it can be added as a dependency
         Install-PSResource -Name $dependency1Name -Repository $ACRRepoName -TrustRepository -Verbose -Reinstall
         Install-PSResource -Name $dependency2Name -Version $dependency2Version -Repository $ACRRepoName -TrustRepository -Reinstall
-        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @( $dependency1Name , @{ ModuleName = $dependency2Name; ModuleVersion = $dependency2Version }) 
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -RequiredModules @( $dependency1Name , @{ ModuleName = $dependency2Name; ModuleVersion = $dependency2Version })
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName
 
         $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -Version $version
         $results | Should -Not -BeNullOrEmpty
-        $results[0].Name | Should -Be $script:PublishModuleName 
-        $results[0].Version | Should -Be $version 
+        $results[0].Name | Should -Be $script:PublishModuleName
+        $results[0].Version | Should -Be $version
         $results[0].Dependencies.Name | Should -Be $dependency1Name, $dependency2Name
-        $results[0].Dependencies.VersionRange.MinVersion.OriginalVersion.ToString() | Should -Be $dependency2Version 
+        $results[0].Dependencies.VersionRange.MinVersion.OriginalVersion.ToString() | Should -Be $dependency2Version
     }
-    
+
     It "Publish a module and clean up properly when file in module is readonly" {
         $version = "13.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
@@ -497,5 +497,18 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $null = New-Item -Path $psm1Path -ItemType File -Force
 
         {Publish-PSResource -Path $psm1Path -Repository $ACRRepoName -ErrorAction Stop} | Should -Throw -ErrorId "InvalidPublishPath,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+    }
+
+    It "Publish a module with -ModulePrefix" {
+        $version = "1.0.0"
+        $modulePrefix = "unlisted"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -ModulePrefix $modulePrefix
+
+        $results = Find-PSResource -Name "$modulePrefix/$script:PublishModuleName" -Repository $ACRRepoName
+        $results | Should -Not -BeNullOrEmpty
+        $results[0].Name | Should -Be $script:PublishModuleName
+        $results[0].Version | Should -Be $version
     }
 }
