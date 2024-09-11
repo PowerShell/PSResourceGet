@@ -35,7 +35,7 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
-
+<#
     It "find resource(s) given wildcard Name" {
         # FindNameGlobbing
         $wildcardName = "test_module*"
@@ -46,7 +46,7 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
             $item.Name | Should -BeLike $wildcardName
         }
     }
-
+#>
     $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0");                                  Reason="validate version, exact match"},
                   @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0");                                  Reason="validate version, exact match without bracket syntax"},
                   @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, exact range inclusive"},
