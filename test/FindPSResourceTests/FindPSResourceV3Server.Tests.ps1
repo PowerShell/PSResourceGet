@@ -272,7 +272,7 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
     }
 
     It "should support AWS CodeArtifact with find all resources given Name '*'" {
-            Register-PSResourceRepository -Name $AWSCodeArtifactGalleryName -Uri $AWSCodeArtifactGalleryLocation
+        Register-PSResourceRepository -Name $AWSCodeArtifactGalleryName -Uri $AWSCodeArtifactGalleryLocation
         $res = Find-PSResource -Name "*" -Repository $AWSCodeArtifactGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         Unregister-PSResourceRepository -Name $AWSCodeArtifactGalleryName
         $res | Should -BeNullOrEmpty
