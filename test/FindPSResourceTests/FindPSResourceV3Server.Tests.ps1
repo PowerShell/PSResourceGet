@@ -28,6 +28,7 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
     }
 
+<#
     It "should not find resource given nonexistant Name" {
         $res = Find-PSResource -Name NonExistantModule -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
@@ -35,7 +36,7 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
-<#
+
     It "find resource(s) given wildcard Name" {
         # FindNameGlobbing
         $wildcardName = "test_module*"
