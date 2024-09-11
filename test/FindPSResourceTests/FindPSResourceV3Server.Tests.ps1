@@ -11,6 +11,7 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
 
     BeforeAll{
         $AWSCodeArtifactGalleryName = Get-AWSCodeArtifactGalleryName
+        $AWSCodeArtifactGalleryLocation = Get-AWSCodeArtifactGalleryLocation
         $NuGetGalleryName = Get-NuGetGalleryName
         $testModuleName = "test_module"
         Get-NewPSResourceRepositoryFile
