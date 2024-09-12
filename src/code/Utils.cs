@@ -1999,7 +1999,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 if (!signature.Status.Equals(SignatureStatus.Valid))
                 {
                     errorRecord = new ErrorRecord(
-                        new ArgumentException($"The signature for '{pkgName}' is '{signature.Status}."),
+                        new ArgumentException($"The signature status for '{pkgName}' file '{Path.GetFileName(signature.Path)}' is '{signature.Status}'. Status message: '{signature.StatusMessage}'"),
                         "GetAuthenticodeSignatureError",
                         ErrorCategory.InvalidResult,
                         cmdletPassedIn);
