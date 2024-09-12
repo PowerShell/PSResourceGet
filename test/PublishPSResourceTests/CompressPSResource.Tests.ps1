@@ -155,7 +155,6 @@ Describe "Test Compress-PSResource" -tags 'CI' {
     }
 
     It "Compress-PSResource -PassThru returns the path to the nupkg" {
-        Wait-Debugger
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
