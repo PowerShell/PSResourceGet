@@ -10,7 +10,6 @@ using System.Net;
 using System.Text;
 using System.Runtime.ExceptionServices;
 using System.Management.Automation;
-using System;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -28,11 +27,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public ServerApiCall(PSRepositoryInfo repository, NetworkCredential networkCredential)
         {
             this.Repository = repository;
-            
+
             HttpClientHandler handler = new HttpClientHandler();
             bool token = false;
 
-            if(networkCredential != null) 
+            if(networkCredential != null)
             {
                 token = String.Equals("token", networkCredential.UserName) ? true : false;
             };
@@ -47,7 +46,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             } else {
 
                 handler.Credentials = networkCredential;
-                
+
                 _sessionClient = new HttpClient(handler);
             };
             _sessionClient.Timeout = TimeSpan.FromMinutes(10);
