@@ -62,7 +62,7 @@
 
 - New cmdlet `Compress-PSResource` which packs a package into a .nupkg and saves it to the file system (#1682, #1702)
 - New `-Nupkg` parameter for `Publish-PSResource` which pushes pushes a .nupkg to a repository (#1682)
-- New `-ModulePrefix` parameter for `Publish-PSResource` which adds a prefix to a module name (#1694)
+- New `-ModulePrefix` parameter for `Publish-PSResource` which adds a prefix to a module name for container registry repositories to add a module prefix.This is only used for publishing and is not part of metadata. MAR will drop the prefix when syndicating from ACR to MAR (#1694)
 
 ### Bug Fixes
 
