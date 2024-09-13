@@ -153,6 +153,17 @@ Describe "Test Compress-PSResource" -tags 'CI' {
 
         Test-Path -Path (Join-Path -Path $unzippedPath -ChildPath $testFile) | Should -Be $True
     }
+
+    It "Compress-PSResource -PassThru returns the path to the nupkg" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        $nupkgPath = Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath -PassThru
+
+        $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
+        $nupkgPath | Should -Be $expectedPath
+    }
+
 <# Test for Signing the nupkg. Signing doesn't work
     It "Compressed Module is able to be signed with a certificate" {
 		$version = "1.0.0"

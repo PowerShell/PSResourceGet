@@ -36,7 +36,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public string DestinationPath { get; set; }
 
         /// <summary>
-        /// Bypasses validating a resource module manifest before publishing.
+        /// When specified, passes the full path of the nupkg through the pipeline.
+        /// </summary>
+        [Parameter(Mandatory = false, HelpMessage = "Pass the full path of the nupkg through the pipeline")]
+        public SwitchParameter PassThru { get; set; }
+
+        /// <summary>
+        /// Bypasses validating a resource module manifest before compressing.
         /// </summary>
         [Parameter]
         public SwitchParameter SkipModuleManifestValidate { get; set; }
@@ -61,6 +67,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 this,
                 Path,
                 DestinationPath,
+                PassThru,
                 SkipModuleManifestValidate);
 
             _publishHelper.CheckAllParameterPaths();
