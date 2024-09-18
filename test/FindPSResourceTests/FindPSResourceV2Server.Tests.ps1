@@ -56,7 +56,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $foundScript | Should -BeTrue
     }
 
-    It "find all resource(s) when wildcard only for Name" {
+    It "find all resources when wildcard only for Name" {
         $res = Find-PSResource -Name '*' -Repository $PSGalleryName
         $res.Count | Should -BeGreaterThan 0
     }
