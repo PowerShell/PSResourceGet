@@ -901,7 +901,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             } else {
                 filterBuilder.AddCriterion("IsLatestVersion");
             }
-            var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?$filter={queryBuilder.BuildQueryString()}";
+            var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?{queryBuilder.BuildQueryString()}";
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
