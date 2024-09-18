@@ -5,7 +5,7 @@ $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
 $psmodulePaths = $env:PSModulePath -split ';'
-Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
+Write-Verbose -Verbose -Message "Current module search paths: $psmodulePaths"
 
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
 
