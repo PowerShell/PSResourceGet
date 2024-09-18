@@ -56,6 +56,11 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $foundScript | Should -BeTrue
     }
 
+    It "find all resource(s) when wildcard only for Name" {
+        $res = Find-PSResource -Name '*' -Repository $PSGalleryName
+        $res.Count | Should -BeGreaterThan 0
+    }
+
     $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0.0");                                  Reason="validate version, exact match"},
                   @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0.0");                                  Reason="validate version, exact match without bracket syntax"},
                   @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0");            Reason="validate version, exact range inclusive"},
