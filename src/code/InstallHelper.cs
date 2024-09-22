@@ -330,7 +330,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 allPkgsInstalled.AddRange(installedPkgs);
             }
 
-            if (_pkgNamesToInstall.Count > 0)
+            if (!_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf") && _pkgNamesToInstall.Count > 0)
             {
                 string repositoryWording = repositoryNamesToSearch.Count > 1 ? "registered repositories" : "repository";
                 _cmdletPassedIn.WriteError(new ErrorRecord(
