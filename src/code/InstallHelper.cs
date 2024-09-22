@@ -658,7 +658,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     // If -WhatIf is passed in, early out.
-                    if (!_cmdletPassedIn.ShouldProcess("Exit ShouldProcess"))
+                    if (_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf"))
                     {
                         return pkgsSuccessfullyInstalled;
                     }
