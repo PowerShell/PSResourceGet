@@ -61,18 +61,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string outputDir = string.Empty;
         internal bool ScriptError = false;
         internal bool ShouldProcess = true;
+        internal bool PassThru = false;
 
         #endregion
 
         #region Constructors
 
-        internal PublishHelper(PSCmdlet cmdlet, string path, string destinationPath, bool skipModuleManifestValidate)
+        internal PublishHelper(PSCmdlet cmdlet, string path, string destinationPath, bool passThru, bool skipModuleManifestValidate)
         {
             _callerCmdlet = CallerCmdlet.CompressPSResource;
             _cmdOperation = "Compress";
             _cmdletPassedIn = cmdlet;
             Path = path;
             DestinationPath = destinationPath;
+            PassThru = passThru;
             SkipModuleManifestValidate = skipModuleManifestValidate;
             outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
             outputNupkgDir = destinationPath;
@@ -567,6 +569,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (success)
                 {
+                    if (PassThru)
+                    {
+                        _cmdletPassedIn.WriteObject(System.IO.Path.Combine(outputNupkgDir, _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg"));
+                    }
                     _cmdletPassedIn.WriteVerbose("Successfully packed the resource into a .nupkg");
                 }
                 else
