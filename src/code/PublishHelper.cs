@@ -294,6 +294,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                 }
 
+                if (_callerCmdlet == CallerCmdlet.CompressPSResource)
+                {
+                    outputNupkgDir = DestinationPath;
+                }
+
                 // pack into .nupkg
                 if (!PackNupkg(outputDir, outputNupkgDir, nuspec, out ErrorRecord packNupkgError))
                 {
