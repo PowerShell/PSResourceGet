@@ -46,44 +46,6 @@ Describe "Test Compress-PSResource" -tags 'CI' {
     BeforeAll {
         Get-NewPSResourceRepositoryFile
 
-        $testDir = (get-item $psscriptroot).parent.FullName
-
-function CreateTestModule
-{
-    param (
-        [string] $Path = "$TestDrive",
-        [string] $ModuleName = 'TestModule'
-    )
-
-    $modulePath = Join-Path -Path $Path -ChildPath $ModuleName
-    $moduleMan = Join-Path $modulePath -ChildPath ($ModuleName + '.psd1')
-    $moduleSrc = Join-Path $modulePath -ChildPath ($ModuleName + '.psm1')
-
-    if ( Test-Path -Path $modulePath) {
-        Remove-Item -Path $modulePath -Recurse -Force
-    }
-
-    $null = New-Item -Path $modulePath -ItemType Directory -Force
-
-    @'
-    @{{
-        RootModule        = "{0}.psm1"
-        ModuleVersion     = '1.0.0'
-        Author            = 'None'
-        Description       = 'None'
-        GUID              = '0c2829fc-b165-4d72-9038-ae3a71a755c1'
-        FunctionsToExport = @('Test1')
-        RequiredModules   = @('NonExistentModule')
-    }}
-'@ -f $ModuleName | Out-File -FilePath $moduleMan
-
-    @'
-    function Test1 {
-        Write-Output 'Hello from Test1'
-    }
-'@ | Out-File -FilePath $moduleSrc
-}
-
         # Register temporary repositories
         $tmpRepoPath = Join-Path -Path $TestDrive -ChildPath "tmpRepoPath"
         New-Item $tmpRepoPath -Itemtype directory -Force
