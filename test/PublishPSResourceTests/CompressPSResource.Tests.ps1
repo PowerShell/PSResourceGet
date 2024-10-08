@@ -46,6 +46,44 @@ Describe "Test Compress-PSResource" -tags 'CI' {
     BeforeAll {
         Get-NewPSResourceRepositoryFile
 
+        $testDir = (get-item $psscriptroot).parent.FullName
+
+function CreateTestModule
+{
+    param (
+        [string] $Path = "$TestDrive",
+        [string] $ModuleName = 'TestModule'
+    )
+
+    $modulePath = Join-Path -Path $Path -ChildPath $ModuleName
+    $moduleMan = Join-Path $modulePath -ChildPath ($ModuleName + '.psd1')
+    $moduleSrc = Join-Path $modulePath -ChildPath ($ModuleName + '.psm1')
+
+    if ( Test-Path -Path $modulePath) {
+        Remove-Item -Path $modulePath -Recurse -Force
+    }
+
+    $null = New-Item -Path $modulePath -ItemType Directory -Force
+
+    @'
+    @{{
+        RootModule        = "{0}.psm1"
+        ModuleVersion     = '1.0.0'
+        Author            = 'None'
+        Description       = 'None'
+        GUID              = '0c2829fc-b165-4d72-9038-ae3a71a755c1'
+        FunctionsToExport = @('Test1')
+        RequiredModules   = @('NonExistentModule')
+    }}
+'@ -f $ModuleName | Out-File -FilePath $moduleMan
+
+    @'
+    function Test1 {
+        Write-Output 'Hello from Test1'
+    }
+'@ | Out-File -FilePath $moduleSrc
+}
+
         # Register temporary repositories
         $tmpRepoPath = Join-Path -Path $TestDrive -ChildPath "tmpRepoPath"
         New-Item $tmpRepoPath -Itemtype directory -Force
@@ -154,14 +192,17 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         Test-Path -Path (Join-Path -Path $unzippedPath -ChildPath $testFile) | Should -Be $True
     }
 
-    It "Compress-PSResource -PassThru returns the path to the nupkg" {
+    It "Compress-PSResource -PassThru returns a FileInfo object with the correct path" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        $nupkgPath = Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath -PassThru
+        $fileInfoObject = Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath -PassThru
 
         $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        $nupkgPath | Should -Be $expectedPath
+        $fileInfoObject | Should -BeOfType 'System.IO.FileSystemInfo'
+        $fileInfoObject.FullName | Should -Be $expectedPath
+        $fileInfoObject.Extension | Should -Be '.nupkg'
+        $fileInfoObject.Name | Should -Be "$script:PublishModuleName.$version.nupkg"
     }
 
 <# Test for Signing the nupkg. Signing doesn't work
