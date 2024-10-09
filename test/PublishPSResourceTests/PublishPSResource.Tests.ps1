@@ -290,7 +290,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "DependencyNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
-
     It "Publish a module with -SkipDependenciesCheck" {
         $version = "1.0.0"
         $dependencyVersion = "2.0.0"
@@ -321,8 +320,23 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Test-Path -Path (Join-Path -Path $unzippedPath -ChildPath $testFile) | Should -Be $True
     }
 
+    It "Publish a module with -NupkgPath" {
+        $version = "1.0.0"
+        # Make a nupkg
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+        Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:destinationPath
+        $expectedPath = Join-Path -Path $script:destinationPath -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:destinationPath).FullName | Should -Be $expectedPath
+        
+        # Pass the nupkg via -NupkgPath
+        Publish-PSResource -NupkgPath $expectedPath -Repository $testRepository2
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
     <# The following tests are related to passing in parameters to customize a nuspec.
      # These parameters are not going in the current release, but is open for discussion to include in the future.
+
     It "Publish a module with -Nuspec" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"  -NestedModules "$script:PublishModuleName.psm1"

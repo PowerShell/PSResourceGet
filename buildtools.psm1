@@ -134,9 +134,9 @@ function Invoke-ModuleTestsACR {
     )
 
     $acrTestFiles = @(
-        "FindPSResourceTests/FindPSResourceACRServer.Tests.ps1",
-        "InstallPSResourceTests/InstallPSResourceACRServer.Tests.ps1",
-        "PublishPSResourceTests/PublishPSResourceACRServer.Tests.ps1"
+        "FindPSResourceTests/FindPSResourceContainerRegistryServer.Tests.ps1",
+        "InstallPSResourceTests/InstallPSResourceContainerRegistryServer.Tests.ps1",
+        "PublishPSResourceTests/PublishPSResourceContainerRegistryServer.Tests.ps1"
     )
 
     Invoke-ModuleTests -Type $Type -TestFilePath $acrTestFiles

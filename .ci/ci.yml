@@ -31,6 +31,10 @@ stages:
 
     steps:
 
+    - task: UseDotNet@2
+      inputs:
+        useGlobalJson: true
+
     - pwsh: |
         Get-ChildItem -Path env:
       displayName: Capture environment for build
