@@ -161,6 +161,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         this));
                 }
 
+                // adding a comment to test
                 foreach (string error in errorList)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
