@@ -569,7 +569,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         var nupkgPath = System.IO.Path.Combine(outputNupkgDir, _pkgName + "." + _pkgVersion.ToNormalizedString() + ".nupkg");
                         _cmdletPassedIn.WriteObject(new FileInfo(nupkgPath));
                     }
-                    
                     _cmdletPassedIn.WriteVerbose("Successfully packed the resource into a .nupkg");
                 }
                 else
