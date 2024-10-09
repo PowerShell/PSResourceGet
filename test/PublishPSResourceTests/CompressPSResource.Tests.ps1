@@ -204,15 +204,18 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         Remove-Item -Path $relativePath -Recurse -Force
         Remove-Item -Path $relativeDestination -Recurse -Force
     }
-
-    It "Compress-PSResource -PassThru returns the path to the nupkg" {
+    
+    It "Compress-PSResource -PassThru returns a FileInfo object with the correct path" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        $nupkgPath = Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath -PassThru
+        $fileInfoObject = Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath -PassThru
 
         $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
-        $nupkgPath | Should -Be $expectedPath
+        $fileInfoObject | Should -BeOfType 'System.IO.FileSystemInfo'
+        $fileInfoObject.FullName | Should -Be $expectedPath
+        $fileInfoObject.Extension | Should -Be '.nupkg'
+        $fileInfoObject.Name | Should -Be "$script:PublishModuleName.$version.nupkg"
     }
 
 <# Test for Signing the nupkg. Signing doesn't work
