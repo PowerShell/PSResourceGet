@@ -150,7 +150,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # Package $testModuleName version 4.0.0 does not exist
         # previously if Find-PSResource -Version against local repo did not find that package's version it kept looking at
         # similar named packages and would fault. This test is to ensure only the specified package and its version is checked
-        $res = Find-PSResource -Name $testModuleName -Version "4.0.0" -Repository $localRepo
+        $res = Find-PSResource -Name $testModuleName -Version "4.0.0" -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
