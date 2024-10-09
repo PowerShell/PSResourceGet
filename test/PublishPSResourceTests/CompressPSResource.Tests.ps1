@@ -154,6 +154,57 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         Test-Path -Path (Join-Path -Path $unzippedPath -ChildPath $testFile) | Should -Be $True
     }
 
+    It "Compresses a script" {
+        $scriptName = "PSGetTestScript"
+        $scriptVersion = "1.0.0"
+
+        $params = @{
+            Version = $scriptVersion
+            GUID = [guid]::NewGuid()
+            Author = 'Jane'
+            CompanyName = 'Microsoft Corporation'
+            Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
+            Description = "Description for the $scriptName script"
+            LicenseUri = "https://$scriptName.com/license"
+            IconUri = "https://$scriptName.com/icon"
+            ProjectUri = "https://$scriptName.com"
+            Tags = @('Tag1','Tag2', "Tag-$scriptName-$scriptVersion")
+            ReleaseNotes = "$scriptName release notes"
+            }
+
+        $scriptPath = (Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$scriptName.ps1")
+        New-PSScriptFileInfo @params -Path $scriptPath
+
+        Compress-PSResource -Path $scriptPath -DestinationPath $script:repositoryPath
+
+        $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
+        (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
+    }
+
+    It "Compress-PSResource -DestinationPath works for relative paths" {
+        $version = "1.0.0"
+        $relativePath = ".\RelativeTestModule"
+        $relativeDestination = ".\RelativeDestination"
+
+        # Create relative paths
+        New-Item -Path $relativePath -ItemType Directory -Force
+        New-Item -Path $relativeDestination -ItemType Directory -Force
+
+        # Create module manifest in the relative path
+        New-ModuleManifest -Path (Join-Path -Path $relativePath -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        # Compress using relative paths
+        Compress-PSResource -Path $relativePath -DestinationPath $relativeDestination
+
+        $expectedPath = Join-Path -Path $relativeDestination -ChildPath "$script:PublishModuleName.$version.nupkg"
+        $fileExists = Test-Path -Path $expectedPath
+        $fileExists | Should -Be $True
+
+        # Cleanup
+        Remove-Item -Path $relativePath -Recurse -Force
+        Remove-Item -Path $relativeDestination -Recurse -Force
+    }
+    
     It "Compress-PSResource -PassThru returns a FileInfo object with the correct path" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
