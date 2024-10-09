@@ -3,7 +3,6 @@
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System.IO;
-using System.Linq;
 using System.Management.Automation;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
@@ -15,6 +14,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         "PSResource",
         SupportsShouldProcess = true)]
     [Alias("cmres")]
+    [OutputType(typeof(FileInfo))]
     public sealed class CompressPSResource : PSCmdlet
     {
         #region Parameters

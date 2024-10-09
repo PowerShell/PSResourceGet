@@ -5,7 +5,7 @@ $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
 $psmodulePaths = $env:PSModulePath -split ';'
-Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
+Write-Verbose -Verbose -Message "Current module search paths: $psmodulePaths"
 
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
 
@@ -54,6 +54,11 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         }
 
         $foundScript | Should -BeTrue
+    }
+
+    It "find all resources when wildcard only for Name" {
+        $res = Find-PSResource -Name '*' -Repository $PSGalleryName
+        $res.Count | Should -BeGreaterThan 0
     }
 
     $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0.0");                                  Reason="validate version, exact match"},
