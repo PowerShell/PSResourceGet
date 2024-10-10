@@ -16,15 +16,13 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     BeforeAll {
         $localRepo = "psgettestlocal"
         $localUNCRepo = "psgettestlocal3"
-        $localNupkgRepo = "LocalNupkgRepo"
-        $localNupkgRepoUri = "test\testFiles\testNupkgs"
+        $localNupkgRepo = "psgettestlocal5"
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
         $testModuleClobber = "testModuleClobber"
         $testModuleClobber2 = "testModuleClobber2"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
-        Register-PSResourceRepository -Name $localNupkgRepo -Uri $localNupkgRepoUri
 
         $prereleaseLabel = "alpha001"
         $tags = @()
