@@ -16,7 +16,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     BeforeAll {
         $localRepo = "psgettestlocal"
         $localUNCRepo = "psgettestlocal3"
-        $localNupkgRepo = "psgettestlocal5"
+        $localNupkgRepo = "localNupkgRepo"
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
         $testModuleClobber = "testModuleClobber"
