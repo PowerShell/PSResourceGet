@@ -34,8 +34,18 @@ function DoBuild
     Copy-Item -Path "./LICENSE" -Dest "$BuildOutPath"
 
     # Copy notice
-    Write-Verbose -Verbose -Message "Copying ThirdPartyNotices.txt to '$BuildOutPath'"
+    Write-Verbose -Verbose -Message "Copying InstallPSResourceGetPolicyDefinitions.ps1 to '$BuildOutPath'"
     Copy-Item -Path "./Notice.txt" -Dest "$BuildOutPath"
+
+    # Copy Group Policy files
+    Write-Verbose -Verbose -Message "Copying InstallPSResourceGetPolicyDefinitions.ps1 to '$BuildOutPath'"
+    Copy-Item -Path "${SrcPath}/InstallPSResourceGetPolicyDefinitions.ps1" -Dest "$BuildOutPath" -Force
+
+    Write-Verbose -Verbose -Message "Copying PSResourceRepository.adml to '$BuildOutPath'"
+    Copy-Item -Path "${SrcPath}/PSResourceRepository.adml" -Dest "$BuildOutPath" -Force
+
+    Write-Verbose -Verbose -Message "Copying PSResourceRepository.admx to '$BuildOutPath'"
+    Copy-Item -Path "${SrcPath}/PSResourceRepository.admx" -Dest "$BuildOutPath" -Force
 
     # Build and place binaries
     if ( Test-Path "${SrcPath}/code" ) {
