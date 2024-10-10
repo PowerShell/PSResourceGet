@@ -37,7 +37,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var values = ReadGPFromRegistry();
 
-            if (values is not null)
+            if (values is not null && values.Count > 0)
             {
                 return true;
             }
@@ -79,7 +79,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
         }
 
-        internal static bool IsRepositoryAllowed(string repositoryUri)
+        internal static bool IsRepositoryAllowed(Uri repositoryUri)
         {
             bool isAllowed = false;
 
@@ -89,7 +89,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (allowedList != null && allowedList.Length > 0)
                 {
-                    isAllowed = allowedList.Any(uri => uri.Equals(new Uri(repositoryUri)));
+                    isAllowed = allowedList.Any(uri => uri.Equals(repositoryUri));
                 }
             }
             else
