@@ -655,7 +655,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 List<string> pkgTags = new List<string>();
                 _cmdletPassedIn.WriteVerbose($"nuspecFilePath: {nuspecFilePath}");
-                string path = $tempDiscoveryPath;
+                string path = tempDiscoveryPath;
                 try        {            
                     // Get the files in the directory
                     string[] files = Directory.GetFiles(path);             
