@@ -655,28 +655,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 List<string> pkgTags = new List<string>();
                 _cmdletPassedIn.WriteVerbose($"nuspecFilePath: {nuspecFilePath}");
-                // string path = tempDiscoveryPath;
-                // try        {            
-                //     // Get the files in the directory
-                //     string[] files = Directory.GetFiles(path);             
-                //     // Get the directories in the directory
-                //     string[] directories = Directory.GetDirectories(path);             
-                //     // Output the files            
-                //     Console.WriteLine("Files:");             
-                //     foreach (string file in files)             
-                //     {                
-                //         Console.WriteLine(file);            
-                //     }             
-                //     // Output the directories
-                //     Console.WriteLine("\nDirectories:"); 
-                //     foreach (string directory in directories) 
-                //     {
-                //         Console.WriteLine(directory);
-                //     } 
-                // } catch (Exception e)
-                // {
-                //     Console.WriteLine("An error occurred: " + e.Message);
-                // }
+                string path = tempDiscoveryPath;
+                try {            
+                    // Get the files in the directory
+                    string[] files = Directory.GetFiles(path);             
+                    // Get the directories in the directory
+                    string[] directories = Directory.GetDirectories(path);             
+                    // Output the files            
+                    _cmdletPassedIn.WriteVerbose("Files:");             
+                    foreach (string file in files)             
+                    {                
+                        _cmdletPassedIn.WriteVerbose(file);            
+                    }             
+                    // Output the directories
+                    _cmdletPassedIn.WriteVerbose("\nDirectories:"); 
+                    foreach (string directory in directories) 
+                    {
+                        _cmdletPassedIn.WriteVerbose(directory);
+                    } 
+                } catch (Exception e)
+                {
+                    _cmdletPassedIn.WriteVerbose("An error occurred: " + e.Message);
+                }
 
                 if (File.Exists(psd1FilePath))
                 {
