@@ -64,6 +64,12 @@
 - New `-Nupkg` parameter for `Publish-PSResource` which pushes pushes a .nupkg to a repository (#1682)
 - New `-ModulePrefix` parameter for `Publish-PSResource` which adds a prefix to a module name for container registry repositories to add a module prefix.This is only used for publishing and is not part of metadata. MAR will drop the prefix when syndicating from ACR to MAR (#1694)
 
+## 1.0.6
+
+- Bump System.Text.Json to 8.0.5
+
+## 1.0.5
+
 ### Bug Fixes
 
 - Add prerelease string when NormalizedVersion doesn't exist, but prelease string does (#1681 Thanks @sean-r-williams)
