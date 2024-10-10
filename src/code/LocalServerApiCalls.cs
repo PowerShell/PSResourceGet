@@ -649,36 +649,52 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 _cmdletPassedIn.WriteVerbose($"Extracting '{zipFilePath}' to '{tempDiscoveryPath}'");
                 System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, tempDiscoveryPath);
 
-                string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.psd1");
+                var currentFiles = Directory.GetFiles(tempDiscoveryPath);
+
+                string psd1FilePath = String.Empty;
+                string nuspecFilePath = String.Empty;
+                string pkgNamePattern = $"{packageName}*";
+                Regex rgx = new(pkgNamePattern, RegexOptions.IgnoreCase);
+                foreach (var x in currentFiles)
+                {
+                    if (rgx.IsMatch(x))
+                    {
+                        if (x.EndsWith("psd1"))
+                        {
+                            psd1FilePath = x;
+                        }
+                        else if (x.EndsWith("nuspec"))
+                        {
+                            nuspecFilePath = x;
+                        }
+                    }
+                    _cmdletPassedIn.WriteVerbose($"file found: " + x);
+
+                }
+
+                foreach (var x in currentFiles)
+                {
+                    _cmdletPassedIn.WriteVerbose($"file found: " + x);
+
+                }
+
+                var files = Directory.EnumerateFiles(tempDiscoveryPath, "*.*", SearchOption.AllDirectories).Where(
+                    s => s.Equals($"{packageName}.nuspec", StringComparison.InvariantCultureIgnoreCase));
+
+                _cmdletPassedIn.WriteVerbose($"files len: {files.Count()}");
+
+                foreach (var x in files){
+                    _cmdletPassedIn.WriteVerbose($"file : {x}");
+                }
+
+                // string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.psd1");
                 string ps1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.ps1");
-                string nuspecFilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.nuspec");
+                // string nuspecFilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.nuspec");
 
                 List<string> pkgTags = new List<string>();
                 _cmdletPassedIn.WriteVerbose($"nuspecFilePath: {nuspecFilePath}");
-                string path = tempDiscoveryPath;
-                try {            
-                    // Get the files in the directory
-                    string[] files = Directory.GetFiles(path);             
-                    // Get the directories in the directory
-                    string[] directories = Directory.GetDirectories(path);             
-                    // Output the files            
-                    _cmdletPassedIn.WriteVerbose("Files:");             
-                    foreach (string file in files)             
-                    {                
-                        _cmdletPassedIn.WriteVerbose(file);            
-                    }             
-                    // Output the directories
-                    _cmdletPassedIn.WriteVerbose("\nDirectories:"); 
-                    foreach (string directory in directories) 
-                    {
-                        _cmdletPassedIn.WriteVerbose(directory);
-                    } 
-                } catch (Exception e)
-                {
-                    _cmdletPassedIn.WriteVerbose("An error occurred: " + e.Message);
-                }
 
-                if (File.Exists(psd1FilePath))
+                if (files.Contains(psd1FilePath))
                 {
                     _cmdletPassedIn.WriteDebug($"Attempting to read module manifest file '{psd1FilePath}'");
                     if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
