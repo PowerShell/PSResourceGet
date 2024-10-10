@@ -270,6 +270,10 @@ function Register-LocalRepos {
     }
     Register-PSResourceRepository @localRepoParams2
 
+    Write-Verbose "registered psgettestlocal, psgettestlocal2, psgettestlocal3, psgettestlocal4"
+}
+
+function Register-LocalTestNupkgsRepo {
     # Path to folder, within our test folder, where we store special case modules, scripts and nupkgs used for testing
     $testDir = (get-item $psscriptroot).FullName
     $testFilesFolderPath = Join-Path $testDir -ChildPath "testFiles"
@@ -278,17 +282,15 @@ function Register-LocalRepos {
     $testNupkgsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testNupkgs"
     Write-Verbose -Verbose "testNupkgsFolderPath: $testNupkgsFolderPath"
 
-    $repoUriAddress5 = $testNupkgsFolderPath
-    $localRepoParams3 = @{
-        Name = "psgettestlocal5"
-        Uri = $repoUriAddress5
+    $repoUriAddress = $testNupkgsFolderPath
+    $localRepoParams = @{
+        Name = "localNupkgRepo"
+        Uri = $repoUriAddress
         Priority = 70
         Trusted = $false
     }
 
-    Register-PSResourceRepository @localRepoParams3
-
-    Write-Verbose "registered psgettestlocal, psgettestlocal2, psgettestlocal3, psgettestlocal4"
+    Register-PSResourceRepository @localRepoParams
 }
 
 function Register-PSGallery {
