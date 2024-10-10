@@ -646,7 +646,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 File.Move(destNupkgPath, zipFilePath);
 
                 // extract from .zip
-                _cmdletPassedIn.WriteDebug($"Extracting '{zipFilePath}' to '{tempDiscoveryPath}'");
+                _cmdletPassedIn.WriteVerbose($"Extracting '{zipFilePath}' to '{tempDiscoveryPath}'");
                 System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, tempDiscoveryPath);
 
                 string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.psd1");
@@ -654,6 +654,29 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string nuspecFilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.nuspec");
 
                 List<string> pkgTags = new List<string>();
+                _cmdletPassedIn.WriteVerbose($"nuspecFilePath: {nuspecFilePath}");
+                string path = $tempDiscoveryPath;
+                try        {            
+                    // Get the files in the directory
+                    string[] files = Directory.GetFiles(path);             
+                    // Get the directories in the directory
+                    string[] directories = Directory.GetDirectories(path);             
+                    // Output the files            
+                    Console.WriteLine("Files:");             
+                    foreach (string file in files)             
+                    {                
+                        Console.WriteLine(file);            
+                    }             
+                    // Output the directories
+                    Console.WriteLine("\nDirectories:"); 
+                    foreach (string directory in directories) 
+                    {
+                        Console.WriteLine(directory);
+                    } 
+                } catch (Exception e)
+                {
+                    Console.WriteLine("An error occurred: " + e.Message);
+                }
 
                 if (File.Exists(psd1FilePath))
                 {

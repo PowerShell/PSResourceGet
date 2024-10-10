@@ -289,7 +289,11 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     It "Install .nupkg that contains directories (specific package throws errors when accessed by ZipFile.OpenRead)" {
         $nupkgName = "Microsoft.Web.Webview2"
         $nupkgVersion = "1.0.2792.45"
-        Install-PSResource -Name $nupkgName -Version $nupkgVersion -Repository $localNupkgRepo -TrustRepository
+        $repoPath = Get-PSResourceRepository $localNupkgRepo
+        Write-Verbose -Verbose "repoPath $($repoPath.Uri)"
+        $searchPkg = Find-PSResource -Name $nupkgName -Version $nupkgVersion -Repository $localNupkgRepo
+        Write-Verbose -Verbose "search name: $($searchPkg.Name)"
+        Install-PSResource -Name $nupkgName -Version $nupkgVersion -Repository $localNupkgRepo -TrustRepository -Verbose
         $pkg = Get-InstalledPSResource $nupkgName
         $pkg.Name | Should -Be $nupkgName
         $pkg.Version | Should -Be $nupkgVersion
