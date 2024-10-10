@@ -60,7 +60,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         public InstallHelper(PSCmdlet cmdletPassedIn, NetworkCredential networkCredential)
         {
-            CancellationTokenSource source = new CancellationTokenSource();
+            CancellationTokenSource source = new();
             _cancellationToken = source.Token;
             _cmdletPassedIn = cmdletPassedIn;
             _networkCredential = networkCredential;
@@ -183,7 +183,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ScopeType scope)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::ProcessRepositories()");
-            List<PSResourceInfo> allPkgsInstalled = new List<PSResourceInfo>();
+            List<PSResourceInfo> allPkgsInstalled = new();
             if (repository != null && repository.Length != 0)
             {
                 // Write error and disregard repository entries containing wildcards.
@@ -262,7 +262,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var noToAll = false;
 
             var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
-            List<string> repositoryNamesToSearch = new List<string>();
+            List<string> repositoryNamesToSearch = new();
             bool sourceTrusted = false;
 
             // Loop through all the repositories provided (in priority order) until there no more packages to install.
@@ -330,7 +330,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 allPkgsInstalled.AddRange(installedPkgs);
             }
 
-            if (_pkgNamesToInstall.Count > 0)
+            if (!_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf") && _pkgNamesToInstall.Count > 0)
             {
                 string repositoryWording = repositoryNamesToSearch.Count > 1 ? "registered repositories" : "repository";
                 _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -547,7 +547,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             FindHelper findHelper)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackages()");
-            List<PSResourceInfo> pkgsSuccessfullyInstalled = new List<PSResourceInfo>();
+            List<PSResourceInfo> pkgsSuccessfullyInstalled = new();
 
             // Install parent package to the temp directory,
             // Get the dependencies from the installed package,
@@ -658,7 +658,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     // If -WhatIf is passed in, early out.
-                    if (!_cmdletPassedIn.ShouldProcess("Exit ShouldProcess"))
+                    if (_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf"))
                     {
                         return pkgsSuccessfullyInstalled;
                     }
@@ -1328,7 +1328,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (File.Exists(moduleManifest))
             {
-                using (StreamReader sr = new StreamReader(moduleManifest))
+                using (StreamReader sr = new(moduleManifest))
                 {
                     var text = sr.ReadToEnd();
 
@@ -1336,9 +1336,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     var patternToSkip1 = "#\\s*RequireLicenseAcceptance\\s*=\\s*\\$true";
                     var patternToSkip2 = "\\*\\s*RequireLicenseAcceptance\\s*=\\s*\\$true";
 
-                    Regex rgx = new Regex(pattern);
-                    Regex rgxComment1 = new Regex(patternToSkip1);
-                    Regex rgxComment2 = new Regex(patternToSkip2);
+                    Regex rgx = new(pattern);
+                    Regex rgxComment1 = new(patternToSkip1);
+                    Regex rgxComment2 = new(patternToSkip2);
                     if (rgx.IsMatch(text) && !rgxComment1.IsMatch(text) && !rgxComment2.IsMatch(text))
                     {
                         requireLicenseAcceptance = true;
@@ -1409,14 +1409,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // Get installed modules, then get all possible paths
             // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, would never select prerelease only.
-            GetHelper getHelper = new GetHelper(_cmdletPassedIn);
+            GetHelper getHelper = new(_cmdletPassedIn);
             IEnumerable<PSResourceInfo> pkgsAlreadyInstalled = getHelper.GetPackagesFromPath(
                 name: new string[] { "*" },
                 versionRange: VersionRange.All,
                 pathsToSearch: _pathsToSearch,
                 selectPrereleaseOnly: false);
 
-            List<string> listOfCmdlets = new List<string>();
+            List<string> listOfCmdlets = new();
             if (parsedMetadataHashtable.ContainsKey("CmdletsToExport"))
             {
                 if (parsedMetadataHashtable["CmdletsToExport"] is object[] cmdletsToExport)
@@ -1430,8 +1430,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             foreach (var pkg in pkgsAlreadyInstalled)
             {
-                List<string> duplicateCmdlets = new List<string>();
-                List<string> duplicateCmds = new List<string>();
+                List<string> duplicateCmdlets = new();
+                List<string> duplicateCmds = new();
                 // See if any of the cmdlets or commands in the pkg we're trying to install exist within a package that's already installed
                 if (pkg.Includes.Cmdlet != null && pkg.Includes.Cmdlet.Length != 0)
                 {
