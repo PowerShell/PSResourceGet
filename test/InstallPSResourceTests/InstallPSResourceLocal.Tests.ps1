@@ -24,7 +24,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $testModuleClobber2 = "testModuleClobber2"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
-        Register-PSResourceRepository -Name $localNupkgRepo -SourceLocation $localNupkgRepoUri
+        Register-PSResourceRepository -Name $localNupkgRepo -Uri $localNupkgRepoUri
 
         $prereleaseLabel = "alpha001"
         $tags = @()
