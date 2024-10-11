@@ -184,21 +184,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             List<string> repositoryNamesToSearch = new List<string>();
 
-            Uri[] allowedRepostories = null;
-
-            if(GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled())
-            {
-                allowedRepostories = GroupPolicyRepositoryEnforcement.GetAllowedRepositoryURIs();
-            }
-
             for (int i = 0; i < repositoriesToSearch.Count; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
 
-                if (allowedRepostories != null && !allowedRepostories.Contains(currentRepository.Uri))
+                bool isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+
+                if (!isAllowed)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not allowed by group policy."),
+                        new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not allowed by Group Policy."),
                         "RepositoryNotAllowedByGroupPolicy",
                         ErrorCategory.PermissionDenied,
                         this));
@@ -376,6 +371,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
+
+                bool isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+
+                if (!isAllowed)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not allowed by Group Policy."),
+                        "RepositoryNotAllowedByGroupPolicy",
+                        ErrorCategory.PermissionDenied,
+                        this));
+
+                    continue;
+                }
+
                 repositoryNamesToSearch.Add(currentRepository.Name);
                 _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
@@ -566,6 +575,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             for (int i = 0; i < repositoriesToSearch.Count; i++)
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
+
+                bool isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+
+                if (!isAllowed)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not allowed by Group Policy."),
+                        "RepositoryNotAllowedByGroupPolicy",
+                        ErrorCategory.PermissionDenied,
+                        this));
+
+                    continue;
+                }
+
                 repositoryNamesToSearch.Add(currentRepository.Name);
                 _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
