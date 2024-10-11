@@ -652,6 +652,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var currentFiles = Directory.GetFiles(tempDiscoveryPath);
 
                 string psd1FilePath = String.Empty;
+                string ps1FilePath = String.Empty;
                 string nuspecFilePath = String.Empty;
                 string pkgNamePattern = $"{packageName}*";
                 Regex rgx = new(pkgNamePattern, RegexOptions.IgnoreCase);
@@ -659,6 +660,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     if (rgx.IsMatch(x))
                     {
+                        _cmdletPassedIn.WriteVerbose("file is a match: " + x);
                         if (x.EndsWith("psd1"))
                         {
                             psd1FilePath = x;
@@ -667,15 +669,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         {
                             nuspecFilePath = x;
                         }
+                        else if (x.EndsWith("ps1"))
+                        {
+                            ps1FilePath = x;
+                        }
                     }
+
                     _cmdletPassedIn.WriteVerbose($"file found: " + x);
-
-                }
-
-                foreach (var x in currentFiles)
-                {
-                    _cmdletPassedIn.WriteVerbose($"file found: " + x);
-
                 }
 
                 var files = Directory.EnumerateFiles(tempDiscoveryPath, "*.*", SearchOption.AllDirectories).Where(
@@ -688,7 +688,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 // string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.psd1");
-                string ps1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.ps1");
+                // string ps1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.ps1");
                 // string nuspecFilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.nuspec");
 
                 List<string> pkgTags = new List<string>();
