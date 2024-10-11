@@ -678,15 +678,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     _cmdletPassedIn.WriteVerbose($"file found: " + x);
                 }
 
-                var files = Directory.EnumerateFiles(tempDiscoveryPath, "*.*", SearchOption.AllDirectories).Where(
-                    s => s.Equals($"{packageName}.nuspec", StringComparison.InvariantCultureIgnoreCase));
-
-                _cmdletPassedIn.WriteVerbose($"files len: {files.Count()}");
-
-                foreach (var x in files){
-                    _cmdletPassedIn.WriteVerbose($"file : {x}");
-                }
-
                 // string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.psd1");
                 // string ps1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.ps1");
                 // string nuspecFilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.nuspec");
@@ -694,7 +685,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 List<string> pkgTags = new List<string>();
                 _cmdletPassedIn.WriteVerbose($"nuspecFilePath: {nuspecFilePath}");
 
-                if (files.Contains(psd1FilePath))
+                if (File.Exists(psd1FilePath))
                 {
                     _cmdletPassedIn.WriteDebug($"Attempting to read module manifest file '{psd1FilePath}'");
                     if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
