@@ -646,44 +646,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 File.Move(destNupkgPath, zipFilePath);
 
                 // extract from .zip
-                _cmdletPassedIn.WriteVerbose($"Extracting '{zipFilePath}' to '{tempDiscoveryPath}'");
+                _cmdletPassedIn.WriteDebug($"Extracting '{zipFilePath}' to '{tempDiscoveryPath}'");
                 System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, tempDiscoveryPath);
-
-                var currentFiles = Directory.GetFiles(tempDiscoveryPath);
 
                 string psd1FilePath = String.Empty;
                 string ps1FilePath = String.Empty;
                 string nuspecFilePath = String.Empty;
-                string pkgNamePattern = $"{packageName}*";
-                Regex rgx = new(pkgNamePattern, RegexOptions.IgnoreCase);
-                foreach (var x in currentFiles)
-                {
-                    if (rgx.IsMatch(x))
-                    {
-                        _cmdletPassedIn.WriteVerbose("file is a match: " + x);
-                        if (x.EndsWith("psd1"))
-                        {
-                            psd1FilePath = x;
-                        }
-                        else if (x.EndsWith("nuspec"))
-                        {
-                            nuspecFilePath = x;
-                        }
-                        else if (x.EndsWith("ps1"))
-                        {
-                            ps1FilePath = x;
-                        }
-                    }
-
-                    _cmdletPassedIn.WriteVerbose($"file found: " + x);
-                }
-
-                // string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.psd1");
-                // string ps1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.ps1");
-                // string nuspecFilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.nuspec");
+                GetMetadataFilesFromPath(tempDiscoveryPath, packageName, out psd1FilePath, out ps1FilePath, out nuspecFilePath)
 
                 List<string> pkgTags = new List<string>();
-                _cmdletPassedIn.WriteVerbose($"nuspecFilePath: {nuspecFilePath}");
 
                 if (File.Exists(psd1FilePath))
                 {
@@ -1111,6 +1082,35 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             return cmdDSCTags.ToArray();
+        }
+
+        private void GetMetadataFilesFromPath(string dirPath, string packageName, out string psd1FilePath, out string ps1FilePath, out string nuspecFilePath)
+        {
+            psd1FilePath = String.Empty;
+            ps1FilePath = String.Empty;
+            nuspecFilePath = String.Empty;
+
+            var discoveredFiles = Directory.GetFiles(tempDiscoveryPath, "*.*", SearchOption.AllDirectories);
+            string pkgNamePattern = $"{packageName}*";
+            Regex rgx = new(pkgNamePattern, RegexOptions.IgnoreCase);
+            foreach (var file in foundFiles)
+            {
+                if (rgx.IsMatch(discoveredFiles))
+                {
+                    if (file.EndsWith("psd1"))
+                    {
+                        psd1FilePath = file;
+                    }
+                    else if (file.EndsWith("nuspec"))
+                    {
+                        nuspecFilePath = file;
+                    }
+                    else if (file.EndsWith("ps1"))
+                    {
+                        ps1FilePath = file;
+                    }
+                }
+            }
         }
 
         #endregion
