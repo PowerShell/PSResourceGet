@@ -652,7 +652,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string psd1FilePath = String.Empty;
                 string ps1FilePath = String.Empty;
                 string nuspecFilePath = String.Empty;
-                GetMetadataFilesFromPath(tempDiscoveryPath, packageName, out psd1FilePath, out ps1FilePath, out nuspecFilePath)
+                GetMetadataFilesFromPath(tempDiscoveryPath, packageName, out psd1FilePath, out ps1FilePath, out nuspecFilePath);
 
                 List<string> pkgTags = new List<string>();
 
