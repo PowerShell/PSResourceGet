@@ -1090,12 +1090,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ps1FilePath = String.Empty;
             nuspecFilePath = String.Empty;
 
-            var discoveredFiles = Directory.GetFiles(tempDiscoveryPath, "*.*", SearchOption.AllDirectories);
+            var discoveredFiles = Directory.GetFiles(dirPath, "*.*", SearchOption.AllDirectories);
             string pkgNamePattern = $"{packageName}*";
             Regex rgx = new(pkgNamePattern, RegexOptions.IgnoreCase);
-            foreach (var file in foundFiles)
+            foreach (var file in discoveredFiles)
             {
-                if (rgx.IsMatch(discoveredFiles))
+                if (rgx.IsMatch(file))
                 {
                     if (file.EndsWith("psd1"))
                     {
