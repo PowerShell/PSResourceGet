@@ -22,6 +22,7 @@ using Azure.Core;
 using Azure.Identity;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {

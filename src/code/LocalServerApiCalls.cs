@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Net;
 using System.Management.Automation;
+using System.Runtime.ExceptionServices;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
