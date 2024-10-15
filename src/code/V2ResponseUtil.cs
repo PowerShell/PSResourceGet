@@ -127,7 +127,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // order the array in descending order if not already.
-            // check for emptyVersion is in case a version that couldn't be parsed was found for the firstVersion we set it to 0.0.0.0 and that messes up compareTo(), so just keep ordering as is.
             if (shouldFixOrder && firstVersion.CompareTo(lastVersion) < 0)
             {
                 nodes = nodes.Reverse().ToArray();
