@@ -12,7 +12,6 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Net;
 using System.Management.Automation;
-using System.Runtime.ExceptionServices;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -652,7 +651,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string psd1FilePath = String.Empty;
                 string ps1FilePath = String.Empty;
                 string nuspecFilePath = String.Empty;
-                GetMetadataFilesFromPath(tempDiscoveryPath, packageName, out psd1FilePath, out ps1FilePath, out nuspecFilePath);
+                Utils.GetMetadataFilesFromPath(tempDiscoveryPath, packageName, out psd1FilePath, out ps1FilePath, out nuspecFilePath);
 
                 List<string> pkgTags = new List<string>();
 
@@ -1082,35 +1081,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             return cmdDSCTags.ToArray();
-        }
-
-        private void GetMetadataFilesFromPath(string dirPath, string packageName, out string psd1FilePath, out string ps1FilePath, out string nuspecFilePath)
-        {
-            psd1FilePath = String.Empty;
-            ps1FilePath = String.Empty;
-            nuspecFilePath = String.Empty;
-
-            var discoveredFiles = Directory.GetFiles(dirPath, "*.*", SearchOption.AllDirectories);
-            string pkgNamePattern = $"{packageName}*";
-            Regex rgx = new(pkgNamePattern, RegexOptions.IgnoreCase);
-            foreach (var file in discoveredFiles)
-            {
-                if (rgx.IsMatch(file))
-                {
-                    if (file.EndsWith("psd1"))
-                    {
-                        psd1FilePath = file;
-                    }
-                    else if (file.EndsWith("nuspec"))
-                    {
-                        nuspecFilePath = file;
-                    }
-                    else if (file.EndsWith("ps1"))
-                    {
-                        ps1FilePath = file;
-                    }
-                }
-            }
         }
 
         #endregion
