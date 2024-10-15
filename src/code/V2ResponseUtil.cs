@@ -75,6 +75,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             NuGetVersion emptyVersion = new NuGetVersion("0.0.0.0");
             NuGetVersion firstVersion = emptyVersion;
             NuGetVersion lastVersion = emptyVersion;
+            bool shouldFixOrder = true;
 
             //Create the XmlDocument.
             XmlDocument doc = new XmlDocument();
@@ -102,7 +103,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 if (!NuGetVersion.TryParse(propertyValue, out NuGetVersion parsedNormalizedVersion))
                                 {
-                                    parsedNormalizedVersion = emptyVersion;
+                                    // if a version couldn't be parsed, keep ordering as is.
+                                    shouldFixOrder = false;
                                 }
 
                                 if (i == 0)
@@ -124,9 +126,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            // only order the array in desc order if array has more than 1 element and is currently in ascending order
-            // check for emptyVersion is in case a version that couldn't be parsed was found, just keep ordering as is.
-            if (nodes.Length > 1 && firstVersion != emptyVersion && lastVersion != emptyVersion && firstVersion < lastVersion)
+            // order the array in descending order if not already.
+            // check for emptyVersion is in case a version that couldn't be parsed was found for the firstVersion we set it to 0.0.0.0 and that messes up compareTo(), so just keep ordering as is.
+            if (shouldFixOrder && firstVersion.CompareTo(lastVersion) < 0)
             {
                 nodes = nodes.Reverse().ToArray();
             }
