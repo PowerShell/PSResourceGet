@@ -2,8 +2,10 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
@@ -70,6 +72,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         #region V2 Specific Methods
 
         public XmlNode[] ConvertResponseToXML(string httpResponse) {
+            NuGetVersion emptyVersion = new NuGetVersion("0.0.0.0");
+            NuGetVersion firstVersion = emptyVersion;
+            NuGetVersion lastVersion = emptyVersion;
+            bool shouldFixOrder = true;
 
             //Create the XmlDocument.
             XmlDocument doc = new XmlDocument();
@@ -80,7 +86,50 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             XmlNode[] nodes = new XmlNode[entryNode.Count];
             for (int i = 0; i < entryNode.Count; i++) 
             {
-                nodes[i] = entryNode[i];
+                XmlNode node = entryNode[i];
+                nodes[i] = node;
+                var entryChildNodes = node.ChildNodes;
+                foreach (XmlElement childNode in entryChildNodes)
+                {
+                    var entryKey = childNode.LocalName;
+                    if (entryKey.Equals("properties"))
+                    {
+                        var propertyChildNodes = childNode.ChildNodes;
+                        foreach (XmlElement propertyChild in propertyChildNodes)
+                        {
+                            var propertyKey = propertyChild.LocalName;
+                            var propertyValue = propertyChild.InnerText;
+                            if (propertyKey.Equals("NormalizedVersion"))
+                            {
+                                if (!NuGetVersion.TryParse(propertyValue, out NuGetVersion parsedNormalizedVersion))
+                                {
+                                    // if a version couldn't be parsed, keep ordering as is.
+                                    shouldFixOrder = false;
+                                }
+
+                                if (i == 0)
+                                {
+                                    firstVersion = parsedNormalizedVersion;
+                                }
+                                else
+                                {
+                                    // later version element
+                                    lastVersion = parsedNormalizedVersion;
+                                }
+
+                                break; // don't care about rest of the childNode's properties
+                            }
+                        }
+
+                        break; // don't care about rest of the childNode's keys
+                    }
+                }
+            }
+
+            // order the array in descending order if not already.
+            if (shouldFixOrder && firstVersion.CompareTo(lastVersion) < 0)
+            {
+                nodes = nodes.Reverse().ToArray();
             }
 
             return nodes;
