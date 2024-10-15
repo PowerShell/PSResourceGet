@@ -40,6 +40,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         #region Overriden Methods
 
         /// <summary>
+        /// test
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
         /// Examples: Search -Repository PSGallery
         /// API call:
