@@ -118,6 +118,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 break; // don't care about rest of the childNode's properties
                             }
                         }
+
+                        break; // don't care about rest of the childNode's keys
                     }
                 }
             }
