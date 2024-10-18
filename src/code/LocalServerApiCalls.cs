@@ -649,9 +649,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 _cmdletPassedIn.WriteDebug($"Extracting '{zipFilePath}' to '{tempDiscoveryPath}'");
                 System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, tempDiscoveryPath);
 
-                string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.psd1");
-                string ps1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.ps1");
-                string nuspecFilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.nuspec");
+                string psd1FilePath = String.Empty;
+                string ps1FilePath = String.Empty;
+                string nuspecFilePath = String.Empty;
+                Utils.GetMetadataFilesFromPath(tempDiscoveryPath, packageName, out psd1FilePath, out ps1FilePath, out nuspecFilePath);
 
                 List<string> pkgTags = new List<string>();
 
