@@ -78,11 +78,11 @@ Describe 'GroupPolicyEnforcement Cmdlet Tests' -Tags 'CI' {
     It 'Install-PSResource is blocked by policy' -Skip:(-not $IsWindows) {
         try {
             Register-PSResourceRepository -Name 'Example' -Uri 'https://www.example.com/' -ApiVersion 'v3'
-            { Find-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop } | Should -Throw "Repository 'PSGallery' is not allowed by Group Policy."
+            { Install-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop } | Should -Throw "Repository 'PSGallery' is not allowed by Group Policy."
 
             # Allow PSGallery and it should not fail
             [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('AllowedUri', " https://www.powershellgallery.com/api/v2")
-            { Find-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop } | Should -Not -Throw
+            { Install-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop -TrustRepository} | Should -Not -Throw
         }
         finally {
             Unregister-PSResourceRepository -Name 'Example'
@@ -92,11 +92,11 @@ Describe 'GroupPolicyEnforcement Cmdlet Tests' -Tags 'CI' {
     It 'Save-PSResource is blocked by policy' -Skip:(-not $IsWindows) {
         try {
             Register-PSResourceRepository -Name 'Example' -Uri 'https://www.example.com/' -ApiVersion 'v3'
-            { Find-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop } | Should -Throw "Repository 'PSGallery' is not allowed by Group Policy."
+            { Save-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop } | Should -Throw "Repository 'PSGallery' is not allowed by Group Policy."
 
             # Allow PSGallery and it should not fail
             [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('AllowedUri', " https://www.powershellgallery.com/api/v2")
-            { Find-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop } | Should -Not -Throw
+            { Save-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop -TrustRepository} | Should -Not -Throw
         }
         finally {
             Unregister-PSResourceRepository -Name 'Example'
