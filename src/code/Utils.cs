@@ -1,4 +1,3 @@
-using System.Net;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -15,13 +14,15 @@ using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
 using Microsoft.PowerShell.Commands;
 using Microsoft.PowerShell.PSResourceGet.Cmdlets;
+using System.Net;
 using System.Net.Http;
 using System.Globalization;
 using System.Security;
 using Azure.Core;
 using Azure.Identity;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -1171,6 +1172,34 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return pkgsInstalledOnMachine;
         }
 
+        internal static void GetMetadataFilesFromPath(string dirPath, string packageName, out string psd1FilePath, out string ps1FilePath, out string nuspecFilePath)
+        {
+            psd1FilePath = String.Empty;
+            ps1FilePath = String.Empty;
+            nuspecFilePath = String.Empty;
+
+            var discoveredFiles = Directory.GetFiles(dirPath, "*.*", SearchOption.AllDirectories);
+            string pkgNamePattern = $"{packageName}*";
+            Regex rgx = new(pkgNamePattern, RegexOptions.IgnoreCase);
+            foreach (var file in discoveredFiles)
+            {
+                if (rgx.IsMatch(file))
+                {
+                    if (file.EndsWith("psd1"))
+                    {
+                        psd1FilePath = file;
+                    }
+                    else if (file.EndsWith("nuspec"))
+                    {
+                        nuspecFilePath = file;
+                    }
+                    else if (file.EndsWith("ps1"))
+                    {
+                        ps1FilePath = file;
+                    }
+                }
+            }
+        }
         #endregion
 
         #region PSDataFile parsing

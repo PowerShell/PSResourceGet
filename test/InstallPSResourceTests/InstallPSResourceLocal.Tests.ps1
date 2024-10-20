@@ -16,15 +16,14 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     BeforeAll {
         $localRepo = "psgettestlocal"
         $localUNCRepo = "psgettestlocal3"
-        $localNupkgRepo = "LocalNupkgRepo"
-        $localNupkgRepoUri = "test\testFiles\testNupkgs"
+        $localNupkgRepo = "localNupkgRepo"
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
         $testModuleClobber = "testModuleClobber"
         $testModuleClobber2 = "testModuleClobber2"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
-        Register-PSResourceRepository -Name $localNupkgRepo -SourceLocation $localNupkgRepoUri
+        Register-LocalTestNupkgsRepo
 
         $prereleaseLabel = "alpha001"
         $tags = @()
@@ -290,7 +289,11 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     It "Install .nupkg that contains directories (specific package throws errors when accessed by ZipFile.OpenRead)" {
         $nupkgName = "Microsoft.Web.Webview2"
         $nupkgVersion = "1.0.2792.45"
-        Install-PSResource -Name $nupkgName -Version $nupkgVersion -Repository $localNupkgRepo -TrustRepository
+        $repoPath = Get-PSResourceRepository $localNupkgRepo
+        Write-Verbose -Verbose "repoPath $($repoPath.Uri)"
+        $searchPkg = Find-PSResource -Name $nupkgName -Version $nupkgVersion -Repository $localNupkgRepo
+        Write-Verbose -Verbose "search name: $($searchPkg.Name)"
+        Install-PSResource -Name $nupkgName -Version $nupkgVersion -Repository $localNupkgRepo -TrustRepository -Verbose
         $pkg = Get-InstalledPSResource $nupkgName
         $pkg.Name | Should -Be $nupkgName
         $pkg.Version | Should -Be $nupkgVersion

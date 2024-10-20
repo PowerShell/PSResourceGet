@@ -364,6 +364,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
+                // usually this is for errors in calling the V2 server, but for ADO V2 this error will include package not found errors which we want to deliver in a standard message
+                if (_isADORepo && errRecord.Exception is ResourceNotFoundException)
+                {
+                    errRecord = new ErrorRecord(
+                        new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'. For ADO feed, if the package is in an upstream feed make sure you are authenticated to the upstream feed.", errRecord.Exception),
+                        "PackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this);
+                    response = string.Empty;
+                }
+
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
@@ -648,6 +659,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
+                // usually this is for errors in calling the V2 server, but for ADO V2 this error will include package not found errors which we want to deliver with a standard message
+                if (_isADORepo && errRecord.Exception is ResourceNotFoundException)
+                {
+                    errRecord = new ErrorRecord(
+                        new ResourceNotFoundException($"Package with name '{packageName}' and version '{version}' could not be found in repository '{Repository.Name}'. For ADO feed, if the package is in an upstream feed make sure you are authenticated to the upstream feed.", errRecord.Exception),
+                        "PackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this);
+                    response = string.Empty;
+                }
+
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
