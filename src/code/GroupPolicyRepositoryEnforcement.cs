@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using Microsoft.Win32;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
@@ -35,6 +36,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 throw new PlatformNotSupportedException("Group policy is only supported on Windows.");
             }
 
+            if (InternalHooks.EnableGPRegistryHook)
+            {
+                return InternalHooks.GPEnabledStatus;
+            }
+
             var values = ReadGPFromRegistry();
 
             if (values is not null && values.Count > 0)
@@ -55,6 +61,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (Environment.OSVersion.Platform != PlatformID.Win32NT)
             {
                 throw new PlatformNotSupportedException("Group policy is only supported on Windows.");
+            }
+
+            if (InternalHooks.EnableGPRegistryHook)
+            {
+                var uri = new Uri(InternalHooks.AllowedUri);
+                return new Uri[] { uri };
             }
 
             if (!IsGroupPolicyEnabled())
