@@ -259,10 +259,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             String latestVersionPath = String.Empty;
             string actualPkgName = packageName;
 
+            // this regex pattern matches packageName followed by a version (4 digit or 3 with prerelease word)
             string regexPattern = $"{packageName}" + @".\d+\.\d+\.\d+(?:-\w+|.\d)*.nupkg";
             Regex rx = new Regex(regexPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-            _cmdletPassedIn.WriteDebug($"pattern is: {regexPattern}");
+            _cmdletPassedIn.WriteDebug($"package file name pattern to be searched for is: {regexPattern}");
 
             foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
