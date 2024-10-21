@@ -12,7 +12,7 @@
         </stringTable>
         <presentationTable>
             <presentation id="PSResourceGetRepository">
-              <text>Please create an allow list of repositories using a hashtable. HKLM:SOFTWARE\Policies\Microsoft\PSResourceGet</text>
+              <text>Please create an allow list of repositories using a name value pair like following: Name=PSGallery;Uri=https://www.powershellgallery.com/api/v2</text>
               <listBox refId="PSResourceGetRepository_Listbox"/>
             </presentation>
         </presentationTable>
