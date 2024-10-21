@@ -6,13 +6,13 @@
 
 Describe 'GroupPolicyEnforcement API Tests' -Tags 'CI' {
 
-    It 'Should return the correct policy enforcement status' -Skip:(-not $IsWindows) {
+    It 'IsGroupPolicyEnabled should return the correct policy enforcement status' -Skip:(-not $IsWindows) {
         $actualStatus = [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::IsGroupPolicyEnabled()
         $actualStatus | Should -BeFalse
     }
 
-    It 'Should return platform not supported exception on non-windows platform' -Skip:$IsWindows {
-        [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::IsGroupPolicyEnabled() | Should -BeTrue
+    It 'IsGroupPolicyEnabled should return false on non-windows platform' -Skip:$IsWindows {
+        [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::IsGroupPolicyEnabled() | Should -BeFalse
     }
 
     It 'GetAllowedRepositoryURIs return null if Group Policy is not enabled' -Skip:(-not $IsWindows) {
