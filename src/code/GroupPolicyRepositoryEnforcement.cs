@@ -72,7 +72,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!IsGroupPolicyEnabled())
             {
-                throw new InvalidOperationException("Group policy is not enabled.");
+                return null;
             }
             else
             {

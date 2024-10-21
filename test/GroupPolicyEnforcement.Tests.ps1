@@ -15,12 +15,21 @@ Describe 'GroupPolicyEnforcement API Tests' -Tags 'CI' {
         [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::IsGroupPolicyEnabled() | Should -BeTrue
     }
 
-    It 'Group Policy must be enabled before getting allowed repositories' -Skip:(-not $IsWindows) {
+    It 'GetAllowedRepositoryURIs return null if Group Policy is not enabled' -Skip:(-not $IsWindows) {
+        [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::GetAllowedRepositoryURIs() | Should -BeNullOrEmpty
+
         try {
-            [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::GetAllowedRepositoryURIs()
+            [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('EnableGPRegistryHook', $true)
+            [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('GPEnabledStatus', $true)
+            [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('AllowedUri', "https://www.example.com/")
+
+            $allowedReps = [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::GetAllowedRepositoryURIs()
+            $allowedReps.AbsoluteUri | Should -Be @("https://www.example.com/")
         }
-        catch {
-            $_.Exception.InnerException.Message | Should -Be 'Group policy is not enabled.'
+        finally {
+            [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('EnableGPRegistryHook', $false)
+            [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('GPEnabledStatus', $false)
+            [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('AllowedUri', $null)
         }
     }
 }
@@ -36,11 +45,6 @@ Describe 'GroupPolicyEnforcement Cmdlet Tests' -Tags 'CI' {
         [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('EnableGPRegistryHook', $false)
         [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('GPEnabledStatus', $false)
         [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('AllowedUri', $null)
-    }
-
-    It 'Getting allowed repositories works as expected' -Skip:(-not $IsWindows) {
-        $allowedReps = [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::GetAllowedRepositoryURIs()
-        $allowedReps.AbsoluteUri | Should -Be @("https://www.example.com/")
     }
 
     It 'Get-PSResourceRepository lists the allowed repository' -Skip:(-not $IsWindows) {
