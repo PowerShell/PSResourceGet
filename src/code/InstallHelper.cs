@@ -1026,7 +1026,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     // Accept License verification
-                    if (!_savePkg && !CallAcceptLicense(pkgToInstall, moduleManifest, tempInstallPath, pkgVersion, out error))
+                    if (!CallAcceptLicense(pkgToInstall, moduleManifest, tempInstallPath, pkgVersion, out error))
                     {
                         _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
                         return false;
