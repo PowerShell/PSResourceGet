@@ -8,17 +8,11 @@ Describe 'GroupPolicyEnforcement API Tests' -Tags 'CI' {
 
     It 'Should return the correct policy enforcement status' -Skip:(-not $IsWindows) {
         $actualStatus = [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::IsGroupPolicyEnabled()
-        $actualStatus | Should -Be $false
+        $actualStatus | Should -BeFalse
     }
 
     It 'Should return platform not supported exception on non-windows platform' -Skip:$IsWindows {
-        try {
-            [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::IsGroupPolicyEnabled()
-        }
-        catch {
-            $_.Exception.Message | Should -Be 'Group Policy is not supported on this platform.'
-            $_.Exception.InnerException.GetType().FullName | Should -Be 'System.InvalidOperationException'
-        }
+        [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::IsGroupPolicyEnabled() | Should -BeTrue
     }
 
     It 'Group Policy must be enabled before getting allowed repositories' -Skip:(-not $IsWindows) {
@@ -54,7 +48,7 @@ Describe 'GroupPolicyEnforcement Cmdlet Tests' -Tags 'CI' {
             Register-PSResourceRepository -Name 'Example' -Uri 'https://www.example.com/'
             $psrep = Get-PSResourceRepository -Name 'Example'
             $psrep | Should -Not -BeNullOrEmpty
-            $psrep.IsAllowedByPolicy | Should -Be $true
+            $psrep.IsAllowedByPolicy | Should -BeTrue
         }
         finally {
             Unregister-PSResourceRepository -Name 'Example'

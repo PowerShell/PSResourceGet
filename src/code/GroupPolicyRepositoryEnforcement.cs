@@ -33,7 +33,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             if (Environment.OSVersion.Platform != PlatformID.Win32NT)
             {
-                throw new PlatformNotSupportedException("Group policy is only supported on Windows.");
+                // Always return false for non-Windows platforms and Group Policy is not available.
+                return false;
             }
 
             if (InternalHooks.EnableGPRegistryHook)
