@@ -34,7 +34,7 @@ function DoBuild
     Copy-Item -Path "./LICENSE" -Dest "$BuildOutPath"
 
     # Copy notice
-    Write-Verbose -Verbose -Message "Copying InstallPSResourceGetPolicyDefinitions.ps1 to '$BuildOutPath'"
+    Write-Verbose -Verbose -Message "Copying Notice.txt to '$BuildOutPath'"
     Copy-Item -Path "./Notice.txt" -Dest "$BuildOutPath"
 
     # Copy Group Policy files
