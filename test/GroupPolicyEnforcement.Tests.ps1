@@ -2,20 +2,21 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-# Add Pester test to check the API for GroupPolicyEnforcement
+$checkIfWindows = [System.Environment]::OSVersion.Platform -eq 'Win32NT'
 
+# Add Pester test to check the API for GroupPolicyEnforcement
 Describe 'GroupPolicyEnforcement API Tests' -Tags 'CI' {
 
-    It 'IsGroupPolicyEnabled should return the correct policy enforcement status' -Skip:(-not $IsWindows) {
+    It 'IsGroupPolicyEnabled should return the correct policy enforcement status' -Skip:(-not $checkIfWindows) {
         $actualStatus = [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::IsGroupPolicyEnabled()
         $actualStatus | Should -BeFalse
     }
 
-    It 'IsGroupPolicyEnabled should return false on non-windows platform' -Skip:$IsWindows {
+    It 'IsGroupPolicyEnabled should return false on non-windows platform' -Skip:$checkIfWindows {
         [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::IsGroupPolicyEnabled() | Should -BeFalse
     }
 
-    It 'GetAllowedRepositoryURIs return null if Group Policy is not enabled' -Skip:(-not $IsWindows) {
+    It 'GetAllowedRepositoryURIs return null if Group Policy is not enabled' -Skip:(-not $checkIfWindows) {
         [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::GetAllowedRepositoryURIs() | Should -BeNullOrEmpty
 
         try {
@@ -47,7 +48,7 @@ Describe 'GroupPolicyEnforcement Cmdlet Tests' -Tags 'CI' {
         [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('AllowedUri', $null)
     }
 
-    It 'Get-PSResourceRepository lists the allowed repository' -Skip:(-not $IsWindows) {
+    It 'Get-PSResourceRepository lists the allowed repository' -Skip:(-not $checkIfWindows) {
         try {
             Register-PSResourceRepository -Name 'Example' -Uri 'https://www.example.com/'
             $psrep = Get-PSResourceRepository -Name 'Example'
@@ -59,7 +60,7 @@ Describe 'GroupPolicyEnforcement Cmdlet Tests' -Tags 'CI' {
         }
     }
 
-    It 'Find-PSResource is blocked by policy' -Skip:(-not $IsWindows) {
+    It 'Find-PSResource is blocked by policy' -Skip:(-not $checkIfWindows) {
         try {
             Register-PSResourceRepository -Name 'Example' -Uri 'https://www.example.com/' -ApiVersion 'v3'
             { Find-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop } | Should -Throw "Repository 'PSGallery' is not allowed by Group Policy."
@@ -73,7 +74,7 @@ Describe 'GroupPolicyEnforcement Cmdlet Tests' -Tags 'CI' {
         }
     }
 
-    It 'Install-PSResource is blocked by policy' -Skip:(-not $IsWindows) {
+    It 'Install-PSResource is blocked by policy' -Skip:(-not $checkIfWindows) {
         try {
             Register-PSResourceRepository -Name 'Example' -Uri 'https://www.example.com/' -ApiVersion 'v3'
             { Install-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop } | Should -Throw "Repository 'PSGallery' is not allowed by Group Policy."
@@ -87,7 +88,7 @@ Describe 'GroupPolicyEnforcement Cmdlet Tests' -Tags 'CI' {
         }
     }
 
-    It 'Save-PSResource is blocked by policy' -Skip:(-not $IsWindows) {
+    It 'Save-PSResource is blocked by policy' -Skip:(-not $checkIfWindows) {
         try {
             Register-PSResourceRepository -Name 'Example' -Uri 'https://www.example.com/' -ApiVersion 'v3'
             { Save-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop } | Should -Throw "Repository 'PSGallery' is not allowed by Group Policy."
