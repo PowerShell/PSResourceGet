@@ -27,7 +27,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         #region Constructor
 
-        public PSRepositoryInfo(string name, Uri uri, int priority, bool trusted, PSCredentialInfo credentialInfo, APIVersion apiVersion)
+        public PSRepositoryInfo(string name, Uri uri, int priority, bool trusted, PSCredentialInfo credentialInfo, APIVersion apiVersion, bool allowed)
         {
             Name = name;
             Uri = uri;
@@ -35,6 +35,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             Trusted = trusted;
             CredentialInfo = credentialInfo;
             ApiVersion = apiVersion;
+            IsAllowedByPolicy = allowed;
         }
 
         #endregion
@@ -87,6 +88,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// the API protocol version for the repository
         /// </summary>
         public APIVersion ApiVersion { get; }
+
+        // <summary>
+        /// is it allowed by policy
+        /// </summary>
+        public bool IsAllowedByPolicy { get; set; }
 
         #endregion
     }
