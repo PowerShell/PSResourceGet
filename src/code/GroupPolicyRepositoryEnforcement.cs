@@ -121,14 +121,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (key is null)
                 {
-                    throw new InvalidOperationException("Group policy is not enabled.");
+                    return null;
                 }
 
                 var subKeys = key.GetSubKeyNames();
 
                 if (subKeys is null)
                 {
-                    throw new InvalidOperationException("Group policy is not enabled.");
+                    return null;
                 }
 
                 foreach (var subKey in subKeys)
