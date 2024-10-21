@@ -387,6 +387,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return findResponse;
             }
 
+            // this regex pattern matches packageName followed by the requested version
             string regexPattern = $"{packageName}.{requiredVersion.ToNormalizedString()}" + @".nupkg";
             Regex rx = new Regex(regexPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
             _cmdletPassedIn.WriteDebug($"pattern is: {regexPattern}");
