@@ -1,3 +1,20 @@
+## [1.1.0-RC](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-preview2...v1.1.0-RC) - 2024-09-13
+
+### New Features
+
+- Group Policy configurations for enabling or disabling PSResource repositories (#1730)
+
+### Bug Fixes
+
+- Fix packaging name matching when searching in local repositories (#1731)
+- `Compress-PSResource` `-PassThru` now passes `FileInfo` instead of string (#1720)
+- Fix for `Compress-PSResource` not properly compressing scripts  (#1719) 
+- Add `AcceptLicense` to Save-PSResource (#1718 Thanks @o-l-a-v!)
+- Better support for NuGet v2 feeds (#1713 Thanks @o-l-a-v!)
+- Better handling of `-WhatIf` support in `Install-PSResource` (#1531 Thanks @o-l-a-v!)
+- Fix for some nupkgs failing to extract due to empty directories (#1707 Thanks @o-l-a-v!)
+- Fix for searching for `-Name *` in `Find-PSResource` (#1706 Thanks @o-l-a-v!)
+
 ## [1.1.0-preview2](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-preview1...v1.1.0-preview2) - 2024-09-13
 
 ### New Features
