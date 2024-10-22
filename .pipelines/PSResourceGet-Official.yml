@@ -152,7 +152,7 @@ extends:
           inputs:
             command: 'sign'
             signing_profile: external_distribution
-            files_to_sign: '**\*.psd1;**\*.psm1;**\*.ps1xml;**\Microsoft*.dll'
+            files_to_sign: '**\*.ps1;**\*.psd1;**\*.psm1;**\*.ps1xml;**\Microsoft*.dll'
             search_root: $(signSrcPath)
 
         - pwsh: |
