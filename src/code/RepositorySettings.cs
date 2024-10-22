@@ -9,6 +9,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Xml;
 using System.Xml.Linq;
+using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using static Microsoft.PowerShell.PSResourceGet.UtilClasses.PSRepositoryInfo;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
@@ -279,7 +280,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 throw new PSInvalidOperationException(String.Format("Adding to repository store failed: {0}", e.Message));
             }
 
-            return new PSRepositoryInfo(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, apiVersion);
+            bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(repoUri) : true;
+
+            return new PSRepositoryInfo(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, apiVersion, isAllowed);
         }
 
         /// <summary>
@@ -436,13 +439,22 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         node.Attribute(PSCredentialInfo.SecretNameAttribute).Value);
                 }
 
+                if (GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled())
+                {
+                    var allowedList = GroupPolicyRepositoryEnforcement.GetAllowedRepositoryURIs();
+
+                }
+
+                bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(thisUrl) : true;
+
                 RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
                 updatedRepo = new PSRepositoryInfo(repoName,
                     thisUrl,
                     Int32.Parse(node.Attribute("Priority").Value),
                     Boolean.Parse(node.Attribute("Trusted").Value),
                     thisCredentialInfo,
-                    resolvedAPIVersion);
+                    resolvedAPIVersion,
+                    isAllowed);
 
                 // Close the file
                 root.Save(FullRepositoryPath);
@@ -522,6 +534,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 string attributeUrlUriName = urlAttributeExists ? "Url" : "Uri";
                 Uri repoUri = new Uri(node.Attribute(attributeUrlUriName).Value);
+
+                bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(repoUri) : true;
+
                 RepositoryProviderType repositoryProvider= GetRepositoryProviderType(repoUri);
                 removedRepos.Add(
                     new PSRepositoryInfo(repo,
@@ -529,7 +544,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         Int32.Parse(node.Attribute("Priority").Value),
                         Boolean.Parse(node.Attribute("Trusted").Value),
                         repoCredentialInfo,
-                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true)));
+                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true),
+                        isAllowed));
 
                 // Remove item from file
                 node.Remove();
@@ -654,12 +670,16 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
 
                     RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
+
+                    bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(thisUrl) : true;
+
                     PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(repo.Attribute("Name").Value,
                         thisUrl,
                         Int32.Parse(repo.Attribute("Priority").Value),
                         Boolean.Parse(repo.Attribute("Trusted").Value),
                         thisCredentialInfo,
-                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), repo.Attribute("APIVersion").Value, ignoreCase: true));
+                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), repo.Attribute("APIVersion").Value, ignoreCase: true),
+                        isAllowed);
 
                     foundRepos.Add(currentRepoItem);
                 }
@@ -758,12 +778,16 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         }
 
                         RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
+
+                        bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(thisUrl) : true;
+
                         PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(node.Attribute("Name").Value,
                             thisUrl,
                             Int32.Parse(node.Attribute("Priority").Value),
                             Boolean.Parse(node.Attribute("Trusted").Value),
                             thisCredentialInfo,
-                            (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true));
+                            (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true),
+                            isAllowed);
 
                         foundRepos.Add(currentRepoItem);
                     }

@@ -94,6 +94,7 @@
                     <TableColumnHeader><Label>Uri</Label></TableColumnHeader>
                     <TableColumnHeader><Label>Trusted</Label></TableColumnHeader>
                     <TableColumnHeader><Label>Priority</Label></TableColumnHeader>
+                    <TableColumnHeader><Label>IsAllowedByPolicy</Label></TableColumnHeader>
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
@@ -102,6 +103,7 @@
                             <TableColumnItem><PropertyName>Uri</PropertyName></TableColumnItem>
                             <TableColumnItem><PropertyName>Trusted</PropertyName></TableColumnItem>
                             <TableColumnItem><PropertyName>Priority</PropertyName></TableColumnItem>
+                            <TableColumnItem><PropertyName>IsAllowedByPolicy</PropertyName></TableColumnItem>
                         </TableColumnItems>
                     </TableRowEntry>
                 </TableRowEntries>

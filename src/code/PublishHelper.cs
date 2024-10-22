@@ -355,6 +355,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
+                bool isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(repository.Uri);
+
+                if (!isAllowed)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new PSInvalidOperationException($"Repository '{repository.Name}' is not allowed by Group Policy."),
+                        "RepositoryNotAllowedByGroupPolicy",
+                        ErrorCategory.PermissionDenied,
+                        this));
+
+                    return;
+                }
+
                 _networkCredential = Utils.SetNetworkCredential(repository, _networkCredential, _cmdletPassedIn);
 
                 // Check if dependencies already exist within the repo if:

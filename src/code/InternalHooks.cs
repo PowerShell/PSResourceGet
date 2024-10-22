@@ -9,6 +9,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
     {
         internal static bool InvokedFromCompat;
 
+        internal static bool EnableGPRegistryHook;
+
+        internal static bool GPEnabledStatus;
+
+        internal static string AllowedUri;
+
         public static void SetTestHook(string property, object value)
         {
             var fieldInfo = typeof(InternalHooks).GetField(property, BindingFlags.Static | BindingFlags.NonPublic);

@@ -269,6 +269,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             for (int i = 0; i < listOfRepositories.Count && _pkgNamesToInstall.Count > 0; i++)
             {
                 PSRepositoryInfo currentRepository = listOfRepositories[i];
+
+                bool isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+
+                if (!isAllowed)
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new PSInvalidOperationException($"Repository '{currentRepository.Name}' is not allowed by Group Policy."),
+                        "RepositoryNotAllowedByGroupPolicy",
+                        ErrorCategory.PermissionDenied,
+                        this));
+
+                    continue;
+                }
+
                 string repoName = currentRepository.Name;
                 sourceTrusted = currentRepository.Trusted || trustRepository;
 
