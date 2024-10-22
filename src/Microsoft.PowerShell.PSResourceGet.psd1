@@ -46,7 +46,7 @@
         'udres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'RC'
+            Prerelease   = 'RC1'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -56,7 +56,7 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
-## 1.1.0-RC
+## 1.1.0-RC1
 
 ### New Features
 
