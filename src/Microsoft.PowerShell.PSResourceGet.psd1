@@ -64,12 +64,6 @@
 - New `-Nupkg` parameter for `Publish-PSResource` which pushes pushes a .nupkg to a repository (#1682)
 - New `-ModulePrefix` parameter for `Publish-PSResource` which adds a prefix to a module name for container registry repositories to add a module prefix.This is only used for publishing and is not part of metadata. MAR will drop the prefix when syndicating from ACR to MAR (#1694)
 
-## 1.0.6
-
-- Bump System.Text.Json to 8.0.5
-
-## 1.0.5
-
 ### Bug Fixes
 
 - Add prerelease string when NormalizedVersion doesn't exist, but prelease string does (#1681 Thanks @sean-r-williams)
@@ -89,6 +83,35 @@
 - Fix incorrect request URL when installing resources from ADO (#1597 Thanks @anytonyoni!)
 - Fix for swallowed exceptions (#1569)
 - Fix for PSResourceGet not working in Constrained Languange Mode (#1564)
+
+## 1.0.6
+
+- Bump System.Text.Json to 8.0.5
+
+## [1.0.5](https://github.com/PowerShell/PSResourceGet/compare/v1.0.4.1...v1.0.5) - 2024-05-13
+
+### Bug Fixes
+- Update `nuget.config` to use PowerShell packages feed (#1649)
+- Refactor V2ServerAPICalls and NuGetServerAPICalls to use object-oriented query/filter builder (#1645 Thanks @sean-r-williams!)
+- Fix unnecessary `and` for version globbing in V2ServerAPICalls (#1644 Thanks again @sean-r-williams!)
+- Fix requiring `tags` in server response (#1627 Thanks @evelyn-bi!)
+- Add 10 minute timeout to HTTPClient (#1626)
+- Fix save script without `-IncludeXml` (#1609, #1614 Thanks @o-l-a-v!)
+- PAT token fix to translate into HttpClient 'Basic Authorization'(#1599 Thanks @gerryleys!)
+- Fix incorrect request url when installing from ADO (#1597 Thanks @antonyoni!)
+- Improved exception handling (#1569)
+- Ensure that .NET methods are not called in order to enable use in Constrained Language Mode (#1564)
+- PSResourceGet packaging update
+
+## [1.0.4.1](https://github.com/PowerShell/PSResourceGet/compare/v1.0.4...v1.0.4.1) - 2024-04-05
+
+- PSResourceGet packaging update
+
+## [1.0.4](https://github.com/PowerShell/PSResourceGet/compare/v1.0.3...v1.0.4) - 2024-04-05
+
+### Patch
+
+- Dependency package updates
 
 ## 1.0.3
 
