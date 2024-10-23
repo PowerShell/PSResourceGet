@@ -20,7 +20,6 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Threading;
 using System;
 
@@ -140,7 +139,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// </summary>
         public static string[] GetStringArray(ArrayList list)
         {
-            if (list == null) { return null; }
+            if (list == null)
+            { return null; }
 
             var strArray = new string[list.Count];
             for (int i = 0; i < list.Count; i++)
@@ -349,7 +349,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
            out VersionRange versionRange)
         {
             versionRange = null;
-            if (version == null) { return false; }
+            if (version == null)
+            { return false; }
 
             if (version.Trim().Equals("*"))
             {
@@ -1031,8 +1032,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             ScopeType? scope)
         {
             // Path override is only implemented for Windows so far
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                return GetStandardPathsForScope(psCmdlet,scope);
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return GetStandardPathsForScope(psCmdlet, scope);
             }
 
             // Get value of path override environment variable
@@ -1042,10 +1044,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             );
 
             // Return standard paths if no override was found, else try to expand paths found in override
-            if (string.IsNullOrEmpty(pathOverride)) {
-                return GetStandardPathsForScope(psCmdlet,scope);
+            if (string.IsNullOrEmpty(pathOverride))
+            {
+                return GetStandardPathsForScope(psCmdlet, scope);
             }
-            else {
+            else
+            {
                 try
                 {
                     pathOverride = Environment.ExpandEnvironmentVariables(pathOverride);
@@ -1053,7 +1057,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 catch (ArgumentException)
                 {
                     psCmdlet.WriteWarning("Path override was found, but could not expand environment variable(s). Falling back to standard paths.");
-                    return GetStandardPathsForScope(psCmdlet,scope);
+                    return GetStandardPathsForScope(psCmdlet, scope);
                 }
             }
 
@@ -1069,8 +1073,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 };
                 return resourcePaths;
             }
-            else {
-                return GetStandardPathsForScope(psCmdlet,scope);
+            else
+            {
+                return GetStandardPathsForScope(psCmdlet, scope);
             }
         }
 
@@ -1624,7 +1629,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public static void DeleteDirectory(string dirPath)
         {
             // Remove read only file attributes first
-            foreach (var dirFilePath in Directory.GetFiles(dirPath,"*",SearchOption.AllDirectories))
+            foreach (var dirFilePath in Directory.GetFiles(dirPath, "*", SearchOption.AllDirectories))
             {
                 if (File.GetAttributes(dirFilePath).HasFlag(FileAttributes.ReadOnly))
                 {
@@ -1638,7 +1643,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 try
                 {
-                    Directory.Delete(dirPath,true);
+                    Directory.Delete(dirPath, true);
                     return;
                 }
                 catch (Exception ex)
@@ -1977,7 +1982,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     // Extract expected output types from results pipeline.
                     foreach (var psItem in results)
                     {
-                        if (psItem == null || psItem.BaseObject == null) { continue; }
+                        if (psItem == null || psItem.BaseObject == null)
+                        { continue; }
 
                         switch (psItem.BaseObject)
                         {
