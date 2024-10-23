@@ -37,14 +37,14 @@
     FunctionsToExport      = @(
         'Import-PSGetRepository'
     )
-    VariablesToExport = 'PSGetPath'
-    AliasesToExport = @(
+    VariablesToExport      = 'PSGetPath'
+    AliasesToExport        = @(
         'Get-PSResource',
         'fdres',
         'isres',
         'pbres',
         'udres')
-    PrivateData = @{
+    PrivateData            = @{
         PSData = @{
             Prerelease   = 'RC1'
             Tags         = @('PackageManagement',
@@ -66,7 +66,7 @@
 
 - Fix packaging name matching when searching in local repositories (#1731)
 - `Compress-PSResource` `-PassThru` now passes `FileInfo` instead of string (#1720)
-- Fix for `Compress-PSResource` not properly compressing scripts  (#1719) 
+- Fix for `Compress-PSResource` not properly compressing scripts  (#1719)
 - Add `AcceptLicense` to Save-PSResource (#1718 Thanks @o-l-a-v!)
 - Better support for NuGet v2 feeds (#1713 Thanks @o-l-a-v!)
 - Better handling of `-WhatIf` support in `Install-PSResource` (#1531 Thanks @o-l-a-v!)
@@ -92,7 +92,7 @@
 
 ### New Features
 
-- Support for Azure Container Registries (#1495, #1497-#1499, #1501, #1502, #1505, #1522, #1545, #1548, #1550, #1554, #1560, #1567, 
+- Support for Azure Container Registries (#1495, #1497-#1499, #1501, #1502, #1505, #1522, #1545, #1548, #1550, #1554, #1560, #1567,
 #1573, #1576, #1587, #1588, #1589, #1594, #1598, #1600, #1602, #1604, #1615)
 
 ### Bug Fixes
@@ -173,7 +173,7 @@
 - Bug fix Artifactory v2 endpoint failures (#1428)
 - Bug fix Artifactory v3 endpoint failures (#1427)
 - Bug fix `-RequiredResource` silent failures (#1426)
-- Bug fix for v2 repository returning extra packages for `-Tag` based search with `-Prerelease` (#1405) 
+- Bug fix for v2 repository returning extra packages for `-Tag` based search with `-Prerelease` (#1405)
 
 See change log (CHANGELOG) at https://github.com/PowerShell/PSResourceGet
 '@
