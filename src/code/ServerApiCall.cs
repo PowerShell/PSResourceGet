@@ -8,7 +8,6 @@ using System.IO;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
-using System.Runtime.ExceptionServices;
 using System.Text;
 
 
@@ -32,7 +31,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             HttpClientHandler handler = new HttpClientHandler();
             bool token = false;
 
-            if(networkCredential != null)
+            if (networkCredential != null)
             {
                 token = String.Equals("token", networkCredential.UserName) ? true : false;
             };
@@ -44,7 +43,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 _sessionClient = new HttpClient(handler);
                 _sessionClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
-            } else {
+            }
+            else
+            {
 
                 handler.Credentials = networkCredential;
 

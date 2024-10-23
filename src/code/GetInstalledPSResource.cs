@@ -118,7 +118,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var namesToSearch = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] errorMsgs, out bool _);
+            var namesToSearch = Utils.ProcessNameWildcards(Name, removeWildcardEntries: false, out string[] errorMsgs, out bool _);
             foreach (string error in errorMsgs)
             {
                 WriteError(new ErrorRecord(

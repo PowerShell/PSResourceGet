@@ -61,7 +61,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         protected override void BeginProcessing()
         {
             // Only run on Windows for now, due to env variables on Unix being very different
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
                 ThrowTerminatingError(
                     new ErrorRecord(
                         new PSInvalidOperationException($"Error this only works on Windows for now"),
@@ -81,15 +82,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             // Assets
             EnvironmentVariableTarget EnvScope = (Scope is ScopeType.AllUsers) ? EnvironmentVariableTarget.Machine : EnvironmentVariableTarget.User;
-            string PathForModules = System.IO.Path.Combine(_path,"Modules");
-            string PathForScripts = System.IO.Path.Combine(_path,"Scripts");
+            string PathForModules = System.IO.Path.Combine(_path, "Modules");
+            string PathForScripts = System.IO.Path.Combine(_path, "Scripts");
 
             // Set env variable for install path override
             string PathOverrideCurrentValue = Environment.GetEnvironmentVariable(
                 "PSResourceGetInstallPathOverride",
                 EnvScope
             );
-            if (!String.IsNullOrEmpty(PathOverrideCurrentValue)) {
+            if (!String.IsNullOrEmpty(PathOverrideCurrentValue))
+            {
                 WriteVerbose(
                     String.Format(
                         "Current value of PSResourceGetInstallPathOverride in scope '{0}': '{1}'",
@@ -115,7 +117,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     )
                 );
             }
-            else {
+            else
+            {
                 if (this.ShouldProcess($"Set environment variable PSResourceGetPathOverride in scope '{EnvScope} to '{_path}"))
                 {
                     Environment.SetEnvironmentVariable(
@@ -138,7 +141,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 "PSModulePath",
                 EnvScope
             );
-            if (String.IsNullOrEmpty(CurrentPSModulePath)) {
+            if (String.IsNullOrEmpty(CurrentPSModulePath))
+            {
                 WriteVerbose(String.Format("PSModulePath in scope '{0}' is empty.", EnvScope.ToString()));
                 if (this.ShouldProcess($"Set environment pariable 'PSModulePath' in scope '{EnvScope} to '{PathForModules}"))
                 {
@@ -151,10 +155,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             WriteVerbose(string.Format("Current value of PSModulePath in {0} context: '{1}'", EnvScope.ToString(), CurrentPSModulePath));
             string[] CurrentPSModulePaths = CurrentPSModulePath.Trim(';').Split(';').Select(s => Environment.ExpandEnvironmentVariables(s)).ToArray();
-            if (CurrentPSModulePaths.Contains(PathForModules)) {
-                WriteVerbose(String.Format("PSModulePath in scope '{0}' already contains '{1}', no change needed.", EnvScope.ToString(),PathForModules));
+            if (CurrentPSModulePaths.Contains(PathForModules))
+            {
+                WriteVerbose(String.Format("PSModulePath in scope '{0}' already contains '{1}', no change needed.", EnvScope.ToString(), PathForModules));
             }
-            else {
+            else
+            {
                 WriteVerbose(
                     String.Format(
                         "PSModulePath in scope '{0}' does not already contain '{1}'",
@@ -184,7 +190,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 "Path",
                 EnvScope
             );
-            if (String.IsNullOrEmpty(CurrentPath)) {
+            if (String.IsNullOrEmpty(CurrentPath))
+            {
                 WriteVerbose(String.Format("Path in scope '{0}' is empty.", EnvScope.ToString()));
                 if (this.ShouldProcess($"Set environment pariable 'Path' in scope '{EnvScope} to '{PathForScripts}"))
                 {
@@ -197,10 +204,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             WriteVerbose(string.Format("Current value of Path in {0} context: '{1}'", EnvScope.ToString(), CurrentPath));
             string[] CurrentPaths = CurrentPath.Trim(';').Split(';').Select(s => Environment.ExpandEnvironmentVariables(s)).ToArray();
-            if (CurrentPaths.Contains(PathForScripts)) {
-                WriteVerbose(String.Format("Path in scope '{0}' already contains '{1}', no change needed.", EnvScope.ToString(),PathForScripts));
+            if (CurrentPaths.Contains(PathForScripts))
+            {
+                WriteVerbose(String.Format("Path in scope '{0}' already contains '{1}', no change needed.", EnvScope.ToString(), PathForScripts));
             }
-            else {
+            else
+            {
                 WriteVerbose(
                     String.Format(
                         "Override install path is not already in Path for scope '{0}'",
