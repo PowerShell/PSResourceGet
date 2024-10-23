@@ -1,4 +1,4 @@
-# Preview changelog
+# Preview Changelog
 
 ## [1.1.0-RC1](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-preview2...v1.1.0-RC1) - 2024-09-13
 
