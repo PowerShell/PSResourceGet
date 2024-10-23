@@ -255,32 +255,48 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             FindResults findResponse = new FindResults();
             errRecord = null;
 
-            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
             string actualPkgName = packageName;
 
+            // this regex pattern matches packageName followed by a version (4 digit or 3 with prerelease word)
+            string regexPattern = $"{packageName}" + @".\d+\.\d+\.\d+(?:-\w+|.\d)*.nupkg";
+            Regex rx = new Regex(regexPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            _cmdletPassedIn.WriteDebug($"package file name pattern to be searched for is: {regexPattern}");
+
             foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
-
-                if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
+                MatchCollection matches = rx.Matches(packageFullName);
+                if (matches.Count == 0)
                 {
-                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out errRecord);
-                    _cmdletPassedIn.WriteDebug($"Version parsed as '{nugetVersion}'");
+                    continue;
+                }
 
-                    if (errRecord != null)
-                    {
-                        return findResponse;
-                    }
+                Match match = matches[0];
 
-                    if ((!nugetVersion.IsPrerelease || includePrerelease) && (nugetVersion > latestVersion))
+                GroupCollection groups = match.Groups;
+                if (groups.Count == 0)
+                {
+                    continue;
+                }
+
+                Capture group = groups[0];
+
+                NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out errRecord);
+                _cmdletPassedIn.WriteDebug($"Version parsed as '{nugetVersion}'");
+
+                if (errRecord != null)
+                {
+                    return findResponse;
+                }
+
+                if ((!nugetVersion.IsPrerelease || includePrerelease) && (nugetVersion > latestVersion))
+                {
+                    if (nugetVersion > latestVersion)
                     {
-                        if (nugetVersion > latestVersion)
-                        {
-                            latestVersion = nugetVersion;
-                            latestVersionPath = path;
-                        }
+                        latestVersion = nugetVersion;
+                        latestVersionPath = path;
                     }
                 }
             }
@@ -371,29 +387,46 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return findResponse;
             }
 
-            WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.*", WildcardOptions.IgnoreCase);
+            // this regex pattern matches packageName followed by the requested version
+            string regexPattern = $"{packageName}.{requiredVersion.ToNormalizedString()}" + @".nupkg";
+            Regex rx = new Regex(regexPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            _cmdletPassedIn.WriteDebug($"pattern is: {regexPattern}");
             string pkgPath = String.Empty;
             string actualPkgName = String.Empty;
+
             foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
             {
                 string packageFullName = Path.GetFileName(path);
-                if (!String.IsNullOrEmpty(packageFullName) && pkgNamePattern.IsMatch(packageFullName))
+                MatchCollection matches = rx.Matches(packageFullName);
+                if (matches.Count == 0)
                 {
-                    NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out errRecord);
-                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{nugetVersion}'");
+                    continue;
+                }
 
-                    if (errRecord != null)
-                    {
-                        return findResponse;
-                    }
+                Match match = matches[0];
 
-                    if (nugetVersion == requiredVersion)
-                    {
-                        _cmdletPassedIn.WriteDebug("Found matching version");
-                        string pkgFullName = $"{actualPkgName}.{nugetVersion.ToString()}.nupkg";
-                        pkgPath = Path.Combine(Repository.Uri.LocalPath, pkgFullName);
-                        break;
-                    }
+                GroupCollection groups = match.Groups;
+                if (groups.Count == 0)
+                {
+                    continue;
+                }
+
+                Capture group = groups[0];
+
+                NuGetVersion nugetVersion = GetInfoFromFileName(packageFullName: packageFullName, packageName: packageName, actualName: out actualPkgName, out errRecord);
+                _cmdletPassedIn.WriteDebug($"Version parsed as '{nugetVersion}'");
+
+                if (errRecord != null)
+                {
+                    return findResponse;
+                }
+
+                if (nugetVersion == requiredVersion)
+                {
+                    _cmdletPassedIn.WriteDebug("Found matching version");
+                    string pkgFullName = $"{actualPkgName}.{nugetVersion.ToString()}.nupkg";
+                    pkgPath = Path.Combine(Repository.Uri.LocalPath, pkgFullName);
+                    break;
                 }
             }
 
@@ -649,9 +682,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 _cmdletPassedIn.WriteDebug($"Extracting '{zipFilePath}' to '{tempDiscoveryPath}'");
                 System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, tempDiscoveryPath);
 
-                string psd1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.psd1");
-                string ps1FilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.ps1");
-                string nuspecFilePath = Path.Combine(tempDiscoveryPath, $"{packageName}.nuspec");
+                string psd1FilePath = String.Empty;
+                string ps1FilePath = String.Empty;
+                string nuspecFilePath = String.Empty;
+                Utils.GetMetadataFilesFromPath(tempDiscoveryPath, packageName, out psd1FilePath, out ps1FilePath, out nuspecFilePath);
 
                 List<string> pkgTags = new List<string>();
 

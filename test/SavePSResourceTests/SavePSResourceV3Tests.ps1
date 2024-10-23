@@ -28,7 +28,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
 
     It "Save specific module resource by name" {
         Save-PSResource -Name $testModuleName -Repository $NuGetGalleryName -Path $SaveDir -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
         (Get-ChildItem $pkgDir.FullName) | Should -HaveCount 1
     }
@@ -44,7 +44,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
 
     It "Should not save resource given nonexistant name" {
         Save-PSResource -Name NonExistentModule -Repository $NuGetGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "NonExistentModule"
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ "NonExistentModule"
         $pkgDir.Name | Should -BeNullOrEmpty
     }
 
@@ -56,7 +56,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
 
     It "Should save resource given name and exact version" {
         Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $NuGetGalleryName -Path $SaveDir -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDirVersion = Get-ChildItem $pkgDir.FullName
         $pkgDirVersion.Name | Should -Be "1.0.0"
@@ -64,7 +64,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
 
     It "Should save resource given name and exact version with bracket syntax" {
         Save-PSResource -Name $testModuleName -Version "[1.0.0]" -Repository $NuGetGalleryName -Path $SaveDir -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
         $pkgDirVersion.Name | Should -Be "1.0.0"
@@ -72,7 +72,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
 
     It "Should save resource given name and exact range inclusive [1.0.0, 3.0.0]" {
         Save-PSResource -Name $testModuleName -Version "[1.0.0, 3.0.0]" -Repository $NuGetGalleryName -Path $SaveDir -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
         $pkgDirVersion.Name | Should -Be "3.0.0"
@@ -80,7 +80,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
 
     It "Should save resource given name and exact range exclusive (1.0.0, 5.0.0)" {
         Save-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $NuGetGalleryName -Path $SaveDir -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
         $pkgDirVersion.Name | Should -Be "3.0.0"
@@ -94,15 +94,15 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
         catch
         {}
 
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ $testModuleName
         $pkgDir | Should -BeNullOrEmpty
         $Error.Count | Should -BeGreaterThan 0
-        $Error[0].FullyQualifiedErrorId  | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
+        $Error[0].FullyQualifiedErrorId | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
 
     It "Save resource with latest (including prerelease) version given Prerelease parameter" {
         Save-PSResource -Name $testModuleName -Prerelease -Repository $NuGetGalleryName -Path $SaveDir -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
         $pkgDirVersion.Name | Should -Be "5.2.5"
@@ -112,24 +112,24 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
     ### the input object is of type string (ie "true").
     It "Save PSResourceInfo object piped in for prerelease version object" -Pending{
         Find-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $NuGetGalleryName | Save-PSResource -Path $SaveDir -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
-        (Get-ChildItem -Path $pkgDir.FullName) | Should -HaveCount 1   
+        (Get-ChildItem -Path $pkgDir.FullName) | Should -HaveCount 1
     }
 
     It "Save module as a nupkg" {
         Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $NuGetGalleryName -Path $SaveDir -AsNupkg -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "test_module.1.0.0.nupkg"
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ "test_module.1.0.0.nupkg"
         $pkgDir | Should -Not -BeNullOrEmpty
     }
 
     It "Save module and include XML metadata file" {
         Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $NuGetGalleryName -Path $SaveDir -IncludeXml -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $testModuleName
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
         $pkgDirVersion.Name | Should -Be "1.0.0"
-        $xmlFile = Get-ChildItem -Path $pkgDirVersion.FullName | Where-Object Name -eq "PSGetModuleInfo.xml"
+        $xmlFile = Get-ChildItem -Path $pkgDirVersion.FullName | Where-Object Name -EQ "PSGetModuleInfo.xml"
         $xmlFile | Should -Not -BeNullOrEmpty
     }
 
@@ -145,5 +145,14 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
         Save-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $NuGetGalleryName -TrustRepository -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
+    }
+
+    # Save resource that requires license
+    It "Install resource that requires accept license with -AcceptLicense flag" {
+        Save-PSResource -Repository $NuGetGalleryName -TrustRepository -Path $SaveDir `
+            -Name "test_module_with_license" -AcceptLicense
+        $pkg = Get-InstalledPSResource -Path $SaveDir "test_module_with_license"
+        $pkg.Name | Should -Be "test_module_with_license"
+        $pkg.Version | Should -Be "2.0.0"
     }
 }

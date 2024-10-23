@@ -5,3 +5,7 @@ srcOld/code/obj
 out
 test/**/obj
 test/**/bin
+.vs
+.vscode
+src/code/.vs
+test/testFiles/testScripts/test.ps1

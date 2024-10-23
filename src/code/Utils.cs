@@ -1,4 +1,3 @@
-using System.Net;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -7,20 +6,23 @@ using Azure.Identity;
 using Microsoft.PowerShell.Commands;
 using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using NuGet.Versioning;
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Management.Automation.Runspaces;
+using System.Management.Automation;
 using System.Net.Http;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Threading;
+using System;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -1224,6 +1226,34 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return pkgsInstalledOnMachine;
         }
 
+        internal static void GetMetadataFilesFromPath(string dirPath, string packageName, out string psd1FilePath, out string ps1FilePath, out string nuspecFilePath)
+        {
+            psd1FilePath = String.Empty;
+            ps1FilePath = String.Empty;
+            nuspecFilePath = String.Empty;
+
+            var discoveredFiles = Directory.GetFiles(dirPath, "*.*", SearchOption.AllDirectories);
+            string pkgNamePattern = $"{packageName}*";
+            Regex rgx = new(pkgNamePattern, RegexOptions.IgnoreCase);
+            foreach (var file in discoveredFiles)
+            {
+                if (rgx.IsMatch(file))
+                {
+                    if (file.EndsWith("psd1"))
+                    {
+                        psd1FilePath = file;
+                    }
+                    else if (file.EndsWith("nuspec"))
+                    {
+                        nuspecFilePath = file;
+                    }
+                    else if (file.EndsWith("ps1"))
+                    {
+                        ps1FilePath = file;
+                    }
+                }
+            }
+        }
         #endregion
 
         #region PSDataFile parsing
@@ -2052,7 +2082,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 if (!signature.Status.Equals(SignatureStatus.Valid))
                 {
                     errorRecord = new ErrorRecord(
-                        new ArgumentException($"The signature for '{pkgName}' is '{signature.Status}."),
+                        new ArgumentException($"The signature status for '{pkgName}' file '{Path.GetFileName(signature.Path)}' is '{signature.Status}'. Status message: '{signature.StatusMessage}'"),
                         "GetAuthenticodeSignatureError",
                         ErrorCategory.InvalidResult,
                         cmdletPassedIn);

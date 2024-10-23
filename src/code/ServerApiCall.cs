@@ -11,6 +11,7 @@ using System.Net.Http;
 using System.Runtime.ExceptionServices;
 using System.Text;
 
+
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     internal abstract class ServerApiCall : IServerAPICalls

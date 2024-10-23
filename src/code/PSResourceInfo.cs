@@ -21,7 +21,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
     {
         None,
         Module,
-        Script
+        Script,
+        Nupkg
     }
 
     public enum VersionType

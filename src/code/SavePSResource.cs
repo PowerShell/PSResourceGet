@@ -171,6 +171,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public SwitchParameter Quiet { get; set; }
 
+        /// <summary>
+        /// For modules that require a license, AcceptLicense automatically accepts the license agreement during installation.
+        /// </summary>
+        [Parameter]
+        public SwitchParameter AcceptLicense { get; set; }
+
         #endregion
 
         #region Method overrides
@@ -207,7 +213,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    foreach (var inputObj in InputObject) {
+                    foreach (var inputObj in InputObject)
+                    {
                         string normalizedVersionString = Utils.GetNormalizedVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
                         ProcessSaveHelper(
                             pkgNames: new string[] { inputObj.Name },
@@ -230,7 +237,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private void ProcessSaveHelper(string[] pkgNames, string pkgVersion, bool pkgPrerelease, string[] pkgRepository)
         {
             WriteDebug("In SavePSResource::ProcessSaveHelper()");
-            var namesToSave = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
+            var namesToSave = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries: false, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {
                 WriteError(new ErrorRecord(
@@ -238,7 +245,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "NameContainsWildcard",
                     ErrorCategory.InvalidArgument,
                     this));
-                    
+
                 return;
             }
 
@@ -276,26 +283,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // figure out if version is a prerelease or not.
             // if condition is not met, prerelease is the value passed in via the parameter.
-            if (!string.IsNullOrEmpty(pkgVersion) && pkgVersion.Contains('-')) {
+            if (!string.IsNullOrEmpty(pkgVersion) && pkgVersion.Contains('-'))
+            {
                 pkgPrerelease = true;
             }
 
             var installedPkgs = _installHelper.BeginInstallPackages(
-                names: namesToSave, 
+                names: namesToSave,
                 versionRange: versionRange,
                 nugetVersion: nugetVersion,
                 versionType: versionType,
                 versionString: pkgVersion,
-                prerelease: pkgPrerelease, 
-                repository: pkgRepository, 
-                acceptLicense: true, 
-                quiet: Quiet, 
-                reinstall: true, 
-                force: false, 
+                prerelease: pkgPrerelease,
+                repository: pkgRepository,
+                acceptLicense: AcceptLicense,
+                quiet: Quiet,
+                reinstall: true,
+                force: false,
                 trustRepository: TrustRepository,
-                noClobber: false, 
-                asNupkg: AsNupkg, 
-                includeXml: IncludeXml, 
+                noClobber: false,
+                asNupkg: AsNupkg,
+                includeXml: IncludeXml,
                 skipDependencyCheck: SkipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: true,

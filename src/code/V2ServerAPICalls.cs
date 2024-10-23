@@ -56,7 +56,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             HttpClientHandler handler = new HttpClientHandler();
             bool token = false;
 
-            if(networkCredential != null) 
+            if(networkCredential != null)
             {
                 token = String.Equals("token", networkCredential.UserName) ? true : false;
             };
@@ -72,7 +72,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             } else {
 
                 handler.Credentials = networkCredential;
-                
+
                 _sessionClient = new HttpClient(handler);
             };
 
@@ -359,11 +359,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (type != ResourceType.None) {
                 filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
             }
-            
+
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
+                // usually this is for errors in calling the V2 server, but for ADO V2 this error will include package not found errors which we want to deliver in a standard message
+                if (_isADORepo && errRecord.Exception is ResourceNotFoundException)
+                {
+                    errRecord = new ErrorRecord(
+                        new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'. For ADO feed, if the package is in an upstream feed make sure you are authenticated to the upstream feed.", errRecord.Exception),
+                        "PackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this);
+                    response = string.Empty;
+                }
+
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
@@ -424,7 +435,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
-            
+
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
@@ -638,7 +649,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!_isJFrogRepo) {
                 filterBuilder.AddCriterion($"Id eq '{packageName}'");
             }
-            
+
             filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
             if (type != ResourceType.None) {
                 filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
@@ -648,6 +659,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
+                // usually this is for errors in calling the V2 server, but for ADO V2 this error will include package not found errors which we want to deliver with a standard message
+                if (_isADORepo && errRecord.Exception is ResourceNotFoundException)
+                {
+                    errRecord = new ErrorRecord(
+                        new ResourceNotFoundException($"Package with name '{packageName}' and version '{version}' could not be found in repository '{Repository.Name}'. For ADO feed, if the package is in an upstream feed make sure you are authenticated to the upstream feed.", errRecord.Exception),
+                        "PackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this);
+                    response = string.Empty;
+                }
+
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
@@ -694,7 +716,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!_isJFrogRepo) {
                 filterBuilder.AddCriterion($"Id eq '{packageName}'");
             }
-            
+
             filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
             if (type != ResourceType.None) {
                 filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
@@ -901,7 +923,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             } else {
                 filterBuilder.AddCriterion("IsLatestVersion");
             }
-            var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?$filter={queryBuilder.BuildQueryString()}";
+            var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?{queryBuilder.BuildQueryString()}";
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
@@ -943,7 +965,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             filterBuilder.AddCriterion($"substringof('PS{(isSearchingModule ? "Module" : "Script")}', Tags) eq true");
-            
+
             foreach (string tag in tags)
             {
                 filterBuilder.AddCriterion($"substringof('{tag}', Tags) eq true");
@@ -987,7 +1009,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 " ",
                 tags.Select(tag => $"tag:{tagPrefix}{tag}")
             ) + "'";
-                
+
 
             var requestUrlV2 = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
 
@@ -1271,7 +1293,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!includePrerelease) {
                 filterBuilder.AddCriterion("IsPrerelease eq false");
             }
-            
+
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
 
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
@@ -1283,7 +1305,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (type == ResourceType.Script) {
                 filterBuilder.AddCriterion($"substringof('PS{type.ToString()}', Tags) eq true");
             }
-            
+
 
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
 
@@ -1306,7 +1328,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (_isADORepo)
             {
                 // eg: https://pkgs.dev.azure.com/<org>/<project>/_packaging/<feed>/nuget/v2?id=test_module&version=5.0.0
-                requestUrlV2 = $"{Repository.Uri}?id={packageName}&version={version}";
+                requestUrlV2 = $"{Repository.Uri}?id={packageName.ToLower()}&version={version}";
             }
             else if (_isJFrogRepo)
             {
