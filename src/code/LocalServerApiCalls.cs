@@ -916,7 +916,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             string[] packageWithoutName = packageFullName.ToLower().Split(new string[]{ $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
             string packageVersionAndExtension = packageWithoutName[0];
-            string[] originalFileNameParts = packageFullName.Split(new string[]{ $".{packageVersionAndExtension}" }, StringSplitOptions.RemoveEmptyEntries);
+            string[] originalFileNameParts = packageFullName.ToLower().Split(new string[]{ $".{packageVersionAndExtension.ToLower()}" }, StringSplitOptions.RemoveEmptyEntries);
             actualName = String.IsNullOrEmpty(originalFileNameParts[0]) ? packageName : originalFileNameParts[0];
             int extensionDot = packageVersionAndExtension.LastIndexOf('.');
             string version = packageVersionAndExtension.Substring(0, extensionDot);
