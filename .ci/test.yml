@@ -48,7 +48,7 @@ jobs:
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
       Write-Verbose -Verbose "Install Microsoft.PowerShell.PSResourceGet to temp module path"
-      Save-Module -Name Microsoft.PowerShell.PSResourceGet -RequiredVersion "1.1.0-preview2" -Path $modulePath -AllowPrerelease -Force
+      Save-Module -Name Microsoft.PowerShell.PSResourceGet -RequiredVersion "1.1.0-preview2" -Path $modulePath -AllowPrerelease -Force -Verbose
       Write-Verbose -Verbose "Install Pester 4.X to temp module path"
       Save-Module -Name "Pester" -MaximumVersion 4.99 -Path $modulePath -Force
     displayName: Install Microsoft.PowerShell.PSResourceGet and Pester
@@ -59,7 +59,7 @@ jobs:
       Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
       Import-Module -Name (Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1') -Force
       #
-      Install-ModulePackageForTest -PackagePath "$(System.ArtifactsDirectory)"
+      Install-ModulePackageForTest -PackagePath "$(System.ArtifactsDirectory)" -ErrorAction stop -Verbose
     displayName: Install module for test from downloaded artifact
     workingDirectory: ${{ parameters.buildDirectory }}
 
