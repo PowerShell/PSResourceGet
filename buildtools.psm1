@@ -126,7 +126,17 @@ function Install-ModulePackageForTest {
     Write-Verbose -Verbose -Message "PSResourceGet module base imported: $psgetModuleBase"
     Write-Verbose -Verbose -Message "PSResourceGet version base imported: $psgetVersion"
     Write-Verbose -Verbose -Message "PSResourceGet prerelease base imported: $psgetPrerelease"
-    Save-PSResource -Name $config.ModuleName -Repository $localRepoName -Path $installationPath -SkipDependencyCheck -Prerelease -Confirm:$false -TrustRepository
+    #Save-PSResource -Name $config.ModuleName -Repository $localRepoName -Path $installationPath -SkipDependencyCheck -Prerelease -Confirm:$false -TrustRepository
+
+    Register-PSRepository -Name $localRepoName -SourceLocation $packagePathWithNupkg -InstallationPolicy Trusted -Verbose
+    $psgetv2ModuleBase = (get-command save-module).Module.ModuleBase
+    $psgetv2Version = (get-command save-module).Module.Version.ToString()
+    $psgetv2Prerelease = (get-command save-module).module.PrivateData.PSData.Prerelease
+    Write-Verbose -Verbose -Message "PowerShellGet module base imported: $psgetv2ModuleBase"
+    Write-Verbose -Verbose -Message "PowerShellGet version base imported: $psgetv2Version"
+    Write-Verbose -Verbose -Message "PowerShellGet prerelease base imported: $psgetv2Prerelease"
+    Save-Module -Name $config.ModuleName -Repository $localRepoName -Path $installationPath -Force -Verbose -AllowPrerelease -Confirm:$false
+    Unregister-PSRepository -Name $localRepoName -Confirm:$false
 
     Write-Verbose -Verbose -Message "Unregistering local package repo: $localRepoName"
     Unregister-PSResourceRepository -Name $localRepoName -Confirm:$false
