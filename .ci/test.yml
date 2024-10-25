@@ -48,7 +48,7 @@ jobs:
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
       Write-Verbose -Verbose "Install Microsoft.PowerShell.PSResourceGet to temp module path"
-      Save-Module -Name Microsoft.PowerShell.PSResourceGet -MinimumVersion 1.0.6 -Path $modulePath -Force -Verbose
+      Save-Module -Name Microsoft.PowerShell.PSResourceGet -Version 1.0.2 -Path $modulePath -Force -Verbose
       Write-Verbose -Verbose "Install Pester 4.X to temp module path"
       Save-Module -Name "Pester" -MaximumVersion 4.99 -Path $modulePath -Force
     displayName: Install Microsoft.PowerShell.PSResourceGet and Pester
