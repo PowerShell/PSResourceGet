@@ -120,8 +120,12 @@ function Install-ModulePackageForTest {
     }
 
     Write-Verbose -Verbose -Message "Installing module $($config.ModuleName) to build output path $installationPath"
-    $psgetVersion = (get-command save-psresource).Module.ModuleBase
-    Write-Verbose -Verbose -Message "Version of PSResourceGet imported: $psgetVersion"
+    $psgetModuleBase = (get-command save-psresource).Module.ModuleBase
+    $psgetVersion = (get-command save-psresource).Module.Version.ToString()
+    $psgetPrerelease = (get-command find-psresource).module.PrivateData.PSData.Prerelease
+    Write-Verbose -Verbose -Message "PSResourceGet module base imported: $psgetModuleBase"
+    Write-Verbose -Verbose -Message "PSResourceGet version base imported: $psgetVersion"
+    Write-Verbose -Verbose -Message "PSResourceGet prerelease base imported: $psgetPrerelease"
     Save-PSResource -Name $config.ModuleName -Repository $localRepoName -Path $installationPath -SkipDependencyCheck -Prerelease -Confirm:$false -TrustRepository
 
     Write-Verbose -Verbose -Message "Unregistering local package repo: $localRepoName"
