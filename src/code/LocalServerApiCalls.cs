@@ -260,7 +260,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string actualPkgName = packageName;
 
             // this regex pattern matches packageName followed by a version (4 digit or 3 with prerelease word)
-            string regexPattern = $"{packageName}" + @"\d+\.\d+\.\d+(?:-[a-zA-Z0-9]+)?.nupkg";
+            string regexPattern = $"{packageName}" + @".\d+\.\d+\.\d+(?:-[a-zA-Z0-9]+|.\d)?.nupkg";
             Regex rx = new Regex(regexPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
             _cmdletPassedIn.WriteDebug($"package file name pattern to be searched for is: {regexPattern}");
 
