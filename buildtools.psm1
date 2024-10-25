@@ -136,7 +136,7 @@ function Install-ModulePackageForTest {
     Write-Verbose -Verbose -Message "PowerShellGet version base imported: $psgetv2Version"
     Write-Verbose -Verbose -Message "PowerShellGet prerelease base imported: $psgetv2Prerelease"
     Save-Module -Name $config.ModuleName -Repository $localRepoName -Path $installationPath -Force -Verbose -AllowPrerelease -Confirm:$false
-    Unregister-PSRepository -Name $localRepoName -Confirm:$false
+    Unregister-PSRepository -Name $localRepoName
 
     Write-Verbose -Verbose -Message "Unregistering local package repo: $localRepoName"
     Unregister-PSResourceRepository -Name $localRepoName -Confirm:$false
