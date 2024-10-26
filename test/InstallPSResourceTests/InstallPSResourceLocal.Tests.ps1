@@ -145,8 +145,33 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $pkg.Name | Should -Be $testModuleClobber
         $pkg.Version | Should -Be "1.0.0"
 
-        Install-PSResource -Name $testModuleClobber2 -Repository $localRepo -TrustRepository -NoClobber -ErrorVariable ev -ErrorAction SilentlyContinue
+
+        # Get the first available module named 'clobbertestmodule1' and its exported commands
+        $module = (Get-Module -ListAvailable $testModuleClobber)[0]
+
+        # Iterate through each exported command in the module
+        foreach ($command in $module.ExportedCommands.Values) {
+            # Output the command's name and details
+            Write-Output "Command Name: $($command.Name)"
+            Write-Output "Command Type: $($command.CommandType)"
+            Write-Output "----------------------------------"
+        }
+
+
+        Install-PSResource -Name $testModuleClobber2 -Repository $localRepo -TrustRepository -NoClobber -ErrorVariable ev -ErrorAction SilentlyContinue -verbose
         $pkg = Get-InstalledPSResource $testModuleClobber2 -ErrorAction SilentlyContinue
+
+        # Get the first available module named 'clobbertestmodule1' and its exported commands
+        $module2 = (Get-Module -ListAvailable $testModuleClobber2)[0]
+
+        # Iterate through each exported command in the module
+        foreach ($command in $module2.ExportedCommands.Values) {
+            # Output the command's name and details
+            Write-Output "Command Name: $($command.Name)"
+            Write-Output "Command Type: $($command.CommandType)"
+            Write-Output "----------------------------------"
+        }
+
         $pkg | Should -BeNullOrEmpty
         $ev.Count | Should -Be 1
         $ev[0] | Should -Be "'testModuleClobber2' package could not be installed with error: The following commands are already available on this system: 'Test-Cmdlet1, Test-Cmdlet1'. This module 'testModuleClobber2' may override the existing commands. If you still want to install this module 'testModuleClobber2', remove the -NoClobber parameter."
