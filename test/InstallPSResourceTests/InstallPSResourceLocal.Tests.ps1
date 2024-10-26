@@ -147,14 +147,16 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
 
         # Get the first available module named 'clobbertestmodule1' and its exported commands
-        $module = (Get-Module -ListAvailable $testModuleClobber)[0]
+        $module = (Get-Module -ListAvailable $testModuleClobber)
+        Write-Verbose -Verbose "Module Name: $($module.Name)"
+        $moduleIdx = $module[0]
 
         # Iterate through each exported command in the module
-        foreach ($command in $module.ExportedCommands.Values) {
+        foreach ($command in $moduleIdx.ExportedCommands.Values) {
             # Output the command's name and details
-            Write-Output "Command Name: $($command.Name)"
-            Write-Output "Command Type: $($command.CommandType)"
-            Write-Output "----------------------------------"
+            Write-Verbose -Verbose "Command Name: $($command.Name)"
+            Write-Verbose -Verbose "Command Type: $($command.CommandType)"
+            Write-Verbose -Verbose "----------------------------------"
         }
 
 
@@ -163,13 +165,13 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
         # Get the first available module named 'clobbertestmodule1' and its exported commands
         $module2 = (Get-Module -ListAvailable $testModuleClobber2)[0]
-
+        $module2Idx = $module[0]
         # Iterate through each exported command in the module
-        foreach ($command in $module2.ExportedCommands.Values) {
+        foreach ($command in $module2Idx.ExportedCommands.Values) {
             # Output the command's name and details
-            Write-Output "Command Name: $($command.Name)"
-            Write-Output "Command Type: $($command.CommandType)"
-            Write-Output "----------------------------------"
+            Write-Verbose -Verbose  "Command Name: $($command.Name)"
+            Write-Verbose -Verbose  "Command Type: $($command.CommandType)"
+            Write-Verbose -Verbose  "----------------------------------"
         }
 
         $pkg | Should -BeNullOrEmpty
