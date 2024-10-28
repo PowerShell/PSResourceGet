@@ -813,6 +813,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 return packagesHash;
             }
+
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
             pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
             if (pkgVersion == null) {
@@ -980,6 +981,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var pkgVersion = pkgToInstall.Version.ToString();
                 var tempDirNameVersion = Path.Combine(tempInstallPath, pkgName.ToLower(), pkgVersion);
                 Directory.CreateDirectory(tempDirNameVersion);
+
                 if (!TryExtractToDirectory(pathToFile, tempDirNameVersion, out error))
                 {
                     return false;
