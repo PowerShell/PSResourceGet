@@ -163,11 +163,12 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         Install-PSResource -Name $testModuleClobber2 -Repository $localRepo -TrustRepository -NoClobber -ErrorVariable ev -ErrorAction SilentlyContinue -verbose
         $pkg = Get-InstalledPSResource $testModuleClobber2 -ErrorAction SilentlyContinue
 
-        # Get the first available module named 'clobbertestmodule1' and its exported commands
-        $module2 = (Get-Module -ListAvailable $testModuleClobber2)[0]
-        $module2Idx = $module[0]
-        # Iterate through each exported command in the module
-        foreach ($command in $module2Idx.ExportedCommands.Values) {
+        if (!$pkg) {
+            # Get the first available module named 'clobbertestmodule1' and its exported commands
+            $module2 = (Get-Module -ListAvailable $testModuleClobber2)[0]
+            $module2Idx = $module[0]
+            # Iterate through each exported command in the module
+            foreach ($command in $module2Idx.ExportedCommands.Values) {
             # Output the command's name and details
             Write-Verbose -Verbose  "Command Name: $($command.Name)"
             Write-Verbose -Verbose  "Command Type: $($command.CommandType)"
