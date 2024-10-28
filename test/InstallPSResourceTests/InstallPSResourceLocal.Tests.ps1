@@ -25,7 +25,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         Register-LocalRepos
         Register-LocalTestNupkgsRepo
 
-        $prereleaseLabel = "alpha001"
+        $prereleaseLabel = "Alpha001"
         $tags = @()
 
         New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags $tags
@@ -131,12 +131,12 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $pkg.Version | Should -Be "3.0.0"
     }
 
-    It "Install resource with latest (including prerelease) version given Prerelease parameter" {
+    It "Install resource with latest (including prerelease) version given Prerelease parameter (prerelease casing should be correct)" {
         Install-PSResource -Name $testModuleName -Prerelease -Repository $localRepo -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.2.5"
-        $pkg.Prerelease | Should -Be "alpha001"
+        $pkg.Prerelease | Should -Be "Alpha001"
     }
 
     It "Install resource with cmdlet names from a module already installed with -NoClobber (should not clobber)" {

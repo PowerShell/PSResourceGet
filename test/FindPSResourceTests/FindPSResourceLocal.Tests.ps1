@@ -12,7 +12,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
     BeforeAll{
         $localRepo = "psgettestlocal"
         $localUNCRepo = 'psgettestlocal3'
-        $testModuleName = "test_local_mod"
+        $testModuleName = "Test_Local_Mod"
         $testModuleName2 = "test_local_mod2"
         $similarTestModuleName = "test_local_mod.similar"
         $commandName = "cmd1"
@@ -44,6 +44,13 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
     It "find resource given specific Name, Version null (module)" {
         # FindName()
         $res = Find-PSResource -Name $testModuleName -Repository $localRepo
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be "5.0.0"
+    }
+
+    It "find resource given specific Name with incorrect casing (should return correct casing)" {
+        # FindName()
+        $res = Find-PSResource -Name "test_local_mod" -Repository $localRepo
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0"
     }
