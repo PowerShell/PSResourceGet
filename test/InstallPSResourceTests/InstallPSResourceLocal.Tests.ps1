@@ -140,7 +140,12 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Install resource with cmdlet names from a module already installed with -NoClobber (should not clobber)" {
-        Install-PSResource -Name $testModuleClobber -Repository $localRepo -TrustRepository
+        Install-PSResource -Name $testModuleClobber -Repository $localRepo -TrustRepository -Verbose
+
+        Write-Verbose -Verbose "~~~~~~~~~~~~~~~"
+        Get-ChildItem $localRepo -Recurse
+        Write-Verbose -Verbose "~~~~~~~~~~~~~~~"
+        
         $pkg = Get-InstalledPSResource $testModuleClobber
         $pkg.Name | Should -Be $testModuleClobber
         $pkg.Version | Should -Be "1.0.0"
@@ -175,7 +180,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
             Write-Verbose -Verbose  "----------------------------------"
             }
         }
-        
+
         $pkg | Should -BeNullOrEmpty
         $ev.Count | Should -Be 1
         $ev[0] | Should -Be "'testModuleClobber2' package could not be installed with error: The following commands are already available on this system: 'Test-Cmdlet1, Test-Cmdlet1'. This module 'testModuleClobber2' may override the existing commands. If you still want to install this module 'testModuleClobber2', remove the -NoClobber parameter."
