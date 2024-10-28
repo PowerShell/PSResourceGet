@@ -140,13 +140,13 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Install resource with cmdlet names from a module already installed with -NoClobber (should not clobber)" {
-        Install-PSResource -Name $testModuleClobber -Repository $localRepo -TrustRepository -Verbose
+        Install-PSResource -Name $testModuleClobber -Repository $localRepo -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleClobber
         $pkg.Name | Should -Be $testModuleClobber
         $pkg.Version | Should -Be "1.0.0"
 
-        Install-PSResource -Name $testModuleClobber2 -Repository $localRepo -TrustRepository -NoClobber -ErrorVariable ev -ErrorAction SilentlyContinue -verbose
-        $pkg = Get-InstalledPSResource $testModuleClobber2 -ErrorAction SilentlyContinue}
+        Install-PSResource -Name $testModuleClobber2 -Repository $localRepo -TrustRepository -NoClobber -ErrorVariable ev -ErrorAction SilentlyContinue
+        $pkg = Get-InstalledPSResource $testModuleClobber2 -ErrorAction SilentlyContinue
         $pkg | Should -BeNullOrEmpty
         $ev.Count | Should -Be 1
         $ev[0] | Should -Be "'testModuleClobber2' package could not be installed with error: The following commands are already available on this system: 'Test-Cmdlet1, Test-Cmdlet1'. This module 'testModuleClobber2' may override the existing commands. If you still want to install this module 'testModuleClobber2', remove the -NoClobber parameter."
@@ -205,7 +205,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
     # Windows only
     It "Install resource under AllUsers scope - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
-        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository -Scope AllUsers -Verbose
+        Install-PSResource -Name $testModuleName -Repository $localRepo -TrustRepository -Scope AllUsers
         $pkg = Get-InstalledPSResource $testModuleName -Scope AllUsers
         $pkg.Name | Should -Be $testModuleName
         $pkg.InstalledLocation.ToString().Contains("Program Files") | Should -Be $true
@@ -290,10 +290,8 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $nupkgName = "Microsoft.Web.Webview2"
         $nupkgVersion = "1.0.2792.45"
         $repoPath = Get-PSResourceRepository $localNupkgRepo
-        Write-Verbose -Verbose "repoPath $($repoPath.Uri)"
         $searchPkg = Find-PSResource -Name $nupkgName -Version $nupkgVersion -Repository $localNupkgRepo
-        Write-Verbose -Verbose "search name: $($searchPkg.Name)"
-        Install-PSResource -Name $nupkgName -Version $nupkgVersion -Repository $localNupkgRepo -TrustRepository -Verbose
+        Install-PSResource -Name $nupkgName -Version $nupkgVersion -Repository $localNupkgRepo -TrustRepository
         $pkg = Get-InstalledPSResource $nupkgName
         $pkg.Name | Should -Be $nupkgName
         $pkg.Version | Should -Be $nupkgVersion
