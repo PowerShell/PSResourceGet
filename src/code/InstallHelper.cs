@@ -972,6 +972,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
+                _cmdletPassedIn.WriteVerbose($"pathToFile IS: {pathToFile}.");
+
+                if (File.Exists(pathToFile))
+                {
+                    _cmdletPassedIn.WriteVerbose($"pathToFile EXISTS.");
+
+                }
+                else {
+                    _cmdletPassedIn.WriteVerbose($"pathToFile DOES NOT EXIST.");
+
+                }
+
                 using var fs = File.Create(pathToFile);
                 responseStream.Seek(0, System.IO.SeekOrigin.Begin);
                 responseStream.CopyTo(fs);
@@ -980,6 +992,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Expand the zip file
                 var pkgVersion = pkgToInstall.Version.ToString();
                 var tempDirNameVersion = Path.Combine(tempInstallPath, pkgName.ToLower(), pkgVersion);
+                
                 Directory.CreateDirectory(tempDirNameVersion);
 
                 if (!TryExtractToDirectory(pathToFile, tempDirNameVersion, out error))
@@ -992,6 +1005,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var moduleManifest = Path.Combine(tempDirNameVersion, pkgName + PSDataFileExt);
                 var scriptPath = Path.Combine(tempDirNameVersion, pkgName + PSScriptFileExt);
 
+                _cmdletPassedIn.WriteVerbose($"MODULE MANIFEST PATH IS: {moduleManifest}.");
                 bool isModule = File.Exists(moduleManifest);
                 bool isScript = File.Exists(scriptPath);
 
