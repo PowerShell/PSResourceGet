@@ -972,8 +972,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
-                _cmdletPassedIn.WriteVerbose($"pathToFile IS: {pathToFile}.");
-
                 using var fs = File.Create(pathToFile);
                 responseStream.Seek(0, System.IO.SeekOrigin.Begin);
                 responseStream.CopyTo(fs);
@@ -984,7 +982,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var tempDirNameVersion = Path.Combine(tempInstallPath, pkgName.ToLower(), pkgVersion);
                 
                 Directory.CreateDirectory(tempDirNameVersion);
-
                 if (!TryExtractToDirectory(pathToFile, tempDirNameVersion, out error))
                 {
                     return false;
