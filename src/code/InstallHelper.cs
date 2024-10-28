@@ -971,18 +971,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             updatedPackagesHash = packagesHash;
             try
             {
-                var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
-                _cmdletPassedIn.WriteVerbose($"pathToFile IS: {pathToFile}.");
-
-                if (File.Exists(pathToFile))
+                if (responseStream == null)
                 {
-                    _cmdletPassedIn.WriteVerbose($"pathToFile EXISTS.");
-
+                    _cmdletPassedIn.WriteVerbose($"response stream is null");
                 }
                 else {
-                    _cmdletPassedIn.WriteVerbose($"pathToFile DOES NOT EXIST.");
-
+                    _cmdletPassedIn.WriteVerbose($"response stream is NOT null");
                 }
+
+                var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
+                _cmdletPassedIn.WriteVerbose($"pathToFile IS: {pathToFile}.");
 
                 using var fs = File.Create(pathToFile);
                 responseStream.Seek(0, System.IO.SeekOrigin.Begin);
@@ -1000,6 +998,35 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return false;
                 }
 
+                
+                _cmdletPassedIn.WriteVerbose($"tempDirNameVersionIS: {tempDirNameVersion}.");
+
+                // Check if the directory exists
+                if (Directory.Exists(tempDirNameVersion))
+                {
+                    Console.WriteLine($"Contents of {tempDirNameVersion}:");
+
+                    // Display all files in the directory
+                    string[] files = Directory.GetFiles(tempDirNameVersion, "*.*", SearchOption.AllDirectories);
+                    foreach (string file in files)
+                    {
+                        Console.WriteLine($"File: {file}");
+                    }
+
+                    // Display all subdirectories in the directory
+                    string[] directories = Directory.GetDirectories(tempDirNameVersion, "*", SearchOption.AllDirectories);
+                    foreach (string directory in directories)
+                    {
+                        Console.WriteLine($"Directory: {directory}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"The directory {tempDirNameVersion} does not exist.");
+                }
+
+                
+                
                 File.Delete(pathToFile);
 
                 var moduleManifest = Path.Combine(tempDirNameVersion, pkgName + PSDataFileExt);
