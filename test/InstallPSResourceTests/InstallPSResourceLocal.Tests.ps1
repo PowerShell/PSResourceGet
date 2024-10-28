@@ -141,29 +141,9 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
 
     It "Install resource with cmdlet names from a module already installed with -NoClobber (should not clobber)" {
         Install-PSResource -Name $testModuleClobber -Repository $localRepo -TrustRepository -Verbose
-
-        Write-Verbose -Verbose "~~~~~~~~~~~~~~~"
-        Get-ChildItem $localRepo -Recurse
-        Write-Verbose -Verbose "~~~~~~~~~~~~~~~"
-        
         $pkg = Get-InstalledPSResource $testModuleClobber
         $pkg.Name | Should -Be $testModuleClobber
         $pkg.Version | Should -Be "1.0.0"
-
-
-        # Get the first available module named 'clobbertestmodule1' and its exported commands
-        $module = (Get-Module -ListAvailable $testModuleClobber)
-        Write-Verbose -Verbose "Module Name: $($module.Name)"
-        $moduleIdx = $module[0]
-
-        # Iterate through each exported command in the module
-        foreach ($command in $moduleIdx.ExportedCommands.Values) {
-            # Output the command's name and details
-            Write-Verbose -Verbose "Command Name: $($command.Name)"
-            Write-Verbose -Verbose "Command Type: $($command.CommandType)"
-            Write-Verbose -Verbose "----------------------------------"
-        }
-
 
         Install-PSResource -Name $testModuleClobber2 -Repository $localRepo -TrustRepository -NoClobber -ErrorVariable ev -ErrorAction SilentlyContinue -verbose
         $pkg = Get-InstalledPSResource $testModuleClobber2 -ErrorAction SilentlyContinue

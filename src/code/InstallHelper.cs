@@ -737,6 +737,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             FindResults responses = null;
             errRecord = null;
 
+            //_cmdletPassedIn.WriteWarning($"~~~~~~~~~~~~~~~~~~ pkgNameToInstall is: '{pkgNameToInstall}'.");
+
             switch (searchVersionType)
             {
                 case VersionType.VersionRange:
@@ -813,6 +815,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 return packagesHash;
             }
+            
+            // THIS SHOULD BE THE CORRECT PKG NAME
+           // _cmdletPassedIn.WriteWarning($"~~~~~~~~~~~~~~~~~~ pkgToInstall.Name is: '{pkgToInstall.Name}'.");
 
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
             pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);

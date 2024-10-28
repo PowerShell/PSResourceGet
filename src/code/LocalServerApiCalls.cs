@@ -685,7 +685,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string psd1FilePath = String.Empty;
                 string ps1FilePath = String.Empty;
                 string nuspecFilePath = String.Empty;
-                Utils.GetMetadataFilesFromPath(tempDiscoveryPath, packageName, out psd1FilePath, out ps1FilePath, out nuspecFilePath);
+                Utils.GetMetadataFilesFromPath(tempDiscoveryPath, packageName, out psd1FilePath, out ps1FilePath, out nuspecFilePath, out string properCasingPkgName);
 
                 List<string> pkgTags = new List<string>();
 
@@ -710,7 +710,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     pkgMetadata.Add("ProjectUri", projectUri);
                     pkgMetadata.Add("IconUri", iconUri);
                     pkgMetadata.Add("ReleaseNotes", releaseNotes);
-                    pkgMetadata.Add("Id", packageName);
+                    pkgMetadata.Add("Id", properCasingPkgName);
                     pkgMetadata.Add(_fileTypeKey, Utils.MetadataFileType.ModuleManifest);
 
                     pkgTags.AddRange(pkgHashTags);

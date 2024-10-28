@@ -1172,11 +1172,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return pkgsInstalledOnMachine;
         }
 
-        internal static void GetMetadataFilesFromPath(string dirPath, string packageName, out string psd1FilePath, out string ps1FilePath, out string nuspecFilePath)
+        internal static void GetMetadataFilesFromPath(string dirPath, string packageName, out string psd1FilePath, out string ps1FilePath, out string nuspecFilePath, out string properCasingPkgName)
         {
             psd1FilePath = String.Empty;
             ps1FilePath = String.Empty;
             nuspecFilePath = String.Empty;
+            properCasingPkgName = packageName;
 
             var discoveredFiles = Directory.GetFiles(dirPath, "*.*", SearchOption.AllDirectories);
             string pkgNamePattern = $"{packageName}*";
@@ -1187,14 +1188,26 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     if (file.EndsWith("psd1"))
                     {
+                        if (string.Compare($"{packageName}.psd1", file, StringComparison.OrdinalIgnoreCase) == 0)
+                        {
+                            properCasingPkgName = file.Split(new string[] { ".psd1" }, StringSplitOptions.None).First();
+                        }
                         psd1FilePath = file;
                     }
                     else if (file.EndsWith("nuspec"))
                     {
+                        if (string.Compare($"{packageName}.nuspec", file, StringComparison.OrdinalIgnoreCase) == 0)
+                        {
+                            properCasingPkgName = file.Split(new string[] { ".nuspec" }, StringSplitOptions.None).First();
+                        }
                         nuspecFilePath = file;
                     }
                     else if (file.EndsWith("ps1"))
                     {
+                        if (string.Compare($"{packageName}.ps1", file, StringComparison.OrdinalIgnoreCase) == 0)
+                        {
+                            properCasingPkgName = file.Split(new string[] { ".ps1" }, StringSplitOptions.None).First();
+                        }
                         ps1FilePath = file;
                     }
                 }
