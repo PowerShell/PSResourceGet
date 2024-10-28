@@ -730,7 +730,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     pkgMetadata = parsedScript.ToHashtable();
-                    pkgMetadata.Add("Id", packageName);
+                    pkgMetadata.Add("Id", properCasingPkgName);
                     pkgMetadata.Add(_fileTypeKey, Utils.MetadataFileType.ScriptFile);
                     pkgTags.AddRange(pkgMetadata["Tags"] as string[]);
 
