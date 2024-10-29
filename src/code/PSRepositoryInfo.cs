@@ -12,7 +12,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
     public sealed class PSRepositoryInfo
     {
         #region constants
-        internal const string MARPrefix = "azure-powershell/";
+        internal const string MARPrefix = "psresource/";
         #endregion
 
         #region Enums
