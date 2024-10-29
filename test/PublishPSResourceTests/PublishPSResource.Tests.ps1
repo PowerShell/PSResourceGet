@@ -271,7 +271,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         New-ModuleManifest -Path (Join-Path -Path $script:DependencyModuleBase -ChildPath "$script:DependencyModuleName.psd1") -ModuleVersion $dependencyVersion -Description "$script:DependencyModuleName module"
 
         Publish-PSResource -Path $script:DependencyModuleBase -Repository $testRepository2
-        $pkg1 = Find-PSResouce $script:DependencyModuleName -Repository $testRepository2
+        $pkg1 = Find-PSResource $script:DependencyModuleName -Repository $testRepository2
         $pkg1 | Should -Not -BeNullOrEmpty
         $pkg1.Version | Should -Be $dependencyVersion
 
@@ -281,7 +281,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2
 
-        $pkg2 = Find-PSResouce $script:DependencyModuleName -Repository $testRepository2
+        $pkg2 = Find-PSResource $script:DependencyModuleName -Repository $testRepository2
         $pkg2 | Should -Not -BeNullOrEmpty
         $pkg2.Version | Should -Be $dependencyVersion
     }
