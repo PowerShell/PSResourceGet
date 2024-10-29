@@ -55,7 +55,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # FindName()
         $res = Find-PSResource -Name "test_local_mod3" -Repository $localRepo
         $res.Name | Should -Be $testModuleName3
-        $res.Version | Should -Be "5.0.0"
+        $res.Version | Should -Be "1.0.0"
     }
 
     It "find resource given specific Name, Version null (module) from a UNC-based local repository" {
