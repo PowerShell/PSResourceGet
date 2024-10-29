@@ -286,7 +286,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return results;
             }
 
-            results = InstallVersion(packageName, packageVersion, out errRecord);
+            string packageNameForInstall = PrependMARPrefix(packageName);
+            results = InstallVersion(packageNameForInstall, packageVersion, out errRecord);
             return results;
         }
 
@@ -1601,13 +1602,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             string registryUrl = Repository.Uri.ToString();
             string packageNameLowercase = packageName.ToLower();
 
+            string packageNameForFind = PrependMARPrefix(packageNameLowercase);
             string containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
             if (errRecord != null)
             {
                 return emptyHashResponses;
             }
 
-            var foundTags = FindContainerRegistryImageTags(packageNameLowercase, "*", containerRegistryAccessToken, out errRecord);
+            var foundTags = FindContainerRegistryImageTags(packageNameForFind, "*", containerRegistryAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
                 return emptyHashResponses;
@@ -1616,7 +1618,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             List<Hashtable> latestVersionResponse = new List<Hashtable>();
             List<JToken> allVersionsList = foundTags["tags"].ToList();
 
-            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, versionType, versionRange, requiredVersion, packageNameLowercase, includePrerelease, out errRecord);
+            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, versionType, versionRange, requiredVersion, packageNameForFind, includePrerelease, out errRecord);
             if (errRecord != null)
             {
                 return emptyHashResponses;
@@ -1627,7 +1629,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             foreach (var pkgVersionTag in pkgsInDescendingOrder)
             {
                 string exactTagVersion = pkgVersionTag.Value.ToString();
-                Hashtable metadata = GetContainerRegistryMetadata(packageNameLowercase, exactTagVersion, containerRegistryAccessToken, out errRecord);
+                Hashtable metadata = GetContainerRegistryMetadata(packageNameForFind, exactTagVersion, containerRegistryAccessToken, out errRecord);
                 if (errRecord != null || metadata.Count == 0)
                 {
                     return emptyHashResponses;
@@ -1692,6 +1694,16 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             return sortedPkgs;
+        }
+
+        private string PrependMARPrefix(string packageName)
+        {
+            // If the repostitory is MAR and its not a wildcard search, we need to prefix the package name with MAR prefix.
+            string updatedPackageName = Repository.IsMARRepository() && packageName.Trim() != "*"
+                                            ? string.Concat(PSRepositoryInfo.MARPrefix, packageName)
+                                            : packageName;
+
+            return updatedPackageName;
         }
 
         #endregion

@@ -11,6 +11,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
     /// </summary>
     public sealed class PSRepositoryInfo
     {
+        #region constants
+        internal const string MARPrefix = "azure-powershell/";
+        #endregion
+
         #region Enums
 
         public enum APIVersion
@@ -93,6 +97,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// is it allowed by policy
         /// </summary>
         public bool IsAllowedByPolicy { get; set; }
+
+        #endregion
+
+        #region Methods
+
+        internal bool IsMARRepository()
+        {
+            return (ApiVersion == APIVersion.ContainerRegistry && Uri.Host.Contains("mcr.microsoft.com"));
+        }
 
         #endregion
     }
