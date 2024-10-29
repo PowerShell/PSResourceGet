@@ -368,6 +368,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
+                if (repository.IsMARRepository())
+                {
+                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                        new PSInvalidOperationException($"Repository '{repository.Name}' is a MAR repository and cannot be published to."),
+                        "MARRepositoryPublishError",
+                        ErrorCategory.PermissionDenied,
+                        this));
+
+                    return;
+                }
+
                 _networkCredential = Utils.SetNetworkCredential(repository, _networkCredential, _cmdletPassedIn);
 
                 // Check if dependencies already exist within the repo if:
