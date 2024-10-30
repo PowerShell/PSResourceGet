@@ -1698,9 +1698,11 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         private string PrependMARPrefix(string packageName)
         {
+            string prefix = string.IsNullOrEmpty(InternalHooks.MARPrefix) ? PSRepositoryInfo.MARPrefix : InternalHooks.MARPrefix;
+
             // If the repostitory is MAR and its not a wildcard search, we need to prefix the package name with MAR prefix.
             string updatedPackageName = Repository.IsMARRepository() && packageName.Trim() != "*"
-                                            ? string.Concat(PSRepositoryInfo.MARPrefix, packageName)
+                                            ? string.Concat(prefix, packageName)
                                             : packageName;
 
             return updatedPackageName;

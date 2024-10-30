@@ -228,3 +228,21 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Type.ToString() | Should -Be "Script"
     }
 }
+
+Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
+    BeforeAll {
+        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", "azure-powershell/");
+        Register-PSResourceRepository -Name "MAR" -Uri "https://mcr.microsoft.com" -ApiVersion "ContainerRegistry"
+    }
+
+    AfterAll {
+        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", $null);
+        Unregister-PSResourceRepository -Name "MAR"
+    }
+
+    It "Should find resource given specific Name, Version null" {
+        $res = Find-PSResource -Name "Az.Accounts" -Repository "MAR"
+        $res.Name | Should -Be "Az.Accounts"
+        $res.Version | Should -Be "3.0.4"
+    }
+}

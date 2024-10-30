@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Reflection;
+using Azure.Core;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -14,6 +15,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         internal static bool GPEnabledStatus;
 
         internal static string AllowedUri;
+
+        internal static string MARPrefix;
 
         public static void SetTestHook(string property, object value)
         {
