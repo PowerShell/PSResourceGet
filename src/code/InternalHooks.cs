@@ -15,6 +15,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         internal static string AllowedUri;
 
+        internal static string MARPrefix;
+
         public static void SetTestHook(string property, object value)
         {
             var fieldInfo = typeof(InternalHooks).GetField(property, BindingFlags.Static | BindingFlags.NonPublic);

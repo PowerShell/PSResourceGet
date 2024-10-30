@@ -512,3 +512,24 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Version | Should -Be $version
     }
 }
+
+Describe 'Test Publish-PSResource for MAR Repository' -tags 'CI' {
+    BeforeAll {
+        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", "azure-powershell/");
+        Register-PSResourceRepository -Name "MAR" -Uri "https://mcr.microsoft.com" -ApiVersion "ContainerRegistry"
+    }
+
+    AfterAll {
+        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", $null);
+        Unregister-PSResourceRepository -Name "MAR"
+    }
+
+    It "Should find resource given specific Name, Version null" {
+        $fileName = "NonExistent.psd1"
+        $modulePath = New-Item -Path "$TestDrive\NonExistent" -ItemType Directory -Force
+        $psd1Path = Join-Path -Path $modulePath -ChildPath $fileName
+        New-ModuleManifest -Path $psd1Path -ModuleVersion "1.0.0" -Description "NonExistent module"
+
+        { Publish-PSResource -Path $modulePath -Repository "MAR" -ErrorAction Stop } | Should -Throw -ErrorId "MARRepositoryPublishError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+    }
+}
