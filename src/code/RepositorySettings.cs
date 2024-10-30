@@ -862,7 +862,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // repositories with Uri Scheme "temp" may have PSPath Uri's like: "Temp:\repo" and we should consider them as local repositories.
                 return PSRepositoryInfo.APIVersion.Local;
             }
-            else if (repoUri.AbsoluteUri.EndsWith(".azurecr.io") || repoUri.AbsoluteUri.EndsWith(".azurecr.io/") || repoUri.AbsoluteUri.Contains("mcr.microsoft.com") || repoUri.AbsoluteUri.Contains("mcr.microsoft.com/")
+            else if (repoUri.AbsoluteUri.EndsWith(".azurecr.io") || repoUri.AbsoluteUri.EndsWith(".azurecr.io/") || repoUri.AbsoluteUri.Contains("mcr.microsoft.com") || repoUri.AbsoluteUri.Contains("mcr.microsoft.com/"))
             {
                 return PSRepositoryInfo.APIVersion.ContainerRegistry;
             }
