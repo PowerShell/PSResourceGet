@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Reflection;
-using Azure.Core;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
