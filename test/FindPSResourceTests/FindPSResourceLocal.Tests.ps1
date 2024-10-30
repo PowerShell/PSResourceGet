@@ -19,8 +19,10 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $commandName = "cmd1"
         $dscResourceName = "dsc1"
         $prereleaseLabel = ""
+        $localNupkgRepo = "localNupkgRepo"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
+        Register-LocalTestNupkgsRepo
 
         $localRepoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
         $tagsEscaped = @("'Test'", "'Tag2'", "'PSCommand_$cmdName'", "'PSDscResource_$dscName'")
@@ -318,5 +320,15 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindTagsPackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+
+    It "find package where prerelease label includes digits and period (i.e prerelease label is not just words)" {
+        $nupkgName = "WebView2.Avalonia"
+        $nupkgVersion = "1.0.1518.46"
+        $prereleaseLabel = "preview.230207.17"
+        $res = Find-PSResource -Name $nupkgName -Prerelease -Repository $localNupkgRepo
+        $res.Name | Should -Be $nupkgName
+        $res.Version | Should -Be $nupkgVersion
+        $res.Prerelease | Should -Be $prereleaseLabel
     }
 }
