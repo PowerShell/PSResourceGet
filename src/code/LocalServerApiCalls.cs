@@ -260,7 +260,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string actualPkgName = packageName;
 
             // this regex pattern matches packageName followed by a version (4 digit or 3 with prerelease word)
-            string regexPattern = $"{packageName}" + @".\d+\.\d+\.\d+(?:-\w+|.\d)*.nupkg";
+            string regexPattern = $"{packageName}" + @".\d+\.\d+\.\d+(?:[a-zA-Z0-9-.]+|.\d)?.nupkg";
             Regex rx = new Regex(regexPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
             _cmdletPassedIn.WriteDebug($"package file name pattern to be searched for is: {regexPattern}");
 
@@ -685,7 +685,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string psd1FilePath = String.Empty;
                 string ps1FilePath = String.Empty;
                 string nuspecFilePath = String.Empty;
-                Utils.GetMetadataFilesFromPath(tempDiscoveryPath, packageName, out psd1FilePath, out ps1FilePath, out nuspecFilePath);
+                Utils.GetMetadataFilesFromPath(tempDiscoveryPath, packageName, out psd1FilePath, out ps1FilePath, out nuspecFilePath, out string properCasingPkgName);
 
                 List<string> pkgTags = new List<string>();
 
@@ -710,7 +710,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     pkgMetadata.Add("ProjectUri", projectUri);
                     pkgMetadata.Add("IconUri", iconUri);
                     pkgMetadata.Add("ReleaseNotes", releaseNotes);
-                    pkgMetadata.Add("Id", packageName);
+                    pkgMetadata.Add("Id", properCasingPkgName);
                     pkgMetadata.Add(_fileTypeKey, Utils.MetadataFileType.ModuleManifest);
 
                     pkgTags.AddRange(pkgHashTags);
@@ -730,7 +730,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     pkgMetadata = parsedScript.ToHashtable();
-                    pkgMetadata.Add("Id", packageName);
+                    pkgMetadata.Add("Id", properCasingPkgName);
                     pkgMetadata.Add(_fileTypeKey, Utils.MetadataFileType.ScriptFile);
                     pkgTags.AddRange(pkgMetadata["Tags"] as string[]);
 
@@ -916,7 +916,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             string[] packageWithoutName = packageFullName.ToLower().Split(new string[]{ $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
             string packageVersionAndExtension = packageWithoutName[0];
-            string[] originalFileNameParts = packageFullName.Split(new string[]{ $".{packageVersionAndExtension}" }, StringSplitOptions.RemoveEmptyEntries);
+            string[] originalFileNameParts = packageFullName.ToLower().Split(new string[]{ $".{packageVersionAndExtension.ToLower()}" }, StringSplitOptions.RemoveEmptyEntries);
             actualName = String.IsNullOrEmpty(originalFileNameParts[0]) ? packageName : originalFileNameParts[0];
             int extensionDot = packageVersionAndExtension.LastIndexOf('.');
             string version = packageVersionAndExtension.Substring(0, extensionDot);

@@ -137,7 +137,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     It "Install resource with a dependency (should install both parent and dependency)" {
         Install-PSResource -Name $testModuleParentName -Repository $ACRRepoName -TrustRepository
-        
+
         $parentPkg = Get-InstalledPSResource $testModuleParentName
         $parentPkg.Name | Should -Be $testModuleParentName
         $parentPkg.Version | Should -Be "1.0.0"
@@ -305,5 +305,30 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidatio
         $pkg.Name | Should -Be $testModuleName
 
         Set-PSResourceRepository PoshTestGallery -Trusted
+    }
+}
+
+Describe 'Test Install-PSResource for MAR Repository' -tags 'CI' {
+    BeforeAll {
+        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", "azure-powershell/");
+        Register-PSResourceRepository -Name "MAR" -Uri "https://mcr.microsoft.com" -ApiVersion "ContainerRegistry"
+    }
+
+    AfterAll {
+        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", $null);
+        Unregister-PSResourceRepository -Name "MAR"
+    }
+
+    It "Should find resource given specific Name, Version null" {
+        try {
+            $pkg = Install-PSResource -Name "Az.Accounts" -Repository "MAR" -PassThru -TrustRepository -Reinstall
+            $pkg.Name | Should -Be "Az.Accounts"
+            $pkg.Version | Should -Be "3.0.4"
+        }
+        finally {
+            if ($pkg) {
+                Uninstall-PSResource -Name "Az.Accounts" -Version "3.0.4"
+            }
+        }
     }
 }
