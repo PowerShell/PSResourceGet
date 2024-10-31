@@ -1,3 +1,14 @@
+## [1.1.0-RC2](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-RC1...v1.1.0-RC2) - 2024-10-30
+
+### New Features
+- Full Microsoft Artifact Registry integration (#1741)
+
+### Bug Fixes
+
+- Update to use OCI v2 APIs for Container Registry (#1737)
+- Bug fixes for finding and installing from local repositories on Linux machines (#1738)
+- Bug fix for finding package name with 4 part version from local repositories (#1739) 
+
 # Preview Changelog
 
 ## [1.1.0-RC1](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-preview2...v1.1.0-RC1) - 2024-10-22
