@@ -12,7 +12,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
     BeforeAll{
         $localRepo = "psgettestlocal"
         $localUNCRepo = 'psgettestlocal3'
-        $testModuleName = "test_local_mod"
+        $testModuleName = "test_Local_Mod"
         $testModuleName2 = "test_local_mod2"
         $testModuleName3 = "Test_Local_Mod3"
         $similarTestModuleName = "test_local_mod.similar"
