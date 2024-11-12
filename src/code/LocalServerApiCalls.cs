@@ -425,7 +425,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     _cmdletPassedIn.WriteDebug("Found matching version");
                     string pkgFullName = $"{actualPkgName}.{nugetVersion.ToString()}.nupkg";
-                    pkgPath = Path.Combine(Repository.Uri.LocalPath, pkgFullName);
+                    pkgPath = path;
                     break;
                 }
             }
