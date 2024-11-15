@@ -1,3 +1,9 @@
+## ## [1.1.0-rc3](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-RC2...v1.1.0-rc3) - 2024-11-15
+
+### Bug Fix
+- Include missing commits
+
+
 ## [1.1.0-RC2](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-RC1...v1.1.0-RC2) - 2024-10-30
 
 ### New Features
