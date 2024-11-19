@@ -198,4 +198,10 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         $err.Count | Should -Not -BeNullOrEmpty
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
+
+    It "Save module using -Quiet" {
+        $res = Save-PSResource -Name $moduleName -Version "1.0.0" -Repository $localRepo -Path $SaveDir -PassThru -TrustRepository -Quiet
+        $res.Name | Should -Be $moduleName
+        $res.Version | Should -Be "1.0.0"
+    }
 }

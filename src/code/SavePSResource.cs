@@ -161,7 +161,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Check validation for signed and catalog files
-
         /// </summary>
         [Parameter]
         public SwitchParameter AuthenticodeCheck { get; set; }
@@ -169,6 +168,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Suppresses progress information.
         /// </summary>
+        [Parameter] 
         public SwitchParameter Quiet { get; set; }
 
         /// <summary>
