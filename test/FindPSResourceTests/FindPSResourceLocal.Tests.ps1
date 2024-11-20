@@ -61,7 +61,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
     }
 
     It "find resource given specific Name with incorrect casing and Version (should return correct casing)" {
-        # FindName()
+        # FindVersion()
         $res = Find-PSResource -Name "test_local_mod3" -Version "1.0.0" -Repository $localRepo
         $res.Name | Should -Be $testModuleName3
         $res.Version | Should -Be "1.0.0"
