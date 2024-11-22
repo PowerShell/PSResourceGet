@@ -1338,7 +1338,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cmdletPassedIn.WriteDebug("In InstallHelper::CallAcceptLicense()");
             error = null;
             var requireLicenseAcceptance = false;
-            var success = true;
 
             if (File.Exists(moduleManifest))
             {
@@ -1366,22 +1365,45 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (!_acceptLicense)
                     {
                         var PkgTempInstallPath = Path.Combine(tempInstallPath, p.Name, newVersion);
-                        var LicenseFilePath = Path.Combine(PkgTempInstallPath, "License.txt");
+                        if (!Directory.Exists(PkgTempInstallPath))
+                        {
+                            error = new ErrorRecord(
+                                new ArgumentException($"Package '{p.Name}' could not be installed: Temporary installation path does not exist."),
+                                "TempPathNotFound",
+                                ErrorCategory.ObjectNotFound,
+                                _cmdletPassedIn);
+                            ;
 
-                        if (!File.Exists(LicenseFilePath))
+                            return false;
+                        }
+
+                        string[] files = Directory.GetFiles(PkgTempInstallPath);
+
+                        bool foundLicense = false;
+                        string LicenseFilePath = string.Empty;
+                        foreach (string file in files)
+                        {
+                            if (string.Equals(Path.GetFileName(file), "License.txt", StringComparison.OrdinalIgnoreCase))
+                            {
+                                foundLicense = true;
+                                LicenseFilePath = Path.GetFullPath(file);
+                                break;
+                            }
+                        }
+
+                        if (!foundLicense)
                         {
                             error = new ErrorRecord(
                                 new ArgumentException($"Package '{p.Name}' could not be installed: License.txt not found. License.txt must be provided when user license acceptance is required."),
                                 "LicenseTxtNotFound",
                                 ErrorCategory.ObjectNotFound,
-                                _cmdletPassedIn);;
-                            success = false;
+                                _cmdletPassedIn);
 
-                            return success;
+                            return false;
                         }
 
                         // Otherwise read LicenseFile
-                        string licenseText = System.IO.File.ReadAllText(LicenseFilePath);
+                        string licenseText = File.ReadAllText(LicenseFilePath);
                         var acceptanceLicenseQuery = $"Do you accept the license terms for module '{p.Name}'?";
                         var message = licenseText + "\r\n" + acceptanceLicenseQuery;
 
@@ -1404,12 +1426,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             "ForceAcceptLicense",
                             ErrorCategory.InvalidArgument,
                             _cmdletPassedIn);
-                        success = false;
+                        
+                        return false;
                     }
                 }
             }
 
-            return success;
+            return true;
         }
 
         /// <summary>
