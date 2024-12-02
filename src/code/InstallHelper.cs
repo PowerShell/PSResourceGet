@@ -1372,7 +1372,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 "TempPathNotFound",
                                 ErrorCategory.ObjectNotFound,
                                 _cmdletPassedIn);
-                            ;
 
                             return false;
                         }
