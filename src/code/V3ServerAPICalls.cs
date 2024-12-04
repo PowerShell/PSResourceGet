@@ -1626,7 +1626,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            if (content == null || string.IsNullOrEmpty(content.ToString()))
+            if (string.IsNullOrEmpty(content?.ToString()))
             {
                 _cmdletPassedIn.WriteDebug("Response is empty");
             }
