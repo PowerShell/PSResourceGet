@@ -1622,9 +1622,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "HttpRequestCallForContentFailure",
                     ErrorCategory.InvalidResult,
                     this);
+
+                return null;
             }
 
-            if (string.IsNullOrEmpty(content.ToString()))
+            if (content == null || string.IsNullOrEmpty(content.ToString()))
             {
                 _cmdletPassedIn.WriteDebug("Response is empty");
             }
