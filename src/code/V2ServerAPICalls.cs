@@ -355,7 +355,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 filterBuilder.AddCriterion($"Id eq '{packageName}'");
             }
 
-            filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
+            filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion eq true" : "IsLatestVersion eq true");
             if (type != ResourceType.None) {
                 filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
             }
@@ -424,7 +424,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 filterBuilder.AddCriterion($"Id eq '{packageName}'");
             }
 
-            filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
+            filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion eq true" : "IsLatestVersion eq true");
             if (type != ResourceType.None) {
                 filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
             }
@@ -648,6 +648,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
             if (!_isJFrogRepo) {
                 filterBuilder.AddCriterion($"Id eq '{packageName}'");
+            }
+            else
+            {
+
             }
 
             filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
@@ -919,9 +923,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
+                filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
             } else {
-                filterBuilder.AddCriterion("IsLatestVersion");
+                filterBuilder.AddCriterion("IsLatestVersion eq true");
             }
             var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?{queryBuilder.BuildQueryString()}";
             return HttpRequestCall(requestUrlV2, out errRecord);
@@ -959,9 +963,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
+                filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
             } else {
-                filterBuilder.AddCriterion("IsLatestVersion");
+                filterBuilder.AddCriterion("IsLatestVersion eq true");
             }
 
             filterBuilder.AddCriterion($"substringof('PS{(isSearchingModule ? "Module" : "Script")}', Tags) eq true");
@@ -996,9 +1000,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
+                filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
             } else {
-                filterBuilder.AddCriterion("IsLatestVersion");
+                filterBuilder.AddCriterion("IsLatestVersion eq true");
             }
 
 
@@ -1038,11 +1042,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
+                filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
             } else {
-                filterBuilder.AddCriterion("IsLatestVersion");
+                filterBuilder.AddCriterion("IsLatestVersion eq true");
             }
-
 
             var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
 
@@ -1133,11 +1136,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
+                filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
             } else {
-                filterBuilder.AddCriterion("IsLatestVersion");
+                filterBuilder.AddCriterion("IsLatestVersion eq true");
             }
-
 
             var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
 
