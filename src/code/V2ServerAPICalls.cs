@@ -966,33 +966,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 queryBuilder.AdditionalParameters["$orderby"] = "Id desc";
             }
 
+            // JFrog/Artifactory deems 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter to be a bad request, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
+                if (_isJFrogRepo) {
+                    filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
+                }
+                else {
+                    filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
+                }
             } else {
-                filterBuilder.AddCriterion("IsLatestVersion");
+                if (_isJFrogRepo) {
+                    filterBuilder.AddCriterion("IsLatestVersion eq true");
+                }
+                else {
+                    filterBuilder.AddCriterion("IsLatestVersion");
+                }
             }
-
-            // // JFrog/Artifactory requires an empty search term to enumerate all packages in the feed
-            // // It also deems 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter to be a bad request, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
-            // if (_isJFrogRepo) {
-            //     queryBuilder.SearchTerm = "''";
-
-            //     if (includePrerelease) {
-            //         queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-            //         filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
-            //     } else {
-            //         filterBuilder.AddCriterion("IsLatestVersion eq true");
-            //     }
-            // }
-            // else {
-            //     if (includePrerelease) {
-            //         queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-            //         filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
-            //     } else {
-            //         filterBuilder.AddCriterion("IsLatestVersion");
-            //     }
-            // }
 
             filterBuilder.AddCriterion($"substringof('PS{(isSearchingModule ? "Module" : "Script")}', Tags) eq true");
 
@@ -1024,13 +1014,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 queryBuilder.AdditionalParameters["$orderby"] = "Id desc";
             }
 
+            // JFrog/Artifactory deems 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter to be a bad request, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
+                if (_isJFrogRepo) {
+                    filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
+                }
+                else {
+                    filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
+                }
             } else {
-                filterBuilder.AddCriterion("IsLatestVersion eq true");
+                if (_isJFrogRepo) {
+                    filterBuilder.AddCriterion("IsLatestVersion eq true");
+                }
+                else {
+                    filterBuilder.AddCriterion("IsLatestVersion");
+                }
             }
-
 
             // can only find from Modules endpoint
             var tagPrefix = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
@@ -1066,7 +1066,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 queryBuilder.AdditionalParameters["$orderby"] = "Id desc";
             }
 
-            // JFrog/Artifactory requires an empty search term to enumerate all packages in the feed
             // It also deems 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter to be a bad request, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
