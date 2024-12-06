@@ -649,10 +649,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!_isJFrogRepo) {
                 filterBuilder.AddCriterion($"Id eq '{packageName}'");
             }
-            else
-            {
-
-            }
 
             filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
             if (type != ResourceType.None) {
