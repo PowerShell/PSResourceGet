@@ -913,7 +913,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // JFrog/Artifactory requires an empty search term to enumerate all packages in the feed
-            // It also deems 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter to be a bad request, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
             if (_isJFrogRepo) {
                 queryBuilder.SearchTerm = "''";
 
@@ -925,6 +924,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
             else {
+                // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                 if (includePrerelease) {
                     queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
@@ -962,13 +962,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 queryBuilder.AdditionalParameters["$orderby"] = "Id desc";
             }
 
-            // JFrog/Artifactory deems 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter to be a bad request, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                 if (_isJFrogRepo) {
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
                 }
                 else {
+                    // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
                 }
             } else {
@@ -976,6 +976,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     filterBuilder.AddCriterion("IsLatestVersion eq true");
                 }
                 else {
+                    // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsLatestVersion");
                 }
             }
@@ -1010,13 +1011,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 queryBuilder.AdditionalParameters["$orderby"] = "Id desc";
             }
 
-            // JFrog/Artifactory deems 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter to be a bad request, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                 if (_isJFrogRepo) {
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
                 }
                 else {
+                    // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
                 }
             } else {
@@ -1024,6 +1025,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     filterBuilder.AddCriterion("IsLatestVersion eq true");
                 }
                 else {
+                    // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsLatestVersion");
                 }
             }
@@ -1062,13 +1064,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 queryBuilder.AdditionalParameters["$orderby"] = "Id desc";
             }
 
-            // It also deems 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter to be a bad request, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                 if (_isJFrogRepo) {
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
                 }
                 else {
+                    // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
                 }
             } else {
@@ -1076,6 +1078,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     filterBuilder.AddCriterion("IsLatestVersion eq true");
                 }
                 else {
+                    // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsLatestVersion");
                 }
             }
@@ -1168,13 +1171,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // JFrog/Artifactory requires an empty search term to enumerate all packages in the feed
-            // It also deems 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter to be a bad request, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                 if (_isJFrogRepo) {
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
                 }
                 else {
+                    // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
                 }
             } else {
@@ -1182,6 +1185,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     filterBuilder.AddCriterion("IsLatestVersion eq true");
                 }
                 else {
+                    // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsLatestVersion");
                 }
             }
