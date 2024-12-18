@@ -98,6 +98,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public PSCredentialInfo CredentialInfo { get; set; }
 
         /// <summary>
+        /// Specifies which credential provider to use.
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        public PSRepositoryInfo.CredentialProviderType CredentialProvider { get; set; }
+
+        /// <summary>
         /// When specified, displays the succcessfully registered repository and its information.
         /// </summary>
         [Parameter]
@@ -127,6 +133,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repoApiVersion = ApiVersion;
             }
 
+            PSRepositoryInfo.CredentialProviderType? repoCredentialProvider = null;
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(CredentialProvider)))
+            {
+                repoCredentialProvider = CredentialProvider;
+            }
+
+
             switch (ParameterSetName)
             {
                 case NameParameterSet:
@@ -140,7 +153,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     try
                     {
-                        items.Add(RepositorySettings.AddRepository(Name, _uri, Priority, Trusted, repoApiVersion, CredentialInfo, Force, this, out string errorMsg));
+                        items.Add(RepositorySettings.AddRepository(Name, _uri, Priority, Trusted, repoApiVersion, CredentialInfo, repoCredentialProvider, Force, this, out string errorMsg));
 
                         if (!string.IsNullOrEmpty(errorMsg))
                         {
@@ -217,7 +230,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repoPriority, 
                 repoTrusted, 
                 apiVersion: null,
-                repoCredentialInfo: null, 
+                repoCredentialInfo: null,
+                credentialProvider: null,
                 Force, 
                 this, 
                 out string errorMsg);
@@ -352,6 +366,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
+            if (repo.ContainsKey("CredentialProvider") && 
+                (repo["CredentialProvider"] == null || String.IsNullOrEmpty(repo["CredentialProvider"].ToString()) ||
+                !(repo["CredentialProvider"].ToString().Equals("None", StringComparison.OrdinalIgnoreCase) || 
+                repo["CredentialProvider"].ToString().Equals("AzArtifacts", StringComparison.OrdinalIgnoreCase))))
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException("Repository 'CredentialProvider' must be set to either 'None' or 'AzArtifacts'"),
+                    "InvalidCredentialProviderForRepositoriesParameterSetRegistration",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
+                return null;
+            }
+
+
             try
             {
                 WriteDebug($"Registering repository '{repo["Name"]}' with uri '{repoUri}'");
@@ -361,6 +390,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : DefaultTrusted,
                     apiVersion: repo.ContainsKey("Trusted") ? (PSRepositoryInfo.APIVersion?) repo["ApiVersion"] : null,
                     repoCredentialInfo,
+                    repo.ContainsKey("CredentialProvider") ? (PSRepositoryInfo.CredentialProviderType?)repo["CredentialProvider"] : null,
                     Force,
                     this,
                     out string errorMsg);
