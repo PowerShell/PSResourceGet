@@ -95,6 +95,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public PSCredentialInfo CredentialInfo { get; set; }
 
         /// <summary>
+        /// Specifies which credential provider to use.
+        /// </summary>
+        [Parameter(ParameterSetName = NameParameterSet)]
+        public PSRepositoryInfo.CredentialProviderType CredentialProvider { get; set; }      
+
+        /// <summary>
         /// When specified, displays the successfully registered repository and its information.
         /// </summary>
         [Parameter]
@@ -118,10 +124,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 !MyInvocation.BoundParameters.ContainsKey(nameof(Priority)) &&
                 !MyInvocation.BoundParameters.ContainsKey(nameof(Trusted)) &&
                 !MyInvocation.BoundParameters.ContainsKey(nameof(ApiVersion)) &&
-                !MyInvocation.BoundParameters.ContainsKey(nameof(CredentialInfo)))
+                !MyInvocation.BoundParameters.ContainsKey(nameof(CredentialInfo)) &&
+                !MyInvocation.BoundParameters.ContainsKey(nameof(CredentialProvider)))
             {
                 ThrowTerminatingError(new ErrorRecord(
-                    new ArgumentException("Must set Uri, Priority, Trusted, ApiVersion, or CredentialInfo parameter"),
+                    new ArgumentException("Must set Uri, Priority, Trusted, ApiVersion, CredentialInfo, or CredentialProvider parameter"),
                     "SetRepositoryParameterBindingFailure",
                     ErrorCategory.InvalidArgument,
                     this));
@@ -151,11 +158,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         items.Add(RepositorySettings.UpdateRepositoryStore(Name, 
                             _uri, 
                             Priority,
-                            Trusted, 
+                            Trusted,
                             isSet,
                             DefaultPriority,
                             repoApiVersion,
                             CredentialInfo,
+                            CredentialProvider,
                             this,
                             out string errorMsg));
 
@@ -293,6 +301,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     DefaultPriority,
                     ApiVersion,
                     repoCredentialInfo,
+                    CredentialProvider,
                     this,
                     out string errorMsg);
 
