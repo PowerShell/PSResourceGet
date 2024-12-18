@@ -1,28 +1,27 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using NuGet.Versioning;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
-using System.Management.Automation;
-using System.Management.Automation.Language;
-using System.Management.Automation.Runspaces;
-using System.Runtime.InteropServices;
-using Microsoft.PowerShell.Commands;
-using Microsoft.PowerShell.PSResourceGet.Cmdlets;
-using System.Net;
-using System.Net.Http;
-using System.Globalization;
-using System.Security;
 using Azure.Core;
 using Azure.Identity;
+using Microsoft.PowerShell.Commands;
+using Microsoft.PowerShell.PSResourceGet.Cmdlets;
+using NuGet.Versioning;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Management.Automation.Language;
+using System.Management.Automation.Runspaces;
+using System.Management.Automation;
+using System.Net.Http;
+using System.Net;
+using System.Runtime.InteropServices;
+using System.Security;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
+using System;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -140,7 +139,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// </summary>
         public static string[] GetStringArray(ArrayList list)
         {
-            if (list == null) { return null; }
+            if (list == null)
+            { return null; }
 
             var strArray = new string[list.Count];
             for (int i = 0; i < list.Count; i++)
@@ -349,7 +349,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
            out VersionRange versionRange)
         {
             versionRange = null;
-            if (version == null) { return false; }
+            if (version == null)
+            { return false; }
 
             if (version.Trim().Equals("*"))
             {
@@ -994,30 +995,88 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return new DirectoryInfo(pkgPath).Parent.Name;
         }
 
-        // Find all potential resource paths
-        public static List<string> GetPathsFromEnvVarAndScope(
+        // Get standard install paths given scope
+        public static List<string> GetStandardPathsForScope(
             PSCmdlet psCmdlet,
             ScopeType? scope)
         {
+            // Assets
+            List<string> resourcePaths = new();
+
+            // Get standard paths
             GetStandardPlatformPaths(
-               psCmdlet,
-               out string myDocumentsPath,
-               out string programFilesPath);
+                psCmdlet,
+                out string myDocumentsPath,
+                out string programFilesPath
+            );
 
-            List<string> resourcePaths = new List<string>();
-            if (scope is null || scope.Value is ScopeType.CurrentUser)
-            {
-                resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
-                resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
-            }
-
+            // Add paths to output
             if (scope.Value is ScopeType.AllUsers)
             {
                 resourcePaths.Add(Path.Combine(programFilesPath, "Modules"));
                 resourcePaths.Add(Path.Combine(programFilesPath, "Scripts"));
             }
+            else
+            {
+                resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
+                resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
+            }
 
+            // Return results
             return resourcePaths;
+        }
+
+        // Find all potential resource paths
+        public static List<string> GetPathsFromEnvVarAndScope(
+            PSCmdlet psCmdlet,
+            ScopeType? scope)
+        {
+            // Path override is only implemented for Windows so far
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return GetStandardPathsForScope(psCmdlet, scope);
+            }
+
+            // Get value of path override environment variable
+            string pathOverride = Environment.GetEnvironmentVariable(
+                "PSResourceGetInstallPathOverride",
+                (scope.Value is ScopeType.AllUsers) ? EnvironmentVariableTarget.Machine : EnvironmentVariableTarget.User
+            );
+
+            // Return standard paths if no override was found, else try to expand paths found in override
+            if (string.IsNullOrEmpty(pathOverride))
+            {
+                return GetStandardPathsForScope(psCmdlet, scope);
+            }
+            else
+            {
+                try
+                {
+                    pathOverride = Environment.ExpandEnvironmentVariables(pathOverride);
+                }
+                catch (ArgumentException)
+                {
+                    psCmdlet.WriteWarning("Path override was found, but could not expand environment variable(s). Falling back to standard paths.");
+                    return GetStandardPathsForScope(psCmdlet, scope);
+                }
+            }
+
+            // Return override if present, else use default paths
+            if (!string.IsNullOrEmpty(pathOverride) && Path.IsPathRooted(pathOverride) && Directory.Exists(pathOverride))
+            {
+                psCmdlet.WriteVerbose(string.Format("Path override was found, using '{0}' as base.", pathOverride));
+                // Assets
+                List<string> resourcePaths = new()
+                {
+                    Path.Combine(pathOverride, "Modules"),
+                    Path.Combine(pathOverride, "Scripts")
+                };
+                return resourcePaths;
+            }
+            else
+            {
+                return GetStandardPathsForScope(psCmdlet, scope);
+            }
         }
 
         public static List<string> GetAllResourcePaths(
@@ -1584,7 +1643,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public static void DeleteDirectory(string dirPath)
         {
             // Remove read only file attributes first
-            foreach (var dirFilePath in Directory.GetFiles(dirPath,"*",SearchOption.AllDirectories))
+            foreach (var dirFilePath in Directory.GetFiles(dirPath, "*", SearchOption.AllDirectories))
             {
                 if (File.GetAttributes(dirFilePath).HasFlag(FileAttributes.ReadOnly))
                 {
@@ -1598,7 +1657,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 try
                 {
-                    Directory.Delete(dirPath,true);
+                    Directory.Delete(dirPath, true);
                     return;
                 }
                 catch (Exception ex)
@@ -1937,7 +1996,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     // Extract expected output types from results pipeline.
                     foreach (var psItem in results)
                     {
-                        if (psItem == null || psItem.BaseObject == null) { continue; }
+                        if (psItem == null || psItem.BaseObject == null)
+                        { continue; }
 
                         switch (psItem.BaseObject)
                         {

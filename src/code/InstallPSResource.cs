@@ -17,15 +17,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// The Install-PSResource cmdlet installs a resource.
     /// It returns nothing.
     /// </summary>
-    [Cmdlet(VerbsLifecycle.Install, 
-        "PSResource", 
-        DefaultParameterSetName = "NameParameterSet", 
+    [Cmdlet(VerbsLifecycle.Install,
+        "PSResource",
+        DefaultParameterSetName = "NameParameterSet",
         SupportsShouldProcess = true)]
     [Alias("isres")]
     public sealed
     class InstallPSResource : PSCmdlet
     {
-        #region Parameters 
+        #region Parameters
 
         /// <summary>
         /// Specifies the exact names of resources to install from a repository.
@@ -42,7 +42,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         [Parameter(ParameterSetName = NameParameterSet, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
         public string Version { get; set; }
-        
+
         /// <summary>
         /// Specifies to allow installation of prerelease versions
         /// </summary>
@@ -83,9 +83,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             set
             {
-                if (WildcardPattern.ContainsWildcardCharacters(value)) 
-                { 
-                    throw new PSArgumentException("Wildcard characters are not allowed in the temporary path."); 
+                if (WildcardPattern.ContainsWildcardCharacters(value))
+                {
+                    throw new PSArgumentException("Wildcard characters are not allowed in the temporary path.");
                 }
 
                 // This will throw if path cannot be resolved
@@ -99,7 +99,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         [Parameter]
         public SwitchParameter TrustRepository { get; set; }
-        
+
         /// <summary>
         /// Overwrites a previously installed resource with the same name and version.
         /// </summary>
@@ -130,7 +130,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         [Parameter]
         public SwitchParameter SkipDependencyCheck { get; set; }
-        
+
         /// <summary>
         /// Check validation for signed and catalog files
         /// </summary>
@@ -256,7 +256,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region Method Overrides
+        #region Method override - Begin
 
         protected override void BeginProcessing()
         {
@@ -265,7 +265,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             RepositorySettings.CheckRepositoryStore();
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
-            List<string> pathsToSearch = Utils.GetAllResourcePaths(this, Scope);
+            List<string> pathsToSearch = _pathsToInstallPkg;
             // Only need to find packages installed if -Reinstall is not passed in
             _packagesOnMachine = Reinstall ? new HashSet<string>(StringComparer.CurrentCultureIgnoreCase) : Utils.GetInstalledPackages(pathsToSearch, this);
 
@@ -274,6 +274,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }
 
+        #endregion
+
+        #region Method Override - Process
         protected override void ProcessRecord()
         {
             switch (ParameterSetName)
@@ -287,7 +290,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         pkgCredential: Credential,
                         reqResourceParams: null);
                     break;
-                    
+
                 case InputObjectParameterSet:
                     foreach (var inputObj in InputObject) {
                         string normalizedVersionString = Utils.GetNormalizedVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
@@ -357,12 +360,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     catch (Exception)
                     {
                         ThrowTerminatingError(new ErrorRecord(
-                            new ArgumentException($"Argument for parameter -RequiredResourceFile is not in proper json or hashtable format.  Make sure argument is either a valid .json or .psd1 file."),
+                            new ArgumentException($"Argument for parameter -RequiredResourceFile is not in proper json or hashtable format. Make sure argument is either a valid .json or .psd1 file."),
                             "RequiredResourceFileNotInProperJsonFormat",
                             ErrorCategory.InvalidData,
                             this));
                     }
-                    
+
                     RequiredResourceHelper(pkgsInFile);
                     break;
 
@@ -379,7 +382,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                               }
                             }
                         */
-                                              
+
                         Hashtable pkgsHash = null;
                         try
                         {
@@ -441,7 +444,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     var pkgNameEmptyOrWhitespaceError = new ErrorRecord(
                         new ArgumentException($"The package name '{pkgName}' provided cannot be an empty string or whitespace."),
-                        "pkgNameEmptyOrWhitespaceError", 
+                        "pkgNameEmptyOrWhitespaceError",
                         ErrorCategory.InvalidArgument,
                         this);
 
@@ -454,7 +457,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     var requiredResourceHashtableInputFormatError = new ErrorRecord(
                         new ArgumentException($"The RequiredResource input with name '{pkgName}' does not have a valid value, the value must be a hashtable."),
-                        "RequiredResourceHashtableInputFormatError", 
+                        "RequiredResourceHashtableInputFormatError",
                         ErrorCategory.InvalidArgument,
                         this);
 
@@ -483,7 +486,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             ThrowTerminatingError(ParameterParsingError);
                         }
                     }
-                        
+
                     if (pkgParams.Scope == ScopeType.AllUsers)
                     {
                         _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, pkgParams.Scope);
@@ -513,10 +516,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "NameContainsWildcard",
                     ErrorCategory.InvalidArgument,
                     this));
-                    
+
                 return;
             }
-            
+
             foreach (string error in errorMsgs)
             {
                 WriteError(new ErrorRecord(
