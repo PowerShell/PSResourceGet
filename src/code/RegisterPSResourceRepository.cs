@@ -5,6 +5,7 @@ using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 
 using Dbg = System.Diagnostics.Debug;
@@ -23,7 +24,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         SupportsShouldProcess = true,
         ConfirmImpact = ConfirmImpact.Low)]
     public sealed
-    class RegisterPSResourceRepository : PSCmdlet
+    class RegisterPSResourceRepository : PSCmdlet, IDynamicParameters
     {
         #region Members
 
@@ -35,6 +36,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private const string PSGalleryParameterSet = "PSGalleryParameterSet";
         private const string RepositoriesParameterSet = "RepositoriesParameterSet";
         private Uri _uri;
+        private CredentialProviderDynamicParameters _credentialProvider;
 
         #endregion
 
@@ -98,12 +100,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public PSCredentialInfo CredentialInfo { get; set; }
 
         /// <summary>
-        /// Specifies which credential provider to use.
-        /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        public PSRepositoryInfo.CredentialProviderType CredentialProvider { get; set; }
-
-        /// <summary>
         /// When specified, displays the succcessfully registered repository and its information.
         /// </summary>
         [Parameter]
@@ -114,6 +110,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         [Parameter]
         public SwitchParameter Force { get; set; }
+
+        #endregion
+
+        #region DynamicParameters
+
+        public object GetDynamicParameters()
+        {
+            if (Uri.Contains("pkgs.dev.azure.com") || Uri.Contains("pkgs.visualstudio.com"))
+            {
+                _credentialProvider = new CredentialProviderDynamicParameters();
+                return _credentialProvider;
+            }
+
+            return null;
+        }
 
         #endregion
 
@@ -133,12 +144,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repoApiVersion = ApiVersion;
             }
 
-            PSRepositoryInfo.CredentialProviderType? repoCredentialProvider = null;
-            if (MyInvocation.BoundParameters.ContainsKey(nameof(CredentialProvider)))
-            {
-                repoCredentialProvider = CredentialProvider;
-            }
-
+            PSRepositoryInfo.CredentialProviderType credentialProvider = _credentialProvider.CredentialProvider;
 
             switch (ParameterSetName)
             {
@@ -153,7 +159,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     try
                     {
-                        items.Add(RepositorySettings.AddRepository(Name, _uri, Priority, Trusted, repoApiVersion, CredentialInfo, repoCredentialProvider, Force, this, out string errorMsg));
+                        items.Add(RepositorySettings.AddRepository(Name, _uri, Priority, Trusted, repoApiVersion, CredentialInfo, credentialProvider, Force, this, out string errorMsg));
 
                         if (!string.IsNullOrEmpty(errorMsg))
                         {
@@ -367,7 +373,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             if (repo.ContainsKey("CredentialProvider") && 
-                (repo["CredentialProvider"] == null || String.IsNullOrEmpty(repo["CredentialProvider"].ToString()) ||
+                (String.IsNullOrEmpty(repo["CredentialProvider"].ToString()) ||
                 !(repo["CredentialProvider"].ToString().Equals("None", StringComparison.OrdinalIgnoreCase) || 
                 repo["CredentialProvider"].ToString().Equals("AzArtifacts", StringComparison.OrdinalIgnoreCase))))
             {
@@ -428,5 +434,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         #endregion
+    }
+
+    public class CredentialProviderDynamicParameters
+    {
+        /// <summary>
+        /// Specifies which credential provider to use.
+        /// </summary>
+        [Parameter]
+        public PSRepositoryInfo.CredentialProviderType CredentialProvider { get; set; }
     }
 }
