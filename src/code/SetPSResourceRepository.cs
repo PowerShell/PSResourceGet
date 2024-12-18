@@ -5,6 +5,7 @@ using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 
 using Dbg = System.Diagnostics.Debug;
@@ -18,7 +19,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         "PSResourceRepository",
         DefaultParameterSetName = NameParameterSet,
         SupportsShouldProcess = true)]
-    public sealed class SetPSResourceRepository : PSCmdlet
+    public sealed class SetPSResourceRepository : PSCmdlet, IDynamicParameters
     {
         #region Members
 
@@ -26,6 +27,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private const string RepositoriesParameterSet = "RepositoriesParameterSet";
         private const int DefaultPriority = -1;
         private Uri _uri;
+        private CredentialProviderDynamicParameters _credentialProvider;
 
         #endregion
 
@@ -92,19 +94,30 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Specifies vault and secret names as PSCredentialInfo for the repository.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        public PSCredentialInfo CredentialInfo { get; set; }
-
-        /// <summary>
-        /// Specifies which credential provider to use.
-        /// </summary>
-        [Parameter(ParameterSetName = NameParameterSet)]
-        public PSRepositoryInfo.CredentialProviderType CredentialProvider { get; set; }      
+        public PSCredentialInfo CredentialInfo { get; set; } 
 
         /// <summary>
         /// When specified, displays the successfully registered repository and its information.
         /// </summary>
         [Parameter]
         public SwitchParameter PassThru { get; set; }
+
+        #endregion
+
+        #region DynamicParameters
+
+        public object GetDynamicParameters()
+        {
+            PSRepositoryInfo repository = RepositorySettings.Read(new[] { Name }, out string[] _).FirstOrDefault();
+            if (repository is not null &&
+                  (repository.Uri.AbsoluteUri.Contains("pkgs.dev.azure.com") || repository.Uri.AbsoluteUri.Contains("pkgs.visualstudio.com")))
+            {
+                _credentialProvider = new CredentialProviderDynamicParameters();
+                return _credentialProvider;
+            }
+
+            return null;
+        }
 
         #endregion
 
@@ -148,6 +161,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repoApiVersion = ApiVersion;
             }
 
+            PSRepositoryInfo.CredentialProviderType credentialProvider = _credentialProvider.CredentialProvider;
+
             List<PSRepositoryInfo> items = new List<PSRepositoryInfo>();
 
             switch(ParameterSetName)
@@ -163,7 +178,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             DefaultPriority,
                             repoApiVersion,
                             CredentialInfo,
-                            CredentialProvider,
+                            credentialProvider,
                             this,
                             out string errorMsg));
 
@@ -291,6 +306,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
+            PSRepositoryInfo.CredentialProviderType credentialProvider = _credentialProvider.CredentialProvider;
+
             try
             {
                 var updatedRepo = RepositorySettings.UpdateRepositoryStore(repo["Name"].ToString(),
@@ -301,7 +318,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     DefaultPriority,
                     ApiVersion,
                     repoCredentialInfo,
-                    CredentialProvider,
+                    credentialProvider,
                     this,
                     out string errorMsg);
 
