@@ -20,7 +20,7 @@ using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Xml;
+using Microsoft.PowerShell.Commands;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
@@ -1118,117 +1118,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         #region Publish Methods
         
         /// <summary>
-        /// This method is called if Publish-PSResource is called with -NupkgPath specified for a ContainerRegistry
-        /// Extracts metadata from the .nupkg
-        /// </summary>
-        internal Hashtable GetMetadataFromNupkg(string copiedNupkgPath, string packageName, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetMetadataFromNupkg()");
-
-            Hashtable pkgMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
-            errRecord = null;
-
-            // create temp directory where we will copy .nupkg to, extract contents, etc.
-            string nupkgDirPath = Directory.GetParent(copiedNupkgPath).FullName; //someGuid/nupkg.myPkg.nupkg -> /someGuid/nupkg
-            string tempPath = Directory.GetParent(nupkgDirPath).FullName; // someGuid
-            var extractPath = Path.Combine(tempPath, "extract");
-            string packageFullName = Path.GetFileName(copiedNupkgPath);
-            // string packageName = Path.GetFileNameWithoutExtension(packageFullName);
-
-            try
-            {
-                var dir = Directory.CreateDirectory(extractPath);
-                dir.Attributes &= ~FileAttributes.ReadOnly;
-
-                // copy .nupkg
-                // string destNupkgPath = Path.Combine(tempDiscoveryPath, packageFullName);
-                // File.Copy(packagePath, destNupkgPath);
-
-                // change extension to .zip
-                string zipFilePath = Path.ChangeExtension(copiedNupkgPath, ".zip");
-                File.Move(copiedNupkgPath, zipFilePath);
-
-                // extract from .zip
-                _cmdletPassedIn.WriteDebug($"Extracting '{zipFilePath}' to '{extractPath}'");
-                System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, extractPath);
-
-                string psd1FilePath = String.Empty;
-                string ps1FilePath = String.Empty;
-                string nuspecFilePath = String.Empty;
-                Utils.GetMetadataFilesFromPath(extractPath, packageName, out psd1FilePath, out ps1FilePath, out nuspecFilePath, out string properCasingPkgName);
-
-                List<string> pkgTags = new List<string>();
-
-                if (File.Exists(psd1FilePath))
-                {
-                    _cmdletPassedIn.WriteDebug($"Attempting to read module manifest file '{psd1FilePath}'");
-                    if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
-                    {
-                        errRecord = new ErrorRecord(
-                            readManifestError, 
-                            "GetMetadataFromNupkgFailure", 
-                            ErrorCategory.ParserError, 
-                            this);
-                        
-                        return pkgMetadata;
-                    }
-                }
-                else if (File.Exists(ps1FilePath))
-                {
-                    _cmdletPassedIn.WriteDebug($"Attempting to read script file '{ps1FilePath}'");
-                    if (!PSScriptFileInfo.TryTestPSScriptFileInfo(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
-                    {
-                        errRecord = new ErrorRecord(
-                            new InvalidDataException($"PSScriptFile could not be read properly"), 
-                            "GetMetadataFromNupkgFailure", 
-                            ErrorCategory.ParserError, 
-                            this);
-
-                        return pkgMetadata;
-                    }
-
-                    pkgMetadata = parsedScript.ToHashtable();
-                }
-                else if (File.Exists(nuspecFilePath))
-                {
-                    _cmdletPassedIn.WriteDebug($"Attempting to read nuspec file '{nuspecFilePath}'");
-                    pkgMetadata = GetHashtableForNuspec(nuspecFilePath, out errRecord);
-                    if (errRecord != null)
-                    {
-                        return pkgMetadata;
-                    }
-                }
-                else
-                {
-                    errRecord = new ErrorRecord(
-                        new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"),
-                        "GetMetadataFromNupkgFailure", 
-                        ErrorCategory.InvalidData, 
-                        this);
-                        
-                    return pkgMetadata;
-                }
-            }
-            catch (Exception e)
-            {
-               errRecord = new ErrorRecord(
-                   new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"), 
-                   "GetMetadataFromNupkgFailure", 
-                   ErrorCategory.InvalidOperation, 
-                   this);
-            }
-            finally
-            {
-                if (Directory.Exists(extractPath))
-                {
-                    Utils.DeleteDirectory(extractPath);
-                }
-            }
-
-            return pkgMetadata;
-        }
-
-        /// <summary>
         /// Helper method that publishes a package to the container registry.
         /// This gets called from Publish-PSResource.
         /// </summary>
@@ -1245,12 +1134,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::PushNupkgContainerRegistry()");
-
-            if (isNupkgPathSpecified)
-            {
-                var copiedNupkgPath = System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
-                parsedMetadataHash = GetMetadataFromNupkg(copiedNupkgPath, packageName, out errRecord);
-            }
 
             // if isNupkgPathSpecified, then we need to publish the original .nupkg file, as it may be signed
             string fullNupkgFile = !isNupkgPathSpecified ? System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg") : originalNupkgPath;
@@ -1828,72 +1711,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                                             : packageName;
 
             return updatedPackageName;
-        }
-
-        /// <summary>
-        /// Method that loads file content into XMLDocument. Used when reading .nuspec file.
-        /// </summary>
-        private XmlDocument LoadXmlDocument(string filePath, out ErrorRecord errRecord)
-        {
-            errRecord = null;
-            XmlDocument doc = new XmlDocument();
-            doc.PreserveWhitespace = true;
-            try { doc.Load(filePath); }
-            catch (Exception e)
-            {
-                errRecord = new ErrorRecord(
-                    exception: e, 
-                    "LoadXmlDocumentFailure", 
-                    ErrorCategory.ReadError, 
-                    this);
-            }
-
-            return doc;
-        }
-
-                /// <summary>
-        /// Method that reads .nuspec file and parses out metadata information into Hashtable.
-        /// </summary>
-        private Hashtable GetHashtableForNuspec(string filePath, out ErrorRecord errRecord)
-        {
-            Hashtable nuspecHashtable = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
-
-            XmlDocument nuspecXmlDocument = LoadXmlDocument(filePath, out errRecord);
-            if (errRecord != null)
-            {
-                return nuspecHashtable;
-            }
-
-            try
-            {
-                XmlNodeList elemList = nuspecXmlDocument.GetElementsByTagName("metadata");
-                for(int i = 0; i < elemList.Count; i++)
-                {
-                    XmlNode metadataInnerXml = elemList[i];
-
-                    for(int j= 0; j<metadataInnerXml.ChildNodes.Count; j++)
-                    {
-                        string key = metadataInnerXml.ChildNodes[j].LocalName;
-                        string value = metadataInnerXml.ChildNodes[j].InnerText;
-
-                        if (!nuspecHashtable.ContainsKey(key))
-                        {
-                            nuspecHashtable.Add(key, value);
-                        }
-                    }
-
-                }
-            }
-            catch (Exception e)
-            {
-                errRecord = new ErrorRecord(
-                    exception: e, 
-                    "GetHashtableForNuspecFailure", 
-                    ErrorCategory.ReadError, 
-                    this);
-            }
-
-            return nuspecHashtable;
         }
 
         #endregion

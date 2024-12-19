@@ -23,6 +23,7 @@ using Azure.Identity;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -1826,6 +1827,73 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     fileStream.Close();
                 }
             }
+        }
+
+        #endregion
+
+        #region Nuspec file parsing methods
+
+        public static Hashtable GetMetadataFromNuspec(string nuspecFilePath, PSCmdlet cmdletPassedIn, out ErrorRecord errorRecord)
+        {
+            Hashtable nuspecHashtable = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
+            XmlDocument nuspecXmlDocument = LoadXmlDocument(nuspecFilePath, cmdletPassedIn, out errorRecord);
+            if (errorRecord != null)
+            {
+                return nuspecHashtable;
+            }
+
+            try
+            {
+                XmlNodeList elemList = nuspecXmlDocument.GetElementsByTagName("metadata");
+                for(int i = 0; i < elemList.Count; i++)
+                {
+                    XmlNode metadataInnerXml = elemList[i];
+
+                    for(int j= 0; j<metadataInnerXml.ChildNodes.Count; j++)
+                    {
+                        string key = metadataInnerXml.ChildNodes[j].LocalName;
+                        string value = metadataInnerXml.ChildNodes[j].InnerText;
+
+                        if (!nuspecHashtable.ContainsKey(key))
+                        {
+                            nuspecHashtable.Add(key, value);
+                        }
+                    }
+
+                }
+            }
+            catch (Exception e)
+            {
+                errorRecord = new ErrorRecord(
+                    exception: e, 
+                    "GetHashtableForNuspecFailure", 
+                    ErrorCategory.ReadError, 
+                    cmdletPassedIn);
+            }
+
+            return nuspecHashtable;
+        }
+
+        /// <summary>
+        /// Method that loads file content into XMLDocument. Used when reading .nuspec file.
+        /// </summary>
+        public static XmlDocument LoadXmlDocument(string filePath, PSCmdlet cmdletPassedIn, out ErrorRecord errRecord)
+        {
+            errRecord = null;
+            XmlDocument doc = new XmlDocument();
+            doc.PreserveWhitespace = true;
+            try { doc.Load(filePath); }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e, 
+                    "LoadXmlDocumentFailure", 
+                    ErrorCategory.ReadError, 
+                    cmdletPassedIn);
+            }
+
+            return doc;
         }
 
         #endregion
