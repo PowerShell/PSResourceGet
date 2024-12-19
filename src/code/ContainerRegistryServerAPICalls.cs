@@ -1115,12 +1115,12 @@ namespace Microsoft.PowerShell.PSResourceGet
         #endregion
 
         #region Publish Methods
-
+        
         /// <summary>
         /// Helper method that publishes a package to the container registry.
         /// This gets called from Publish-PSResource.
         /// </summary>
-        internal bool PushNupkgContainerRegistry(string psd1OrPs1File,
+        internal bool PushNupkgContainerRegistry(
             string outputNupkgDir,
             string packageName,
             string modulePrefix,
@@ -1128,10 +1128,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             ResourceType resourceType,
             Hashtable parsedMetadataHash,
             Hashtable dependencies,
+            bool isNupkgPathSpecified,
+            string originalNupkgPath,
             out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::PushNupkgContainerRegistry()");
-            string fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
+
+            // if isNupkgPathSpecified, then we need to publish the original .nupkg file, as it may be signed
+            string fullNupkgFile = !isNupkgPathSpecified ? System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg") : originalNupkgPath;
 
             string pkgNameForUpload = string.IsNullOrEmpty(modulePrefix) ? packageName : modulePrefix + "/" + packageName;
             string packageNameLowercase = pkgNameForUpload.ToLower();
