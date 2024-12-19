@@ -434,7 +434,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                     }
 
-                    // TODO: do we not want to additionally publish to DesintationPath if NupkgPath is specified?
                 }
 
                 string repositoryUri = repository.Uri.AbsoluteUri;
@@ -445,6 +444,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (_isNupkgPathSpecified)
                     {
+                        // copy the .nupkg to a temp path (outputNupkgDir field) as we don't want to tamper with the original, possibly signed, .nupkg file
                         string copiedNupkgFilePath = CopyNupkgFileToTempPath(nupkgFilePath: Path, errRecord: out ErrorRecord copyErrRecord);
                         if (copyErrRecord != null)
                         {
@@ -452,6 +452,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             return;
                         }
 
+                        // get package info (name, version, metadata hashtable) from the copied .nupkg package and then populate appropriate fields (_pkgName, _pkgVersion, parsedMetadata)
                         GetPackageInfoFromNupkg(nupkgFilePath: copiedNupkgFilePath, errRecord: out ErrorRecord pkgInfoErrRecord);
                         if (pkgInfoErrRecord != null)
                         {
@@ -463,7 +464,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (!containerRegistryServer.PushNupkgContainerRegistry(outputNupkgDir, _pkgName, modulePrefix, _pkgVersion, resourceType, parsedMetadata, dependencies, _isNupkgPathSpecified, Path, out ErrorRecord pushNupkgContainerRegistryError))
                     {
                         _cmdletPassedIn.WriteError(pushNupkgContainerRegistryError);
-                        // exit out of processing
                         return;
                     }
                 }
