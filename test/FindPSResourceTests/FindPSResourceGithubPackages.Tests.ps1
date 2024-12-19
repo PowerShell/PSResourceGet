@@ -24,8 +24,6 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
     }
 
     It "find resource given specific Name, Version null" {
-        $repo = Get-PSResourceRepository $GithubPackagesRepoName
-        Write-Error "Repo: $repo;  repo credential provider: $($repo.CredentialProvider)"
         # FindName()
         $res = Find-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential
         $res.Name | Should -Be $testModuleName
