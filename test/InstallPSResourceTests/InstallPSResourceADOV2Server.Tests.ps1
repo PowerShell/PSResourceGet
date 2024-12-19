@@ -5,7 +5,7 @@ $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
+Describe 'Test Install-PSResource for ADO V2Server scenarios' -tags 'CI' {
 
     BeforeAll {
         $testModuleName = "test_local_mod"
@@ -217,7 +217,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     }
 }
 
-Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidationOnly' {
+Describe 'Test Install-PSResource for ADO V2Server scenarios - Manual Validation' -tags 'ManualValidationOnly' {
 
     BeforeAll {
         $testModuleName = "TestModule"

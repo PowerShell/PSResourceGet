@@ -222,7 +222,7 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
     }
 }
 
-Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidationOnly' {
+Describe 'Test Install-PSResource for GitHub Packages scenarios - Manual Validation' -tags 'ManualValidationOnly' {
 
     BeforeAll {
         $testModuleName = "TestModule"
