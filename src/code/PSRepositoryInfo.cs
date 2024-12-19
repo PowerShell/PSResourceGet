@@ -27,30 +27,26 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             ContainerRegistry
         }
 
+        public enum CredentialProviderType
+        {
+            None,
+            AzArtifacts
+        }
+
         #endregion
 
         #region Constructor
 
-        public PSRepositoryInfo(string name, Uri uri, int priority, bool trusted, PSCredentialInfo credentialInfo, APIVersion apiVersion, bool allowed)
+        public PSRepositoryInfo(string name, Uri uri, int priority, bool trusted, PSCredentialInfo credentialInfo, CredentialProviderType credentialProvider, APIVersion apiVersion, bool allowed)
         {
             Name = name;
             Uri = uri;
             Priority = priority;
             Trusted = trusted;
             CredentialInfo = credentialInfo;
+            CredentialProvider = credentialProvider;
             ApiVersion = apiVersion;
             IsAllowedByPolicy = allowed;
-        }
-
-        #endregion
-
-        #region Enum
-
-        public enum RepositoryProviderType
-        {
-            None,
-            ACR,
-            AzureDevOps
         }
 
         #endregion
@@ -58,43 +54,43 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         #region Properties
 
         /// <summary>
-        /// the Name of the repository
+        /// The Name of the repository.
         /// </summary>
         public string Name { get; }
 
         /// <summary>
-        /// the Uri for the repository
+        /// The Uri for the repository.
         /// </summary>
         public Uri Uri { get; }
 
         /// <summary>
-        /// whether the repository is trusted
+        /// Whether the repository is trusted.
         /// </summary>
         public bool Trusted { get; }
 
         /// <summary>
-        /// the priority of the repository
+        /// The priority of the repository.
         /// </summary>
         [ValidateRange(0, 100)]
         public int Priority { get; }
 
         /// <summary>
-        /// the type of repository provider (eg, AzureDevOps, ContainerRegistry, etc.)
+        /// The credential information for repository authentication.
         /// </summary>
-        public RepositoryProviderType RepositoryProvider { get; }
+        public PSCredentialInfo CredentialInfo { get; set; }
 
         /// <summary>
-        /// the credential information for repository authentication
+        /// Specifies which credential provider to use.
         /// </summary>
-        public PSCredentialInfo CredentialInfo { get; }
+        public CredentialProviderType CredentialProvider { get; set; }
 
         /// <summary>
-        /// the API protocol version for the repository
+        /// The API protocol version for the repository.
         /// </summary>
         public APIVersion ApiVersion { get; }
 
         // <summary>
-        /// is it allowed by policy
+        /// Specifies whether the repository is allowed by policy.
         /// </summary>
         public bool IsAllowedByPolicy { get; set; }
 
