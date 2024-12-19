@@ -109,14 +109,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public object GetDynamicParameters()
         {
             PSRepositoryInfo repository = RepositorySettings.Read(new[] { Name }, out string[] _).FirstOrDefault();
-            if (repository is not null &&
-                  (repository.Uri.AbsoluteUri.Contains("pkgs.dev.azure.com") || repository.Uri.AbsoluteUri.Contains("pkgs.visualstudio.com")))
+            if (repository is not null && 
+                (repository.Uri.AbsoluteUri.EndsWith(".azurecr.io") || repository.Uri.AbsoluteUri.EndsWith(".azurecr.io/") || repository.Uri.AbsoluteUri.Contains("mcr.microsoft.com")))
             {
-                _credentialProvider = new CredentialProviderDynamicParameters();
-                return _credentialProvider;
+                return null;
             }
 
-            return null;
+            _credentialProvider = new CredentialProviderDynamicParameters();
+            return _credentialProvider;
         }
 
         #endregion
@@ -161,7 +161,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repoApiVersion = ApiVersion;
             }
 
-            PSRepositoryInfo.CredentialProviderType credentialProvider = _credentialProvider.CredentialProvider;
+            PSRepositoryInfo.CredentialProviderType? credentialProvider = _credentialProvider?.CredentialProvider;
 
             List<PSRepositoryInfo> items = new List<PSRepositoryInfo>();
 
@@ -306,7 +306,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            PSRepositoryInfo.CredentialProviderType credentialProvider = _credentialProvider.CredentialProvider;
+            PSRepositoryInfo.CredentialProviderType? credentialProvider = _credentialProvider?.CredentialProvider;
 
             try
             {
