@@ -1348,19 +1348,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             errRecord = null;
 
             // in temp directory create an "extract" folder to which we'll copy .nupkg to, extract contents, etc.
-            string nupkgDirPath = Directory.GetParent(copiedNupkgPath).FullName; //someGuid/nupkg.myPkg.nupkg -> /someGuid/nupkg
+            string nupkgDirPath = Directory.GetParent(copiedNupkgPath).FullName; //someGuid/nupkg/myPkg.nupkg -> /someGuid/nupkg
             string tempPath = Directory.GetParent(nupkgDirPath).FullName; // someGuid
-            var extractPath = System.IO.Path.Combine(tempPath, "extract");
-            string packageFullName = System.IO.Path.GetFileName(copiedNupkgPath);
+            var extractPath = System.IO.Path.Combine(tempPath, "extract"); // someGuid/extract
 
             try
             {
                 var dir = Directory.CreateDirectory(extractPath);
                 dir.Attributes &= ~FileAttributes.ReadOnly;
-
-                // copy .nupkg
-                // string destNupkgPath = Path.Combine(tempDiscoveryPath, packageFullName);
-                // File.Copy(packagePath, destNupkgPath);
 
                 // change extension to .zip
                 string zipFilePath = System.IO.Path.ChangeExtension(copiedNupkgPath, ".zip");
