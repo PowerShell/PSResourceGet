@@ -1262,6 +1262,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return true;
         }
 
+        /// <summary>
+        /// This method is called by Publish-PSResource when the -NupkgPath parameter is specified
+        /// The method copies the .nupkg file to a temp path (populated at outputNupkgDir field) as we dont' want to extract and read original .nupkg file
+        /// </summary>
         private string CopyNupkgFileToTempPath(string nupkgFilePath, out ErrorRecord errRecord)
         {
             errRecord = null;
@@ -1296,6 +1300,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return destinationFilePath;
         }
 
+        /// <summary>
+        /// Get package info from the .nupkg file provided, inluding package name (_pkgName), package version (_pkgVersion), and metadata parsed into a hashtable (parsedMetadata)
+        /// </summary>
         private void GetPackageInfoFromNupkg(string nupkgFilePath, out ErrorRecord errRecord)
         {
             errRecord = null;
@@ -1332,6 +1339,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             parsedMetadata = GetMetadataFromNupkg(nupkgFilePath, _pkgName, out errRecord);
         }
 
+        /// <summary>
+        /// Extract copied .nupkg, find metadata file (either .ps1, .psd1, or .nuspec) and read metadata into a hashtable
+        /// </summary>
         internal Hashtable GetMetadataFromNupkg(string copiedNupkgPath, string packageName, out ErrorRecord errRecord)
         {
             Hashtable pkgMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
