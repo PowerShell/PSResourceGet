@@ -4,11 +4,16 @@ using System.IO;
 using System.Security;
 using System.Management.Automation;
 using System.Text.Json;
+using System.Net.Http;
+using System.Net;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
     internal static class CredentialProvider
     {
+        private static readonly string _credProviderExe = "CredentialProvider.Microsoft.exe";
+        private static readonly string _credProviderDll = "CredentialProvider.Microsoft.dll";
+
         private static string FindCredProviderFromPluginsPath()
         {
             // Get environment variable "NUGET_PLUGIN_PATHS"
@@ -33,16 +38,16 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 if (Environment.OSVersion.Platform == PlatformID.Win32NT)
                 {
-                    credProviderPath = Path.Combine(netCorePath, "CredentialProvider.Microsoft.exe");
+                    credProviderPath = Path.Combine(netCorePath, _credProviderExe);
                 }
                 else
                 {
-                    credProviderPath = Path.Combine(netCorePath, "CredentialProvider.Microsoft.dll");
+                    credProviderPath = Path.Combine(netCorePath, _credProviderDll);
                 }
             }
             else if (Directory.Exists(netFxPath) && Environment.OSVersion.Platform == PlatformID.Win32NT)
             {
-                credProviderPath = Path.Combine(netFxPath, "CredentialProvider.Microsoft.exe");
+                credProviderPath = Path.Combine(netFxPath, _credProviderExe);
             }
 
             return credProviderPath;
@@ -62,11 +67,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 if (Environment.OSVersion.Platform == PlatformID.Win32NT)
                 {
-                    credProviderPath = VSCredentialProviderFile(visualStudioPath, "CredentialProvider.Microsoft.exe", out error);
+                    credProviderPath = VSCredentialProviderFile(visualStudioPath, _credProviderExe, out error);
                 }
                 else if (string.IsNullOrEmpty(credProviderPath))
                 {
-                    credProviderPath = VSCredentialProviderFile(visualStudioPath, "CredentialProvider.Microsoft.dll", out error);
+                    credProviderPath = VSCredentialProviderFile(visualStudioPath, _credProviderDll, out error);
                 }
             }
 
@@ -108,8 +113,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         internal static PSCredential GetCredentialsFromProvider(Uri uri, PSCmdlet cmdletPassedIn)
         {
+            cmdletPassedIn.WriteDebug("Enterting CredentialProvider::GetCredentialsFromProvider");
             string credProviderPath = string.Empty;
-
+            
             //  Find credential provider
             //  Option 1. Use env var 'NUGET_PLUGIN_PATHS' to find credential provider.
             //   See: https://docs.microsoft.com/en-us/nuget/reference/extensibility/nuget-cross-platform-plugins#plugin-installation-and-discovery
@@ -137,25 +143,47 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
             }
 
+            cmdletPassedIn.WriteDebug($"Credential provider path is '{credProviderPath}'");
             if (string.IsNullOrEmpty(credProviderPath))
             {
                 cmdletPassedIn.WriteError(new ErrorRecord(
                         new ArgumentNullException("Path to the Azure Artifacts Credential Provider is null or empty. See https://github.com/NuGet/Home/wiki/NuGet-cross-plat-authentication-plugin#plugin-installation-and-discovery to set up the Credential Provider."),
                         "CredentialProviderPathIsNullOrEmpty",
                         ErrorCategory.InvalidArgument,
-                        null));
+                        credProviderPath));
                 return null;
             }
 
-            // Check case sensitivity here
             if (!File.Exists(credProviderPath))
             {
-                cmdletPassedIn.WriteError(new ErrorRecord(
-                        new FileNotFoundException($"Path found '{credProviderPath}' is not a valid Azure Artifact Credential Provider executable. See https://github.com/NuGet/Home/wiki/NuGet-cross-plat-authentication-plugin#plugin-installation-and-discovery to set up the Credential Provider."),
-                        "CredentialProviderFileNotFound",
-                        ErrorCategory.ObjectNotFound,
-                        null));
-                return null;
+                // If the Credential Provider is not found on a Unix machine, try looking for a case insensitive file.
+                if (Environment.OSVersion.Platform == PlatformID.Unix)
+                {
+                    FileInfo fileInfo = new FileInfo(credProviderPath);
+                    string resolvedFilePath = Utils.GetCaseInsensitiveFilePath(fileInfo.Directory.FullName, _credProviderDll);
+                    if (resolvedFilePath != null)
+                    {
+                        credProviderPath = resolvedFilePath;
+                    }
+                    else
+                    {
+                        cmdletPassedIn.WriteError(new ErrorRecord(
+                            new FileNotFoundException($"Path found '{credProviderPath}' is not a valid Azure Artifact Credential Provider executable. See https://github.com/NuGet/Home/wiki/NuGet-cross-plat-authentication-plugin#plugin-installation-and-discovery to set up the Credential Provider."),
+                            "CredentialProviderFileNotFound",
+                            ErrorCategory.ObjectNotFound,
+                            credProviderPath));
+                    }
+                }
+                else
+                {
+                    cmdletPassedIn.WriteError(new ErrorRecord(
+                            new FileNotFoundException($"Path found '{credProviderPath}' is not a valid Azure Artifact Credential Provider executable. See https://github.com/NuGet/Home/wiki/NuGet-cross-plat-authentication-plugin#plugin-installation-and-discovery to set up the Credential Provider."),
+                            "CredentialProviderFileNotFound",
+                            ErrorCategory.ObjectNotFound,
+                            credProviderPath));
+
+                    return null;
+                }
             }
 
             cmdletPassedIn.WriteVerbose($"Credential Provider path found at: '{credProviderPath}'");
@@ -234,7 +262,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                                     new ArgumentNullException("Credential Provider username is null or empty. See https://github.com/NuGet/Home/wiki/NuGet-cross-plat-authentication-plugin#plugin-installation-and-discovery for more info."),
                                     "CredentialProviderUserNameIsNullOrEmpty",
                                     ErrorCategory.InvalidArgument,
-                                    null));
+                                    credProviderPath));
                             return null;
                         }
 
@@ -247,7 +275,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                                         new ArgumentNullException("Credential Provider password is null or empty. See https://github.com/NuGet/Home/wiki/NuGet-cross-plat-authentication-plugin#plugin-installation-and-discovery for more info."),
                                         "CredentialProviderUserNameIsNullOrEmpty",
                                         ErrorCategory.InvalidArgument,
-                                        null));
+                                        credProviderPath));
                                 return null;
                             }
 
@@ -262,7 +290,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             new Exception("Error retrieving credentials from Credential Provider. See https://github.com/NuGet/Home/wiki/NuGet-cross-plat-authentication-plugin#plugin-installation-and-discovery for more info.", e),
                             "InvalidCredentialProviderResponse",
                             ErrorCategory.InvalidResult,
-                            null));
+                            credProviderPath));
                     return null;
                 }
 

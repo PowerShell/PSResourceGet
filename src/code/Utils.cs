@@ -1258,6 +1258,22 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
             }
         }
+
+        internal static string GetCaseInsensitiveFilePath(string directory, string fileName)
+        {
+            var files = Directory.GetFiles(directory);
+            foreach (var file in files)
+            {
+                if (string.Equals(Path.GetFileName(file), fileName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return file;
+                }
+            }
+
+            // File not found
+            return null;
+        }
+
         #endregion
 
         #region PSDataFile parsing

@@ -117,13 +117,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         public object GetDynamicParameters()
         {
-            if (Uri.Contains("pkgs.dev.azure.com") || Uri.Contains("pkgs.visualstudio.com"))
+            if(Uri.EndsWith(".azurecr.io") || Uri.EndsWith(".azurecr.io/") || Uri.Contains("mcr.microsoft.com"))
             {
-                _credentialProvider = new CredentialProviderDynamicParameters();
-                return _credentialProvider;
+                return null;
             }
 
-            return null;
+            _credentialProvider = new CredentialProviderDynamicParameters();
+            return _credentialProvider;
         }
 
         #endregion
@@ -144,7 +144,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repoApiVersion = ApiVersion;
             }
 
-            PSRepositoryInfo.CredentialProviderType credentialProvider = _credentialProvider.CredentialProvider;
+            PSRepositoryInfo.CredentialProviderType? credentialProvider = _credentialProvider?.CredentialProvider;
 
             switch (ParameterSetName)
             {
@@ -438,10 +438,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
     public class CredentialProviderDynamicParameters
     {
+        PSRepositoryInfo.CredentialProviderType? _credProvider = null;
+
         /// <summary>
         /// Specifies which credential provider to use.
         /// </summary>
         [Parameter]
-        public PSRepositoryInfo.CredentialProviderType CredentialProvider { get; set; }
+        public PSRepositoryInfo.CredentialProviderType? CredentialProvider {
+            get
+            { 
+                return _credProvider; 
+            }
+
+            set
+            {
+                _credProvider = value;
+            }      
+        }
     }
 }
