@@ -9,6 +9,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
@@ -432,6 +433,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             return;
                         }
                     }
+                    // TODO: do we not want to additionally publish to DesintationPath if NupkgPath is specified?
                 }
 
                 string repositoryUri = repository.Uri.AbsoluteUri;
@@ -440,9 +442,70 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     ContainerRegistryServerAPICalls containerRegistryServer = new ContainerRegistryServerAPICalls(repository, _cmdletPassedIn, _networkCredential, userAgentString);
 
-                    var pkgMetadataFile = (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish;
+                    // var pkgMetadataFile = (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish;
+                    if (_isNupkgPathSpecified)
+                    {
+                        // Path will really be NupkgPath
+                        var packageFullName = System.IO.Path.GetFileName(Path);
+                        try
+                        {
+                            if (!Directory.Exists(outputDir))
+                            {
+                                Directory.CreateDirectory(outputDir);
+                                if (!Directory.Exists(outputNupkgDir))
+                                {
+                                    Directory.CreateDirectory(outputNupkgDir);
+                                }
+                            }
 
-                    if (!containerRegistryServer.PushNupkgContainerRegistry(pkgMetadataFile, outputNupkgDir, _pkgName, modulePrefix, _pkgVersion, resourceType, parsedMetadata, dependencies, out ErrorRecord pushNupkgContainerRegistryError))
+                            var destinationFilePath = System.IO.Path.Combine(outputNupkgDir, packageFullName);
+                            File.Copy(Path, destinationFilePath);
+                        }
+                        catch (Exception e)
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new ArgumentException($"Error moving .nupkg at -NupkgPath to temp nupkg dir path '{outputNupkgDir}' due to: '{e.Message}'."),
+                                "ErrorMovingNupkg",
+                                ErrorCategory.NotSpecified,
+                                this));
+
+                            // exit process record
+                            return;
+                        }
+
+                        // extract _pkgName and _pkgVersion because these will be null/not yet set
+                        Regex rx = new Regex(@"\.\d+\.", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+                        MatchCollection matches = rx.Matches(packageFullName);
+                        if (matches.Count == 0)
+                        {
+                            return;
+                        }
+
+                        Match match = matches[0];
+
+                        GroupCollection groups = match.Groups;
+                        if (groups.Count == 0)
+                        {
+                            return;
+                        }
+
+                        Capture group = groups[0];
+
+                        string pkgFoundName = packageFullName.Substring(0, group.Index);
+
+                        string version = packageFullName.Substring(group.Index + 1, packageFullName.LastIndexOf('.') - group.Index - 1);
+                        _cmdletPassedIn.WriteDebug($"Found package '{pkgFoundName}', version '{version}', from packageFullName '{packageFullName}' at path '{Path}'");
+
+                        if (!NuGetVersion.TryParse(version, out NuGetVersion nugetVersion))
+                        {
+                            return;
+                        }
+
+                        _pkgName = pkgFoundName;
+                        _pkgVersion = nugetVersion;
+                    }
+
+                    if (!containerRegistryServer.PushNupkgContainerRegistry(outputNupkgDir, _pkgName, modulePrefix, _pkgVersion, resourceType, parsedMetadata, dependencies, _isNupkgPathSpecified, Path, out ErrorRecord pushNupkgContainerRegistryError))
                     {
                         _cmdletPassedIn.WriteError(pushNupkgContainerRegistryError);
                         // exit out of processing
