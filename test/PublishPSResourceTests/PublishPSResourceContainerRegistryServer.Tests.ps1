@@ -97,6 +97,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         # Path to specifically to that invalid test scripts folder
         $script:testScriptsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testScripts"
+
+        # Path to specifically to that invalid test nupkgs folder
+        $script:testNupkgsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testNupkgs"
     }
     AfterEach {
         if(!(Test-Path $script:PublishModuleBase))
@@ -509,6 +512,42 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results = Find-PSResource -Name "$modulePrefix/$script:PublishModuleName" -Repository $ACRRepoName
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName
+        $results[0].Version | Should -Be $version
+    }
+
+    It "Publish a package given NupkgPath to a package with .psd1" {
+        $packageName = "temp-testmodule-nupkgpath"
+        $version = "1.0.0.0"
+        $nupkgPath = Join-Path -Path $script:testNupkgsFolderPath -ChildPath $packageName
+        Publish-PSResource -NupkgPath $nupkgPath -Repository $ACRRepoName
+
+        $results = Find-PSResource -Name $packageName -Repository $ACRRepoName
+        $results | Should -Not -BeNullOrEmpty
+        $results[0].Name | Should -Be $packageName
+        $results[0].Version | Should -Be $version
+    }
+
+    It "Publish a package given NupkgPath to a package with .ps1" {
+        $packageName = "temp-testscript-nupkgpath"
+        $version = "1.0.0.0"
+        $nupkgPath = Join-Path -Path $script:testNupkgsFolderPath -ChildPath $packageName
+        Publish-PSResource -NupkgPath $nupkgPath -Repository $ACRRepoName
+
+        $results = Find-PSResource -Name $packageName -Repository $ACRRepoName
+        $results | Should -Not -BeNullOrEmpty
+        $results[0].Name | Should -Be $packageName
+        $results[0].Version | Should -Be $version
+    }
+
+    It "Publish a package given NupkgPath to a package with .nuspec" {
+        $packageName = "temp-testnupkg-nupkgpath"
+        $version = "1.0.0.0"
+        $nupkgPath = Join-Path -Path $script:testNupkgsFolderPath -ChildPath $packageName
+        Publish-PSResource -NupkgPath $nupkgPath -Repository $ACRRepoName
+
+        $results = Find-PSResource -Name $packageName -Repository $ACRRepoName
+        $results | Should -Not -BeNullOrEmpty
+        $results[0].Name | Should -Be $packageName
         $results[0].Version | Should -Be $version
     }
 }
