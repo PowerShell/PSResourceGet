@@ -970,13 +970,18 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     metadata["Dependencies"] = ParseContainerRegistryDependencies(requiredModulesElement, out errorMsg).ToArray();
                 }
+
                 if (string.Equals(packageName, "Az", StringComparison.OrdinalIgnoreCase) || packageName.StartsWith("Az.", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (rootDom.TryGetProperty("PrivateData", out JsonElement privateDataElement) && privateDataElement.TryGetProperty("PSData", out JsonElement psDataElement))
+                    if (rootDom.TryGetProperty("ModuleList", out JsonElement moduleListDepsElement))
                     {
-                        if (psDataElement.TryGetProperty("ModuleList", out JsonElement moduleListDepsElement))
+                        metadata["Dependencies"] = ParseContainerRegistryDependencies(moduleListDepsElement, out errorMsg).ToArray();
+                    }
+                    else if (rootDom.TryGetProperty("PrivateData", out JsonElement privateDataElement) && privateDataElement.TryGetProperty("PSData", out JsonElement psDataElement))
+                    {
+                        if (psDataElement.TryGetProperty("ModuleList", out JsonElement privateDataModuleListDepsElement))
                         {
-                            metadata["Dependencies"] = ParseContainerRegistryDependencies(moduleListDepsElement, out errorMsg).ToArray();
+                            metadata["Dependencies"] = ParseContainerRegistryDependencies(privateDataModuleListDepsElement, out errorMsg).ToArray();
                         }
                     }
                 }
