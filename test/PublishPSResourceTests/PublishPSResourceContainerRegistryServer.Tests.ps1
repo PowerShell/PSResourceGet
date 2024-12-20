@@ -516,9 +516,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
 
     It "Publish a package given NupkgPath to a package with .psd1" {
-        $packageName = "temp-testmodule-nupkgpath.1.0.0.nupkg"
+        $packageName = "temp-testmodule-nupkgpath"
         $version = "1.0.0.0"
-        $nupkgPath = Join-Path -Path $script:testNupkgsFolderPath -ChildPath $packageName
+        $nupkgPath = Join-Path -Path $script:testNupkgsFolderPath -ChildPath "$packageName.1.0.0.nupkg"
         Publish-PSResource -NupkgPath $nupkgPath -Repository $ACRRepoName
 
         $results = Find-PSResource -Name $packageName -Repository $ACRRepoName
@@ -528,9 +528,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
 
     It "Publish a package given NupkgPath to a package with .ps1" {
-        $packageName = "temp-testscript-nupkgpath.1.0.0.nupkg"
+        $packageName = "temp-testscript-nupkgpath"
         $version = "1.0.0.0"
-        $nupkgPath = Join-Path -Path $script:testNupkgsFolderPath -ChildPath $packageName
+        $nupkgPath = Join-Path -Path $script:testNupkgsFolderPath -ChildPath "$packageName.1.0.0.nupkg"
         Publish-PSResource -NupkgPath $nupkgPath -Repository $ACRRepoName
 
         $results = Find-PSResource -Name $packageName -Repository $ACRRepoName
@@ -540,9 +540,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
 
     It "Publish a package given NupkgPath to a package with .nuspec" {
-        $packageName = "temp-testnupkg-nupkgpath.1.0.0.nupkg"
+        $packageName = "temp-testnupkg-nupkgpath"
         $version = "1.0.0.0"
-        $nupkgPath = Join-Path -Path $script:testNupkgsFolderPath -ChildPath $packageName
+        $nupkgPath = Join-Path -Path $script:testNupkgsFolderPath -ChildPath "$packageName.1.0.0.nupkg"
         Publish-PSResource -NupkgPath $nupkgPath -Repository $ACRRepoName
 
         $results = Find-PSResource -Name $packageName -Repository $ACRRepoName
