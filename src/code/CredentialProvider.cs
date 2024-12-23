@@ -113,7 +113,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         internal static PSCredential GetCredentialsFromProvider(Uri uri, PSCmdlet cmdletPassedIn)
         {
-            cmdletPassedIn.WriteDebug("Enterting CredentialProvider::GetCredentialsFromProvider");
+            cmdletPassedIn.WriteVerbose("Enterting CredentialProvider::GetCredentialsFromProvider");
             string credProviderPath = string.Empty;
             
             //  Find credential provider
@@ -143,7 +143,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
             }
 
-            cmdletPassedIn.WriteDebug($"Credential provider path is '{credProviderPath}'");
+            cmdletPassedIn.WriteVerbose($"Credential provider path is '{credProviderPath}'");
             if (string.IsNullOrEmpty(credProviderPath))
             {
                 cmdletPassedIn.WriteError(new ErrorRecord(
