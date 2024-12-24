@@ -109,7 +109,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public object GetDynamicParameters()
         {
             PSRepositoryInfo repository = RepositorySettings.Read(new[] { Name }, out string[] _).FirstOrDefault();
-            if (repository is not null && 
+            // Dynamic parameter '-CredentialProvider' should not appear for PSGallery, or any container registry repository.
+            if (repository is not null && repository.Name.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) ||
                 (repository.Uri.AbsoluteUri.EndsWith(".azurecr.io") || repository.Uri.AbsoluteUri.EndsWith(".azurecr.io/") || repository.Uri.AbsoluteUri.Contains("mcr.microsoft.com")))
             {
                 return null;

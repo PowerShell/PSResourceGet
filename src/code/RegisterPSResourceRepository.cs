@@ -117,7 +117,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         public object GetDynamicParameters()
         {
-            if(Uri.EndsWith(".azurecr.io") || Uri.EndsWith(".azurecr.io/") || Uri.Contains("mcr.microsoft.com"))
+            // Dynamic parameter '-CredentialProvider' should not appear for PSGallery, or any container registry repository.
+            if (ParameterSetName.Equals("PSGalleryParameterSet") || Uri.EndsWith(".azurecr.io") || Uri.EndsWith(".azurecr.io/") || Uri.Contains("mcr.microsoft.com"))
             {
                 return null;
             }
