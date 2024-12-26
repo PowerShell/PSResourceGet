@@ -22,7 +22,7 @@ Describe 'Test Azure Artifacts Credential Provider' -tags 'CI' {
 
         Get-RevertPSResourceRepositoryFile
     }
-<#
+
     It "Find resource given specific Name and Repository" {
         $res = Find-PSResource -Name $TestModuleName -Repository $ADORepoName -Verbose
         $res.Name | Should -Be $TestModuleName
@@ -71,5 +71,4 @@ Describe 'Test Azure Artifacts Credential Provider' -tags 'CI' {
         $repo = Get-PSResourceRepository -Name $ADORepoName
         $repo.CredentialProvider | Should -Be "None"
     }
-        #>
 }
