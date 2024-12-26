@@ -14,7 +14,7 @@ Describe 'Test Install-PSResource for ADO V2Server scenarios' -tags 'CI' {
         $ADORepoName = "PSGetTestingPublicFeed"
         $ADORepoUri = "https://pkgs.dev.azure.com/powershell/PowerShell/_packaging/psresourceget-public-test-ci/nuget/v2"
         Get-NewPSResourceRepositoryFile
-        Register-PSResourceRepository -Name $ADORepoName -Uri $ADORepoUri
+        Register-PSResourceRepository -Name $ADORepoName -Uri $ADORepoUri -CredentialProvider None
     }
 
     AfterEach {
