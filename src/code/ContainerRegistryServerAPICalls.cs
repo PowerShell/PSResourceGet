@@ -649,9 +649,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                             pkgVersionString += $"-{pkgPrereleaseLabelElement.ToString()}";
                         }
                     }
-                    else if (rootDom.TryGetProperty("Version", out pkgVersionElement))
+                    else if (rootDom.TryGetProperty("Version", out pkgVersionElement) || rootDom.TryGetProperty("version", out pkgVersionElement))
                     {
-                        // script metadata will have "Version" property
+                        // script metadata will have "Version" property, but nupk only based .nuspec will have lowercase "version" property and JsonElement.TryGetProperty() is case sensitive
                         pkgVersionString = pkgVersionElement.ToString();
                     }
                     else
