@@ -541,7 +541,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
     It "Publish a package given NupkgPath to a package with .nuspec" {
         $packageName = "temp-testnupkg-nupkgpath"
-        $version = "1.0.0.0"
+        $version = "1.0.0"
         $nupkgPath = Join-Path -Path $script:testNupkgsFolderPath -ChildPath "$packageName.1.0.0.nupkg"
         Publish-PSResource -NupkgPath $nupkgPath -Repository $ACRRepoName
 
