@@ -6,9 +6,10 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 Describe 'Test Azure Artifacts Credential Provider' -tags 'CI' {
 
     BeforeAll{
-        $TestModuleName = "PackageManagement"
+        $TestModuleName = "TestModule99"
         $ADORepoName = "ADORepository"
-        $ADORepoUri = "https://pkgs.dev.azure.com/mscodehub/PowerShellCore/_packaging/PowerShellCore_PublicPackages/nuget/v2"
+        $ADORepoUri = "https://pkgs.dev.azure.com/powershell-rel/PSResourceGet/_packaging/psrg-credprovidertest/nuget/v2"
+        #https://pkgs.dev.azure.com/powershell-rel/PSResourceGet/_packaging/psrg-credprovidertest/nuget/v3/index.json
         $LocalRepoName = "LocalRepository"
         $LocalRepoUri = Join-Path -Path $TestDrive -ChildPath "testdir"
         $null = New-Item $LocalRepoUri -ItemType Directory -Force
