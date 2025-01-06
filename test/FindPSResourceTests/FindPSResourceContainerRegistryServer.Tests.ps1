@@ -227,6 +227,12 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "1.0.0"
         $res.Type.ToString() | Should -Be "Script"
     }
+
+    It "Should find resource with dependency, given Name and Version" {
+        $res = Find-PSResource -Name "Az.Storage" -Version "8.0.0" -Repository $ACRRepoName
+        $res.Dependencies.Length | Should -Be 1
+        $res.Dependencies[0].Name | Should -Be "Az.Accounts"
+    }
 }
 
 Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
@@ -244,5 +250,11 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
         $res = Find-PSResource -Name "Az.Accounts" -Repository "MAR"
         $res.Name | Should -Be "Az.Accounts"
         $res.Version | Should -Be "3.0.4"
+    }
+
+    It "Should find resource and its dependency given specific Name and Version" {
+        $res = Find-PSResource -Name "Az.Storage" -Version "8.0.0" -Repository "MAR"
+        $res.Dependencies.Length | Should -Be 1
+        $res.Dependencies[0].Name | Should -Be "Az.Accounts"
     }
 }
