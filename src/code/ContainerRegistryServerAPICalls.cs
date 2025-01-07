@@ -1115,7 +1115,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         #endregion
 
         #region Publish Methods
-        
         /// <summary>
         /// Helper method that publishes a package to the container registry.
         /// This gets called from Publish-PSResource.
