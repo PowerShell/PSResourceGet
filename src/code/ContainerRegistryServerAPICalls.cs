@@ -1134,7 +1134,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::PushNupkgContainerRegistry()");
 
             // if isNupkgPathSpecified, then we need to publish the original .nupkg file, as it may be signed
-            string fullNupkgFile = !isNupkgPathSpecified ? System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg") : originalNupkgPath;
+            string fullNupkgFile = isNupkgPathSpecified ? originalNupkgPath :           System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
 
             string pkgNameForUpload = string.IsNullOrEmpty(modulePrefix) ? packageName : modulePrefix + "/" + packageName;
             string packageNameLowercase = pkgNameForUpload.ToLower();
