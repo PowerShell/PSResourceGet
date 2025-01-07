@@ -433,7 +433,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             return;
                         }
                     }
-
                 }
 
                 string repositoryUri = repository.Uri.AbsoluteUri;
