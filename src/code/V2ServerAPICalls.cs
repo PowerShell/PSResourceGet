@@ -918,8 +918,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (includePrerelease) {
                     queryBuilder.AdditionalParameters["includePrerelease"] = "true";
+                    // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsAbsoluteLatestVersion correctly
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
                 } else {
+                    // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsLatestVersion correctly
                     filterBuilder.AddCriterion("IsLatestVersion eq true");
                 }
             }
@@ -965,6 +967,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                 if (_isJFrogRepo) {
+                    // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsAbsoluteLatestVersion correctly
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
                 }
                 else {
@@ -1014,6 +1017,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                 if (_isJFrogRepo) {
+                    // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsAbsoluteLatestVersion correctly
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
                 }
                 else {
@@ -1022,6 +1026,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             } else {
                 if (_isJFrogRepo) {
+                    // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsLatestVersion correctly
                     filterBuilder.AddCriterion("IsLatestVersion eq true");
                 }
                 else {
@@ -1067,6 +1072,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                 if (_isJFrogRepo) {
+                    // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsAbsoluteLatestVersion correctly
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
                 }
                 else {
@@ -1075,6 +1081,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             } else {
                 if (_isJFrogRepo) {
+                    // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsLatestVersion correctly
                     filterBuilder.AddCriterion("IsLatestVersion eq true");
                 }
                 else {
@@ -1174,6 +1181,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (includePrerelease) {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                 if (_isJFrogRepo) {
+                    // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsAbsoluteLatestVersion correctly
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
                 }
                 else {
@@ -1182,6 +1190,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             } else {
                 if (_isJFrogRepo) {
+                    // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsLatestVersion correctly
                     filterBuilder.AddCriterion("IsLatestVersion eq true");
                 }
                 else {
