@@ -1286,11 +1286,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                _cmdletPassedIn.WriteError(new ErrorRecord(
+                errRecord = new ErrorRecord(
                     new ArgumentException($"Error moving .nupkg at -NupkgPath to temp nupkg dir path '{outputNupkgDir}' due to: '{e.Message}'."),
                     "ErrorMovingNupkg",
                     ErrorCategory.NotSpecified,
-                    this));
+                    this);
 
                 // exit process record
                 return destinationFilePath;
@@ -1330,6 +1330,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!NuGetVersion.TryParse(version, out NuGetVersion nugetVersion))
             {
+                errRecord = new ErrorRecord(
+                    new ArgumentException($"Error parsing version '{version}' into NuGetVersion instance."),
+                    "ErrorParsingNuGetVersion",
+                    ErrorCategory.NotSpecified,
+                    this);
+
                 return;
             }
 
