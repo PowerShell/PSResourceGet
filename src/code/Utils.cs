@@ -1584,6 +1584,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// </Summary>
         public static void DeleteDirectory(string dirPath)
         {
+            if (!Directory.Exists(dirPath))
+            {
+                throw new Exception($"Path '{dirPath}' that was attempting to be deleted does not exist.");
+            }
+
             // Remove read only file attributes first
             foreach (var dirFilePath in Directory.GetFiles(dirPath,"*",SearchOption.AllDirectories))
             {
