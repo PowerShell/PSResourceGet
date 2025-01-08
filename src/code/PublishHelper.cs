@@ -455,7 +455,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         GetPackageInfoFromNupkg(nupkgFilePath: copiedNupkgFilePath, errRecord: out ErrorRecord pkgInfoErrRecord);
                         if (pkgInfoErrRecord != null)
                         {
-                            _cmdletPassedIn.WriteError(copyErrRecord);
+                            _cmdletPassedIn.WriteError(pkgInfoErrRecord);
                             return;
                         }
                     }
@@ -492,7 +492,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             finally
             {
-                if (!_isNupkgPathSpecified)
+                // For scenarios such as Publish-PSResource -NupkgPath -Repository <non-container registry repository>, the outputNupkgDir will be set to NupkgPath path, and a temp outputDir folder will not have been created and thus doesn't need to attempt to be deleted
+                if (Directory.Exists(outputDir))
                 {
                     _cmdletPassedIn.WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
                     Utils.DeleteDirectory(outputDir);
