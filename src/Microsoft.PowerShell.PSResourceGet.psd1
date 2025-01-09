@@ -46,7 +46,7 @@
         'udres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'rc3'
+            # Prerelease   = ''
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -56,6 +56,18 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.1.0
+
+### Bug Fix
+- Bugfix for publishing .nupkg file to ContainerRegistry repository (#1763)
+- Bugfix for PMPs like Artifactory needing modified filter query parameter to proxy upstream (#1761)
+- Bugfix for ContainerRegistry repository to parse out dependencies from metadata (#1766)
+- Bugfix for Install-PSResource Null pointer occurring when package is present only in upstream feed in ADO (#1760)
+- Bugfix for local repository casing issue on Linux (#1750)
+- Update README.md (#1759)
+- Bug fix for case sensitive License.txt when RequireLicense is specified (#1757)
+- Bug fix for broken -Quiet parameter for Save-PSResource (#1745)
+
 ## 1.1.0-rc3
 
 ### Bug Fix
