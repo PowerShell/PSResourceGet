@@ -906,7 +906,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                     return null;
                 }
 
-                request.Content = new StringContent(content);
+                string encryptedContent = EncryptContent(content);
+                request.Content = new StringContent(encryptedContent);
                 request.Content.Headers.Clear();
                 if (contentHeaders != null)
                 {
@@ -952,6 +953,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             return null;
+        }
+
+        private string EncryptContent(string content)
+        {
+            // Implement encryption logic here
+            // For demonstration purposes, we'll use a simple base64 encoding
+            var plainTextBytes = Encoding.UTF8.GetBytes(content);
+            return Convert.ToBase64String(plainTextBytes);
         }
 
         /// <summary>
