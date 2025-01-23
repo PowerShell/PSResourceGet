@@ -14,12 +14,15 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $localUNCRepo = 'psgettestlocal3'
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
+        $testModuleName3 = "Test_Local_Mod3"
         $similarTestModuleName = "test_local_mod.similar"
         $commandName = "cmd1"
         $dscResourceName = "dsc1"
         $prereleaseLabel = ""
+        $localNupkgRepo = "localNupkgRepo"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
+        Register-LocalTestNupkgsRepo
 
         $localRepoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
         $tagsEscaped = @("'Test'", "'Tag2'", "'PSCommand_$cmdName'", "'PSDscResource_$dscName'")
@@ -32,6 +35,8 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
         New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tagsEscaped
         New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.2.5" -prereleaseLabel $prereleaseLabel -tags $tagsEscaped
+
+        New-TestModule -moduleName $testModuleName3 -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
 
         New-TestModule -moduleName $similarTestModuleName -repoName $localRepo -packageVersion "4.0.0" -prereleaseLabel "" -tags $tagsEscaped
         New-TestModule -moduleName $similarTestModuleName -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tagsEscaped
@@ -46,6 +51,20 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res = Find-PSResource -Name $testModuleName -Repository $localRepo
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0"
+    }
+
+    It "find resource given specific Name with incorrect casing (should return correct casing)" {
+        # FindName()
+        $res = Find-PSResource -Name "test_local_mod3" -Repository $localRepo
+        $res.Name | Should -Be $testModuleName3
+        $res.Version | Should -Be "1.0.0"
+    }
+
+    It "find resource given specific Name with incorrect casing and Version (should return correct casing)" {
+        # FindVersion()
+        $res = Find-PSResource -Name "test_local_mod3" -Version "1.0.0" -Repository $localRepo
+        $res.Name | Should -Be $testModuleName3
+        $res.Version | Should -Be "1.0.0"
     }
 
     It "find resource given specific Name, Version null (module) from a UNC-based local repository" {
@@ -308,5 +327,15 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindTagsPackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+
+    It "find package where prerelease label includes digits and period (i.e prerelease label is not just words)" {
+        $nupkgName = "WebView2.Avalonia"
+        $nupkgVersion = "1.0.1518.46"
+        $prereleaseLabel = "preview.230207.17"
+        $res = Find-PSResource -Name $nupkgName -Prerelease -Repository $localNupkgRepo
+        $res.Name | Should -Be $nupkgName
+        $res.Version | Should -Be $nupkgVersion
+        $res.Prerelease | Should -Be $prereleaseLabel
     }
 }

@@ -43,7 +43,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         const string containerRegistryOAuthTokenUrlTemplate = "https://{0}/oauth2/token"; // 0 - registry
         const string containerRegistryManifestUrlTemplate = "https://{0}/v2/{1}/manifests/{2}"; // 0 - registry, 1 - repo(modulename), 2 - tag(version)
         const string containerRegistryBlobDownloadUrlTemplate = "https://{0}/v2/{1}/blobs/{2}"; // 0 - registry, 1 - repo(modulename), 2 - layer digest
-        const string containerRegistryFindImageVersionUrlTemplate = "https://{0}/acr/v1/{1}/_tags{2}"; // 0 - registry, 1 - repo(modulename), 2 - /tag(version)
+        const string containerRegistryFindImageVersionUrlTemplate = "https://{0}/v2/{1}/tags/list"; // 0 - registry, 1 - repo(modulename)
         const string containerRegistryStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads/"; // 0 - registry, 1 - packagename
         const string containerRegistryEndUploadTemplate = "https://{0}{1}&digest=sha256:{2}"; // 0 - registry, 1 - location, 2 - digest
 
@@ -286,7 +286,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return results;
             }
 
-            results = InstallVersion(packageName, packageVersion, out errRecord);
+            string packageNameForInstall = PrependMARPrefix(packageName);
+            results = InstallVersion(packageNameForInstall, packageVersion, out errRecord);
             return results;
         }
 
@@ -413,6 +414,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 else
                 {
                     _cmdletPassedIn.WriteVerbose("Repository is unauthenticated");
+                    return null;
                 }
             }
 
@@ -572,27 +574,19 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         internal JObject FindContainerRegistryImageTags(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
-            /* response returned looks something like:
-             *   "registry": "myregistry.azurecr.io"
-             *   "imageName": "hello-world"
-             *   "tags": [
-             *     {
-             *       ""name"": ""1.0.0"",
-             *       ""digest"": ""sha256:92c7f9c92844bbbb5d0a101b22f7c2a7949e40f8ea90c8b3bc396879d95e899a"",
-             *       ""createdTime"": ""2023-12-23T18:06:48.9975733Z"",
-             *       ""lastUpdateTime"": ""2023-12-23T18:06:48.9975733Z"",
-             *       ""signed"": false,
-             *       ""changeableAttributes"": {
-             *         ""deleteEnabled"": true,
-             *         ""writeEnabled"": true,
-             *         ""readEnabled"": true,
-             *         ""listEnabled"": true
-             *       }
-             *     }]
-             */
+            /*
+            {
+                "name": "<name>",
+                "tags": [
+                    "<tag1>",
+                    "<tag2>",
+                    "<tag3>"
+                  ]
+                }
+            */
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindContainerRegistryImageTags()");
             string resolvedVersion = string.Equals(version, "*", StringComparison.OrdinalIgnoreCase) ? null : $"/{version}";
-            string findImageUrl = string.Format(containerRegistryFindImageVersionUrlTemplate, Registry, packageName, resolvedVersion);
+            string findImageUrl = string.Format(containerRegistryFindImageVersionUrlTemplate, Registry, packageName);
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
             return GetHttpResponseJObjectUsingDefaultHeaders(findImageUrl, HttpMethod.Get, defaultHeaders, out errRecord);
         }
@@ -655,9 +649,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                             pkgVersionString += $"-{pkgPrereleaseLabelElement.ToString()}";
                         }
                     }
-                    else if (rootDom.TryGetProperty("Version", out pkgVersionElement))
+                    else if (rootDom.TryGetProperty("Version", out pkgVersionElement) || rootDom.TryGetProperty("version", out pkgVersionElement))
                     {
-                        // script metadata will have "Version" property
+                        // script metadata will have "Version" property, but nupkg only based .nuspec will have lowercase "version" property and JsonElement.TryGetProperty() is case sensitive
                         pkgVersionString = pkgVersionElement.ToString();
                     }
                     else
@@ -1121,12 +1115,11 @@ namespace Microsoft.PowerShell.PSResourceGet
         #endregion
 
         #region Publish Methods
-
         /// <summary>
         /// Helper method that publishes a package to the container registry.
         /// This gets called from Publish-PSResource.
         /// </summary>
-        internal bool PushNupkgContainerRegistry(string psd1OrPs1File,
+        internal bool PushNupkgContainerRegistry(
             string outputNupkgDir,
             string packageName,
             string modulePrefix,
@@ -1134,10 +1127,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             ResourceType resourceType,
             Hashtable parsedMetadataHash,
             Hashtable dependencies,
+            bool isNupkgPathSpecified,
+            string originalNupkgPath,
             out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::PushNupkgContainerRegistry()");
-            string fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
+
+            // if isNupkgPathSpecified, then we need to publish the original .nupkg file, as it may be signed
+            string fullNupkgFile = isNupkgPathSpecified ? originalNupkgPath :           System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
 
             string pkgNameForUpload = string.IsNullOrEmpty(modulePrefix) ? packageName : modulePrefix + "/" + packageName;
             string packageNameLowercase = pkgNameForUpload.ToLower();
@@ -1608,13 +1605,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             string registryUrl = Repository.Uri.ToString();
             string packageNameLowercase = packageName.ToLower();
 
+            string packageNameForFind = PrependMARPrefix(packageNameLowercase);
             string containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
             if (errRecord != null)
             {
                 return emptyHashResponses;
             }
 
-            var foundTags = FindContainerRegistryImageTags(packageNameLowercase, "*", containerRegistryAccessToken, out errRecord);
+            var foundTags = FindContainerRegistryImageTags(packageNameForFind, "*", containerRegistryAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
                 return emptyHashResponses;
@@ -1623,7 +1621,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             List<Hashtable> latestVersionResponse = new List<Hashtable>();
             List<JToken> allVersionsList = foundTags["tags"].ToList();
 
-            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, versionType, versionRange, requiredVersion, packageNameLowercase, includePrerelease, out errRecord);
+            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, versionType, versionRange, requiredVersion, packageNameForFind, includePrerelease, out errRecord);
             if (errRecord != null)
             {
                 return emptyHashResponses;
@@ -1634,7 +1632,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             foreach (var pkgVersionTag in pkgsInDescendingOrder)
             {
                 string exactTagVersion = pkgVersionTag.Value.ToString();
-                Hashtable metadata = GetContainerRegistryMetadata(packageNameLowercase, exactTagVersion, containerRegistryAccessToken, out errRecord);
+                Hashtable metadata = GetContainerRegistryMetadata(packageNameForFind, exactTagVersion, containerRegistryAccessToken, out errRecord);
                 if (errRecord != null || metadata.Count == 0)
                 {
                     return emptyHashResponses;
@@ -1664,56 +1662,53 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             foreach (var pkgVersionTagInfo in allPkgVersions)
             {
-                using (JsonDocument pkgVersionEntry = JsonDocument.Parse(pkgVersionTagInfo.ToString()))
+                string pkgVersionString = pkgVersionTagInfo.ToString();
+                // determine if the package version that is a repository tag is a valid NuGetVersion
+                if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
                 {
-                    JsonElement rootDom = pkgVersionEntry.RootElement;
-                    if (!rootDom.TryGetProperty("name", out JsonElement pkgVersionElement))
-                    {
-                        errRecord = new ErrorRecord(
-                            new InvalidOrEmptyResponse($"Response does not contain version element ('name') for package '{packageName}' in '{Repository.Name}'."),
-                            "FindNameFailure",
-                            ErrorCategory.InvalidResult,
-                            this);
+                    errRecord = new ErrorRecord(
+                        new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version."),
+                        "FindNameFailure",
+                        ErrorCategory.InvalidArgument,
+                        this);
 
-                        return null;
+                    return null;
+                }
+
+                _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+
+                if (isSpecificVersionSearch)
+                {
+                    if (pkgVersion.ToNormalizedString() == specificVersion.ToNormalizedString())
+                    {
+                        // accounts for FindVersion() scenario
+                        sortedPkgs.Add(pkgVersion, pkgVersionString);
+                        break;
                     }
-
-                    string pkgVersionString = pkgVersionElement.ToString();
-                    // determine if the package version that is a repository tag is a valid NuGetVersion
-                    if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
+                }
+                else
+                {
+                    if (versionRange.Satisfies(pkgVersion) && (!pkgVersion.IsPrerelease || includePrerelease))
                     {
-                        errRecord = new ErrorRecord(
-                            new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version."),
-                            "FindNameFailure",
-                            ErrorCategory.InvalidArgument,
-                            this);
-
-                        return null;
-                    }
-
-                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
-
-                    if (isSpecificVersionSearch)
-                    {
-                        if (pkgVersion.ToNormalizedString() == specificVersion.ToNormalizedString())
-                        {
-                            // accounts for FindVersion() scenario
-                            sortedPkgs.Add(pkgVersion, pkgVersionString);
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        if (versionRange.Satisfies(pkgVersion) && (!pkgVersion.IsPrerelease || includePrerelease))
-                        {
-                            // accounts for FindVersionGlobbing() and FindName() scenario
-                            sortedPkgs.Add(pkgVersion, pkgVersionString);
-                        }
+                        // accounts for FindVersionGlobbing() and FindName() scenario
+                        sortedPkgs.Add(pkgVersion, pkgVersionString);
                     }
                 }
             }
 
             return sortedPkgs;
+        }
+
+        private string PrependMARPrefix(string packageName)
+        {
+            string prefix = string.IsNullOrEmpty(InternalHooks.MARPrefix) ? PSRepositoryInfo.MARPrefix : InternalHooks.MARPrefix;
+
+            // If the repostitory is MAR and its not a wildcard search, we need to prefix the package name with MAR prefix.
+            string updatedPackageName = Repository.IsMARRepository() && packageName.Trim() != "*"
+                                            ? string.Concat(prefix, packageName)
+                                            : packageName;
+
+            return updatedPackageName;
         }
 
         #endregion

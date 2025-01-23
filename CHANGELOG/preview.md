@@ -1,4 +1,23 @@
-## [1.1.0-RC1](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-preview2...v1.1.0-RC1) - 2024-09-13
+## ## [1.1.0-rc3](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-RC2...v1.1.0-rc3) - 2024-11-15
+
+### Bug Fix
+- Include missing commits
+
+
+## [1.1.0-RC2](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-RC1...v1.1.0-RC2) - 2024-10-30
+
+### New Features
+- Full Microsoft Artifact Registry integration (#1741)
+
+### Bug Fixes
+
+- Update to use OCI v2 APIs for Container Registry (#1737)
+- Bug fixes for finding and installing from local repositories on Linux machines (#1738)
+- Bug fix for finding package name with 4 part version from local repositories (#1739) 
+
+# Preview Changelog
+
+## [1.1.0-RC1](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-preview2...v1.1.0-RC1) - 2024-10-22
 
 ### New Features
 
@@ -8,9 +27,9 @@
 
 - Fix packaging name matching when searching in local repositories (#1731)
 - `Compress-PSResource` `-PassThru` now passes `FileInfo` instead of string (#1720)
-- Fix for `Compress-PSResource` not properly compressing scripts  (#1719) 
+- Fix for `Compress-PSResource` not properly compressing scripts  (#1719)
 - Add `AcceptLicense` to Save-PSResource (#1718 Thanks @o-l-a-v!)
-- Better support for NuGet v2 feeds (#1713 Thanks @o-l-a-v!)
+- Better support for Azure DevOps Artifacts NuGet v2 feeds (#1713 Thanks @o-l-a-v!)
 - Better handling of `-WhatIf` support in `Install-PSResource` (#1531 Thanks @o-l-a-v!)
 - Fix for some nupkgs failing to extract due to empty directories (#1707 Thanks @o-l-a-v!)
 - Fix for searching for `-Name *` in `Find-PSResource` (#1706 Thanks @o-l-a-v!)
@@ -34,8 +53,7 @@
 
 ### New Features
 
-- Support for Azure Container Registries (#1495, #1497-#1499, #1501, #1502, #1505, #1522, #1545, #1548, #1550, #1554, #1560, #1567, 
-#1573, #1576, #1587, #1588, #1589, #1594, #1598, #1600, #1602, #1604, #1615)
+- Support for Azure Container Registries (#1495, #1497-#1499, #1501, #1502, #1505, #1522, #1545, #1548, #1550, #1554, #1560, #1567, #1573, #1576, #1587, #1588, #1589, #1594, #1598, #1600, #1602, #1604, #1615)
 
 ### Bug Fixes
 

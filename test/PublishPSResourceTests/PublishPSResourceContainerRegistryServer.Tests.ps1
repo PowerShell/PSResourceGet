@@ -97,6 +97,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         # Path to specifically to that invalid test scripts folder
         $script:testScriptsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testScripts"
+
+        # Path to specifically to that invalid test nupkgs folder
+        $script:testNupkgsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testNupkgs"
     }
     AfterEach {
         if(!(Test-Path $script:PublishModuleBase))
@@ -510,5 +513,62 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
+    }
+
+    It "Publish a package given NupkgPath to a package with .psd1" {
+        $packageName = "temp-testmodule-nupkgpath"
+        $version = "1.0.0.0"
+        $nupkgPath = Join-Path -Path $script:testNupkgsFolderPath -ChildPath "$packageName.1.0.0.nupkg"
+        Publish-PSResource -NupkgPath $nupkgPath -Repository $ACRRepoName
+
+        $results = Find-PSResource -Name $packageName -Repository $ACRRepoName
+        $results | Should -Not -BeNullOrEmpty
+        $results[0].Name | Should -Be $packageName
+        $results[0].Version | Should -Be $version
+    }
+
+    It "Publish a package given NupkgPath to a package with .ps1" {
+        $packageName = "temp-testscript-nupkgpath"
+        $version = "1.0.0.0"
+        $nupkgPath = Join-Path -Path $script:testNupkgsFolderPath -ChildPath "$packageName.1.0.0.nupkg"
+        Publish-PSResource -NupkgPath $nupkgPath -Repository $ACRRepoName
+
+        $results = Find-PSResource -Name $packageName -Repository $ACRRepoName
+        $results | Should -Not -BeNullOrEmpty
+        $results[0].Name | Should -Be $packageName
+        $results[0].Version | Should -Be $version
+    }
+
+    It "Publish a package given NupkgPath to a package with .nuspec" {
+        $packageName = "temp-testnupkg-nupkgpath"
+        $version = "1.0.0"
+        $nupkgPath = Join-Path -Path $script:testNupkgsFolderPath -ChildPath "$packageName.1.0.0.nupkg"
+        Publish-PSResource -NupkgPath $nupkgPath -Repository $ACRRepoName
+
+        $results = Find-PSResource -Name $packageName -Repository $ACRRepoName
+        $results | Should -Not -BeNullOrEmpty
+        $results[0].Name | Should -Be $packageName
+        $results[0].Version | Should -Be $version
+    }
+}
+
+Describe 'Test Publish-PSResource for MAR Repository' -tags 'CI' {
+    BeforeAll {
+        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", "azure-powershell/");
+        Register-PSResourceRepository -Name "MAR" -Uri "https://mcr.microsoft.com" -ApiVersion "ContainerRegistry"
+    }
+
+    AfterAll {
+        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", $null);
+        Unregister-PSResourceRepository -Name "MAR"
+    }
+
+    It "Should find resource given specific Name, Version null" {
+        $fileName = "NonExistent.psd1"
+        $modulePath = New-Item -Path "$TestDrive\NonExistent" -ItemType Directory -Force
+        $psd1Path = Join-Path -Path $modulePath -ChildPath $fileName
+        New-ModuleManifest -Path $psd1Path -ModuleVersion "1.0.0" -Description "NonExistent module"
+
+        { Publish-PSResource -Path $modulePath -Repository "MAR" -ErrorAction Stop } | Should -Throw -ErrorId "MARRepositoryPublishError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 }

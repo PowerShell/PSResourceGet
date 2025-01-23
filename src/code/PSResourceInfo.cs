@@ -870,7 +870,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 // Version
                 // For scripts (i.e with "Version" property) the version can contain prerelease label
-                if (rootDom.TryGetProperty("Version", out JsonElement scriptVersionElement))
+                // For nupkg only based packages the .nuspec's metadata attributes will be lowercase
+                if (rootDom.TryGetProperty("Version", out JsonElement scriptVersionElement) || rootDom.TryGetProperty("version", out scriptVersionElement))
                 {
                     versionValue = scriptVersionElement.ToString();
                     pkgVersion = ParseHttpVersion(versionValue, out string prereleaseLabel);
@@ -917,25 +918,25 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 metadata["NormalizedVersion"] = parsedNormalizedVersion.ToNormalizedString();
 
                 // License Url
-                if (rootDom.TryGetProperty("LicenseUrl", out JsonElement licenseUrlElement))
+                if (rootDom.TryGetProperty("LicenseUrl", out JsonElement licenseUrlElement) || rootDom.TryGetProperty("licenseUrl", out licenseUrlElement))
                 {
                     metadata["LicenseUrl"] = ParseHttpUrl(licenseUrlElement.ToString()) as Uri;
                 }
 
                 // Project Url
-                if (rootDom.TryGetProperty("ProjectUrl", out JsonElement projectUrlElement))
+                if (rootDom.TryGetProperty("ProjectUrl", out JsonElement projectUrlElement) || rootDom.TryGetProperty("projectUrl", out projectUrlElement))
                 {
                     metadata["ProjectUrl"] = ParseHttpUrl(projectUrlElement.ToString()) as Uri;
                 }
 
                 // Icon Url
-                if (rootDom.TryGetProperty("IconUrl", out JsonElement iconUrlElement))
+                if (rootDom.TryGetProperty("IconUrl", out JsonElement iconUrlElement) || rootDom.TryGetProperty("iconUrl", out iconUrlElement))
                 {
                     metadata["IconUrl"] = ParseHttpUrl(iconUrlElement.ToString()) as Uri;
                 }
 
                 // Tags
-                if (rootDom.TryGetProperty("Tags", out JsonElement tagsElement))
+                if (rootDom.TryGetProperty("Tags", out JsonElement tagsElement) || rootDom.TryGetProperty("tags", out tagsElement))
                 {
                     string[] pkgTags = Utils.EmptyStrArray;
                     if (tagsElement.ValueKind == JsonValueKind.Array)
@@ -971,7 +972,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // Author
-                if (rootDom.TryGetProperty("Authors", out JsonElement authorsElement))
+                if (rootDom.TryGetProperty("Authors", out JsonElement authorsElement) || rootDom.TryGetProperty("authors", out authorsElement))
                 {
                     metadata["Authors"] = authorsElement.ToString();
 
@@ -982,19 +983,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // Copyright
-                if (rootDom.TryGetProperty("Copyright", out JsonElement copyrightElement))
+                if (rootDom.TryGetProperty("Copyright", out JsonElement copyrightElement) || rootDom.TryGetProperty("copyright", out copyrightElement))
                 {
                     metadata["Copyright"] = copyrightElement.ToString();
                 }
 
                 // Description
-                if (rootDom.TryGetProperty("Description", out JsonElement descriptiontElement))
+                if (rootDom.TryGetProperty("Description", out JsonElement descriptiontElement) || rootDom.TryGetProperty("description", out descriptiontElement))
                 {
                     metadata["Description"] = descriptiontElement.ToString();
                 }
 
                 // ReleaseNotes
-                if (rootDom.TryGetProperty("ReleaseNotes", out JsonElement releaseNotesElement))
+                if (rootDom.TryGetProperty("ReleaseNotes", out JsonElement releaseNotesElement) || rootDom.TryGetProperty("releaseNotes", out releaseNotesElement))
                 {
                     metadata["ReleaseNotes"] = releaseNotesElement.ToString();
                 }
@@ -1004,13 +1005,18 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     metadata["Dependencies"] = ParseContainerRegistryDependencies(requiredModulesElement, out errorMsg).ToArray();
                 }
+
                 if (string.Equals(packageName, "Az", StringComparison.OrdinalIgnoreCase) || packageName.StartsWith("Az.", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (rootDom.TryGetProperty("PrivateData", out JsonElement privateDataElement) && privateDataElement.TryGetProperty("PSData", out JsonElement psDataElement))
+                    if (rootDom.TryGetProperty("ModuleList", out JsonElement moduleListDepsElement))
                     {
-                        if (psDataElement.TryGetProperty("ModuleList", out JsonElement moduleListDepsElement))
+                        metadata["Dependencies"] = ParseContainerRegistryDependencies(moduleListDepsElement, out errorMsg).ToArray();
+                    }
+                    else if (rootDom.TryGetProperty("PrivateData", out JsonElement privateDataElement) && privateDataElement.TryGetProperty("PSData", out JsonElement psDataElement))
+                    {
+                        if (psDataElement.TryGetProperty("ModuleList", out JsonElement privateDataModuleListDepsElement))
                         {
-                            metadata["Dependencies"] = ParseContainerRegistryDependencies(moduleListDepsElement, out errorMsg).ToArray();
+                            metadata["Dependencies"] = ParseContainerRegistryDependencies(privateDataModuleListDepsElement, out errorMsg).ToArray();
                         }
                     }
                 }

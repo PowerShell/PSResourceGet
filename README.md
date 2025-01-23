@@ -83,6 +83,11 @@ C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet
 c:\> PowerShell
 C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet\PSResourceGet.psd1
 ```
+## Module Support Lifecycle 
+Microsoft.PowerShell.PSResourceGet follows the support lifecycle of the version of PowerShell that it ships in. 
+For example, PSResourceGet 1.0.x shipped in PowerShell 7.4 which is an LTS release so it will be supported for 3 years.
+Preview versions of the module, or versions that ship in preview versions of PowerShell are not supported.
+Versions of PSResourceGet that do not ship in a version of PowerShell will be fixed forward.
 
 ## Code of Conduct
 
