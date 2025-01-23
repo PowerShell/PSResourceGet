@@ -14,6 +14,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.11.4" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="NuGet.Commands" Version="6.9.1" />
     <PackageReference Include="NuGet.Common" Version="6.9.1" />
     <PackageReference Include="NuGet.Configuration" Version="6.9.1" />
@@ -23,8 +25,7 @@
     <PackageReference Include="PowerShellStandard.Library" Version="7.0.0-preview.1" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
-    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="Azure.Identity" Version="1.11.4" />
+    <PackageReference Condition="'$(TargetFramework)' == 'netstandard2.0'" Include="Microsoft.Windows.Compatibility" Version="9.0.1" />
     <Reference Include="System.Web" />
   </ItemGroup>
 
