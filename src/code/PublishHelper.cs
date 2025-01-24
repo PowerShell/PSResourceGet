@@ -1122,20 +1122,47 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (requiredModules != null)
             {
                 XmlElement dependenciesElement = doc.CreateElement("dependencies", nameSpaceUri);
-
                 foreach (string dependencyName in requiredModules.Keys)
                 {
                     XmlElement element = doc.CreateElement("dependency", nameSpaceUri);
-
                     element.SetAttribute("id", dependencyName);
+                    
                     string dependencyVersion = requiredModules[dependencyName].ToString();
                     if (!string.IsNullOrEmpty(dependencyVersion))
                     {
-                        element.SetAttribute("version", requiredModules[dependencyName].ToString());
+                        var requiredModulesVersionInfo = (Hashtable)requiredModules[dependencyName];
+                        string versionRange = String.Empty;
+                        if (requiredModulesVersionInfo.ContainsKey("RequiredVersion"))
+                        {
+                            // For RequiredVersion, use exact version notation [x.x.x]
+                            string requiredModulesVersion = requiredModulesVersionInfo["RequiredVersion"].ToString();
+                            versionRange = $"[{requiredModulesVersion}]";
+                        }
+                        else if (requiredModulesVersionInfo.ContainsKey("ModuleVersion") && requiredModulesVersionInfo.ContainsKey("MaximumVersion"))
+                        {
+                            // Version range when both min and max specified: [min,max]
+                            versionRange = $"[{requiredModulesVersionInfo["ModuleVersion"]}, {requiredModulesVersionInfo["MaximumVersion"]}]";
+                        }
+                        else if (requiredModulesVersionInfo.ContainsKey("ModuleVersion"))
+                        {
+                            // Only min specified: min (which means ≥ min)
+                            versionRange = requiredModulesVersionInfo["ModuleVersion"].ToString();
+                        }
+                        else if (requiredModulesVersionInfo.ContainsKey("MaximumVersion"))
+                        {
+                            // Only max specified: (, max]
+                            versionRange = $"(, {requiredModulesVersionInfo["MaximumVersion"]}]";
+                        }
+
+                        if (!string.IsNullOrEmpty(versionRange))
+                        {
+                            element.SetAttribute("version", versionRange);
+                        }
                     }
 
                     dependenciesElement.AppendChild(element);
                 }
+
                 metadataElement.AppendChild(dependenciesElement);
             }
 
@@ -1173,19 +1200,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (LanguagePrimitives.TryConvertTo<Hashtable>(reqModule, out Hashtable moduleHash))
                 {
                     string moduleName = moduleHash["ModuleName"] as string;
-
-                    if (moduleHash.ContainsKey("ModuleVersion"))
+                    var versionInfo = new Hashtable();
+            
+                    // RequiredVersion cannot be used with ModuleVersion or MaximumVersion
+                    if (moduleHash.ContainsKey("RequiredVersion"))
                     {
-                        dependenciesHash.Add(moduleName, moduleHash["ModuleVersion"]);
+                        versionInfo["RequiredVersion"] = moduleHash["RequiredVersion"].ToString();
                     }
-                    else if (moduleHash.ContainsKey("RequiredVersion"))
+                    else 
                     {
-                        dependenciesHash.Add(moduleName, moduleHash["RequiredVersion"]);
+                        // ModuleVersion and MaximumVersion can be used together
+                        if (moduleHash.ContainsKey("ModuleVersion"))
+                        {
+                            versionInfo["ModuleVersion"] = moduleHash["ModuleVersion"].ToString();
+                        }
+                        if (moduleHash.ContainsKey("MaximumVersion"))
+                        {
+                            versionInfo["MaximumVersion"] = moduleHash["MaximumVersion"].ToString();
+                        }
                     }
-                    else
-                    {
-                        dependenciesHash.Add(moduleName, string.Empty);
-                    }
+                    dependenciesHash.Add(moduleName, versionInfo);
                 }
                 else if (LanguagePrimitives.TryConvertTo<string>(reqModule, out string moduleName))
                 {
