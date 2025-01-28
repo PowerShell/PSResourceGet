@@ -1728,7 +1728,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         private FindResults FindPackages(string packageName, bool includePrerelease, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindAll()");
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindPackages()");
             errRecord = null;
             string containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
             if (errRecord != null)
@@ -1750,7 +1750,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 string repositoryName = repository.ToString();
 
-                if (isMAR && !repositoryName.StartsWith("psresource/"))
+                if (isMAR && !repositoryName.StartsWith(PSRepositoryInfo.MARPrefix))
                 {
                     continue;
                 }
