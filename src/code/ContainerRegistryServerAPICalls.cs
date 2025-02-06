@@ -20,6 +20,7 @@ using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using System.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
+using ResourceType = Microsoft.PowerShell.PSResourceGet.UtilClasses.ResourceType;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
@@ -46,6 +47,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         const string containerRegistryFindImageVersionUrlTemplate = "https://{0}/v2/{1}/tags/list"; // 0 - registry, 1 - repo(modulename)
         const string containerRegistryStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads/"; // 0 - registry, 1 - packagename
         const string containerRegistryEndUploadTemplate = "https://{0}{1}&digest=sha256:{2}"; // 0 - registry, 1 - location, 2 - digest
+        const string defaultScope = "repository:*:*";
 
         #endregion
 
@@ -391,10 +393,16 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             else
             {
-                bool isRepositoryUnauthenticated = IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), out errRecord);
+                bool isRepositoryUnauthenticated = IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), out errRecord, out accessToken);
                 if (errRecord != null)
                 {
                     return null;
+                }
+
+                if (!string.IsNullOrEmpty(accessToken))
+                {
+                    _cmdletPassedIn.WriteVerbose("Anonymous access token retrieved.");
+                    return accessToken;
                 }
 
                 if (!isRepositoryUnauthenticated)
@@ -436,15 +444,86 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Checks if container registry repository is unauthenticated.
         /// </summary>
-        internal bool IsContainerRegistryUnauthenticated(string containerRegistyUrl, out ErrorRecord errRecord)
+        internal bool IsContainerRegistryUnauthenticated(string containerRegistyUrl, out ErrorRecord errRecord, out string anonymousAccessToken)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::IsContainerRegistryUnauthenticated()");
             errRecord = null;
+            anonymousAccessToken = string.Empty;
             string endpoint = $"{containerRegistyUrl}/v2/";
             HttpResponseMessage response;
             try
             {
                 response = _sessionClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, endpoint)).Result;
+
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    // check if there is a auth challenge header
+                    if (response.Headers.WwwAuthenticate.Count() > 0)
+                    {
+                        var authHeader = response.Headers.WwwAuthenticate.First();
+                        if (authHeader.Scheme == "Bearer")
+                        {
+                            // check if there is a realm
+                            if (authHeader.Parameter.Contains("realm"))
+                            {
+                                // get the realm
+                                var realm = authHeader.Parameter.Split(',')?.Where(x => x.Contains("realm"))?.FirstOrDefault()?.Split('=')[1]?.Trim('"');
+                                // get the service
+                                var service = authHeader.Parameter.Split(',')?.Where(x => x.Contains("service"))?.FirstOrDefault()?.Split('=')[1]?.Trim('"');
+
+                                if (string.IsNullOrEmpty(realm) || string.IsNullOrEmpty(service))
+                                {
+                                    errRecord = new ErrorRecord(
+                                        new InvalidOperationException("Failed to get realm or service from the auth challenge header."),
+                                        "RegistryUnauthenticationCheckError",
+                                        ErrorCategory.InvalidResult,
+                                        this);
+
+                                    return false;
+                                }
+
+                                string content = "grant_type=access_token&service=" + service + "&scope=" + defaultScope;
+                                var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
+
+                                // get the anonymous access token
+                                var url = $"{realm}?service={service}&scope={defaultScope}";
+                                var results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out errRecord);
+
+                                if (errRecord != null)
+                                {
+                                    _cmdletPassedIn.WriteDebug($"Failed to get access token from the realm. Error: {errRecord}");
+                                    return false;
+                                }
+
+                                if (results == null)
+                                {
+                                    _cmdletPassedIn.WriteDebug("Failed to get access token from the realm. results is null.");
+                                    return false;
+                                }
+
+                                if (results["access_token"] == null)
+                                {
+                                    _cmdletPassedIn.WriteDebug($"Failed to get access token from the realm. access_token is null. results: {results}");
+                                    return false;
+                                }
+
+                                anonymousAccessToken = results["access_token"].ToString();
+                                _cmdletPassedIn.WriteDebug("Anonymous access token retrieved");
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (HttpRequestException hre)
+            {
+                 errRecord = new ErrorRecord(
+                    hre,
+                    "RegistryAnonymousAcquireError",
+                    ErrorCategory.ConnectionError,
+                    this);
+
+                return false;
             }
             catch (Exception e)
             {
