@@ -972,7 +972,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     metadata["Dependencies"] = ParseContainerRegistryDependencies(requiredModulesElement, out errorMsg).ToArray();
                 }
 
-                if (packageName.StartsWith("Az", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(packageName, "Az", StringComparison.OrdinalIgnoreCase) || string.Equals(packageName, "Azpreview", StringComparison.OrdinalIgnoreCase) || packageName.StartsWith("Az.", StringComparison.OrdinalIgnoreCase))
                 {
                     if (rootDom.TryGetProperty("ModuleList", out JsonElement moduleListDepsElement))
                     {
