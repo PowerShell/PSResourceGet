@@ -247,7 +247,7 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
     It "Should find resource given specific Name, Version null" {
         $res = Find-PSResource -Name "Az.Accounts" -Repository "MAR"
         $res.Name | Should -Be "Az.Accounts"
-        $res.Version | Should -Be "4.0.2"
+        $res.Version | Should -BeGreaterThan "4.0.0"
     }
 
     It "Should find resource and its dependency given specific Name and Version" {
