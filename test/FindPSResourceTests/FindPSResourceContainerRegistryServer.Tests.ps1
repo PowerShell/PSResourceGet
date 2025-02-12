@@ -257,7 +257,7 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
     }
 
     It "Should find Azpreview resource and it's dependency given specific Name and Version" {
-        $res = Find-PSResource -Name "Az.Storage" -Version "13.2.0" -Repository "MAR"
+        $res = Find-PSResource -Name "Azpreview" -Version "13.2.0" -Repository "MAR"
         $res.Dependencies.Length | Should -Not -Be 0
     }
 }
