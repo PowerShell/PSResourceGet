@@ -824,6 +824,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     pkgVersion += $"-{pkgToInstall.Prerelease}";
                 }
             }
+
+            // For most repositories/providers the server will use the normalized version, which pkgVersion originally reflects
+            // However, for container registries the version must exactly match what was in the artifact manifest and then reflected in PSResourceInfo.Version.ToString()
+            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.ContainerRegistry)
+            {
+                pkgVersion = pkgToInstall.Version.ToString();
+            }
+
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
