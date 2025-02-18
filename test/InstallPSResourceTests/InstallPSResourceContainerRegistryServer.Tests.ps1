@@ -10,6 +10,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     BeforeAll {
         $testModuleName = "test-module"
         $testModuleName2 = "test-module2"
+        $testModuleWith2DigitVersion = "test-2DigitPkg"
         $testCamelCaseModuleName = "test-camelCaseModule"
         $testCamelCaseScriptName = "test-camelCaseScript"
         $testModuleParentName = "test_parent_mod"
@@ -33,7 +34,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     }
 
     AfterEach {
-        Uninstall-PSResource $testModuleName, $testModuleName2, $testCamelCaseModuleName, $testScriptName, $testCamelCaseScriptName -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource $testModuleName, $testModuleName2, $testCamelCaseModuleName, $testScriptName, $testCamelCaseScriptName, $testModuleWith2DigitVersion -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -73,6 +74,38 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg = Get-InstalledPSResource $testScriptName
         $pkg.Name | Should -Be $testScriptName
         $pkg.Version | Should -BeExactly "1.0.0"
+    }
+
+    It "Install resource when version contains different number of digits than the normalized version- 1 digit specified" {
+        # the resource has version "1.0", but querying with any equivalent version should work
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1" -Repository $ACRRepoName
+        $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "1.0"
+    }
+
+    It "Install resource when version contains different number of digits than the normalized version- 2 digits specified" {
+        # the resource has version "1.0", but querying with any equivalent version should work
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.0" -Repository $ACRRepoName
+        $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "1.0"
+    }
+
+    It "Install resource when version contains different number of digits than the normalized version- 3 digits specified" {
+        # the resource has version "1.0", but querying with any equivalent version should work
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.0.0" -Repository $ACRRepoName
+        $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "1.0"
+    }
+
+    It "Install resource when version contains different number of digits than the normalized version- 4 digits specified" {
+        # the resource has version "1.0", but querying with any equivalent version should work
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.0.0.0" -Repository $ACRRepoName
+        $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "1.0"
     }
 
     It "Install multiple resources by name" {
