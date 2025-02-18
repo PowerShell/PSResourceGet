@@ -829,7 +829,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // However, for container registries the version must exactly match what was in the artifact manifest and then reflected in PSResourceInfo.Version.ToString()
             if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.ContainerRegistry)
             {
-                pkgVersion = pkgToInstall.Version.ToString();
+                pkgVersion = String.IsNullOrEmpty(pkgToInstall.Prerelease) ? pkgToInstall.Version.ToString() : $"{pkgToInstall.Version.ToString()}-{pkgToInstall.Prerelease}";
             }
 
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
