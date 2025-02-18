@@ -78,7 +78,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     It "Install resource when version contains different number of digits than the normalized version- 1 digit specified" {
         # the resource has version "1.0", but querying with any equivalent version should work
-        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1" -Repository $ACRRepoName
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1" -Repository $ACRRepoName -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
         $res | Should -Not -BeNullOrEmpty
         $res.Version | Should -Be "1.0"
@@ -86,7 +86,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     It "Install resource when version contains different number of digits than the normalized version- 2 digits specified" {
         # the resource has version "1.0", but querying with any equivalent version should work
-        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.0" -Repository $ACRRepoName
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.0" -Repository $ACRRepoName -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
         $res | Should -Not -BeNullOrEmpty
         $res.Version | Should -Be "1.0"
@@ -94,7 +94,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     It "Install resource when version contains different number of digits than the normalized version- 3 digits specified" {
         # the resource has version "1.0", but querying with any equivalent version should work
-        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.0.0" -Repository $ACRRepoName
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.0.0" -Repository $ACRRepoName -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
         $res | Should -Not -BeNullOrEmpty
         $res.Version | Should -Be "1.0"
@@ -102,7 +102,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     It "Install resource when version contains different number of digits than the normalized version- 4 digits specified" {
         # the resource has version "1.0", but querying with any equivalent version should work
-        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.0.0.0" -Repository $ACRRepoName
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.0.0.0" -Repository $ACRRepoName -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
         $res | Should -Not -BeNullOrEmpty
         $res.Version | Should -Be "1.0"
