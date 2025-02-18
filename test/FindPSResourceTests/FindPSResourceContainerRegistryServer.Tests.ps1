@@ -8,6 +8,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 
     BeforeAll{
         $testModuleName = "test-module"
+        $testModuleWith2DigitVersion = "test-2DigitPkg"
         $testModuleParentName = "test_parent_mod"
         $testModuleDependencyName = "test_dependency_mod"
         $testScriptName = "test-script"
@@ -80,6 +81,25 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         }
 
         $res.Count | Should -BeGreaterOrEqual 1
+    }
+
+    It "Find resource when version contains different number of digits than the normalized version" {
+        # the resource has version "1.0", but querying with any equivalent version should work
+        $res1DigitVersion = Find-PSResource -Name $testModuleWith2DigitVersion -Version "1" -Repository $ACRRepoName
+        $res1DigitVersion | Should -Not -BeNullOrEmpty
+        $res1DigitVersion.Version | Should -Be "1.0"
+
+        $res2DigitVersion = Find-PSResource -Name $testModuleWith2DigitVersion -Version "1.0" -Repository $ACRRepoName
+        $res2DigitVersion | Should -Not -BeNullOrEmpty
+        $res2DigitVersion.Version | Should -Be "1.0"
+
+        $res3DigitVersion = Find-PSResource -Name $testModuleWith2DigitVersion -Version "1.0.0" -Repository $ACRRepoName
+        $res3DigitVersion | Should -Not -BeNullOrEmpty
+        $res3DigitVersion.Version | Should -Be "1.0"
+
+        $res4DigitVersion = Find-PSResource -Name $testModuleWith2DigitVersion -Version "1.0.0.0" -Repository $ACRRepoName
+        $res4DigitVersion | Should -Not -BeNullOrEmpty
+        $res4DigitVersion.Version | Should -Be "1.0"
     }
 
     It "Find module and dependencies when -IncludeDependencies is specified" {
