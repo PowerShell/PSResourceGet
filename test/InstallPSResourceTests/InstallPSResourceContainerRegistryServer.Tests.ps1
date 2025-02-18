@@ -108,6 +108,15 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $res.Version | Should -Be "1.0"
     }
 
+    It "Install resource when version contains different number of digits than the normalized version- 4 digits specified and prerelease" {
+        # the resource has version "1.0", but querying with any equivalent version should work
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.5.0.0" -Repository $ACRRepoName -TrustRepository
+        $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "1.5"
+        $res.Prerelease | Should -Be "alpha"
+    }
+
     It "Install multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
         Install-PSResource -Name $pkgNames -Repository $ACRRepoName -TrustRepository
