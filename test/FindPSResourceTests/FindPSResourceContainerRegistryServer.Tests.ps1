@@ -256,3 +256,19 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
         $res.Dependencies[0].Name | Should -Be "Az.Accounts"
     }
 }
+
+Describe 'Test Find-PSResource for unauthenticated ACR repository' -tags 'CI' {
+    BeforeAll {
+        Register-PSResourceRepository -Name "Unauthenticated" -Uri "https://psresourcegetnoauth.azurecr.io/" -ApiVersion "ContainerRegistry"
+    }
+
+    AfterAll {
+        Unregister-PSResourceRepository -Name "Unauthenticated"
+    }
+
+    It "Should find resource given specific Name, Version null" {
+        $res = Find-PSResource -Name "hello-world" -Repository "Unauthenticated"
+        $res.Name | Should -Be "hello-world"
+        $res.Version | Should -Be "5.0.0"
+    }
+}
