@@ -47,6 +47,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         const string containerRegistryStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads/"; // 0 - registry, 1 - packagename
         const string containerRegistryEndUploadTemplate = "https://{0}{1}&digest=sha256:{2}"; // 0 - registry, 1 - location, 2 - digest
         const string defaultScope = "repository:*:*";
+        const string containerRegistryRepositoryListTemplate = "https://{0}/v2/_catalog"; // 0 - registry
 
         #endregion
 
@@ -77,13 +78,13 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindAll()");
-            errRecord = new ErrorRecord(
-                new InvalidOperationException($"Find all is not supported for the ContainerRegistry server protocol repository '{Repository.Name}'"),
-                "FindAllFailure",
-                ErrorCategory.InvalidOperation,
-                this);
+            var findResult = FindPackages("*", includePrerelease, out errRecord);
+            if (errRecord != null)
+            {
+                return emptyResponseResults;
+            }
 
-            return emptyResponseResults;
+            return findResult;
         }
 
         /// <summary>
@@ -162,13 +163,13 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindNameGlobbing()");
-            errRecord = new ErrorRecord(
-                new InvalidOperationException($"FindNameGlobbing all is not supported for the ContainerRegistry server protocol repository '{Repository.Name}'"),
-                "FindNameGlobbingFailure",
-                ErrorCategory.InvalidOperation,
-                this);
+            var findResult = FindPackages(packageName, includePrerelease, out errRecord);
+            if (errRecord != null)
+            {
+                return emptyResponseResults;
+            }
 
-            return emptyResponseResults;
+            return findResult;
         }
 
         /// <summary>
@@ -667,6 +668,20 @@ namespace Microsoft.PowerShell.PSResourceGet
             string findImageUrl = string.Format(containerRegistryFindImageVersionUrlTemplate, Registry, packageName);
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
             return GetHttpResponseJObjectUsingDefaultHeaders(findImageUrl, HttpMethod.Get, defaultHeaders, out errRecord);
+        }
+
+        /// <summary>
+        /// Helper method to find all packages on container registry
+        /// </summary>
+        /// <param name="containerRegistryAccessToken"></param>
+        /// <param name="errRecord"></param>
+        /// <returns></returns>
+        internal JObject FindAllRepositories(string containerRegistryAccessToken, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindAllRepositories()");
+            string repositoryListUrl = string.Format(containerRegistryRepositoryListTemplate, Registry);
+            var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
+            return GetHttpResponseJObjectUsingDefaultHeaders(repositoryListUrl, HttpMethod.Get, defaultHeaders, out errRecord);
         }
 
         /// <summary>
@@ -1783,10 +1798,61 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             // If the repostitory is MAR and its not a wildcard search, we need to prefix the package name with MAR prefix.
             string updatedPackageName = Repository.IsMARRepository() && packageName.Trim() != "*"
-                                            ? string.Concat(prefix, packageName)
+                                            ? packageName.StartsWith(prefix) ? packageName : string.Concat(prefix, packageName)
                                             : packageName;
 
             return updatedPackageName;
+        }
+
+        private FindResults FindPackages(string packageName, bool includePrerelease, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindPackages()");
+            errRecord = null;
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
+            if (errRecord != null)
+            {
+                return emptyResponseResults;
+            }
+
+            var pkgResult = FindAllRepositories(containerRegistryAccessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return emptyResponseResults;
+            }
+
+            List<Hashtable> repositoriesList = new List<Hashtable>();
+            var isMAR = Repository.IsMARRepository();
+
+            // Convert the list of repositories to a list of hashtables
+            foreach (var repository in pkgResult["repositories"].ToList())
+            {
+                string repositoryName = repository.ToString();
+
+                if (isMAR && !repositoryName.StartsWith(PSRepositoryInfo.MARPrefix))
+                {
+                    continue;
+                }
+
+                // This remove the 'psresource/' prefix from the repository name for comparison with wildcard.
+                string moduleName = repositoryName.Substring(11);
+
+                WildcardPattern wildcardPattern = new WildcardPattern(packageName, WildcardOptions.IgnoreCase);
+
+                if (!wildcardPattern.IsMatch(moduleName))
+                {
+                    continue;
+                }
+
+                _cmdletPassedIn.WriteDebug($"Found repository: {repositoryName}");
+
+                repositoriesList.AddRange(FindPackagesWithVersionHelper(repositoryName, VersionType.VersionRange, versionRange: VersionRange.All, requiredVersion: null, includePrerelease, getOnlyLatest: true, out errRecord));
+                if (errRecord != null)
+                {
+                    return emptyResponseResults;
+                }
+            }
+
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: repositoriesList.ToArray(), responseType: containerRegistryFindResponseType);
         }
 
         #endregion

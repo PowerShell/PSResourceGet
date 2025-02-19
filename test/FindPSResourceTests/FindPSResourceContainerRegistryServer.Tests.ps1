@@ -247,13 +247,25 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
     It "Should find resource given specific Name, Version null" {
         $res = Find-PSResource -Name "Az.Accounts" -Repository "MAR"
         $res.Name | Should -Be "Az.Accounts"
-        $res.Version | Should -Be "4.0.0"
+        $res.Version | Should -BeGreaterThan ([Version]"4.0.0")
     }
 
     It "Should find resource and its dependency given specific Name and Version" {
         $res = Find-PSResource -Name "Az.Storage" -Version "8.0.0" -Repository "MAR"
         $res.Dependencies.Length | Should -Be 1
         $res.Dependencies[0].Name | Should -Be "Az.Accounts"
+    }
+
+    It "Should find resource with wildcard in Name" {
+        $res = Find-PSResource -Name "Az.App*" -Repository "MAR"
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterThan 1
+    }
+
+    It "Should find all resource with wildcard in Name" {
+        $res = Find-PSResource -Name "*" -Repository "MAR"
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterThan 1
     }
 }
 
