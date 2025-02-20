@@ -268,16 +268,29 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
     }
 }
 
+# Skip this test fo
 Describe 'Test Find-PSResource for unauthenticated ACR repository' -tags 'CI' {
     BeforeAll {
-        Register-PSResourceRepository -Name "Unauthenticated" -Uri "https://psresourcegetnoauth.azurecr.io/" -ApiVersion "ContainerRegistry"
+        $skipOnWinPS =  $PSVersionTable.PSVersion.Major -eq 5
+
+        if (-not $skipOnWinPS) {
+            Register-PSResourceRepository -Name "Unauthenticated" -Uri "https://psresourcegetnoauth.azurecr.io/" -ApiVersion "ContainerRegistry"
+        }
     }
 
     AfterAll {
-        Unregister-PSResourceRepository -Name "Unauthenticated"
+        if (-not $skipOnWinPS) {
+            Unregister-PSResourceRepository -Name "Unauthenticated"
+        }
     }
 
     It "Should find resource given specific Name, Version null" {
+
+        if ($skipOnWinPS) {
+            Set-ItResult -Pending -Reason "Skipping test on Windows PowerShell"
+            return
+        }
+
         $res = Find-PSResource -Name "hello-world" -Repository "Unauthenticated"
         $res.Name | Should -Be "hello-world"
         $res.Version | Should -Be "5.0.0"
