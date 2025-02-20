@@ -377,7 +377,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     }
 }
 
-Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidationOnly' {
+Describe 'Test Install-PSResource for V3Server scenarios - Manual Validation' -tags 'ManualValidationOnly' {
 
     BeforeAll {
         $testModuleName = "TestModule"

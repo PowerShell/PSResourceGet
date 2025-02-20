@@ -154,7 +154,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         $hashtable4 = @{Name = $PSGalleryName; Trusted = $True};
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
-        Set-PSResourceRepository -Repository $arrayOfHashtables
+        Set-PSResourceRepository -Repository $arrayOfHashtables -Verbose
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $res.Name | Should -Be $TestRepoName1
         $Res.Uri.LocalPath | Should -Contain $tmpDir2Path
@@ -189,7 +189,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
     It "not set and throw error for trying to set PSGallery Uri (NameParameterSet)" {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -PSGallery
-        {Set-PSResourceRepository -Name $PSGalleryName -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
+        {Set-PSResourceRepository -Name $PSGalleryName -Uri $tmpDir1Path -Verbose -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
     }
 
     It "not set and throw error for trying to set PSGallery CredentialInfo (NameParameterSet)" {
