@@ -38,7 +38,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         private static readonly FindResults emptyResponseResults = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
 
         const string containerRegistryRefreshTokenTemplate = "grant_type=access_token&service={0}&tenant={1}&access_token={2}"; // 0 - registry, 1 - tenant, 2 - access token
-        const string containerRegistryAccessTokenTemplate = "grant_type=refresh_token&service={0}&scope=repository:*:*&refresh_token={1}"; // 0 - registry, 1 - refresh token
+        const string containerRegistryAccessTokenTemplate = "grant_type=refresh_token&service={0}&scope=repository:*:*&scope=registry:catalog:*&refresh_token={1}"; // 0 - registry, 1 - refresh token
         const string containerRegistryOAuthExchangeUrlTemplate = "https://{0}/oauth2/exchange"; // 0 - registry
         const string containerRegistryOAuthTokenUrlTemplate = "https://{0}/oauth2/token"; // 0 - registry
         const string containerRegistryManifestUrlTemplate = "https://{0}/v2/{1}/manifests/{2}"; // 0 - registry, 1 - repo(modulename), 2 - tag(version)
@@ -487,13 +487,9 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                                 // get the anonymous access token
                                 var url = $"{realm}?service={service}&scope={defaultScope}";
-                                var results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out errRecord);
 
-                                if (errRecord != null)
-                                {
-                                    _cmdletPassedIn.WriteDebug($"Failed to get access token from the realm. Error: {errRecord}");
-                                    return false;
-                                }
+                                // we dont check the errorrecord here because we want to return false if we get a 401 and not throw an error
+                                var results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out _);
 
                                 if (results == null)
                                 {
@@ -1834,7 +1830,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 }
 
                 // This remove the 'psresource/' prefix from the repository name for comparison with wildcard.
-                string moduleName = repositoryName.Substring(11);
+                string moduleName = repositoryName.StartsWith("psresource/") ? repositoryName.Substring(11) : repositoryName;
 
                 WildcardPattern wildcardPattern = new WildcardPattern(packageName, WildcardOptions.IgnoreCase);
 
