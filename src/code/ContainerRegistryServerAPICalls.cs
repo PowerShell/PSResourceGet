@@ -46,7 +46,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         const string containerRegistryFindImageVersionUrlTemplate = "https://{0}/v2/{1}/tags/list"; // 0 - registry, 1 - repo(modulename)
         const string containerRegistryStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads/"; // 0 - registry, 1 - packagename
         const string containerRegistryEndUploadTemplate = "https://{0}{1}&digest=sha256:{2}"; // 0 - registry, 1 - location, 2 - digest
-        const string defaultScope = "repository:*:*";
+        const string defaultScope = "&scope=repository:*:*&scope=registry:catalog:*";
         const string containerRegistryRepositoryListTemplate = "https://{0}/v2/_catalog"; // 0 - registry
 
         #endregion
@@ -482,11 +482,11 @@ namespace Microsoft.PowerShell.PSResourceGet
                                     return false;
                                 }
 
-                                string content = "grant_type=access_token&service=" + service + "&scope=" + defaultScope;
+                                string content = "grant_type=access_token&service=" + service + defaultScope;
                                 var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
 
                                 // get the anonymous access token
-                                var url = $"{realm}?service={service}&scope={defaultScope}";
+                                var url = $"{realm}?service={service}{defaultScope}";
 
                                 // we dont check the errorrecord here because we want to return false if we get a 401 and not throw an error
                                 var results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out _);
