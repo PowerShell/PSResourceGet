@@ -287,7 +287,7 @@ Describe 'Test Find-PSResource for unauthenticated ACR repository' -tags 'CI' {
     It "Should find resource given specific Name, Version null" {
 
         if ($skipOnWinPS) {
-            Set-ItResult -Pending -Reason "Skipping test on Windows PowerShell"
+            Set-ItResult -Pending -Because "Skipping test on Windows PowerShell"
             return
         }
 
