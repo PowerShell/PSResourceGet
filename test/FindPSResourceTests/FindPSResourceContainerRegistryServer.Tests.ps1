@@ -151,12 +151,11 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindCommandOrDscResourceFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
-    It "Should not find all resources given Name '*'" {
+    It "Should find all resources given Name '*'" {
         # FindAll()
         $res = Find-PSResource -Name "*" -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
-        $res | Should -BeNullOrEmpty
-        $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindAllFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterThan 0
     }
 
     It "Should find script given Name" {
@@ -271,5 +270,34 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
         $res = Find-PSResource -Name "*" -Repository "MAR"
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterThan 1
+    }
+}
+
+# Skip this test fo
+Describe 'Test Find-PSResource for unauthenticated ACR repository' -tags 'CI' {
+    BeforeAll {
+        $skipOnWinPS =  $PSVersionTable.PSVersion.Major -eq 5
+
+        if (-not $skipOnWinPS) {
+            Register-PSResourceRepository -Name "Unauthenticated" -Uri "https://psresourcegetnoauth.azurecr.io/" -ApiVersion "ContainerRegistry"
+        }
+    }
+
+    AfterAll {
+        if (-not $skipOnWinPS) {
+            Unregister-PSResourceRepository -Name "Unauthenticated"
+        }
+    }
+
+    It "Should find resource given specific Name, Version null" {
+
+        if ($skipOnWinPS) {
+            Set-ItResult -Pending -Because "Skipping test on Windows PowerShell"
+            return
+        }
+
+        $res = Find-PSResource -Name "hello-world" -Repository "Unauthenticated"
+        $res.Name | Should -Be "hello-world"
+        $res.Version | Should -Be "5.0.0"
     }
 }
