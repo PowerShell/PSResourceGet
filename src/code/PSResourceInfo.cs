@@ -884,19 +884,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 metadata["NormalizedVersion"] = parsedNormalizedVersion.ToNormalizedString();
 
                 // License Url
-                if (rootDom.TryGetProperty("LicenseUrl", out JsonElement licenseUrlElement) || rootDom.TryGetProperty("licenseUrl", out licenseUrlElement) || rootDom.TryGetProperty("LicenseUri", out licenseUrlElement))
+                if (rootDom.TryGetProperty("LicenseUrl", out JsonElement licenseUrlElement) || rootDom.TryGetProperty("licenseUrl", out licenseUrlElement))
                 {
                     metadata["LicenseUrl"] = ParseHttpUrl(licenseUrlElement.ToString()) as Uri;
                 }
 
                 // Project Url
-                if (rootDom.TryGetProperty("ProjectUrl", out JsonElement projectUrlElement) || rootDom.TryGetProperty("projectUrl", out projectUrlElement) || rootDom.TryGetProperty("ProjectUri", out projectUrlElement))
+                if (rootDom.TryGetProperty("ProjectUrl", out JsonElement projectUrlElement) || rootDom.TryGetProperty("projectUrl", out projectUrlElement))
                 {
                     metadata["ProjectUrl"] = ParseHttpUrl(projectUrlElement.ToString()) as Uri;
                 }
 
                 // Icon Url
-                if (rootDom.TryGetProperty("IconUrl", out JsonElement iconUrlElement) || rootDom.TryGetProperty("iconUrl", out iconUrlElement) || rootDom.TryGetProperty("IconUri", out iconUrlElement))
+                if (rootDom.TryGetProperty("IconUrl", out JsonElement iconUrlElement) || rootDom.TryGetProperty("iconUrl", out iconUrlElement))
                 {
                     metadata["IconUrl"] = ParseHttpUrl(iconUrlElement.ToString()) as Uri;
                 }
@@ -995,17 +995,17 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 if (rootDom.TryGetProperty("PrivateData", out JsonElement privateDataElement) && privateDataElement.TryGetProperty("PSData", out JsonElement psDataElement))
                 {
                     // some properties that may be in PrivateData.PSData: LicenseUri, ProjectUri, IconUri, ReleaseNotes
-                    if (!(metadata.ContainsKey("LicenseUrl") || metadata.ContainsKey("licenseUrl")) && psDataElement.TryGetProperty("LicenseUri", out JsonElement psDataLicenseUriElement))
+                    if (!metadata.ContainsKey("LicenseUrl") && psDataElement.TryGetProperty("LicenseUri", out JsonElement psDataLicenseUriElement))
                     {
                         metadata["LicenseUrl"] = ParseHttpUrl(psDataLicenseUriElement.ToString()) as Uri;
                     }
 
-                    if (!(metadata.ContainsKey("ProjectUrl") || metadata.ContainsKey("ProjectUrl")) && psDataElement.TryGetProperty("ProjectUri", out JsonElement psDataProjectUriElement))
+                    if (!metadata.ContainsKey("ProjectUrl") && psDataElement.TryGetProperty("ProjectUri", out JsonElement psDataProjectUriElement))
                     {
                         metadata["ProjectUrl"] = ParseHttpUrl(psDataProjectUriElement.ToString()) as Uri;
                     }
 
-                    if (!(metadata.ContainsKey("IconUrl") || metadata.ContainsKey("IconUrl")) && psDataElement.TryGetProperty("IconUri", out JsonElement psDataIconUriElement))
+                    if (!metadata.ContainsKey("IconUrl") && psDataElement.TryGetProperty("IconUri", out JsonElement psDataIconUriElement))
                     {
                         metadata["IconUrl"] = ParseHttpUrl(psDataIconUriElement.ToString()) as Uri;
                     }
@@ -1013,6 +1013,29 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     if (!metadata.ContainsKey("ReleaseNotes") && psDataElement.TryGetProperty("ReleaseNotes", out JsonElement psDataReleaseNotesElement))
                     {
                         metadata["ReleaseNotes"] = psDataReleaseNotesElement.ToString();
+                    }
+
+                    if (!metadata.ContainsKey("Tags") && psDataElement.TryGetProperty("Tags", out JsonElement psDataTagsElement))
+                    {
+                        string[] pkgTags = Utils.EmptyStrArray;
+                        if (psDataTagsElement.ValueKind == JsonValueKind.Array)
+                        {
+                            var arrayLength = psDataTagsElement.GetArrayLength();
+                            List<string> tags = new List<string>(arrayLength);
+                            foreach (var tag in psDataTagsElement.EnumerateArray())
+                            {
+                                tags.Add(tag.ToString());
+                            }
+
+                            pkgTags = tags.ToArray();
+                        }
+                        else if (psDataTagsElement.ValueKind == JsonValueKind.String)
+                        {
+                            string tagStr = psDataTagsElement.ToString();
+                            pkgTags = tagStr.Split(Utils.WhitespaceSeparator, StringSplitOptions.RemoveEmptyEntries);
+                        }
+
+                        metadata["Tags"] = pkgTags;
                     }
                 }
 

@@ -240,6 +240,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.LicenseUri | Should -Be "https://aka.ms/azps-license"
         $res.ProjectUri | Should -Be "https://github.com/Azure/azure-powershell"
         $res.ReleaseNotes.Length | Should -Not -Be 0
+        $res.Tags.Length | Should -Be 5
     }
 
     It "Install script with companyname, copyright, and repository source location and validate" {
