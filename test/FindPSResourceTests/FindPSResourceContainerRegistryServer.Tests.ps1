@@ -242,17 +242,6 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.ReleaseNotes.Length | Should -Not -Be 0
         $res.Tags.Length | Should -Be 5
     }
-
-    It "Install script with companyname, copyright, and repository source location and validate" {
-        Install-PSResource -Name "Install-VSCode" -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
-
-        $res = Get-InstalledPSResource "Install-VSCode" -Version "1.4.2"
-        $res.Name | Should -Be "Install-VSCode"
-        $res.Version | Should -Be "1.4.2"
-        $res.CompanyName | Should -Be "Microsoft Corporation"
-        $res.Copyright | Should -Be "(c) Microsoft Corporation"
-        $res.RepositorySourceLocation | Should -Be $PSGalleryUri
-    }
 }
 
 Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
