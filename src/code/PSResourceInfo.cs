@@ -992,7 +992,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
                 }
 
-                if (rootDom.TryGetProperty("PrivateData", out JsonElement privateDataElement) && privateDataElement.TryGetProperty("PSData", out JsonElement psDataElement))
+                if (rootDom.TryGetProperty("PrivateData", out JsonElement privateDataElement) && privateDataElement.ValueKind == JsonValueKind.Object && privateDataElement.TryGetProperty("PSData", out JsonElement psDataElement))
                 {
                     // some properties that may be in PrivateData.PSData: LicenseUri, ProjectUri, IconUri, ReleaseNotes
                     if (!metadata.ContainsKey("LicenseUrl") && psDataElement.TryGetProperty("LicenseUri", out JsonElement psDataLicenseUriElement))
