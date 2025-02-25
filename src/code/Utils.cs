@@ -316,9 +316,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             string versionString,
             string prerelease)
         {
-            // versionString may be like 1.2.0.0 or 1.2.0
+            // versionString may be like 1.2.0.0 or 1.2.0 or 1.2
             // prerelease    may be      null    or "alpha1"
             // possible passed in examples:
+            // versionString: "1.2"                           <- container registry 2 digit version
+            // versionString: "1.2"     prerelease: "alpha1"  <- container registry 2 digit version
             // versionString: "1.2.0"   prerelease: "alpha1"
             // versionString: "1.2.0"   prerelease: ""        <- doubtful though
             // versionString: "1.2.0.0" prerelease: "alpha1"
@@ -331,9 +333,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             int numVersionDigits = versionString.Split('.').Count();
 
-            if (numVersionDigits == 3)
+            if (numVersionDigits == 2 || numVersionDigits == 3)
             {
-                // versionString: "1.2.0" prerelease: "alpha1"
+                // versionString: "1.2.0" prerelease: "alpha1" -> 1.2.0-alpha1
+                // versionString: "1.2"   prerelease: "alpha1" -> 1.2-alpha1
                 return versionString + "-" + prerelease;
             }
             else if (numVersionDigits == 4)
