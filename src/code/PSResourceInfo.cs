@@ -852,9 +852,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     pkgVersion = ParseHttpVersion(versionValue, out string prereleaseLabel);
                     metadata["Version"] = pkgVersion;
 
-                    if (rootDom.TryGetProperty("PrivateData", out JsonElement privateDataElement) && privateDataElement.TryGetProperty("PSData", out JsonElement psDataElement))
+                    if (rootDom.TryGetProperty("PrivateData", out JsonElement versionPrivateDataElement) && versionPrivateDataElement.TryGetProperty("PSData", out JsonElement versionPSDataElement))
                     {
-                        if (psDataElement.TryGetProperty("Prerelease", out JsonElement pkgPrereleaseLabelElement) && !String.IsNullOrEmpty(pkgPrereleaseLabelElement.ToString().Trim()))
+                        if (versionPSDataElement.TryGetProperty("Prerelease", out JsonElement pkgPrereleaseLabelElement) && !String.IsNullOrEmpty(pkgPrereleaseLabelElement.ToString().Trim()))
                         {
                             prereleaseLabel = pkgPrereleaseLabelElement.ToString().Trim();
                             versionValue += $"-{prereleaseLabel}";
@@ -884,19 +884,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 metadata["NormalizedVersion"] = parsedNormalizedVersion.ToNormalizedString();
 
                 // License Url
-                if (rootDom.TryGetProperty("LicenseUrl", out JsonElement licenseUrlElement) || rootDom.TryGetProperty("licenseUrl", out licenseUrlElement))
+                if (rootDom.TryGetProperty("LicenseUrl", out JsonElement licenseUrlElement) || rootDom.TryGetProperty("licenseUrl", out licenseUrlElement) || rootDom.TryGetProperty("LicenseUri", out licenseUrlElement))
                 {
                     metadata["LicenseUrl"] = ParseHttpUrl(licenseUrlElement.ToString()) as Uri;
                 }
 
                 // Project Url
-                if (rootDom.TryGetProperty("ProjectUrl", out JsonElement projectUrlElement) || rootDom.TryGetProperty("projectUrl", out projectUrlElement))
+                if (rootDom.TryGetProperty("ProjectUrl", out JsonElement projectUrlElement) || rootDom.TryGetProperty("projectUrl", out projectUrlElement) || rootDom.TryGetProperty("ProjectUri", out projectUrlElement))
                 {
                     metadata["ProjectUrl"] = ParseHttpUrl(projectUrlElement.ToString()) as Uri;
                 }
 
                 // Icon Url
-                if (rootDom.TryGetProperty("IconUrl", out JsonElement iconUrlElement) || rootDom.TryGetProperty("iconUrl", out iconUrlElement))
+                if (rootDom.TryGetProperty("IconUrl", out JsonElement iconUrlElement) || rootDom.TryGetProperty("iconUrl", out iconUrlElement) || rootDom.TryGetProperty("IconUri", out iconUrlElement))
                 {
                     metadata["IconUrl"] = ParseHttpUrl(iconUrlElement.ToString()) as Uri;
                 }
@@ -938,14 +938,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // Author
-                if (rootDom.TryGetProperty("Authors", out JsonElement authorsElement) || rootDom.TryGetProperty("authors", out authorsElement))
+                if (rootDom.TryGetProperty("Authors", out JsonElement authorsElement) || rootDom.TryGetProperty("authors", out authorsElement) || rootDom.TryGetProperty("Author", out authorsElement))
                 {
                     metadata["Authors"] = authorsElement.ToString();
+                }
 
-                    // CompanyName
-                    // CompanyName is not provided in v3 pkg metadata response, so we've just set it to the author,
-                    // which is often the company
-                    metadata["CompanyName"] = authorsElement.ToString();
+                if (rootDom.TryGetProperty("CompanyName", out JsonElement companyNameElement))
+                {                
+                    metadata["CompanyName"] = companyNameElement.ToString();
+                }
+                else
+                {
+                    // if CompanyName property is not provided set it to the Author value which is often the same.
+                    metadata["CompanyName"] = metadata["Authors"];
                 }
 
                 // Copyright
@@ -978,12 +983,36 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     {
                         metadata["Dependencies"] = ParseContainerRegistryDependencies(moduleListDepsElement, out errorMsg).ToArray();
                     }
-                    else if (rootDom.TryGetProperty("PrivateData", out JsonElement privateDataElement) && privateDataElement.TryGetProperty("PSData", out JsonElement psDataElement))
+                    else if (rootDom.TryGetProperty("PrivateData", out JsonElement depsPrivateDataElement) && depsPrivateDataElement.TryGetProperty("PSData", out JsonElement depsPSDataElement))
                     {
-                        if (psDataElement.TryGetProperty("ModuleList", out JsonElement privateDataModuleListDepsElement))
+                        if (depsPSDataElement.TryGetProperty("ModuleList", out JsonElement privateDataModuleListDepsElement))
                         {
                             metadata["Dependencies"] = ParseContainerRegistryDependencies(privateDataModuleListDepsElement, out errorMsg).ToArray();
                         }
+                    }
+                }
+
+                if (rootDom.TryGetProperty("PrivateData", out JsonElement privateDataElement) && privateDataElement.TryGetProperty("PSData", out JsonElement psDataElement))
+                {
+                    // some properties that may be in PrivateData.PSData: LicenseUri, ProjectUri, IconUri, ReleaseNotes
+                    if (!(metadata.ContainsKey("LicenseUrl") || metadata.ContainsKey("licenseUrl")) && psDataElement.TryGetProperty("LicenseUri", out JsonElement psDataLicenseUriElement))
+                    {
+                        metadata["LicenseUrl"] = ParseHttpUrl(psDataLicenseUriElement.ToString()) as Uri;
+                    }
+
+                    if (!(metadata.ContainsKey("ProjectUrl") || metadata.ContainsKey("ProjectUrl")) && psDataElement.TryGetProperty("ProjectUri", out JsonElement psDataProjectUriElement))
+                    {
+                        metadata["ProjectUrl"] = ParseHttpUrl(psDataProjectUriElement.ToString()) as Uri;
+                    }
+
+                    if (!(metadata.ContainsKey("IconUrl") || metadata.ContainsKey("IconUrl")) && psDataElement.TryGetProperty("IconUri", out JsonElement psDataIconUriElement))
+                    {
+                        metadata["IconUrl"] = ParseHttpUrl(psDataIconUriElement.ToString()) as Uri;
+                    }
+
+                    if (!metadata.ContainsKey("ReleaseNotes") && psDataElement.TryGetProperty("ReleaseNotes", out JsonElement psDataReleaseNotesElement))
+                    {
+                        metadata["ReleaseNotes"] = psDataReleaseNotesElement.ToString();
                     }
                 }
 

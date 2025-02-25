@@ -232,6 +232,26 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Dependencies.Length | Should -Be 1
         $res.Dependencies[0].Name | Should -Be "Az.Accounts"
     }
+
+    It "Should find resource and its associated author, licenseUri, projectUri, releaseNotes, etc properties" {
+        $res = Find-PSResource -Name "Az.Storage" -Version "8.0.0" -Repository $ACRRepoName
+        $res.Author | Should -Be "Microsoft Corporation"
+        $res.CompanyName | Should -Be "Microsoft Corporation"
+        $res.LicenseUri | Should -Be "https://aka.ms/azps-license"
+        $res.ProjectUri | Should -Be "https://github.com/Azure/azure-powershell"
+        $res.ReleaseNotes.Length | Should -Not -Be 0
+    }
+
+    It "Install script with companyname, copyright, and repository source location and validate" {
+        Install-PSResource -Name "Install-VSCode" -Version "1.4.2" -Repository $PSGalleryName -TrustRepository
+
+        $res = Get-InstalledPSResource "Install-VSCode" -Version "1.4.2"
+        $res.Name | Should -Be "Install-VSCode"
+        $res.Version | Should -Be "1.4.2"
+        $res.CompanyName | Should -Be "Microsoft Corporation"
+        $res.Copyright | Should -Be "(c) Microsoft Corporation"
+        $res.RepositorySourceLocation | Should -Be $PSGalleryUri
+    }
 }
 
 Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
