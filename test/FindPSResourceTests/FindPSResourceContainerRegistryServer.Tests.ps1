@@ -232,6 +232,16 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Dependencies.Length | Should -Be 1
         $res.Dependencies[0].Name | Should -Be "Az.Accounts"
     }
+
+    It "Should find resource and its associated author, licenseUri, projectUri, releaseNotes, etc properties" {
+        $res = Find-PSResource -Name "Az.Storage" -Version "8.0.0" -Repository $ACRRepoName
+        $res.Author | Should -Be "Microsoft Corporation"
+        $res.CompanyName | Should -Be "Microsoft Corporation"
+        $res.LicenseUri | Should -Be "https://aka.ms/azps-license"
+        $res.ProjectUri | Should -Be "https://github.com/Azure/azure-powershell"
+        $res.ReleaseNotes.Length | Should -Not -Be 0
+        $res.Tags.Length | Should -Be 5
+    }
 }
 
 Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
