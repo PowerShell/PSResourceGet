@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Dbg = System.Diagnostics.Debug;
+using Microsoft.PowerShell.Commands;
 using NuGet.Versioning;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Management.Automation;
 using System.Text.Json;
 using System.Xml;
-using Microsoft.PowerShell.Commands;
-
-using Dbg = System.Diagnostics.Debug;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -82,7 +82,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// <param name="includes">Hashtable of PSGet includes</param>
         internal ResourceIncludes(Hashtable includes)
         {
-            if (includes == null) { return; }
+            if (includes == null)
+            { return; }
 
             Cmdlet = GetHashTableItem(includes, nameof(Cmdlet));
             Command = GetHashTableItem(includes, nameof(Command));
@@ -194,8 +195,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// <param name="parentResource">the parent module resource the command or dsc resource belongs to</param>
         public PSCommandResourceInfo(string[] names, PSResourceInfo parentResource)
         {
-           Names = names;
-           ParentResource = parentResource;
+            Names = names;
+            ParentResource = parentResource;
         }
 
         #endregion
@@ -296,7 +297,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         #region Private fields
 
-        private static readonly char[] Delimeter = {' ', ','};
+        private static readonly char[] Delimeter = { ' ', ',' };
 
         #endregion
 
@@ -331,7 +332,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 errorMsg = string.Format(
                     CultureInfo.InvariantCulture,
@@ -363,11 +364,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             try
             {
                 // Read and deserialize information xml file.
-                var psObjectInfo = (PSObject) PSSerializer.Deserialize(
+                var psObjectInfo = (PSObject)PSSerializer.Deserialize(
                     System.IO.File.ReadAllText(
                         filePath));
 
-                var additionalMetadata = GetProperty<Dictionary<string,string>>(nameof(PSResourceInfo.AdditionalMetadata), psObjectInfo);
+                var additionalMetadata = GetProperty<Dictionary<string, string>>(nameof(PSResourceInfo.AdditionalMetadata), psObjectInfo);
                 Version version = GetVersionInfo(psObjectInfo, additionalMetadata, out string prerelease);
 
                 psGetInfo = new PSResourceInfo(
@@ -401,7 +402,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 errorMsg = string.Format(
                     CultureInfo.InvariantCulture,
@@ -486,7 +487,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 errorMsg = "TryConvertXmlToPSResourceInfo: Invalid XmlNodeList object. Object cannot be null.";
                 return false;
             }
-            
+
             try
             {
                 Hashtable metadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
@@ -577,7 +578,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 var additionalMetadataHashtable = new Dictionary<string, string>();
 
                 // Only add NormalizedVersion to additionalMetadata if server response included it
-                if (metadata.ContainsKey("NormalizedVersion")) {
+                if (metadata.ContainsKey("NormalizedVersion"))
+                {
                     additionalMetadataHashtable.Add("NormalizedVersion", metadata["NormalizedVersion"].ToString());
                 }
 
@@ -594,10 +596,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     includes: includes,
                     installedDate: null,
                     installedLocation: null,
-                    isPrerelease: (bool) metadata["IsPrerelease"],
+                    isPrerelease: (bool)metadata["IsPrerelease"],
                     licenseUri: metadata["LicenseUrl"] as Uri,
                     name: metadata["Id"] as String,
-                    powershellGetFormatVersion: null,   
+                    powershellGetFormatVersion: null,
                     prerelease: metadata["Prerelease"] as String,
                     projectUri: metadata["ProjectUrl"] as Uri,
                     publishedDate: metadata["Published"] as DateTime?,
@@ -608,7 +610,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     type: typeInfo,
                     updatedDate: null,
                     version: metadata["Version"] as Version);
-                
+
                 return true;
             }
             catch (Exception ex)
@@ -643,7 +645,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             try
             {
-                Hashtable metadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+                Hashtable metadata = new(StringComparer.InvariantCultureIgnoreCase);
                 JsonElement rootDom = pkgJson.RootElement;
 
                 // Version
@@ -716,7 +718,38 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // Dependencies
-                // TODO, tracked via: https://github.com/PowerShell/PSResourceGet/issues/1169
+                if (rootDom.TryGetProperty("dependencyGroups", out JsonElement dependencyGroupsElement))
+                {
+                    List<Dependency> pkgDeps = new();
+                    foreach (
+                        JsonElement dependencyGroup in dependencyGroupsElement.EnumerateArray().Where(
+                            x => !string.IsNullOrWhiteSpace(x.GetProperty("@id").GetString())
+                        )
+                    )
+                    {
+                        if (dependencyGroup.TryGetProperty("dependencies", out JsonElement dependenciesElement))
+                        {
+                            foreach (
+                                JsonElement dependency in dependenciesElement.EnumerateArray().Where(
+                                    x => !string.IsNullOrWhiteSpace(x.GetProperty("@id").GetString())
+                                )
+                            )
+                            {
+                                pkgDeps.Add(
+                                    new Dependency(
+                                        dependency.GetProperty("id").GetString(),
+                                        (
+                                            VersionRange.TryParse(dependency.GetProperty("range").GetString(), out VersionRange versionRange) ?
+                                            versionRange :
+                                            VersionRange.All
+                                        )
+                                    )
+                                );
+                            }
+                        }
+                    }
+                    metadata["Dependencies"] = pkgDeps.ToArray();
+                }
 
                 // IsPrerelease
                 // NuGet.org repository's response does contain 'isPrerelease' element so it can be accquired and set here.
@@ -753,9 +786,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     metadata["Id"] = idElement.ToString();
                 }
-                
+
                 // ReleaseNotes
-                if (rootDom.TryGetProperty("releaseNotes", out JsonElement releaseNotesElement)) {
+                if (rootDom.TryGetProperty("releaseNotes", out JsonElement releaseNotesElement))
+                {
                     metadata["ReleaseNotes"] = releaseNotesElement.ToString();
                 }
 
@@ -789,9 +823,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     type: ResourceType.None,
                     updatedDate: null,
                     version: metadata["Version"] as Version);
-                    
+
                 return true;
-                
+
             }
             catch (Exception ex)
             {
@@ -799,7 +833,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     CultureInfo.InvariantCulture,
                     @"TryConvertFromJson: Cannot parse PSResourceInfo from json object with error: {0}",
                     ex.Message);
-                    
+
                 return false;
             }
         }
@@ -809,12 +843,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// used for ContainerRegistry Server API call find response conversion to PSResourceInfo object
         /// </summary>
         public static bool TryConvertFromContainerRegistryJson(
-          string packageName,
-          JsonDocument packageMetadata,
-          ResourceType? resourceType,
-          out PSResourceInfo psGetInfo,
-          PSRepositoryInfo repository, 
-          out string errorMsg)
+            string packageName,
+            JsonDocument packageMetadata,
+            ResourceType? resourceType,
+            out PSResourceInfo psGetInfo,
+            PSRepositoryInfo repository,
+            out string errorMsg)
         {
             psGetInfo = null;
             errorMsg = String.Empty;
@@ -845,7 +879,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     metadata["Prerelease"] = prereleaseLabel;
                     metadata["IsPrerelease"] = !String.IsNullOrEmpty(prereleaseLabel);
                 }
-                else if(rootDom.TryGetProperty("ModuleVersion", out JsonElement moduleVersionElement))
+                else if (rootDom.TryGetProperty("ModuleVersion", out JsonElement moduleVersionElement))
                 {
                     // For modules (i.e with "ModuleVersion" property) it will just contain the numerical part not prerelease label, so we must find that from PrivateData.PSData.Prerelease entry
                     versionValue = moduleVersionElement.ToString();
@@ -1043,7 +1077,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     { "NormalizedVersion", metadata["NormalizedVersion"].ToString() }
                 };
-               
+
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: additionalMetadataHashtable,
                     author: metadata["Authors"] as String,
@@ -1071,7 +1105,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     version: metadata["Version"] as Version);
 
                 return true;
-                
+
             }
             catch (Exception ex)
             {
@@ -1079,7 +1113,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     CultureInfo.InvariantCulture,
                     @"TryConvertFromContainerRegistryJson: Cannot parse PSResourceInfo from json object with error: {0}",
                     ex.Message);
-                    
+
                 return false;
             }
         }
@@ -1113,7 +1147,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                                 moduleNameHash.Add("ModuleName", modName);
                                 requiredModulesHashList.Add(moduleNameHash);
                             }
-                        } 
+                        }
                     }
                 }
 
@@ -1127,7 +1161,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     { nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames) }
                 };
 
-                string prereleaseLabel = (string) pkgMetadata["Prerelease"];
+                string prereleaseLabel = (string)pkgMetadata["Prerelease"];
                 bool isPrerelease = !String.IsNullOrEmpty(prereleaseLabel);
 
                 Uri iconUri = pkgMetadata["IconUri"] as Uri;
@@ -1157,7 +1191,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     isPrerelease: isPrerelease,
                     licenseUri: licenseUri,
                     name: pkgMetadata["Id"] as String,
-                    powershellGetFormatVersion: null,   
+                    powershellGetFormatVersion: null,
                     prerelease: prereleaseLabel,
                     projectUri: projectUri,
                     publishedDate: null,
@@ -1171,7 +1205,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 errorMsg = string.Format(
                     CultureInfo.InvariantCulture,
@@ -1206,13 +1240,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 NuGetVersion nugetVersion = pkgMetadata["Version"] as NuGetVersion;
                 bool isPrerelease = nugetVersion.IsPrerelease;
                 Version version = nugetVersion.Version;
-                string prereleaseLabel = isPrerelease ? nugetVersion.ToNormalizedString().Split(new char[]{'-'})[1] : String.Empty;
+                string prereleaseLabel = isPrerelease ? nugetVersion.ToNormalizedString().Split(new char[] { '-' })[1] : String.Empty;
 
                 var additionalMetadataHashtable = new Dictionary<string, string> {
                     { "NormalizedVersion", nugetVersion.ToNormalizedString() }
                 };
 
-                ModuleSpecification[] requiredModules = pkgMetadata.ContainsKey("RequiredModules") ? pkgMetadata["RequiredModules"] as ModuleSpecification[] : new ModuleSpecification[]{};
+                ModuleSpecification[] requiredModules = pkgMetadata.ContainsKey("RequiredModules") ? pkgMetadata["RequiredModules"] as ModuleSpecification[] : new ModuleSpecification[] { };
 
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: additionalMetadataHashtable,
@@ -1228,7 +1262,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     isPrerelease: isPrerelease,
                     licenseUri: pkgMetadata["LicenseUri"] as Uri,
                     name: pkgMetadata["Id"] as String,
-                    powershellGetFormatVersion: null,   
+                    powershellGetFormatVersion: null,
                     prerelease: prereleaseLabel,
                     projectUri: pkgMetadata["ProjectUri"] as Uri,
                     publishedDate: null,
@@ -1242,7 +1276,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 errorMsg = string.Format(
                     CultureInfo.InvariantCulture,
@@ -1302,7 +1336,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     isPrerelease: isPrerelease,
                     licenseUri: licenseUri,
                     name: pkgMetadata["id"] as String,
-                    powershellGetFormatVersion: null,   
+                    powershellGetFormatVersion: null,
                     prerelease: prereleaseLabel,
                     projectUri: projectUri,
                     publishedDate: null,
@@ -1316,7 +1350,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 errorMsg = string.Format(
                     CultureInfo.InvariantCulture,
@@ -1386,9 +1420,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         private static Dependency[] GetDependencies(ArrayList dependencyInfos)
         {
             List<Dependency> dependenciesFound = new List<Dependency>();
-            if (dependencyInfos == null) { return dependenciesFound.ToArray(); }
+            if (dependencyInfos == null)
+            { return dependenciesFound.ToArray(); }
 
-            foreach(PSObject dependencyObj in dependencyInfos)
+            foreach (PSObject dependencyObj in dependencyInfos)
             {
                 // The dependency object can be a string or a hashtable
                 // eg:
@@ -1541,7 +1576,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             Uri parsedUri;
             Uri.TryCreate(uriString, UriKind.Absolute, out parsedUri);
-            
+
             return parsedUri;
         }
 
@@ -1555,10 +1590,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             /*
             Az.Profile:[0.1.0, ):|Az.Aks:[0.1.0, ):|Az.AnalysisServices:[0.1.0, ):
-            Post 1st Split: 
+            Post 1st Split:
             ["Az.Profile:[0.1.0, ):", "Az.Aks:[0.1.0, ):", "Az.AnalysisServices:[0.1.0, ):"]
             */
-            string[] dependencies = dependencyString.Split(new char[]{'|'}, StringSplitOptions.RemoveEmptyEntries);
+            string[] dependencies = dependencyString.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
 
             List<Dependency> dependencyList = new List<Dependency>();
             foreach (string dependency in dependencies)
@@ -1567,14 +1602,14 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 The Element: "Az.Profile:[0.1.0, ):"
                 Post 2nd Split: ["Az.Profile", "[0.1.0, )"]
                 */
-                string[] dependencyParts = dependency.Split(new char[]{':'}, StringSplitOptions.RemoveEmptyEntries);
+                string[] dependencyParts = dependency.Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
 
                 VersionRange dependencyVersion;
                 if (dependencyParts.Length == 1)
                 {
                     dependencyVersion = VersionRange.All;
                 }
-                else 
+                else
                 {
                     if (!Utils.TryParseVersionOrVersionRange(dependencyParts[1], out dependencyVersion))
                     {
@@ -1584,7 +1619,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 dependencyList.Add(new Dependency(dependencyParts[0], dependencyVersion));
             }
-            
+
             return dependencyList.ToArray();
         }
 
@@ -1672,7 +1707,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             ResourceType pkgType = ResourceType.Module;
             foreach (string tag in tags)
             {
-                if(String.Equals(tag, "PSScript", StringComparison.InvariantCultureIgnoreCase))
+                if (String.Equals(tag, "PSScript", StringComparison.InvariantCultureIgnoreCase))
                 {
                     // clear default Module tag, because a Script resource cannot be a Module resource also
                     pkgType = ResourceType.Script;
@@ -1830,7 +1865,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return deps.ToArray();
             }
 
-            foreach(ModuleSpecification depModule in requiredModules)
+            foreach (ModuleSpecification depModule in requiredModules)
             {
                 // ModuleSpecification has Version, RequiredVersion, MaximumVersion
                 string depName = depModule.Name;
@@ -1878,7 +1913,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         private static Dependency[] GetDependenciesForPsd1(Hashtable[] requiredModules)
         {
             List<Dependency> deps = new List<Dependency>();
-            foreach(Hashtable depModule in requiredModules)
+            foreach (Hashtable depModule in requiredModules)
             {
 
                 VersionRange depVersionRange = VersionRange.All;
@@ -1887,18 +1922,18 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     continue;
                 }
 
-                String depName = (string) depModule["ModuleName"];
+                String depName = (string)depModule["ModuleName"];
                 if (depModule.ContainsKey("RequiredVersion"))
                 {
                     // = 2.5.0
-                    Utils.TryParseVersionOrVersionRange((string) depModule["RequiredVersion"], out depVersionRange);
+                    Utils.TryParseVersionOrVersionRange((string)depModule["RequiredVersion"], out depVersionRange);
                 }
                 else if (depModule.ContainsKey("ModuleVersion") || depModule.ContainsKey("MaximumVersion"))
                 {
                     if (depModule.ContainsKey("ModuleVersion") && depModule.ContainsKey("MaximumVersion"))
                     {
-                        NuGetVersion.TryParse((string) depModule["ModuleVersion"], out NuGetVersion minVersion);
-                        NuGetVersion.TryParse((string) depModule["MaximumVersion"], out NuGetVersion maxVersion);
+                        NuGetVersion.TryParse((string)depModule["ModuleVersion"], out NuGetVersion minVersion);
+                        NuGetVersion.TryParse((string)depModule["MaximumVersion"], out NuGetVersion maxVersion);
                         depVersionRange = new VersionRange(
                             minVersion: minVersion,
                             includeMinVersion: true,
@@ -1907,7 +1942,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
                     else if (depModule.ContainsKey("ModuleVersion"))
                     {
-                        NuGetVersion.TryParse((string) depModule["ModuleVersion"], out NuGetVersion minVersion);
+                        NuGetVersion.TryParse((string)depModule["ModuleVersion"], out NuGetVersion minVersion);
                         depVersionRange = new VersionRange(
                             minVersion: minVersion,
                             includeMinVersion: true,
@@ -1917,7 +1952,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     else
                     {
                         // depModule has "MaximumVersion" key
-                        NuGetVersion.TryParse((string) depModule["MaximumVersion"], out NuGetVersion maxVersion);
+                        NuGetVersion.TryParse((string)depModule["MaximumVersion"], out NuGetVersion maxVersion);
                         depVersionRange = new VersionRange(
                             minVersion: null,
                             includeMinVersion: true,
