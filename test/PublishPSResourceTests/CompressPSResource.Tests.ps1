@@ -185,6 +185,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         Expand-Archive -Path $zipPath -DestinationPath $unzippedPath
 
         Test-Path -Path (Join-Path -Path $unzippedPath -ChildPath $testFile) | Should -Be $True
+        $null = Remove-Item $unzippedPath -Force -Recurse
     }
 
     It "Compresses a script" {
