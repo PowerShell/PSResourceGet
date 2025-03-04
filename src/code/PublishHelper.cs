@@ -1126,38 +1126,43 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     XmlElement element = doc.CreateElement("dependency", nameSpaceUri);
                     element.SetAttribute("id", dependencyName);
-        
-                    var requiredModulesVersionInfo = (Hashtable)requiredModules[dependencyName];
-                    string versionRange = "";
-                    if (requiredModulesVersionInfo.ContainsKey("RequiredVersion"))
+                    
+                    string dependencyVersion = requiredModules[dependencyName].ToString();
+                    if (!string.IsNullOrEmpty(dependencyVersion))
                     {
-                        // For RequiredVersion, use exact version notation [x.x.x]
-                        string requiredModulesVersion = requiredModulesVersionInfo["RequiredVersion"].ToString();
-                        versionRange = $"[{requiredModulesVersion}]";
-                    }
-                    else if (requiredModulesVersionInfo.ContainsKey("ModuleVersion") && requiredModulesVersionInfo.ContainsKey("MaximumVersion"))
-                    {
-                        // Version range when both min and max specified: [min,max]
-                        versionRange = $"[{requiredModulesVersionInfo["ModuleVersion"]}, {requiredModulesVersionInfo["MaximumVersion"]}]";
-                    }
-                    else if (requiredModulesVersionInfo.ContainsKey("ModuleVersion"))
-                    {
-                        // Only min specified: min (which means ≥ min)
-                        versionRange = requiredModulesVersionInfo["ModuleVersion"].ToString();
-                    }
-                    else if (requiredModulesVersionInfo.ContainsKey("MaximumVersion"))
-                    {
-                        // Only max specified: (, max]
-                        versionRange = $"(, {requiredModulesVersionInfo["MaximumVersion"]}]";
-                    }
+                        var requiredModulesVersionInfo = (Hashtable)requiredModules[dependencyName];
+                        string versionRange = String.Empty;
+                        if (requiredModulesVersionInfo.ContainsKey("RequiredVersion"))
+                        {
+                            // For RequiredVersion, use exact version notation [x.x.x]
+                            string requiredModulesVersion = requiredModulesVersionInfo["RequiredVersion"].ToString();
+                            versionRange = $"[{requiredModulesVersion}]";
+                        }
+                        else if (requiredModulesVersionInfo.ContainsKey("ModuleVersion") && requiredModulesVersionInfo.ContainsKey("MaximumVersion"))
+                        {
+                            // Version range when both min and max specified: [min,max]
+                            versionRange = $"[{requiredModulesVersionInfo["ModuleVersion"]}, {requiredModulesVersionInfo["MaximumVersion"]}]";
+                        }
+                        else if (requiredModulesVersionInfo.ContainsKey("ModuleVersion"))
+                        {
+                            // Only min specified: min (which means ≥ min)
+                            versionRange = requiredModulesVersionInfo["ModuleVersion"].ToString();
+                        }
+                        else if (requiredModulesVersionInfo.ContainsKey("MaximumVersion"))
+                        {
+                            // Only max specified: (, max]
+                            versionRange = $"(, {requiredModulesVersionInfo["MaximumVersion"]}]";
+                        }
 
-                    if (!string.IsNullOrEmpty(versionRange))
-                    {
-                        element.SetAttribute("version", versionRange);
+                        if (!string.IsNullOrEmpty(versionRange))
+                        {
+                            element.SetAttribute("version", versionRange);
+                        }
                     }
 
                     dependenciesElement.AppendChild(element);
                 }
+
                 metadataElement.AppendChild(dependenciesElement);
             }
 
