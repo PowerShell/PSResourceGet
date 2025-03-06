@@ -285,6 +285,11 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
         $res.Dependencies[0].Name | Should -Be "Az.Accounts"
     }
 
+    It "Should find Azpreview resource and it's dependency given specific Name and Version" {
+        $res = Find-PSResource -Name "Azpreview" -Version "13.2.0" -Repository "MAR"
+        $res.Dependencies.Length | Should -Not -Be 0
+    }
+
     It "Should find resource with wildcard in Name" {
         $res = Find-PSResource -Name "Az.App*" -Repository "MAR"
         $res | Should -Not -BeNullOrEmpty
@@ -295,9 +300,6 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
         $res = Find-PSResource -Name "*" -Repository "MAR"
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterThan 1
-    It "Should find Azpreview resource and it's dependency given specific Name and Version" {
-        $res = Find-PSResource -Name "Azpreview" -Version "13.2.0" -Repository "MAR"
-        $res.Dependencies.Length | Should -Not -Be 0
     }
 }
 
