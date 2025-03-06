@@ -116,7 +116,7 @@ extends:
             packageType: 'sdk'
             useGlobalJson: true
             # this is to ensure that we are installing the dotnet at the same location as container by default install the dotnet sdks
-            installationPath: 'C:\Program Files\dotnet\'
+            # installationPath: 'C:\Program Files\dotnet\'
             workingDirectory: $(repoRoot)
 
         - task: CodeQL3000Init@0 # Add CodeQL Init task right before your 'Build' step.
