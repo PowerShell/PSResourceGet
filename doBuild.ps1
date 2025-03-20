@@ -108,8 +108,6 @@ function DoBuild
                 'NuGet.Protocol'
                 'NuGet.Versioning'
                 'System.Buffers'
-                'System.ClientModel'
-                'System.Collections.Immutable'
                 'System.Diagnostics.DiagnosticSource'
                 'System.IO.FileSystem.AccessControl'
                 'System.Memory.Data'
