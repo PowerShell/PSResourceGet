@@ -1,3 +1,4 @@
+using Microsoft.PowerShell.PSResourceGet;
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using NuGet.Commands;
 using NuGet.Common;
@@ -13,7 +14,9 @@ using System.Text.RegularExpressions;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
@@ -646,6 +649,44 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return true;
         }
 
+        private HttpResponseMessage PutRequestAsync(string filename, string filePath, string repoUri, string publishLocation)
+        {
+            using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                var source_uri = new Uri(publishLocation);
+                var request = new HttpRequestMessage(HttpMethod.Put, source_uri);
+                //request.SetConfiguration(configuration);
+                var content = new MultipartFormDataContent();
+
+                var packageContent = new StreamContent(fileStream);
+                packageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
+                //"package" and "package.nupkg" are random names for content deserializing
+                //not tied to actual package name.
+                content.Add(packageContent, "package", "package.nupkg");
+                request.Content = content;
+
+                // Send the data in chunks so that it can be canceled if auth fails.
+                // Otherwise the whole package needs to be sent to the server before the PUT fails.
+                request.Headers.TransferEncodingChunked = true;
+
+                request.Headers.Add("X-NuGet-Client-Version", "4.1.0");
+                //request.Headers.Add("X-NuGet-ApiKey", ApiKey);
+
+                using (HttpClientHandler handler = new HttpClientHandler())
+                {
+                    var _sessionClient = new HttpClient(handler);
+                    _sessionClient.Timeout = TimeSpan.FromMinutes(10);
+
+                    var accessToken = Utils.GetAzAccessToken();
+                    _sessionClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+                    HttpResponseMessage response = _sessionClient.SendAsync(request).Result;
+                    return response;
+                }
+
+            }
+        }
+
         private bool PushNupkg(string outputNupkgDir, string repoName, string repoUri, out ErrorRecord error)
         {
             _cmdletPassedIn.WriteDebug("In PublishPSResource::PushNupkg()");
@@ -677,153 +718,245 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 InjectCredentialsToSettings(settings, sourceProvider, publishLocation);
             }
 
-
-            try
+            if (!string.IsNullOrEmpty(ApiKey))
             {
-                PushRunner.Run(
-                        settings: Settings.LoadDefaultSettings(root: null, configFileName: null, machineWideSettings: null),
-                        sourceProvider: sourceProvider,
-                        packagePaths: new List<string> { fullNupkgFile },
-                        source: publishLocation,
-                        apiKey: ApiKey,
-                        symbolSource: null,
-                        symbolApiKey: null,
-                        timeoutSeconds: 0,
-                        disableBuffering: false,
-                        noSymbols: false,
-                        noServiceEndpoint: false,  // enable server endpoint
-                        skipDuplicate: false, // if true-- if a package and version already exists, skip it and continue with the next package in the push, if any.
-                        logger: NullLogger.Instance // nuget logger
-                        ).GetAwaiter().GetResult();
-            }
-            catch (HttpRequestException e)
-            {
-                _cmdletPassedIn.WriteVerbose(string.Format("Not able to publish resource to '{0}'", repoUri));
-                //  look in PS repo for how httpRequestExceptions are handled
-
-                // Unfortunately there is no response message  are no status codes provided with the exception and no
-                var ex = new ArgumentException(String.Format("Repository '{0}': {1}", repoName, e.Message));
-                if (e.Message.Contains("400"))
+                try
                 {
-                    if (e.Message.Contains("Api"))
+                    PushRunner.Run(
+                            settings: Settings.LoadDefaultSettings(root: null, configFileName: null, machineWideSettings: null),
+                            sourceProvider: sourceProvider,
+                            packagePaths: new List<string> { fullNupkgFile },
+                            source: publishLocation,
+                            apiKey: ApiKey,
+                            symbolSource: null,
+                            symbolApiKey: null,
+                            timeoutSeconds: 0,
+                            disableBuffering: false,
+                            noSymbols: false,
+                            noServiceEndpoint: false,  // enable server endpoint
+                            skipDuplicate: false, // if true-- if a package and version already exists, skip it and continue with the next package in the push, if any.
+                            logger: NullLogger.Instance // nuget logger
+                            ).GetAwaiter().GetResult();
+                }
+                catch (HttpRequestException e)
+                {
+                    _cmdletPassedIn.WriteVerbose(string.Format("Not able to publish resource to '{0}'", repoUri));
+                    //  look in PS repo for how httpRequestExceptions are handled
+
+                    // Unfortunately there is no response message  are no status codes provided with the exception and no
+                    var ex = new ArgumentException(String.Format("Repository '{0}': {1}", repoName, e.Message));
+                    if (e.Message.Contains("400"))
                     {
-                        // For ADO repositories, public and private, when ApiKey is not provided.
+                        if (e.Message.Contains("Api"))
+                        {
+                            // For ADO repositories, public and private, when ApiKey is not provided.
+                            error = new ErrorRecord(
+                                new ArgumentException($"Repository '{repoName}': Please try running again with the -ApiKey parameter and specific API key for the repository specified. For Azure Devops repository, set this to an arbitrary value, for example '-ApiKey AzureDevOps'"),
+                                "400ApiKeyError",
+                                ErrorCategory.AuthenticationError,
+                                this);
+                        }
+                        else
+                        {
+                            error = new ErrorRecord(
+                                ex,
+                                "400Error",
+                                ErrorCategory.PermissionDenied,
+                                this);
+                        }
+                    }
+                    else if (e.Message.Contains("401"))
+                    {
+                        if (e.Message.Contains("API"))
+                        {
+                            // For PSGallery when ApiKey is not provided.
+                            error = new ErrorRecord(
+                                new ArgumentException($"Could not publish to repository '{repoName}'. Please try running again with the -ApiKey parameter and the API key for the repository specified. Exception: '{e.Message}'"),
+                                "401ApiKeyError",
+                                ErrorCategory.AuthenticationError,
+                                this);
+                        }
+                        else
+                        {
+                            // For ADO repository feeds that are public feeds, when the credentials are incorrect.
+                            error = new ErrorRecord(new ArgumentException($"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception: '{e.Message}'"),
+                                "401Error",
+                                ErrorCategory.PermissionDenied,
+                                this);
+                            ;
+                        }
+                    }
+                    else if (e.Message.Contains("403"))
+                    {
+                        if (repoUri.Contains("myget.org"))
+                        {
+                            // For myGet.org repository feeds when the ApiKey is missing or incorrect.
+                            error = new ErrorRecord(
+                                new ArgumentException($"Could not publish to repository '{repoName}'. The ApiKey provided is incorrect or missing. Please try running again with the -ApiKey parameter and correct API key value for the repository. Exception: '{e.Message}'"),
+                                "403Error",
+                                ErrorCategory.PermissionDenied,
+                                this);
+                        }
+                        else if (repoUri.Contains(".jfrog.io"))
+                        {
+                            // For JFrog Artifactory repository feeds when the ApiKey is provided, whether correct or incorrect, as JFrog does not require -ApiKey (but does require ApiKey to be present as password to -Credential).
+                            error = new ErrorRecord(
+                                new ArgumentException($"Could not publish to repository '{repoName}'. The ApiKey provided is not needed for JFrog Artifactory. Please try running again without the -ApiKey parameter but ensure that -Credential is provided with ApiKey as password. Exception: '{e.Message}'"),
+                                "403Error",
+                                ErrorCategory.PermissionDenied,
+                                this);
+                        }
+                        else
+                        {
+                            error = new ErrorRecord(
+                                ex,
+                                "403Error",
+                                ErrorCategory.PermissionDenied,
+                                this);
+                        }
+                    }
+                    else if (e.Message.Contains("409"))
+                    {
                         error = new ErrorRecord(
-                            new ArgumentException($"Repository '{repoName}': Please try running again with the -ApiKey parameter and specific API key for the repository specified. For Azure Devops repository, set this to an arbitrary value, for example '-ApiKey AzureDevOps'"),
-                            "400ApiKeyError",
-                            ErrorCategory.AuthenticationError,
-                            this);
+                            ex,
+                            "409Error",
+                            ErrorCategory.PermissionDenied, this);
+                    }
+                    else if (e.Message.Contains("500"))
+                    {
+                        error = new ErrorRecord(
+                                new ArgumentException($"Could not publish to repository '{repoName}'. Exception: '{e.Message}'"),
+                                "500Error",
+                                ErrorCategory.PermissionDenied,
+                                this);
                     }
                     else
                     {
                         error = new ErrorRecord(
                             ex,
-                            "400Error",
+                            "HTTPRequestError",
                             ErrorCategory.PermissionDenied,
                             this);
                     }
+
+                    return success;
                 }
-                else if (e.Message.Contains("401"))
+                catch (NuGet.Protocol.Core.Types.FatalProtocolException e)
                 {
-                    if (e.Message.Contains("API"))
+                    //  for ADO repository feeds that are private feeds the error thrown is different and the 401 is in the inner exception message
+                    if (e.InnerException.Message.Contains("401"))
                     {
-                        // For PSGallery when ApiKey is not provided.
                         error = new ErrorRecord(
-                            new ArgumentException($"Could not publish to repository '{repoName}'. Please try running again with the -ApiKey parameter and the API key for the repository specified. Exception: '{e.Message}'"),
-                            "401ApiKeyError",
+                            new ArgumentException($"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception '{e.InnerException.Message}'"),
+                            "401FatalProtocolError",
                             ErrorCategory.AuthenticationError,
                             this);
                     }
                     else
                     {
-                        // For ADO repository feeds that are public feeds, when the credentials are incorrect.
-                        error = new ErrorRecord(new ArgumentException($"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception: '{e.Message}'"),
+                        error = new ErrorRecord(
+                            new ArgumentException($"Repository '{repoName}': {e.InnerException.Message}"),
+                            "ProtocolFailError",
+                            ErrorCategory.ProtocolError,
+                            this);
+                    }
+
+                    return success;
+                }
+                catch (Exception e)
+                {
+                    _cmdletPassedIn.WriteVerbose($"Not able to publish resource to '{repoUri}'");
+                    error = new ErrorRecord(
+                        new ArgumentException(e.Message),
+                        "PushNupkgError",
+                        ErrorCategory.InvalidResult,
+                        this);
+
+                    return success;
+                }
+            }
+            else
+            {
+                try
+                {
+                    var response = PutRequestAsync(_pkgName, fullNupkgFile, repoUri, publishLocation);
+                    if (response.StatusCode == HttpStatusCode.BadRequest)
+                    {
+                        // Handle 400 Bad Request
+                        error = new ErrorRecord(
+                                    new ArgumentException($"Could not publish to repository '{repoName}'.Exception: '{response.ReasonPhrase}'"),
+                                    "400Error",
+                                    ErrorCategory.PermissionDenied,
+                                    this);
+                        return success;
+                    }
+
+                    else if (response.StatusCode == HttpStatusCode.Unauthorized)
+                    {
+                        // Handle 401 Unauthorized
+                        error = new ErrorRecord(new ArgumentException($"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception: '{response.ReasonPhrase}'"),
                             "401Error",
                             ErrorCategory.PermissionDenied,
-                            this); ;
+                            this);
+                        return success;
                     }
-                }
-                else if (e.Message.Contains("403"))
-                {
-                    if (repoUri.Contains("myget.org"))
+
+                    else if (response.StatusCode == HttpStatusCode.Forbidden)
                     {
-                        // For myGet.org repository feeds when the ApiKey is missing or incorrect.
+                        // Handle 403 Forbidden
                         error = new ErrorRecord(
-                            new ArgumentException($"Could not publish to repository '{repoName}'. The ApiKey provided is incorrect or missing. Please try running again with the -ApiKey parameter and correct API key value for the repository. Exception: '{e.Message}'"),
-                            "403Error",
+                                new ArgumentException($"Could not publish to repository '{repoName}'. The ApiKey provided is not needed for JFrog Artifactory. Please try running again without the -ApiKey parameter but ensure that -Credential is provided with ApiKey as password. Exception: '{response.ReasonPhrase}'"),
+                                "403Error",
+                                ErrorCategory.PermissionDenied,
+                                this);
+                        return success;
+                    }
+
+                    else if (response.StatusCode == HttpStatusCode.Conflict)
+                    {
+                        // Handle 409 Conflict
+                        error = new ErrorRecord(
+                            new ArgumentException($"Could not publish to repository '{repoName}'.Exception: '{response.ReasonPhrase}'"),
+                            "409Error",
+                            ErrorCategory.PermissionDenied, this);
+                        return success;
+                    }
+
+                    else if (response.StatusCode == HttpStatusCode.InternalServerError)
+                    {
+                        // Handle 500 Internal Server Error
+                        error = new ErrorRecord(new ArgumentException($"Could not publish to repository '{repoName}'. Exception: '{response.ReasonPhrase}'"),
+                            "500Error",
                             ErrorCategory.PermissionDenied,
                             this);
-                    }
-                    else if (repoUri.Contains(".jfrog.io"))
-                    {
-                        // For JFrog Artifactory repository feeds when the ApiKey is provided, whether correct or incorrect, as JFrog does not require -ApiKey (but does require ApiKey to be present as password to -Credential).
-                        error = new ErrorRecord(
-                            new ArgumentException($"Could not publish to repository '{repoName}'. The ApiKey provided is not needed for JFrog Artifactory. Please try running again without the -ApiKey parameter but ensure that -Credential is provided with ApiKey as password. Exception: '{e.Message}'"),
-                            "403Error",
-                            ErrorCategory.PermissionDenied,
-                            this);
+                        return success;
                     }
                     else
-                    {
-                        error = new ErrorRecord(
-                            ex,
-                            "403Error",
-                            ErrorCategory.PermissionDenied,
-                            this);
-                    }
+                        response.EnsureSuccessStatusCode(); // This will throw an exception for other HTTP error responses
                 }
-                else if (e.Message.Contains("409"))
+                catch (HttpRequestException e)
                 {
+                    _cmdletPassedIn.WriteVerbose(string.Format("Not able to publish resource to '{0}'", repoUri));
                     error = new ErrorRecord(
-                        ex,
-                        "409Error",
-                        ErrorCategory.PermissionDenied, this);
-                }
-                else
-                {
-                    error = new ErrorRecord(
-                        ex,
-                        "HTTPRequestError",
-                        ErrorCategory.PermissionDenied,
-                        this);
-                }
-
-                return success;
-            }
-            catch (NuGet.Protocol.Core.Types.FatalProtocolException e)
-            {
-                //  for ADO repository feeds that are private feeds the error thrown is different and the 401 is in the inner exception message
-                if (e.InnerException.Message.Contains("401"))
-                {
-                    error = new ErrorRecord(
-                        new ArgumentException($"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception '{e.InnerException.Message}'"),
-                        "401FatalProtocolError",
-                        ErrorCategory.AuthenticationError,
-                        this);
-                }
-                else
-                {
-                    error = new ErrorRecord(
-                        new ArgumentException($"Repository '{repoName}': {e.InnerException.Message}"),
-                        "ProtocolFailError",
-                        ErrorCategory.ProtocolError,
-                        this);
-                }
-
-                return success;
-            }
-            catch (Exception e)
-            {
-                _cmdletPassedIn.WriteVerbose($"Not able to publish resource to '{repoUri}'");
-                error = new ErrorRecord(
-                    new ArgumentException(e.Message),
-                    "PushNupkgError",
-                    ErrorCategory.InvalidResult,
+                    new ArgumentException($"Could not publish to repository '{repoName}'. Exception: '{e.Message}'"),
+                    "HTTPRequestError",
+                    ErrorCategory.PermissionDenied,
                     this);
 
-                return success;
-            }
+                    return success;
+                }
+                catch (Exception e)
+                {
+                    _cmdletPassedIn.WriteVerbose($"Not able to publish resource to '{repoUri}'");
+                    error = new ErrorRecord(
+                        new ArgumentException(e.Message),
+                        "EntraPushNupkgError",
+                        ErrorCategory.InvalidResult,
+                        this);
 
+                    return success;
+                }
+            }
             _cmdletPassedIn.WriteVerbose(string.Format("Successfully published the resource to '{0}'", repoUri));
             error = null;
             success = true;
