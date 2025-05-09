@@ -3,6 +3,7 @@
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
@@ -117,6 +118,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         [ValidateNotNullOrEmpty]
         public string NupkgPath { get; set; }
 
+        [Parameter]
+        public SwitchParameter Latest { get; set; }
+
+        [Parameter]
+        public SwitchParameter LatestPreview { get; set; }
+
         #endregion
 
         #region DynamicParameters
@@ -169,7 +176,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 DestinationPath,
                 SkipModuleManifestValidate,
                 _cancellationToken,
-                _isNupkgPathSpecified);
+                _isNupkgPathSpecified,
+                Latest,
+                LatestPreview);
 
             _publishHelper.CheckAllParameterPaths();
         }
