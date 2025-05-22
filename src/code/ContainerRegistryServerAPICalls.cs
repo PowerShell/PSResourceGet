@@ -47,6 +47,10 @@ namespace Microsoft.PowerShell.PSResourceGet
         const string containerRegistryStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads/"; // 0 - registry, 1 - packagename
         const string containerRegistryEndUploadTemplate = "https://{0}{1}&digest=sha256:{2}"; // 0 - registry, 1 - location, 2 - digest
         const string defaultScope = "&scope=repository:*:*&scope=registry:catalog:*";
+        const string catalogScope = "&scope=registry:catalog:*";
+        const string grantTypeTemplate = "grant_type=access_token&service={0}{1}"; // 0 - registry, 1 - scope
+        const string authUrlTemplate = "{0}?service={1}{2}"; // 0 - realm, 1 - service, 2 - scope
+
         const string containerRegistryRepositoryListTemplate = "https://{0}/v2/_catalog"; // 0 - registry
 
         #endregion
@@ -323,7 +327,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return null;
             }
 
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, out errRecord);
             if (errRecord != null)
             {
                 return null;
@@ -371,7 +375,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// If no credential provided at registration then, check if the ACR endpoint can be accessed without a token. If not, try using Azure.Identity to get the az access token, then ACR refresh token and then ACR access token.
         /// Note: Access token can be empty if the repository is unauthenticated
         /// </summary>
-        internal string GetContainerRegistryAccessToken(out ErrorRecord errRecord)
+        internal string GetContainerRegistryAccessToken(bool needCatalogAccess, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessToken()");
             string accessToken = string.Empty;
@@ -393,7 +397,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             else
             {
-                bool isRepositoryUnauthenticated = IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), out errRecord, out accessToken);
+                bool isRepositoryUnauthenticated = IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), needCatalogAccess, out errRecord, out accessToken);
                 _cmdletPassedIn.WriteDebug($"Is repository unauthenticated: {isRepositoryUnauthenticated}");
 
                 if (errRecord != null)
@@ -446,7 +450,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Checks if container registry repository is unauthenticated.
         /// </summary>
-        internal bool IsContainerRegistryUnauthenticated(string containerRegistyUrl, out ErrorRecord errRecord, out string anonymousAccessToken)
+        internal bool IsContainerRegistryUnauthenticated(string containerRegistyUrl, bool needCatalogAccess, out ErrorRecord errRecord, out string anonymousAccessToken)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::IsContainerRegistryUnauthenticated()");
             errRecord = null;
@@ -484,11 +488,11 @@ namespace Microsoft.PowerShell.PSResourceGet
                                     return false;
                                 }
 
-                                string content = "grant_type=access_token&service=" + service + defaultScope;
+                                string content = needCatalogAccess ? String.Format(grantTypeTemplate, service, catalogScope) : String.Format(grantTypeTemplate, service, defaultScope);
+
                                 var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
 
-                                // get the anonymous access token
-                                var url = $"{realm}?service={service}{defaultScope}";
+                                string url = needCatalogAccess ? String.Format(authUrlTemplate, realm, service, catalogScope) : String.Format(authUrlTemplate, realm, service, defaultScope);
 
                                 _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
 
@@ -508,6 +512,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                                 }
 
                                 anonymousAccessToken = results["access_token"].ToString();
+
                                 _cmdletPassedIn.WriteDebug("Anonymous access token retrieved");
                                 return true;
                             }
@@ -1234,7 +1239,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             // Get access token (includes refresh tokens)
             _cmdletPassedIn.WriteVerbose($"Get access token for container registry server.");
-            var containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
+            var containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, out errRecord);
             if (errRecord != null)
             {
                 return false;
@@ -1699,7 +1704,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string packageNameLowercase = packageName.ToLower();
 
             string packageNameForFind = PrependMARPrefix(packageNameLowercase);
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, out errRecord);
             if (errRecord != null)
             {
                 return emptyHashResponses;
@@ -1808,7 +1813,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindPackages()");
             errRecord = null;
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: true, out errRecord);
             if (errRecord != null)
             {
                 return emptyResponseResults;
