@@ -497,11 +497,15 @@ namespace Microsoft.PowerShell.PSResourceGet
                                 _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
 
                                 // we dont check the errorrecord here because we want to return false if we get a 401 and not throw an error
-                                var results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out _);
+                                _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
+                                ErrorRecord errRecordTemp = null;
+
+                                var results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out errRecordTemp);
 
                                 if (results == null)
                                 {
                                     _cmdletPassedIn.WriteDebug("Failed to get access token from the realm. results is null.");
+                                    _cmdletPassedIn.WriteDebug($"ErrorRecord: {errRecordTemp}");
                                     return false;
                                 }
 
@@ -993,24 +997,29 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 HttpRequestMessage request = new HttpRequestMessage(method, url);
 
-                if (string.IsNullOrEmpty(content))
+                // HTTP GET does not expect a body / content.
+                if (method != HttpMethod.Get)
                 {
-                    errRecord = new ErrorRecord(
-                    exception: new ArgumentNullException($"Content is null or empty and cannot be used to make a request as its content headers."),
-                    "RequestContentHeadersNullOrEmpty",
-                    ErrorCategory.InvalidData,
-                    _cmdletPassedIn);
 
-                    return null;
-                }
-
-                request.Content = new StringContent(content);
-                request.Content.Headers.Clear();
-                if (contentHeaders != null)
-                {
-                    foreach (var header in contentHeaders)
+                    if (string.IsNullOrEmpty(content))
                     {
-                        request.Content.Headers.Add(header.Key, header.Value);
+                        errRecord = new ErrorRecord(
+                        exception: new ArgumentNullException($"Content is null or empty and cannot be used to make a request as its content headers."),
+                        "RequestContentHeadersNullOrEmpty",
+                        ErrorCategory.InvalidData,
+                        _cmdletPassedIn);
+
+                        return null;
+                    }
+
+                    request.Content = new StringContent(content);
+                    request.Content.Headers.Clear();
+                    if (contentHeaders != null)
+                    {
+                        foreach (var header in contentHeaders)
+                        {
+                            request.Content.Headers.Add(header.Key, header.Value);
+                        }
                     }
                 }
 
@@ -1720,8 +1729,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             List<JToken> allVersionsList = foundTags["tags"].ToList();
 
             SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, versionType, versionRange, requiredVersion, packageNameForFind, includePrerelease, out errRecord);
-            if (errRecord != null)
+            if (errRecord != null && sortedQualifyingPkgs?.Count == 0)
             {
+                _cmdletPassedIn.WriteDebug("No qualifying packages found for the specified criteria.");
                 return emptyHashResponses;
             }
 
@@ -1770,7 +1780,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                         ErrorCategory.InvalidArgument,
                         this);
 
-                    return null;
+                    _cmdletPassedIn.WriteError(errRecord);
+                    _cmdletPassedIn.WriteDebug($"Skipping package '{packageName}' with version '{pkgVersionString}' as it is not a valid NuGet version.");
+                    continue; // skip this version and continue with the next one
                 }
 
                 _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
