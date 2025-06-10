@@ -516,8 +516,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                                 }
 
                                 anonymousAccessToken = results["access_token"].ToString();
-
-                                _cmdletPassedIn.WriteDebug("Anonymous access token retrieved");
                                 return true;
                             }
                         }
@@ -770,7 +768,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
                     {
                         errRecord = new ErrorRecord(
-                            new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version."),
+                            new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version for package '{packageName}'."),
                             "ParseMetadataFailure",
                             ErrorCategory.InvalidArgument,
                             this);
@@ -1775,7 +1773,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
                 {
                     errRecord = new ErrorRecord(
-                        new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version."),
+                        new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version for package '{packageName}'."),
                         "FindNameFailure",
                         ErrorCategory.InvalidArgument,
                         this);
