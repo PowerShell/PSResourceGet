@@ -24,7 +24,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     public sealed class FindPSResource : PSCmdlet
     {
         #region Members
-        
+
         private const string NameParameterSet = "NameParameterSet";
         private const string CommandNameParameterSet = "CommandNameParameterSet";
         private const string DscResourceNameParameterSet = "DscResourceNameParameterSet";
@@ -39,7 +39,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Specifies name of a resource or resources to find. Accepts wild card characters.
         /// </summary>
         [SupportsWildcards]
-        [Parameter(Position = 0, 
+        [Parameter(Position = 0,
                    ValueFromPipeline = true,
                    ValueFromPipelineByPropertyName = true,
                    ParameterSetName = NameParameterSet)]
@@ -115,14 +115,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void BeginProcessing()
         {
+            WriteVerbose("Beginning Find-PSResource processing");
             _cancellationTokenSource = new CancellationTokenSource();
 
             var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+
+            WriteVerbose("Creating FindHelper instance");
 
             _findHelper = new FindHelper(
                 cancellationToken: _cancellationTokenSource.Token,
                 cmdletPassedIn: this,
                 networkCredential: networkCred);
+
+            WriteVerbose("FindHelper instance created successfully");
 
             // Create a repository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
@@ -192,7 +197,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             WriteDebug("Filtering package name(s) on wildcards");
             Name = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
-            
+
             foreach (string error in errorMsgs)
             {
                 WriteError(new ErrorRecord(
@@ -208,7 +213,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 WriteDebug("Package name(s) could not be resolved");
                 return;
-            }         
+            }
 
             // determine/parse out Version param
             VersionType versionType = VersionType.VersionRange;
@@ -232,7 +237,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             "IncorrectVersionFormat",
                             ErrorCategory.InvalidArgument,
                             this));
-                    
+
                         return;
                     }
                 }
@@ -289,7 +294,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 WriteDebug("Command or DSCResource name(s) could not be resolved");
                 return;
             }
-            
+
             foreach (PSCommandResourceInfo cmdPkg in _findHelper.FindByCommandOrDscResource(
                 isSearchingForCommands: isSearchingForCommands,
                 prerelease: Prerelease,
@@ -325,7 +330,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 WriteDebug("Tags(s) could not be resolved");
                 return;
             }
-            
+
             foreach (PSResourceInfo tagPkg in _findHelper.FindByTag(
                 type: Type,
                 prerelease: Prerelease,
