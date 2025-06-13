@@ -37,15 +37,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void BeginProcessing()
         {
+            WriteVerbose("Beginning Get-PSResourceRepository processing");
             RepositorySettings.CheckRepositoryStore();
+            WriteVerbose("Repository store checked successfully");
         }
 
         protected override void ProcessRecord()
         {
+            WriteVerbose("Processing Get-PSResourceRepository cmdlet");
             string nameArrayAsString = (Name == null || !Name.Any() || string.Equals(Name[0], "*") || Name[0] == null)
                 ? "all" : string.Join(", ", Name);
             WriteDebug($"Reading repository info for '{nameArrayAsString}'");
             List<PSRepositoryInfo> items = RepositorySettings.Read(Name, out string[] errorList);
+            WriteVerbose($"Read {items.Count} repositories");
 
             // handle non-terminating errors
             foreach (string error in errorList)
@@ -57,10 +61,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this));
             }
 
+            WriteVerbose($"Returning {items.Count} repositories");
+
             foreach (PSRepositoryInfo repo in items)
             {
                 WriteObject(repo);
             }
+
+            WriteVerbose("Get-PSResourceRepository cmdlet processing complete");
         }
 
         #endregion

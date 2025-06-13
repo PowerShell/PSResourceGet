@@ -23,7 +23,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
             Write-Verbose -Verbose "Using Az module for authentication"
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -Verbose
             Write-Verbose -Verbose "Registering ACR repository with Az authentication completed"
-            Get-PSResourceRepository
+            Get-PSResourceRepository -Name $ACRRepoName -Verbose
         }
         else
         {
