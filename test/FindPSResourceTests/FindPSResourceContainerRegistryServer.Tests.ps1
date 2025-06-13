@@ -46,7 +46,8 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         }
         catch {
             Write-Error "Error occurred while finding resource: $_"
-            Get-Error
+            Write-Verbose -Verbose "Error details: $($_.Exception.Message)"
+            Write-Verbose -Verbose "Stack trace: $($_.ScriptStackTrace)"
         }
 
         Write-Verbose -Verbose "Find-PSResource completed"
