@@ -37,7 +37,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    <#It "Find resource given specific Name, Version null" {
+    It "Find resource given specific Name, Version null" {
         # FindName()
         Write-Verbose -Verbose "Finding resource with Name: $testModuleName"
         $res = Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Verbose -Debug -ErrorAction Stop
@@ -50,7 +50,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         Write-Verbose -Verbose "Find-PSResource completed"
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0"
-    }#>
+    }
 
     It "Should not find resource given nonexistant Name" {
         # FindName()

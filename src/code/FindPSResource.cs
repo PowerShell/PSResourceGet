@@ -174,7 +174,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             try
             {
-                WriteDebug("In FindPSResource::ProcessResourceNameParameterSet()");
+                WriteDebug("In FindPSResource::ProcessResourceNameParameterSet() XXXXXXXXXXX");
                 WriteDebug("Testing");
                 WriteVerbose("checking if Name parameter is specified");
 
