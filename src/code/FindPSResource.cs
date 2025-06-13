@@ -174,11 +174,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             try
             {
-                WriteDebug("In FindPSResource::ProcessResourceNameParameterSet() XXXXXXXXXXX");
                 WriteDebug("Testing");
+                WriteDebug("In FindPSResource::ProcessResourceNameParameterSet() XXXXXXXXXXX");
                 WriteVerbose("checking if Name parameter is specified");
 
-                var check = MyInvocation.BoundParameters.ContainsKey(nameof(Name));
+                var check = MyInvocation?.BoundParameters?.ContainsKey(nameof(Name));
 
                 WriteVerbose("Value of check for Name parameter: " + check);
 
