@@ -40,7 +40,13 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
     It "Find resource given specific Name, Version null" {
         # FindName()
         Write-Verbose -Verbose "Finding resource with Name: $testModuleName"
-        $res = Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Verbose -Debug
+        $res = Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Verbose -Debug -ErrorAction Stop
+
+        if ($Error.Count -gt 0) {
+            Write-Error "Error occurred while finding resource: $($Error[0])"
+            Get-Error
+        }
+
         Write-Verbose -Verbose "Find-PSResource completed"
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0"
