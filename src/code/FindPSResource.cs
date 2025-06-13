@@ -175,6 +175,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 WriteDebug("In FindPSResource::ProcessResourceNameParameterSet()");
+
+                WriteVerbose("checking if Name parameter is specified");
+
+                var check = MyInvocation.BoundParameters.ContainsKey(nameof(Name));
+
+                WriteVerbose("Value of check for Name parameter: " + check);
+
                 // only cases where Name is allowed to not be specified is if Type or Tag parameters are
                 if (!MyInvocation.BoundParameters.ContainsKey(nameof(Name)))
                 {
