@@ -429,6 +429,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             out Uri uriResult,
             out ErrorRecord errorRecord)
         {
+            cmdletPassedIn.WriteVerbose($"Validating Uri: {uriString}");
+
             errorRecord = null;
             if (Uri.TryCreate(uriString, UriKind.Absolute, out uriResult))
             {
@@ -1874,9 +1876,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             catch (Exception e)
             {
                 errorRecord = new ErrorRecord(
-                    exception: e, 
-                    "GetHashtableForNuspecFailure", 
-                    ErrorCategory.ReadError, 
+                    exception: e,
+                    "GetHashtableForNuspecFailure",
+                    ErrorCategory.ReadError,
                     cmdletPassedIn);
             }
 
@@ -1895,9 +1897,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(
-                    exception: e, 
-                    "LoadXmlDocumentFailure", 
-                    ErrorCategory.ReadError, 
+                    exception: e,
+                    "LoadXmlDocumentFailure",
+                    ErrorCategory.ReadError,
                     cmdletPassedIn);
             }
 
