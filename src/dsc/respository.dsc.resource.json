@@ -1,0 +1,105 @@
+{
+    "$schema": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2024/04/bundled/resource/manifest.json",
+    "type": "Microsoft.PowerShell.Debug/Echo",
+    "version": "0.0.1",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-Command",
+            "./psresourceget.ps1 -resourcetype 'repository' -operation get"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-Command",
+            "./psresourceget.ps1 -resourcetype 'repository' -operation set"
+        ],
+        "input": "stdin"
+    },
+    "export": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-Command",
+            "./psresourceget.ps1 -resourcetype 'repository' -operation export"
+        ],
+        "input": "stdin"
+    },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-Command",
+            "./psresourceget.ps1 -resourcetype 'repository' -operation test"
+        ],
+        "input": "stdin"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "title": "Repository",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                "type": [
+                    "null",
+                    "string"
+                ]
+                },
+                "uri": {
+                "type": [
+                    "null",
+                    "string"
+                ]
+                },
+                "trusted": {
+                "type": "boolean"
+                },
+                "priority": {
+                "type": "integer"
+                },
+                "repositoryType": {
+                "$ref": "#/definitions/RepositoryType"
+                },
+                "_exists": {
+                "type": "boolean"
+                }
+            },
+            "definitions": {
+                "RepositoryType": {
+                "type": "integer",
+                "description": "",
+                "x-enumNames": [
+                    "Unknown",
+                    "V2",
+                    "V3",
+                    "Local",
+                    "NugetServer",
+                    "ContainerRegistry"
+                ],
+                "enum": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                ]
+                }
+            }
+        }
+    }
+}
