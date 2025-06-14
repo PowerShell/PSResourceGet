@@ -107,6 +107,7 @@ jobs:
     inputs:
       azureSubscription: PSResourceGetACR
       azurePowerShellVersion: LatestVersion
+      pwsh: true
       ScriptType: InlineScript
       inline: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
@@ -133,7 +134,6 @@ jobs:
       MAPPED_ADO_PRIVATE_REPO_URL: $(ado_private_repo_url)
     displayName: 'Execute functional tests with AzAuth'
     condition: eq(${{ parameters.useAzAuth }}, true)
-    pwsh: true
 
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
