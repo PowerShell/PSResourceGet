@@ -121,7 +121,7 @@ jobs:
         Write-Verbose -Verbose "Get-PSResourceRepository completed"
 
         Write-Verbose -Verbose "Finding resource with Name: $testModuleName"
-        Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Verbose -Debug -ErrorAction Stop
+        Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Verbose -ErrorAction Stop
 
         Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
         Import-Module -Name (Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1') -Force
