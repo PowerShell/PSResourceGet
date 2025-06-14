@@ -111,6 +111,17 @@ jobs:
       inline: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+
+        $ACRRepoName = "ACRRepo"
+        $ACRRepoUri = "https://psresourcegettest.azurecr.io"
+        Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -Verbose
+        Write-Verbose -Verbose "Registering ACR repository with Az authentication completed"
+        Get-PSResourceRepository -Name $ACRRepoName -Verbose
+        Write-Verbose -Verbose "Get-PSResourceRepository completed"
+
+        Write-Verbose -Verbose "Finding resource with Name: $testModuleName"
+        Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Verbose -Debug -ErrorAction Stop
+
         Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
         Import-Module -Name (Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1') -Force
         Invoke-ModuleTestsACR -Type Functional
