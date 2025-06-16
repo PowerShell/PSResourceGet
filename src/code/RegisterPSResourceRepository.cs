@@ -116,7 +116,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         protected override void BeginProcessing()
         {
             RepositorySettings.CheckRepositoryStore();
-
         }
         protected override void ProcessRecord()
         {
