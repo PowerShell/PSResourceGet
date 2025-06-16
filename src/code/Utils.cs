@@ -650,25 +650,44 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
-        public static string GetAzAccessToken()
+        public static string GetAzAccessToken(PSCmdlet cmdletPassedIn)
         {
+            cmdletPassedIn.WriteVerbose("Getting Azure access token using DefaultAzureCredential");
+
             var credOptions = new DefaultAzureCredentialOptions
             {
-                ExcludeEnvironmentCredential = true,
-                ExcludeVisualStudioCodeCredential = true,
-                ExcludeVisualStudioCredential = true,
-                ExcludeWorkloadIdentityCredential = true,
-                ExcludeManagedIdentityCredential = true, // ManagedIdentityCredential makes the experience slow
-                ExcludeSharedTokenCacheCredential = true, // SharedTokenCacheCredential is not supported on macOS
-                ExcludeAzureCliCredential = false,
-                ExcludeAzurePowerShellCredential = false,
-                ExcludeInteractiveBrowserCredential = false
+            ExcludeEnvironmentCredential = true,
+            ExcludeVisualStudioCodeCredential = true,
+            ExcludeVisualStudioCredential = true,
+            ExcludeWorkloadIdentityCredential = true,
+            ExcludeManagedIdentityCredential = true, // ManagedIdentityCredential makes the experience slow
+            ExcludeSharedTokenCacheCredential = true, // SharedTokenCacheCredential is not supported on macOS
+            ExcludeAzureCliCredential = false,
+            ExcludeAzurePowerShellCredential = false,
+            ExcludeInteractiveBrowserCredential = false
             };
 
             var dCred = new DefaultAzureCredential(credOptions);
             var tokenRequestContext = new TokenRequestContext(new string[] { "https://management.azure.com/.default" });
-            var token = dCred.GetTokenAsync(tokenRequestContext).Result;
-            return token.Token;
+
+            try
+            {
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
+                {
+                    var token = dCred.GetTokenAsync(tokenRequestContext, cts.Token).GetAwaiter().GetResult();
+                    return token.Token;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                cmdletPassedIn.WriteWarning("Timeout occurred while acquiring Azure access token.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                cmdletPassedIn.WriteWarning($"Failed to acquire Azure access token: {ex.Message}");
+                throw;
+            }
         }
 
         public static string GetContainerRegistryAccessTokenFromSecretManagement(

@@ -394,6 +394,10 @@ namespace Microsoft.PowerShell.PSResourceGet
             else
             {
                 bool isRepositoryUnauthenticated = IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), out errRecord, out accessToken);
+                _cmdletPassedIn.WriteDebug($"Is repository unauthenticated: {isRepositoryUnauthenticated}");
+                _cmdletPassedIn.WriteDebug($"Access token: {accessToken}");
+                _cmdletPassedIn.WriteDebug($"Error Record: {errRecord}");
+
                 if (errRecord != null)
                 {
                     return null;
@@ -407,7 +411,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                 if (!isRepositoryUnauthenticated)
                 {
-                    accessToken = Utils.GetAzAccessToken();
+                    accessToken = Utils.GetAzAccessToken(_cmdletPassedIn);
                     if (string.IsNullOrEmpty(accessToken))
                     {
                         errRecord = new ErrorRecord(
@@ -487,6 +491,8 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                                 // get the anonymous access token
                                 var url = $"{realm}?service={service}{defaultScope}";
+
+                                _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
 
                                 // we dont check the errorrecord here because we want to return false if we get a 401 and not throw an error
                                 var results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out _);
