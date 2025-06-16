@@ -656,15 +656,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             var credOptions = new DefaultAzureCredentialOptions
             {
-            ExcludeEnvironmentCredential = true,
-            ExcludeVisualStudioCodeCredential = true,
-            ExcludeVisualStudioCredential = true,
-            ExcludeWorkloadIdentityCredential = true,
-            ExcludeManagedIdentityCredential = true, // ManagedIdentityCredential makes the experience slow
-            ExcludeSharedTokenCacheCredential = true, // SharedTokenCacheCredential is not supported on macOS
-            ExcludeAzureCliCredential = false,
-            ExcludeAzurePowerShellCredential = false,
-            ExcludeInteractiveBrowserCredential = false
+                ExcludeEnvironmentCredential = true,
+                ExcludeVisualStudioCodeCredential = true,
+                ExcludeVisualStudioCredential = true,
+                ExcludeWorkloadIdentityCredential = true,
+                ExcludeManagedIdentityCredential = true, // ManagedIdentityCredential makes the experience slow
+                ExcludeSharedTokenCacheCredential = true, // SharedTokenCacheCredential is not supported on macOS
+                ExcludeAzureCliCredential = false,
+                ExcludeAzurePowerShellCredential = false,
+                ExcludeInteractiveBrowserCredential = false
             };
 
             var dCred = new DefaultAzureCredential(credOptions);
@@ -681,12 +681,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             catch (OperationCanceledException)
             {
                 cmdletPassedIn.WriteWarning("Timeout occurred while acquiring Azure access token.");
-                throw;
+                return null;
             }
             catch (Exception ex)
             {
                 cmdletPassedIn.WriteWarning($"Failed to acquire Azure access token: {ex.Message}");
-                throw;
+                return null;
             }
         }
 
