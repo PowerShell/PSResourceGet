@@ -395,8 +395,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 bool isRepositoryUnauthenticated = IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), out errRecord, out accessToken);
                 _cmdletPassedIn.WriteDebug($"Is repository unauthenticated: {isRepositoryUnauthenticated}");
-                _cmdletPassedIn.WriteDebug($"Access token: {accessToken}");
-                _cmdletPassedIn.WriteDebug($"Error Record: {errRecord}");
 
                 if (errRecord != null)
                 {

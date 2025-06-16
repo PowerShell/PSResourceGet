@@ -115,14 +115,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            WriteVerbose("In RegisterPSResourceRepository::BeginProcessing()");
             RepositorySettings.CheckRepositoryStore();
-            WriteVerbose("Done RegisterPSResourceRepository::BeginProcessing()");
 
         }
         protected override void ProcessRecord()
         {
-            WriteVerbose("In RegisterPSResourceRepository::ProcessRecord()");
             List<PSRepositoryInfo> items = new List<PSRepositoryInfo>();
 
             PSRepositoryInfo.APIVersion? repoApiVersion = null;
@@ -134,7 +131,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             switch (ParameterSetName)
             {
                 case NameParameterSet:
-                    WriteDebug("In RegisterPSResourceRepository::NameParameterSet");
                     if (!Utils.TryCreateValidUri(uriString: Uri,
                         cmdletPassedIn: this,
                         uriResult: out _uri,
@@ -145,7 +141,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     try
                     {
-                        WriteDebug($"Registering repository '{Name}' with uri '{_uri}'");
                         items.Add(RepositorySettings.AddRepository(Name, _uri, Priority, Trusted, repoApiVersion, CredentialInfo, Force, this, out string errorMsg));
 
                         if (!string.IsNullOrEmpty(errorMsg))
@@ -183,7 +178,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case RepositoriesParameterSet:
-                    WriteDebug("In RegisterPSResourceRepository::RepositoriesParameterSet");
                     try
                     {
                         items = RepositoriesParameterSetHelper();

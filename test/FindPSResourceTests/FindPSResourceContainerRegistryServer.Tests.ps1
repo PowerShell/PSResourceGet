@@ -22,9 +22,6 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         {
             Write-Verbose -Verbose "Using Az module for authentication"
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -Verbose
-            Write-Verbose -Verbose "Registering ACR repository with Az authentication completed"
-            Get-PSResourceRepository -Name $ACRRepoName -Verbose
-            Write-Verbose -Verbose "Get-PSResourceRepository completed"
         }
         else
         {
@@ -39,25 +36,13 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 
     It "Find resource given specific Name, Version null" {
         # FindName()
-        Write-Verbose -Verbose "Finding resource with Name: $testModuleName"
-
-        try {
-            $res = Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Verbose -Debug -ErrorAction Stop
-        }
-        catch {
-            Write-Error "Error occurred while finding resource: $_"
-            Write-Verbose -Verbose "Error details: $($_.Exception.Message)"
-            Write-Verbose -Verbose "Stack trace: $($_.ScriptStackTrace)"
-        }
-
-        Write-Verbose -Verbose "Find-PSResource completed"
+        $res = Find-PSResource -Name $testModuleName -Repository $ACRRepoName -Verbose -Debug -ErrorAction Stop
         $res.Name | Should -Be $testModuleName
         $res.Version | Should -Be "5.0.0"
     }
 
     It "Should not find resource given nonexistant Name" {
         # FindName()
-        Write-Verbose -Verbose "Moved to the next test case to find non-existant resource"
         $res = Find-PSResource -Name NonExistantModule -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0

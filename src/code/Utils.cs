@@ -429,8 +429,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             out Uri uriResult,
             out ErrorRecord errorRecord)
         {
-            cmdletPassedIn.WriteVerbose($"Validating Uri: {uriString}");
-
             errorRecord = null;
             if (Uri.TryCreate(uriString, UriKind.Absolute, out uriResult))
             {
@@ -652,8 +650,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         public static string GetAzAccessToken(PSCmdlet cmdletPassedIn)
         {
-            cmdletPassedIn.WriteVerbose("Getting Azure access token using DefaultAzureCredential");
-
             var credOptions = new DefaultAzureCredentialOptions
             {
                 ExcludeEnvironmentCredential = true,

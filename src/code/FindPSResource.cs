@@ -115,19 +115,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void BeginProcessing()
         {
-            WriteVerbose("Beginning Find-PSResource processing");
             _cancellationTokenSource = new CancellationTokenSource();
 
             var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
-
-            WriteVerbose("Creating FindHelper instance");
 
             _findHelper = new FindHelper(
                 cancellationToken: _cancellationTokenSource.Token,
                 cmdletPassedIn: this,
                 networkCredential: networkCred);
-
-            WriteVerbose("FindHelper instance created successfully");
 
             // Create a repository story (the PSResourceRepository.xml file) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
@@ -172,120 +167,98 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void ProcessResourceNameParameterSet()
         {
-            try
+            // only cases where Name is allowed to not be specified is if Type or Tag parameters are
+            if (!MyInvocation.BoundParameters.ContainsKey(nameof(Name)))
             {
-                WriteDebug("Testing");
-                WriteDebug("In FindPSResource::ProcessResourceNameParameterSet() XXXXXXXXXXX");
-                WriteVerbose("checking if Name parameter is specified");
-
-                var check = MyInvocation?.BoundParameters?.ContainsKey(nameof(Name));
-
-                WriteVerbose("Value of check for Name parameter: " + check);
-
-                // only cases where Name is allowed to not be specified is if Type or Tag parameters are
-                if (!MyInvocation.BoundParameters.ContainsKey(nameof(Name)))
+                if (MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
                 {
-                    WriteDebug("Name parameter not provided, checking for Type or Tag parameters");
-                    if (MyInvocation.BoundParameters.ContainsKey(nameof(Tag)))
-                    {
-                        ProcessTags();
-                        return;
-                    }
-                    else if (MyInvocation.BoundParameters.ContainsKey(nameof(Type)))
-                    {
-                        Name = new string[] { "*" };
-                    }
-                    else
-                    {
-                        ThrowTerminatingError(new ErrorRecord(
-                            new PSInvalidOperationException("Name parameter must be provided, unless Tag or Type parameters are used."),
-                            "NameParameterNotProvided",
-                            ErrorCategory.InvalidOperation,
-                            this));
-                    }
-                }
-
-                WriteVerbose("Processing Name parameter for Find-PSResource cmdlet");
-                WriteDebug("Filtering package name(s) on wildcards");
-                Name = Utils.ProcessNameWildcards(Name, removeWildcardEntries: false, out string[] errorMsgs, out bool nameContainsWildcard);
-                WriteVerbose($"Name parameter processed, contains {Name.Length} entries");
-
-                foreach (string error in errorMsgs)
-                {
-                    WriteError(new ErrorRecord(
-                        new PSInvalidOperationException(error),
-                        "ErrorFilteringNamesForUnsupportedWildcards",
-                        ErrorCategory.InvalidArgument,
-                        this));
-                }
-
-                // this catches the case where Name wasn't passed in as null or empty,
-                // but after filtering out unsupported wildcard names there are no elements left in namesToSearch
-                if (Name.Length == 0)
-                {
-                    WriteDebug("Package name(s) could not be resolved");
+                    ProcessTags();
                     return;
                 }
-
-                // determine/parse out Version param
-                VersionType versionType = VersionType.VersionRange;
-                NuGetVersion nugetVersion = null;
-                VersionRange versionRange = null;
-
-                if (Version != null)
+                else if (MyInvocation.BoundParameters.ContainsKey(nameof(Type)))
                 {
-                    WriteDebug("Parsing package version");
-                    if (!NuGetVersion.TryParse(Version, out nugetVersion))
-                    {
-                        if (Version.Trim().Equals("*"))
-                        {
-                            versionRange = VersionRange.All;
-                            versionType = VersionType.VersionRange;
-                        }
-                        else if (!VersionRange.TryParse(Version, out versionRange))
-                        {
-                            WriteError(new ErrorRecord(
-                                new ArgumentException("Argument for -Version parameter is not in the proper format"),
-                                "IncorrectVersionFormat",
-                                ErrorCategory.InvalidArgument,
-                                this));
+                    Name = new string[] { "*" };
+                }
+                else
+                {
+                    ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException("Name parameter must be provided, unless Tag or Type parameters are used."),
+                        "NameParameterNotProvided",
+                        ErrorCategory.InvalidOperation,
+                        this));
+                }
+            }
 
-                            return;
-                        }
-                    }
-                    else
+            WriteDebug("Filtering package name(s) on wildcards");
+            Name = Utils.ProcessNameWildcards(Name, removeWildcardEntries: false, out string[] errorMsgs, out bool nameContainsWildcard);
+
+            foreach (string error in errorMsgs)
+            {
+                WriteError(new ErrorRecord(
+                    new PSInvalidOperationException(error),
+                    "ErrorFilteringNamesForUnsupportedWildcards",
+                    ErrorCategory.InvalidArgument,
+                    this));
+            }
+
+            // this catches the case where Name wasn't passed in as null or empty,
+            // but after filtering out unsupported wildcard names there are no elements left in namesToSearch
+            if (Name.Length == 0)
+            {
+                WriteDebug("Package name(s) could not be resolved");
+                return;
+            }
+
+            // determine/parse out Version param
+            VersionType versionType = VersionType.VersionRange;
+            NuGetVersion nugetVersion = null;
+            VersionRange versionRange = null;
+
+            if (Version != null)
+            {
+                WriteDebug("Parsing package version");
+                if (!NuGetVersion.TryParse(Version, out nugetVersion))
+                {
+                    if (Version.Trim().Equals("*"))
                     {
-                        versionType = VersionType.SpecificVersion;
+                        versionRange = VersionRange.All;
+                        versionType = VersionType.VersionRange;
+                    }
+                    else if (!VersionRange.TryParse(Version, out versionRange))
+                    {
+                        WriteError(new ErrorRecord(
+                            new ArgumentException("Argument for -Version parameter is not in the proper format"),
+                            "IncorrectVersionFormat",
+                            ErrorCategory.InvalidArgument,
+                            this));
+
+                        return;
                     }
                 }
                 else
                 {
-                    versionType = VersionType.NoVersion;
-                }
-
-                foreach (PSResourceInfo pkg in _findHelper.FindByResourceName(
-                    name: Name,
-                    type: Type,
-                    versionRange: versionRange,
-                    nugetVersion: nugetVersion,
-                    versionType: versionType,
-                    version: Version,
-                    prerelease: Prerelease,
-                    tag: Tag,
-                    repository: Repository,
-                    includeDependencies: IncludeDependencies,
-                    suppressErrors: false))
-                {
-                    WriteObject(pkg);
+                    versionType = VersionType.SpecificVersion;
                 }
             }
-            catch (Exception ex)
+            else
             {
-                WriteError(new ErrorRecord(
-                    ex,
-                    "FindPSResourceError",
-                    ErrorCategory.NotSpecified,
-                    this));
+                versionType = VersionType.NoVersion;
+            }
+
+            foreach (PSResourceInfo pkg in _findHelper.FindByResourceName(
+                name: Name,
+                type: Type,
+                versionRange: versionRange,
+                nugetVersion: nugetVersion,
+                versionType: versionType,
+                version: Version,
+                prerelease: Prerelease,
+                tag: Tag,
+                repository: Repository,
+                includeDependencies: IncludeDependencies,
+                suppressErrors: false))
+            {
+                WriteObject(pkg);
             }
         }
 
