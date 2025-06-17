@@ -102,7 +102,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         [Parameter]
         public SwitchParameter PassThru { get; set; }
-        
+
         /// <summary>
         /// When specified, will overwrite information for any existing repository with the same name.
         /// </summary>
@@ -212,14 +212,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WriteDebug("In RegisterPSResourceRepository::PSGalleryParameterSetHelper()");
             Uri psGalleryUri = new Uri(PSGalleryRepoUri);
             WriteDebug("Internal name and uri values for PSGallery are hardcoded and validated. Priority and trusted values, if passed in, also validated");
-            var addedRepo = RepositorySettings.AddToRepositoryStore(PSGalleryRepoName, 
-                psGalleryUri, 
-                repoPriority, 
-                repoTrusted, 
+            var addedRepo = RepositorySettings.AddToRepositoryStore(PSGalleryRepoName,
+                psGalleryUri,
+                repoPriority,
+                repoTrusted,
                 apiVersion: null,
-                repoCredentialInfo: null, 
-                Force, 
-                this, 
+                repoCredentialInfo: null,
+                Force,
+                this,
                 out string errorMsg);
 
             if (!string.IsNullOrEmpty(errorMsg))
@@ -313,7 +313,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "NullUriForRepositoriesParameterSetRegistration",
                     ErrorCategory.InvalidArgument,
                     this));
-                    
+
                 return null;
             }
 
@@ -337,10 +337,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            if (repo.ContainsKey("ApiVersion") && 
+            if (repo.ContainsKey("ApiVersion") &&
                 (repo["ApiVersion"] == null || String.IsNullOrEmpty(repo["ApiVersion"].ToString()) ||
-                !(repo["ApiVersion"].ToString().Equals("Local", StringComparison.OrdinalIgnoreCase) || repo["ApiVersion"].ToString().Equals("V2", StringComparison.OrdinalIgnoreCase) || 
-                repo["ApiVersion"].ToString().Equals("V3", StringComparison.OrdinalIgnoreCase) || repo["ApiVersion"].ToString().Equals("NugetServer", StringComparison.OrdinalIgnoreCase) || 
+                !(repo["ApiVersion"].ToString().Equals("Local", StringComparison.OrdinalIgnoreCase) || repo["ApiVersion"].ToString().Equals("V2", StringComparison.OrdinalIgnoreCase) ||
+                repo["ApiVersion"].ToString().Equals("V3", StringComparison.OrdinalIgnoreCase) || repo["ApiVersion"].ToString().Equals("NugetServer", StringComparison.OrdinalIgnoreCase) ||
                 repo["ApiVersion"].ToString().Equals("Unknown", StringComparison.OrdinalIgnoreCase))))
             {
                 WriteError(new ErrorRecord(

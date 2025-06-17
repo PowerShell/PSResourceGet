@@ -648,12 +648,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
-        public static string GetAzAccessToken()
+        public static string GetAzAccessToken(PSCmdlet cmdletPassedIn)
         {
             var credOptions = new DefaultAzureCredentialOptions
             {
                 ExcludeEnvironmentCredential = true,
-                ExcludeVisualStudioCodeCredential = true,
                 ExcludeVisualStudioCredential = true,
                 ExcludeWorkloadIdentityCredential = true,
                 ExcludeManagedIdentityCredential = true, // ManagedIdentityCredential makes the experience slow
@@ -665,8 +664,25 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             var dCred = new DefaultAzureCredential(credOptions);
             var tokenRequestContext = new TokenRequestContext(new string[] { "https://management.azure.com/.default" });
-            var token = dCred.GetTokenAsync(tokenRequestContext).Result;
-            return token.Token;
+
+            try
+            {
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
+                {
+                    var token = dCred.GetTokenAsync(tokenRequestContext, cts.Token).GetAwaiter().GetResult();
+                    return token.Token;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                cmdletPassedIn.WriteWarning("Timeout occurred while acquiring Azure access token.");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                cmdletPassedIn.WriteWarning($"Failed to acquire Azure access token: {ex.Message}");
+                return null;
+            }
         }
 
         public static string GetContainerRegistryAccessTokenFromSecretManagement(
@@ -1874,9 +1890,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             catch (Exception e)
             {
                 errorRecord = new ErrorRecord(
-                    exception: e, 
-                    "GetHashtableForNuspecFailure", 
-                    ErrorCategory.ReadError, 
+                    exception: e,
+                    "GetHashtableForNuspecFailure",
+                    ErrorCategory.ReadError,
                     cmdletPassedIn);
             }
 
@@ -1895,9 +1911,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(
-                    exception: e, 
-                    "LoadXmlDocumentFailure", 
-                    ErrorCategory.ReadError, 
+                    exception: e,
+                    "LoadXmlDocumentFailure",
+                    ErrorCategory.ReadError,
                     cmdletPassedIn);
             }
 

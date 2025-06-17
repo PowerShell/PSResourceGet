@@ -107,10 +107,12 @@ jobs:
     inputs:
       azureSubscription: PSResourceGetACR
       azurePowerShellVersion: LatestVersion
+      pwsh: true
       ScriptType: InlineScript
       inline: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+
         Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
         Import-Module -Name (Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1') -Force
         Invoke-ModuleTestsACR -Type Functional
