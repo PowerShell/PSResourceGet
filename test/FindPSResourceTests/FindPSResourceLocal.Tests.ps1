@@ -338,4 +338,15 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res.Version | Should -Be $nupkgVersion
         $res.Prerelease | Should -Be $prereleaseLabel
     }
+
+    It "find module that has multiple manifests and use exact name match one" {
+        # Az.KeyVault has 2 manifest files - Az.KeyVault.psd1 and Az.KeyVault.Extension.psd1
+        # this test was added because PSResourceGet would previously pick the .psd1 file by pattern matching the module name, not exact matching it
+        # this meant Az.KeyVault.Extension.psd1 and its metadata was being returned.
+        # The package is present on PSGallery but issue reproduces when looking at the package's file paths in local repo
+        $PSGalleryName = Get-PSGalleryName
+        Save-PSResource -Name 'Az.KeyVault' -Version '6.3.1' -Repository $PSGalleryName -AsNupkg -Path $localRepoUriAddress -TrustRepository
+        $res = Find-PSResource -Name 'Az.KeyVault' -Repository $localRepo
+        $res.Version | Should -Be "6.3.1"
+    }
 }
