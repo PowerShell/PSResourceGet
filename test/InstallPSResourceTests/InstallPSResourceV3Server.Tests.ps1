@@ -377,6 +377,11 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $res3.Name | Should -Be 'testModule99'
         $res3.Version | Should -Be '0.0.93'
     }
+    
+    It "Install module and its dependencies" {
+        $res = Install-PSResource 'TestModuleWithDependencyE' -Repository $NuGetGalleryName -TrustRepository -PassThru
+        $res.Length | Should -Be 4
+    }
 }
 
 Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidationOnly' {
