@@ -155,4 +155,9 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
         $pkg.Name | Should -Be 'test_module_with_license'
         $pkg.Version | Should -Be '2.0.0'
     }
+    
+    It "Save module and its dependencies" {
+        $res = Save-PSResource 'TestModuleWithDependencyE' -Repository $NuGetGalleryName -TrustRepository -PassThru
+        $res.Length | Should -Be 4
+    }
 }
