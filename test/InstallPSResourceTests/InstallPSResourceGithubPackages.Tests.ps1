@@ -39,7 +39,7 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
         Install-PSResource -Name $Name -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -66,7 +66,7 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
 
     It "Should not install resource given nonexistant name" {
         Install-PSResource -Name "NonExistantModule" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource "NonExistantModule"
+        $pkg = Get-InstalledPSResource "NonExistantModule" -ErrorAction SilentlyContinue
         $pkg | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
@@ -111,7 +111,7 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
         {}
         $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -199,13 +199,13 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
     }
 
     It "Reinstall resource that is already installed with -Reinstall parameter" {
-        Install-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
-        $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Name | Should -Be $testModuleName
+        Install-PSResource -Name $testModuleName2 -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleName2
+        $pkg.Name | Should -Be $testModuleName2
         $pkg.Version | Should -Be "5.0.0"
-        Install-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential -Reinstall -TrustRepository
-        $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Name | Should -Be $testModuleName
+        Install-PSResource -Name $testModuleName2 -Repository $GithubPackagesRepoName -Credential $credential -Reinstall -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleName2
+        $pkg.Name | Should -Be $testModuleName2
         $pkg.Version | Should -Be "5.0.0"
     }
 
@@ -248,23 +248,23 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidatio
         $pkg.Path.Contains("/usr/") | Should -Be $true
     }
 
-    # This needs to be manually tested due to prompt
-    It "Install resource that requires accept license without -AcceptLicense flag" {
-        Install-PSResource -Name $testModuleName2  -Repository $TestGalleryName
-        $pkg = Get-InstalledPSResource $testModuleName2 
-        $pkg.Name | Should -Be $testModuleName2 
-        $pkg.Version | Should -Be "0.0.1.0"
-    }
+    # # This needs to be manually tested due to prompt
+    # It "Install resource that requires accept license without -AcceptLicense flag" {
+    #     Install-PSResource -Name $testModuleName2  -Repository $TestGalleryName
+    #     $pkg = Get-InstalledPSResource $testModuleName2 
+    #     $pkg.Name | Should -Be $testModuleName2 
+    #     $pkg.Version | Should -Be "0.0.1.0"
+    # }
 
-    # This needs to be manually tested due to prompt
-    It "Install resource should prompt 'trust repository' if repository is not trusted" {
-        Set-PSResourceRepository PoshTestGallery -Trusted:$false
+    # # This needs to be manually tested due to prompt
+    # It "Install resource should prompt 'trust repository' if repository is not trusted" {
+    #     Set-PSResourceRepository PoshTestGallery -Trusted:$false
 
-        Install-PSResource -Name $testModuleName -Repository $TestGalleryName -confirm:$false
+    #     Install-PSResource -Name $testModuleName -Repository $TestGalleryName -confirm:$false
     
-        $pkg = Get-Module $testModuleName -ListAvailable
-        $pkg.Name | Should -Be $testModuleName
+    #     $pkg = Get-Module $testModuleName -ListAvailable
+    #     $pkg.Name | Should -Be $testModuleName
 
-        Set-PSResourceRepository PoshTestGallery -Trusted
-    }
+    #     Set-PSResourceRepository PoshTestGallery -Trusted
+    # }
 }
