@@ -97,9 +97,9 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
     }
 
     It 'find resource and its dependency resources with IncludeDependencies parameter' {
-        $pkg = [array](Find-PSResource -Name 'TestModuleWithDependencyE' -IncludeDependencies -Repository $NuGetGalleryName)
+        $pkg = Find-PSResource -Name 'TestModuleWithDependencyE' -IncludeDependencies -Repository $NuGetGalleryName
         $pkg.Name | Should -Contain 'TestModuleWithDependencyE'
-        $pkg | Should -BeGreaterThan 1
+        $pkg.Count | Should -BeGreaterThan 1
     }
 
     # It "find resources only with Tag parameter" {
