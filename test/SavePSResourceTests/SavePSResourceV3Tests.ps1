@@ -144,16 +144,16 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
     It 'Save module that is not authenticode signed' -Skip:(!(Get-IsWindows)) {
         Save-PSResource -Name $testModuleName -Version '5.0.0' -AuthenticodeCheck -Repository $NuGetGalleryName -TrustRepository -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly 'InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource'
+        $err[0].FullyQualifiedErrorId | Should -BeExactly 'GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource'
     }
 
     # Save resource that requires license
     It 'Install resource that requires accept license with -AcceptLicense flag' {
         Save-PSResource -Repository $NuGetGalleryName -TrustRepository -Path $SaveDir `
-            -Name 'test_module_with_license' -AcceptLicense
-        $pkg = Get-InstalledPSResource -Path $SaveDir 'test_module_with_license'
-        $pkg.Name | Should -Be 'test_module_with_license'
-        $pkg.Version | Should -Be '2.0.0'
+            -Name 'test_module_withlicense' -AcceptLicense
+        $pkg = Get-InstalledPSResource -Path $SaveDir 'test_module_withlicense'
+        $pkg.Name | Should -Be 'test_module_withlicense'
+        $pkg.Version | Should -Be '1.0.0'
     }
     
     It "Save module and its dependencies" {

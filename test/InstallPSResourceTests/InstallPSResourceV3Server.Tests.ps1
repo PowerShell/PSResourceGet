@@ -27,7 +27,8 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     }
 
     AfterEach {
-        Uninstall-PSResource 'test_module', 'test_module2', 'test_script', 'TestModule99', 'test_module_with_license', 'TestFindModule', 'PackageManagement' -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource 'test_module', 'test_module2', 'test_script', 'TestModule99', 'test_module_withlicense', 'TestFindModule', 'PackageManagement', `
+        'TestModuleWithDependencyE', 'TestModuleWithDependencyC', 'TestModuleWithDependencyB', 'TestModuleWithDependencyD' -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -45,7 +46,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         Install-PSResource -Name $Name -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -82,7 +83,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Repository $NuGetGalleryName -TrustRepository -WhatIf
         $? | Should -BeTrue
 
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -258,10 +259,10 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     # }
 
     It 'Install resource that requires accept license with -AcceptLicense flag' {
-        Install-PSResource -Name 'test_module_with_license' -Repository $NuGetGalleryName -AcceptLicense
-        $pkg = Get-InstalledPSResource 'test_module_with_license'
-        $pkg.Name | Should -Be 'test_module_with_license'
-        $pkg.Version | Should -Be '2.0.0'
+        Install-PSResource -Name 'test_module_withlicense' -Repository $NuGetGalleryName -AcceptLicense
+        $pkg = Get-InstalledPSResource 'test_module_withlicense'
+        $pkg.Name | Should -Be 'test_module_withlicense'
+        $pkg.Version | Should -Be '1.0.0'
     }
 
     It 'Install PSResourceInfo object piped in' {
@@ -388,7 +389,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidatio
 
     BeforeAll {
         $testModuleName = 'TestModule'
-        $testModuleName2 = 'test_module_with_license'
+        $testModuleName2 = 'test_module_withlicense'
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
     }
@@ -415,7 +416,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidatio
         Install-PSResource -Name $testModuleName2  -Repository $TestGalleryName
         $pkg = Get-InstalledPSResource $testModuleName2
         $pkg.Name | Should -Be $testModuleName2
-        $pkg.Version | Should -Be '2.0.0'
+        $pkg.Version | Should -Be '1.0.0'
     }
 
     # This needs to be manually tested due to prompt
