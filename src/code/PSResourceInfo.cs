@@ -732,22 +732,25 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         {
                             if (dependencyGroup.TryGetProperty("dependencies", out JsonElement dependenciesElement))
                             {
-                                foreach (
-                                    JsonElement dependency in dependenciesElement.EnumerateArray().Where(
-                                        x => !string.IsNullOrWhiteSpace(x.GetProperty("@id").GetString())
-                                    )
-                                )
+                                if (dependenciesElement.ValueKind == JsonValueKind.Array)
                                 {
-                                    pkgDeps.Add(
-                                        new Dependency(
-                                            dependency.GetProperty("id").GetString(),
-                                            (
-                                                VersionRange.TryParse(dependency.GetProperty("range").GetString(), out VersionRange versionRange) ?
-                                                versionRange :
-                                                VersionRange.All
-                                            )
+                                    foreach (
+                                        JsonElement dependency in dependenciesElement.EnumerateArray().Where(
+                                            x => !string.IsNullOrWhiteSpace(x.GetProperty("@id").GetString())
                                         )
-                                    );
+                                    )
+                                    {
+                                        pkgDeps.Add(
+                                            new Dependency(
+                                                dependency.GetProperty("id").GetString(),
+                                                (
+                                                    VersionRange.TryParse(dependency.GetProperty("range").GetString(), out VersionRange versionRange) ?
+                                                    versionRange :
+                                                    VersionRange.All
+                                                )
+                                            )
+                                        );
+                                    }
                                 }
                             }
                         }
