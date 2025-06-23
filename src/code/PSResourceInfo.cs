@@ -721,30 +721,34 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 if (rootDom.TryGetProperty("dependencyGroups", out JsonElement dependencyGroupsElement))
                 {
                     List<Dependency> pkgDeps = new();
-                    foreach (
-                        JsonElement dependencyGroup in dependencyGroupsElement.EnumerateArray().Where(
-                            x => !string.IsNullOrWhiteSpace(x.GetProperty("@id").GetString())
-                        )
-                    )
+
+                    if (dependencyGroupsElement.ValueKind == JsonValueKind.Array)
                     {
-                        if (dependencyGroup.TryGetProperty("dependencies", out JsonElement dependenciesElement))
-                        {
-                            foreach (
-                                JsonElement dependency in dependenciesElement.EnumerateArray().Where(
-                                    x => !string.IsNullOrWhiteSpace(x.GetProperty("@id").GetString())
-                                )
+                        foreach (
+                            JsonElement dependencyGroup in dependencyGroupsElement.EnumerateArray().Where(
+                                x => !string.IsNullOrWhiteSpace(x.GetProperty("@id").GetString())
                             )
+                        )
+                        {
+                            if (dependencyGroup.TryGetProperty("dependencies", out JsonElement dependenciesElement))
                             {
-                                pkgDeps.Add(
-                                    new Dependency(
-                                        dependency.GetProperty("id").GetString(),
-                                        (
-                                            VersionRange.TryParse(dependency.GetProperty("range").GetString(), out VersionRange versionRange) ?
-                                            versionRange :
-                                            VersionRange.All
-                                        )
+                                foreach (
+                                    JsonElement dependency in dependenciesElement.EnumerateArray().Where(
+                                        x => !string.IsNullOrWhiteSpace(x.GetProperty("@id").GetString())
                                     )
-                                );
+                                )
+                                {
+                                    pkgDeps.Add(
+                                        new Dependency(
+                                            dependency.GetProperty("id").GetString(),
+                                            (
+                                                VersionRange.TryParse(dependency.GetProperty("range").GetString(), out VersionRange versionRange) ?
+                                                versionRange :
+                                                VersionRange.All
+                                            )
+                                        )
+                                    );
+                                }
                             }
                         }
                     }
