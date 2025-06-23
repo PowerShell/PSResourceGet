@@ -720,35 +720,35 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // Dependencies
                 if (rootDom.TryGetProperty("dependencyGroups", out JsonElement dependencyGroupsElement))
                 {
-                    List<Dependency> pkgDeps = new();
-                    foreach (
-                        JsonElement dependencyGroup in dependencyGroupsElement.EnumerateArray().Where(
-                            x => !string.IsNullOrWhiteSpace(x.GetProperty("@id").GetString())
-                        )
-                    )
-                    {
-                        if (dependencyGroup.TryGetProperty("dependencies", out JsonElement dependenciesElement))
-                        {
-                            foreach (
-                                JsonElement dependency in dependenciesElement.EnumerateArray().Where(
-                                    x => !string.IsNullOrWhiteSpace(x.GetProperty("@id").GetString())
-                                )
-                            )
-                            {
-                                pkgDeps.Add(
-                                    new Dependency(
-                                        dependency.GetProperty("id").GetString(),
-                                        (
-                                            VersionRange.TryParse(dependency.GetProperty("range").GetString(), out VersionRange versionRange) ?
-                                            versionRange :
-                                            VersionRange.All
-                                        )
-                                    )
-                                );
-                            }
-                        }
-                    }
-                    metadata["Dependencies"] = pkgDeps.ToArray();
+                    // List<Dependency> pkgDeps = new();
+                    // foreach (
+                    //     JsonElement dependencyGroup in dependencyGroupsElement.EnumerateArray().Where(
+                    //         x => !string.IsNullOrWhiteSpace(x.GetProperty("@id").GetString())
+                    //     )
+                    // )
+                    // {
+                    //     if (dependencyGroup.TryGetProperty("dependencies", out JsonElement dependenciesElement))
+                    //     {
+                    //         foreach (
+                    //             JsonElement dependency in dependenciesElement.EnumerateArray().Where(
+                    //                 x => !string.IsNullOrWhiteSpace(x.GetProperty("@id").GetString())
+                    //             )
+                    //         )
+                    //         {
+                    //             pkgDeps.Add(
+                    //                 new Dependency(
+                    //                     dependency.GetProperty("id").GetString(),
+                    //                     (
+                    //                         VersionRange.TryParse(dependency.GetProperty("range").GetString(), out VersionRange versionRange) ?
+                    //                         versionRange :
+                    //                         VersionRange.All
+                    //                     )
+                    //                 )
+                    //             );
+                    //         }
+                    //     }
+                    // }
+                    // metadata["Dependencies"] = pkgDeps.ToArray();
                 }
 
                 // IsPrerelease
