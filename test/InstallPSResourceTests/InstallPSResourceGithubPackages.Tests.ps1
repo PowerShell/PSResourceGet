@@ -39,7 +39,7 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
         Install-PSResource -Name $Name -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -66,7 +66,7 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
 
     It "Should not install resource given nonexistant name" {
         Install-PSResource -Name "NonExistantModule" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource "NonExistantModule"
+        $pkg = Get-InstalledPSResource "NonExistantModule" -ErrorAction SilentlyContinue
         $pkg | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
@@ -111,7 +111,7 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
         {}
         $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -199,13 +199,13 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
     }
 
     It "Reinstall resource that is already installed with -Reinstall parameter" {
-        Install-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
-        $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Name | Should -Be $testModuleName
+        Install-PSResource -Name $testModuleName2 -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleName2
+        $pkg.Name | Should -Be $testModuleName2
         $pkg.Version | Should -Be "5.0.0"
-        Install-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential -Reinstall -TrustRepository
-        $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Name | Should -Be $testModuleName
+        Install-PSResource -Name $testModuleName2 -Repository $GithubPackagesRepoName -Credential $credential -Reinstall -TrustRepository
+        $pkg = Get-InstalledPSResource $testModuleName2
+        $pkg.Name | Should -Be $testModuleName2
         $pkg.Version | Should -Be "5.0.0"
     }
 
