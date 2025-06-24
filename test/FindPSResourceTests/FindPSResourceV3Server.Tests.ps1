@@ -10,6 +10,8 @@ Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
 Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
 
     BeforeAll{
+        $AWSCodeArtifactGalleryName = Get-AWSCodeArtifactGalleryName
+        $AWSCodeArtifactGalleryLocation = Get-AWSCodeArtifactGalleryLocation
         $NuGetGalleryName = Get-NuGetGalleryName
         $testModuleName = "test_module"
         Get-NewPSResourceRepositoryFile
@@ -269,13 +271,23 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindAllFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
+    It "should support AWS CodeArtifact with find all resources given Name '*'" {
+        Register-PSResourceRepository -Name $AWSCodeArtifactGalleryName -Uri $AWSCodeArtifactGalleryLocation
+        $res = Find-PSResource -Name "*" -Repository $AWSCodeArtifactGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        Unregister-PSResourceRepository -Name $AWSCodeArtifactGalleryName
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -BeGreaterThan 0
+        # The `HttpRequestCallFailure` error indicates the cmdlet moved past the fast-fail for `-Name '*'` not supported
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "HttpRequestCallFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+
     It "should not find an unlisted module" {
         $res = Find-PSResource -Name "PMTestDependency1" -Repository $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
-    
+
     # "carb*" is intentionally chosen as a sequence that will trigger pagination (ie more than 100 results),
     # but is not too time consuming.
     # There are currently between 236 packages that should be returned

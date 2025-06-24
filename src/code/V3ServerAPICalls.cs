@@ -27,6 +27,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool _isJFrogRepo { get; set; }
         private bool _isGHPkgsRepo { get; set; }
         private bool _isMyGetRepo { get; set; }
+        private bool _isAWSCodeArtifactRepo { get; set; }
         public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
         private static readonly string nugetRepoUri = "https://api.nuget.org/v3/index.json";
@@ -55,7 +56,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             bool token = false;
 
-            if(networkCredential != null) 
+            if(networkCredential != null)
             {
                 token = String.Equals("token", networkCredential.UserName) ? true : false;
             };
@@ -71,7 +72,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             } else {
 
                 handler.Credentials = networkCredential;
-                
+
                 _sessionClient = new HttpClient(handler);
             };
 
@@ -79,9 +80,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
 
             _isNuGetRepo = String.Equals(Repository.Uri.AbsoluteUri, nugetRepoUri, StringComparison.InvariantCultureIgnoreCase);
-            _isJFrogRepo = Repository.Uri.AbsoluteUri.ToLower().Contains("jfrog.io");
-            _isGHPkgsRepo = Repository.Uri.AbsoluteUri.ToLower().Contains("pkg.github.com");
-            _isMyGetRepo = Repository.Uri.AbsoluteUri.ToLower().Contains("myget.org");
+            _isJFrogRepo = RepositoryUriContains("jfrog.io");
+            _isGHPkgsRepo = RepositoryUriContains("pkg.github.com");
+            _isMyGetRepo = RepositoryUriContains("myget.org");
+            _isAWSCodeArtifactRepo = RepositoryUriContains(".codeartifact.") && RepositoryUriContains(".amazonaws.com");
         }
 
         #endregion
@@ -90,18 +92,37 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
-        /// Not supported for V3 repository.
+        /// Supported for AWS CodeArtifact V3 repository only.
         /// </summary>
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindAll()");
-            errRecord = new ErrorRecord(
-                new InvalidOperationException($"Find all is not supported for the V3 server protocol repository '{Repository.Name}'"),
-                "FindAllFailure",
-                ErrorCategory.InvalidOperation,
-                this);
 
-            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            if (!_isAWSCodeArtifactRepo)
+            {
+                errRecord = new ErrorRecord(
+                    new InvalidOperationException($"Find all is not supported for the V3 server protocol repository '{Repository.Name}'"),
+                    "FindAllFailure",
+                    ErrorCategory.InvalidOperation,
+                    this);
+
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            }
+
+            var queryTerm = "";
+            var matchingPkgEntries = GetVersionedPackageEntriesFromSearchQueryResource(queryTerm, includePrerelease, out errRecord);
+            if (errRecord != null)
+            {
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
+            }
+
+            List<string> matchingResponses = new List<string>();
+            foreach (var pkgEntry in matchingPkgEntries)
+            {
+                matchingResponses.Add(pkgEntry.ToString());
+            }
+
+            return new FindResults(stringResponse: matchingResponses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
         /// <summary>
@@ -174,7 +195,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameGlobbing()");
-            if (_isNuGetRepo || _isJFrogRepo || _isGHPkgsRepo || _isMyGetRepo)
+            if (_isNuGetRepo || _isJFrogRepo || _isGHPkgsRepo || _isMyGetRepo || _isAWSCodeArtifactRepo)
             {
                 return FindNameGlobbingFromNuGetRepo(packageName, tags: Utils.EmptyStrArray, includePrerelease, out errRecord);
             }
@@ -197,7 +218,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override FindResults FindNameGlobbingWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameGlobbingWithTag()");
-            if (_isNuGetRepo || _isJFrogRepo || _isGHPkgsRepo || _isMyGetRepo)
+            if (_isNuGetRepo || _isJFrogRepo || _isGHPkgsRepo || _isMyGetRepo || _isAWSCodeArtifactRepo)
             {
                 return FindNameGlobbingFromNuGetRepo(packageName, tags, includePrerelease, out errRecord);
             }
@@ -342,7 +363,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
             string querySearchTerm;
 
-            if (names.Length == 0)
+            if (names.Length == 0 && !_isAWSCodeArtifactRepo)
             {
                 errRecord = new ErrorRecord(
                     new ArgumentException("-Name '*' for V3 server protocol repositories is not supported"),
@@ -833,7 +854,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Gets the versioned package entries from SearchQueryService resource
         /// i.e when the package Name being searched for contains wildcards or a Tag query search is performed
-        /// This is called by FindNameGlobbingFromNuGetRepo() and FindTagsFromNuGetRepo()
+        /// This is called by FindAll(), FindNameGlobbingFromNuGetRepo() and FindTagsFromNuGetRepo()
         /// </summary>
         private List<JsonElement> GetVersionedPackageEntriesFromSearchQueryResource(string queryTerm, bool includePrerelease, out ErrorRecord errRecord)
         {
@@ -851,22 +872,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return pkgEntries;
             }
 
-            // Get initial response
             int skip = 0;
-            string query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
+            int skipAndTakeAmount = 100;
+            if (_isAWSCodeArtifactRepo) {
+                skipAndTakeAmount = 25;
+            }
+
+            // Get initial response
+            string query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take={skipAndTakeAmount}";
+
+            var itemList = GetJsonElementArr(query, dataName, out int initialCount, out errRecord).ToList();
+            pkgEntries.AddRange(itemList);
 
             // Get responses for all packages that contain the required tags
-            pkgEntries.AddRange(GetJsonElementArr(query, dataName, out int initialCount, out errRecord).ToList());
-
-            // check count (ie "totalHits") 425 ==> count/100  ~~> 4 calls ~~> + 1 = 5 calls
-            int count = initialCount / 100 + 1;
-            // if more than 100 count, loop and add response to list
-            while (count > 0)
-            {
-                skip += 100;
-                query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take=100";
-                pkgEntries.AddRange(GetJsonElementArr(query, dataName, out int unneededCount, out errRecord).ToList());
-                count--;
+            while (itemList.Count > 0) {
+                skip += skipAndTakeAmount;
+                query = $"{searchQueryServiceUrl}?q={queryTerm}&prerelease={includePrerelease}&semVerLevel=2.0.0&skip={skip}&take={skipAndTakeAmount}";
+                itemList = GetJsonElementArr(query, dataName, out int unneededCount, out errRecord).ToList();
+                if (itemList.Count == 0) {
+                    break;
+                }
+                pkgEntries.AddRange(itemList);
             }
 
             return pkgEntries;
@@ -1715,6 +1741,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 throw new InvalidOperationException(Utils.FormatRequestsExceptions(e, message));
             }
+        }
+
+
+        /// <summary>
+        /// Helper method called by FindAll() to validate whether the repositories AbsoluteUri contains a specified value.
+        /// <summary>
+        private bool RepositoryUriContains(string str) {
+            return Repository.Uri.AbsoluteUri.ToLower().Contains(str);
         }
 
         #endregion

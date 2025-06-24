@@ -22,6 +22,11 @@ $script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 $script:NuGetGalleryName = 'NuGetGallery'
 $script:NuGetGalleryLocation = 'https://api.nuget.org/v3/index.json'
 
+# This is not a valid Code Artifact endpoint. However, this will allow a unit test to move
+# past the NuGet v3 fast fail in the FindAll() method.
+$script:AWSCodeArtifactName = 'AWSCodeArtifact'
+$script:AWSCodeArtifactLocation = 'https://cadomainname-awsaccountid.d.codeartifact.region.amazonaws.com/nuget/carepositoryname/v3/index.json'
+
 if($script:IsInbox)
 {
     $script:ProgramFilesPSPath = Microsoft.PowerShell.Management\Join-Path -Path $env:ProgramFiles -ChildPath "WindowsPowerShell"
@@ -133,6 +138,14 @@ function Get-TempPath {
 
 function Get-PSGetLocalAppDataPath {
     return $script:PSGetAppLocalPath
+}
+
+function Get-AWSCodeArtifactGalleryName {
+    return $script:AWSCodeArtifactName
+}
+
+function Get-AWSCodeArtifactGalleryLocation {
+    return $script:AWSCodeArtifactLocation
 }
 
 function Get-NuGetGalleryName
