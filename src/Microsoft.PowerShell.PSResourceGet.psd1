@@ -4,7 +4,7 @@
 @{
     RootModule             = './Microsoft.PowerShell.PSResourceGet.dll'
     NestedModules          = @('./Microsoft.PowerShell.PSResourceGet.psm1')
-    ModuleVersion          = '1.1.1'
+    ModuleVersion          = '1.2.0'
     CompatiblePSEditions   = @('Core', 'Desktop')
     GUID                   = 'e4e0bda1-0703-44a5-b70d-8fe704cd0643'
     Author                 = 'Microsoft Corporation'
@@ -46,7 +46,7 @@
         'udres')
     PrivateData = @{
         PSData = @{
-            # Prerelease   = ''
+            Prerelease   = 'preview1'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -56,6 +56,16 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.2.0-preview1
+
+### New Features
+- Dependency support for PSResources in v3 repositories (#1778 Thanks @o-l-a-v!)
+
+### Bug Fix
+- Updated dependencies and added connection timeout to improve CI tests reliability (#1829)
+- Improvements in `ContainerRegistry` repositories in listing repository catalog  (#1831)
+- Wildcard attribute added to `-Repository` parameter of `Install-PSResource` (#1808)
+
 ## 1.1.1
 
 ### Bug Fix
