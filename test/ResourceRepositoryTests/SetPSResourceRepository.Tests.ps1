@@ -123,9 +123,18 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         Register-PSResourceRepository -Name $TestRepoName2 -Uri $tmpDir2Path
 
-        $hashtable1 = @{Name = $TestRepoName1; Uri = $tmpDir3Path }
-        $hashtable2 = @{Name = $TestRepoName2; Priority = 25 }
-        $incorrectHashTable = @{Name = $Name; Trusted = $True }
+        $hashtable1 = @{
+            Name = $TestRepoName1
+            Uri  = $tmpDir3Path
+        }
+        $hashtable2 = @{
+            Name     = $TestRepoName2
+            Priority = 25
+        }
+        $incorrectHashTable = @{
+            Name    = $Name
+            Trusted = $True
+        }
         $arrayOfHashtables = $hashtable1, $incorrectHashTable, $hashtable2
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
@@ -148,10 +157,25 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         Register-PSResourceRepository -Name $TestRepoName3 -Uri $tmpDir3Path
         Register-PSResourceRepository -PSGallery
 
-        $hashtable1 = @{Name = $TestRepoName1; Uri = $tmpDir2Path };
-        $hashtable2 = @{Name = $TestRepoName2; Priority = 25 };
-        $hashtable3 = @{Name = $TestRepoName3; CredentialInfo = [PSCustomObject] @{ VaultName = "testvault"; SecretName = $randomSecret } };
-        $hashtable4 = @{Name = $PSGalleryName; Trusted = $True };
+        $hashtable1 = @{
+            Name = $TestRepoName1
+            Uri  = $tmpDir2Path
+        }
+        $hashtable2 = @{
+            Name     = $TestRepoName2
+            Priority = 25
+        }
+        $hashtable3 = @{
+            Name          = $TestRepoName3
+            CredentialInfo = [PSCustomObject] @{
+                VaultName  = "testvault"
+                SecretName = $randomSecret
+            }
+        }
+        $hashtable4 = @{
+            Name    = $PSGalleryName
+            Trusted = $True
+        }
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
         Set-PSResourceRepository -Repository $arrayOfHashtables
@@ -204,8 +228,14 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
 
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
 
-        $hashtable1 = @{Name = $PSGalleryName; Uri = $tmpDir1Path }
-        $hashtable2 = @{Name = $TestRepoName1; Priority = 25 }
+        $hashtable1 = @{
+            Name = $PSGalleryName
+            Uri  = $tmpDir1Path
+        }
+        $hashtable2 = @{
+            Name     = $TestRepoName1
+            Priority = 25
+        }
         $arrayOfHashtables = $hashtable1, $hashtable2
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
@@ -234,8 +264,14 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
 
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
 
-        $hashtable1 = @{Name = $PSGalleryName; CredentialInfo = $credentialInfo1 }
-        $hashtable2 = @{Name = $TestRepoName1; Priority = 25 }
+        $hashtable1 = @{
+            Name          = $PSGalleryName
+            CredentialInfo = $credentialInfo1
+        }
+        $hashtable2 = @{
+            Name     = $TestRepoName1
+            Priority = 25
+        }
         $arrayOfHashtables = $hashtable1, $hashtable2
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
