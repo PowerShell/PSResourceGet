@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using BenchmarkDotNet;
 using BenchmarkDotNet.Attributes;
 using Microsoft.PowerShell;
 using System;
