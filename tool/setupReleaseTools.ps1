@@ -6,9 +6,9 @@ param(
     [string]$Token
 )
 
-Write-Host "Install and import PowerShell modules"
-Set-PSResourceRepository -Name PSGallery -Trusted | Out-Null
-Install-Module -Name PowerShellForGitHub -Scope CurrentUser -Force
+Write-Host 'Install and import PowerShell modules'
+$null = Set-PSResourceRepository -Name PSGallery -Trusted
+Install-PSResource -Repository 'PSGallery' -Name 'PowerShellForGitHub' -Scope 'CurrentUser' -Force
 Import-Module $PSScriptRoot/releaseTools.psm1
 
 Write-Host "Setup authentication"
