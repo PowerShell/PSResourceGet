@@ -65,7 +65,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         [Parameter(Mandatory = true, ParameterSetName = RepositoriesParameterSet, HelpMessage = "Hashtable including information on single or multiple repositories to be registered.")]
         [ValidateNotNullOrEmpty]
-        public Hashtable[] Repository {get; set;}
+        public Hashtable[] Repository { get; set; }
 
         /// <summary>
         /// Specifies whether the repository should be trusted.
@@ -328,7 +328,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             PSCredentialInfo repoCredentialInfo = null;
             if (repo.ContainsKey("CredentialInfo") &&
-                !Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject) repo["CredentialInfo"],
+                !Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject)repo["CredentialInfo"],
                     cmdletPassedIn: this,
                     repoCredentialInfo: out repoCredentialInfo,
                     errorRecord: out ErrorRecord errorRecord1))
@@ -359,7 +359,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     repoUri,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
                     repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : DefaultTrusted,
-                    apiVersion: repo.ContainsKey("Trusted") ? (PSRepositoryInfo.APIVersion?) repo["ApiVersion"] : null,
+                    apiVersion: repo.ContainsKey("Trusted") ? (PSRepositoryInfo.APIVersion?)repo["ApiVersion"] : null,
                     repoCredentialInfo,
                     Force,
                     this,

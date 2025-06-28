@@ -303,7 +303,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     bool repoIsTrusted = !(repoTrusted == null || repoTrusted == false);
                     repoPriority = repoPriority < 0 ? DefaultPriority : repoPriority;
 
-                    return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, apiVersion, repoCredentialInfo, force:true, cmdletPassedIn, out errorMsg);
+                    return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, apiVersion, repoCredentialInfo, force: true, cmdletPassedIn, out errorMsg);
                 }
 
                 // Check that repository node we are attempting to update has all required attributes: Name, Url (or Uri), Priority, Trusted.
@@ -365,14 +365,14 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     if (urlAttributeExists)
                     {
-                        if(!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl))
+                        if (!Uri.TryCreate(node.Attribute("Url").Value, UriKind.Absolute, out thisUrl))
                         {
                             throw new PSInvalidOperationException(String.Format("The 'Url' for repository {0} is invalid and the repository cannot be used. Please update the Url field or remove the repository entry.", repoName));
                         }
                     }
                     else
                     {
-                        if(!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl))
+                        if (!Uri.TryCreate(node.Attribute("Uri").Value, UriKind.Absolute, out thisUrl))
                         {
                             throw new PSInvalidOperationException(String.Format("The 'Url' for repository {0} is invalid and the repository cannot be used. Please update the Url field or remove the repository entry.", repoName));
                         }
@@ -447,7 +447,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(thisUrl) : true;
 
-                RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
+                RepositoryProviderType repositoryProvider = GetRepositoryProviderType(thisUrl);
                 updatedRepo = new PSRepositoryInfo(repoName,
                     thisUrl,
                     Int32.Parse(node.Attribute("Priority").Value),
@@ -537,7 +537,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(repoUri) : true;
 
-                RepositoryProviderType repositoryProvider= GetRepositoryProviderType(repoUri);
+                RepositoryProviderType repositoryProvider = GetRepositoryProviderType(repoUri);
                 removedRepos.Add(
                     new PSRepositoryInfo(repo,
                         new Uri(node.Attribute(attributeUrlUriName).Value),
@@ -669,7 +669,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         continue;
                     }
 
-                    RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
+                    RepositoryProviderType repositoryProvider = GetRepositoryProviderType(thisUrl);
 
                     bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(thisUrl) : true;
 
@@ -777,7 +777,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             continue;
                         }
 
-                        RepositoryProviderType repositoryProvider= GetRepositoryProviderType(thisUrl);
+                        RepositoryProviderType repositoryProvider = GetRepositoryProviderType(thisUrl);
 
                         bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(thisUrl) : true;
 
@@ -876,15 +876,18 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             string absoluteUri = repoUri.AbsoluteUri;
             // We want to use contains instead of EndsWith to accomodate for trailing '/'
-            if (absoluteUri.Contains("azurecr.io") || absoluteUri.Contains("mcr.microsoft.com")){
+            if (absoluteUri.Contains("azurecr.io") || absoluteUri.Contains("mcr.microsoft.com"))
+            {
                 return RepositoryProviderType.ACR;
             }
             // TODO: add a regex for this match
             // eg: *pkgs.*/_packaging/*
-            else if (absoluteUri.Contains("pkgs.")){
+            else if (absoluteUri.Contains("pkgs."))
+            {
                 return RepositoryProviderType.AzureDevOps;
             }
-            else {
+            else
+            {
                 return RepositoryProviderType.None;
             }
         }

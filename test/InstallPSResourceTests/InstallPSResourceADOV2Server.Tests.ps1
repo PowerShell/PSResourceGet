@@ -25,9 +25,9 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    $testCases = @{Name="*";                        ErrorId="NameContainsWildcard"},
-                 @{Name="Test_local_m*";            ErrorId="NameContainsWildcard"},
-                 @{Name="Test?local","Test[local";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
+    $testCases = @{Name = "*"; ErrorId = "NameContainsWildcard" },
+    @{Name = "Test_local_m*"; ErrorId = "NameContainsWildcard" },
+    @{Name = "Test?local", "Test[local"; ErrorId = "ErrorFilteringNamesForUnsupportedWildcards" }
 
     It "Should not install resource with wildcard in name" -TestCases $testCases {
         param($Name, $ErrorId)
@@ -101,8 +101,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $Version = "(1.0.0.0)"
         try {
             Install-PSResource -Name $testModuleName -Version $Version -Repository $ADORepoName -TrustRepository -ErrorAction SilentlyContinue
-        }
-        catch
+        } catch
         {}
         $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 

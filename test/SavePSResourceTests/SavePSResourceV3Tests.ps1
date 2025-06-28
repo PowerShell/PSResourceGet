@@ -87,11 +87,10 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
     }
 
     It 'Should not save resource with incorrectly formatted version such as exclusive version (1.0.0.0)' {
-        $Version='(1.0.0.0)'
+        $Version = '(1.0.0.0)'
         try {
             Save-PSResource -Name $testModuleName -Version $Version -Repository $NuGetGalleryName -Path $SaveDir -ErrorAction SilentlyContinue -TrustRepository
-        }
-        catch {
+        } catch {
         }
 
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ $testModuleName
@@ -110,7 +109,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
 
     ### TODO:  this is broken because the "Prerelease" parameter is a boolean, but the type from
     ### the input object is of type string (ie "true").
-    It 'Save PSResourceInfo object piped in for prerelease version object' -Pending{
+    It 'Save PSResourceInfo object piped in for prerelease version object' -Pending {
         Find-PSResource -Name $testModuleName -Version '5.2.5-alpha001' -Repository $NuGetGalleryName | Save-PSResource -Path $SaveDir -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ $testModuleName
         $pkgDir | Should -Not -BeNullOrEmpty
@@ -155,7 +154,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
         $pkg.Name | Should -Be 'test_module_withlicense'
         $pkg.Version | Should -Be '1.0.0'
     }
-    
+
     It "Save module and its dependencies" {
         $res = Save-PSResource 'TestModuleWithDependencyE' -Repository $NuGetGalleryName -TrustRepository -PassThru
         $res.Length | Should -Be 4

@@ -71,7 +71,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region V2 Specific Methods
 
-        public XmlNode[] ConvertResponseToXML(string httpResponse) {
+        public XmlNode[] ConvertResponseToXML(string httpResponse)
+        {
             NuGetVersion emptyVersion = new NuGetVersion("0.0.0.0");
             NuGetVersion firstVersion = emptyVersion;
             NuGetVersion lastVersion = emptyVersion;
@@ -84,7 +85,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             XmlNodeList entryNode = doc.GetElementsByTagName("entry");
 
             XmlNode[] nodes = new XmlNode[entryNode.Count];
-            for (int i = 0; i < entryNode.Count; i++) 
+            for (int i = 0; i < entryNode.Count; i++)
             {
                 XmlNode node = entryNode[i];
                 nodes[i] = node;

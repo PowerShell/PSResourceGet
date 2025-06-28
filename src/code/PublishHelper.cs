@@ -18,7 +18,7 @@ using System.Xml;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
-	internal class PublishHelper
+    internal class PublishHelper
     {
         #region Enums
         internal enum CallerCmdlet
@@ -120,27 +120,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             parsedMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
             if (resourceType == ResourceType.Script)
+            {
+                if (!PSScriptFileInfo.TryTestPSScriptFileInfo(
+                    scriptFileInfoPath: pathToScriptFileToPublish,
+                    parsedScript: out PSScriptFileInfo scriptToPublish,
+                    out ErrorRecord[] errors,
+                    out string[] _
+                ))
                 {
-                    if (!PSScriptFileInfo.TryTestPSScriptFileInfo(
-                        scriptFileInfoPath: pathToScriptFileToPublish,
-                        parsedScript: out PSScriptFileInfo scriptToPublish,
-                        out ErrorRecord[] errors,
-                        out string[] _
-                    ))
+                    foreach (ErrorRecord error in errors)
                     {
-                        foreach (ErrorRecord error in errors)
-                        {
-                            _cmdletPassedIn.WriteError(error);
-                        }
-
-                        ScriptError = true;
-
-                        return;
+                        _cmdletPassedIn.WriteError(error);
                     }
 
-                    parsedMetadata = scriptToPublish.ToHashtable();
+                    ScriptError = true;
 
-                    _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToScriptFileToPublish);
+                    return;
+                }
+
+                parsedMetadata = scriptToPublish.ToHashtable();
+
+                _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToScriptFileToPublish);
             }
             else
             {
@@ -320,7 +320,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             finally
             {
-                if(_callerCmdlet == CallerCmdlet.CompressPSResource)
+                if (_callerCmdlet == CallerCmdlet.CompressPSResource)
                 {
                     _cmdletPassedIn.WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
                     Utils.DeleteDirectory(outputDir);
@@ -468,7 +468,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    if(_isNupkgPathSpecified)
+                    if (_isNupkgPathSpecified)
                     {
                         outputNupkgDir = pathToNupkgToPublish;
                     }
@@ -740,7 +740,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         error = new ErrorRecord(new ArgumentException($"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception: '{e.Message}'"),
                             "401Error",
                             ErrorCategory.PermissionDenied,
-                            this); ;
+                            this);
+                        ;
                     }
                 }
                 else if (e.Message.Contains("403"))
@@ -1126,7 +1127,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     XmlElement element = doc.CreateElement("dependency", nameSpaceUri);
                     element.SetAttribute("id", dependencyName);
-                    
+
                     string dependencyVersion = requiredModules[dependencyName].ToString();
                     if (!string.IsNullOrEmpty(dependencyVersion))
                     {
@@ -1201,13 +1202,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     string moduleName = moduleHash["ModuleName"] as string;
                     var versionInfo = new Hashtable();
-            
+
                     // RequiredVersion cannot be used with ModuleVersion or MaximumVersion
                     if (moduleHash.ContainsKey("RequiredVersion"))
                     {
                         versionInfo["RequiredVersion"] = moduleHash["RequiredVersion"].ToString();
                     }
-                    else 
+                    else
                     {
                         // ModuleVersion and MaximumVersion can be used together
                         if (moduleHash.ContainsKey("ModuleVersion"))
@@ -1418,11 +1419,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
                     {
                         errRecord = new ErrorRecord(
-                            readManifestError, 
-                            "GetMetadataFromNupkgFailure", 
-                            ErrorCategory.ParserError, 
+                            readManifestError,
+                            "GetMetadataFromNupkgFailure",
+                            ErrorCategory.ParserError,
                             this);
-                        
+
                         return pkgMetadata;
                     }
                 }
@@ -1432,9 +1433,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (!PSScriptFileInfo.TryTestPSScriptFileInfo(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
                     {
                         errRecord = new ErrorRecord(
-                            new InvalidDataException($"PSScriptFile could not be read properly"), 
-                            "GetMetadataFromNupkgFailure", 
-                            ErrorCategory.ParserError, 
+                            new InvalidDataException($"PSScriptFile could not be read properly"),
+                            "GetMetadataFromNupkgFailure",
+                            ErrorCategory.ParserError,
                             this);
 
                         return pkgMetadata;
@@ -1455,20 +1456,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     errRecord = new ErrorRecord(
                         new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"),
-                        "GetMetadataFromNupkgFailure", 
-                        ErrorCategory.InvalidData, 
+                        "GetMetadataFromNupkgFailure",
+                        ErrorCategory.InvalidData,
                         this);
-                        
+
                     return pkgMetadata;
                 }
             }
             catch (Exception e)
             {
-               errRecord = new ErrorRecord(
-                   new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"), 
-                   "GetMetadataFromNupkgFailure", 
-                   ErrorCategory.InvalidOperation, 
-                   this);
+                errRecord = new ErrorRecord(
+                    new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"),
+                    "GetMetadataFromNupkgFailure",
+                    ErrorCategory.InvalidOperation,
+                    this);
             }
             finally
             {
