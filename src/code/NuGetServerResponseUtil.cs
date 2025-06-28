@@ -69,18 +69,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region NuGet.Server Specific Methods
 
-        public XmlNode[] ConvertResponseToXML(string httpResponse) {
+        public XmlNode[] ConvertResponseToXML(string httpResponse)
+        {
 
             //Create the XmlDocument.
             XmlDocument doc = new XmlDocument();
             doc.LoadXml(httpResponse);
 
             XmlNodeList elemList = doc.GetElementsByTagName("m:properties");
-            
-            XmlNode[] nodes = new XmlNode[elemList.Count]; 
-            for (int i = 0; i < elemList.Count; i++) 
+
+            XmlNode[] nodes = new XmlNode[elemList.Count];
+            for (int i = 0; i < elemList.Count; i++)
             {
-                nodes[i] = elemList[i]; 
+                nodes[i] = elemList[i];
             }
 
             return nodes;

@@ -9,7 +9,7 @@ Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
 
 Describe 'Test Find-PSResource for searching and looping through repositories' -tags 'CI' {
 
-    BeforeAll{
+    BeforeAll {
         $testModuleName = "test_module"
         $testModuleName2 = "test_module2"
         $testCmdDSCParentPkg = "myCmdDSCModule"
@@ -78,7 +78,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "should find resources that exist and not find ones that do not exist while reporting error (without -Repository specified)" {
-        $res = Find-PSResource -Name $testScriptName,"NonExistantModule" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $testScriptName, "NonExistantModule" -ErrorVariable err -ErrorAction SilentlyContinue
         $err | Should -HaveCount 1
         $res | Should -HaveCount 2
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -101,7 +101,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "find multiple resources from all repositories where it exists (without -Repository specified)" {
-        $res = Find-PSResource -Name $testModuleName,$testModuleName2 -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $testModuleName, $testModuleName2 -ErrorVariable err -ErrorAction SilentlyContinue
         $err | Should -HaveCount 0
         $res | Should -HaveCount 5
 
@@ -134,17 +134,12 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkgFoundinLocalRepo = $false
         $pkgFoundinPSGallery = $false
         $pkgFoundinNuGetGallery = $false
-        foreach ($pkg in $res)
-        {
-            if ($pkg.Repository -eq $localRepoName)
-            {
+        foreach ($pkg in $res) {
+            if ($pkg.Repository -eq $localRepoName) {
                 $pkgFoundinLocalRepo = $true
-            }
-            elseif ($pkg.Repository -eq $PSGalleryName) {
+            } elseif ($pkg.Repository -eq $PSGalleryName) {
                 $pkgFoundinPSGallery = $true
-            }
-            elseif ($pkg.Repository -eq $NuGetGalleryName)
-            {
+            } elseif ($pkg.Repository -eq $NuGetGalleryName) {
                 $pkgFoundinNuGetGallery = $true
             }
         }
@@ -176,7 +171,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
 
     It "find resources from pattern matching repositories where it exists and error report for specific repositories (-Repository with wildcard and specific repositories)" -Pending {
         # Package "test_script" exists in the following repositories: PSGallery, NuGetGallery
-        $res = Find-PSResource -Name $testScriptName -Repository "*Gallery",$localRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $testScriptName -Repository "*Gallery", $localRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $err | Should -HaveCount 1
         $res | Should -HaveCount 2
         $pkg1 = $res[0]
@@ -193,7 +188,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
 
     It "not find resources from pattern matching repositories if it doesn't exist and only write for for specific repositories (-Repository with wildcard and specific repositories)" -Pending {
         # Package "nonExistantPkg" does not exist in any repo
-        $res = Find-PSResource -Name "nonExistantPkg" -Repository "*Gallery",$localRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name "nonExistantPkg" -Repository "*Gallery", $localRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $err | Should -HaveCount 1
         $res | Should -HaveCount 2
         $pkg1 = $res[0]
@@ -208,7 +203,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "should not allow for repository name with wildcard and non-wildcard name specified in same command run" {
-        {Find-PSResource -Name "test_module" -Repository "*Gallery",$localRepoName} | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        { Find-PSResource -Name "test_module" -Repository "*Gallery", $localRepoName } | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "not find resource and write error if resource does not exist in any pattern matching repositories (-Repository with wildcard)" {
@@ -245,7 +240,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "find resource from all repositories where it exists (-Repository with multiple non-wildcard values)" {
-        $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName,$NuGetGalleryName
+        $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName, $NuGetGalleryName
         $res | Should -HaveCount 2
 
         $pkg1 = $res[0]
@@ -260,7 +255,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     It "find resource from all repositories where it exists and write errors for those it does not exist from (-Repository with multiple non-wildcard values)" {
         # Package "test_module3" exists in the following repositories: NuGetGalleryName
         $pkgOnNuGetGallery = "test_module3"
-        $res = Find-PSResource -Name $pkgOnNuGetGallery -Repository $PSGalleryName,$NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name $pkgOnNuGetGallery -Repository $PSGalleryName, $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -HaveCount 1
         $err | Should -HaveCount 1
 
@@ -272,7 +267,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "should not find resource from repositories where it does not exist and not write error since package Name contains wilcard" -Pending {
-        $res = Find-PSResource -Name "NonExistantPkg*" -Repository $PSGalleryName,$NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name "NonExistantPkg*" -Repository $PSGalleryName, $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -HaveCount 0
         $err | Should -HaveCount 0
     }
@@ -334,7 +329,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "not find resource when it has one tag specified but not other and report error (without -Repository specified)" {
-        $res = Find-PSResource -Tag $tag2,"NonExistantTag" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Tag $tag2, "NonExistantTag" -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -HaveCount 0
         $err | Should -HaveCount 1
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageWithTagsNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -348,7 +343,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "not find resource and discard Tag entry containing wildcard, but search for other non-wildcard Tag entries (without -Repository specified)" {
-        $res = Find-PSResource -Tag $tag2,"myTag*" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Tag $tag2, "myTag*" -ErrorVariable err -ErrorAction SilentlyContinue
         $err | Should -HaveCount 1
         $err[0].FullyQualifiedErrorId | Should -BeExactly "WildcardsUnsupportedForTag,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
 
@@ -392,7 +387,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "should not allow for repository name with wildcard and non-wildcard name specified in same command run" {
-        {Find-PSResource -Tag $tag1 -Repository "*Gallery",$localRepoName} | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        { Find-PSResource -Tag $tag1 -Repository "*Gallery", $localRepoName } | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "not find resource and write error if tag does not exist for resources in any pattern matching repositories (-Repository with wildcard)" {
@@ -422,7 +417,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "find resource from all repositories where it exists (-Repository with multiple non-wildcard values)" {
-        $res = Find-PSResource -Tag $tag2 -Repository $PSGalleryName,$NuGetGalleryName
+        $res = Find-PSResource -Tag $tag2 -Repository $PSGalleryName, $NuGetGalleryName
         $res.Count | Should -BeGreaterOrEqual 3
 
         $pkg1 = $res[0]
@@ -441,7 +436,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     It "find resource from all repositories where it exists and write errors for those it does not exist from (-Repository with multiple non-wildcard values)" {
         # Package eith Tag "Tag-TestMyLocalScript-1.0.0.0" exists in the following repositories: PSGallery
         $tagForPkgOnPSGallery = "Tag-TestMyLocalScript-1.0.0.0"
-        $res = Find-PSResource -Tag $tagForPkgOnPSGallery -Repository $PSGalleryName,$NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Tag $tagForPkgOnPSGallery -Repository $PSGalleryName, $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res.Count | Should -BeGreaterOrEqual 2
         $err | Should -HaveCount 1
 
@@ -465,14 +460,10 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkgFoundFromLocalRepo = $false
         $pkgFoundFromPSGallery = $false
 
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
+        foreach ($pkg in $res) {
+            if ($pkg.ParentResource.Repository -eq $localRepoName) {
                 $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $PSGalleryName) {
                 $pkgFoundFromPSGallery = $true
             }
         }
@@ -491,7 +482,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "not find resource when it has one CommandName specified but not other and report error (without -Repository specified)" {
-        $res = Find-PSResource -CommandName $cmdName,"NonExistantCommandName" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -CommandName $cmdName, "NonExistantCommandName" -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -HaveCount 0
         $err | Should -HaveCount 1
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageWithCmdOrDscNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -505,7 +496,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "not find resource and discard CommandName entry containing wildcard, but search for other non-wildcard CommandName entries (without -Repository specified)" {
-        $res = Find-PSResource -CommandName $cmdName,"myCommandName*" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -CommandName $cmdName, "myCommandName*" -ErrorVariable err -ErrorAction SilentlyContinue
         $err | Should -HaveCount 1
         $err[0].FullyQualifiedErrorId | Should -BeExactly "WildcardsUnsupportedForCommandNameorDSCResourceName,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
 
@@ -513,14 +504,10 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkgFoundFromLocalRepo = $false
         $pkgFoundFromPSGallery = $false
 
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
+        foreach ($pkg in $res) {
+            if ($pkg.ParentResource.Repository -eq $localRepoName) {
                 $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $PSGalleryName) {
                 $pkgFoundFromPSGallery = $true
             }
         }
@@ -540,14 +527,10 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkgFoundFromLocalRepo = $false
         $pkgFoundFromPSGallery = $false
 
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
+        foreach ($pkg in $res) {
+            if ($pkg.ParentResource.Repository -eq $localRepoName) {
                 $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $PSGalleryName) {
                 $pkgFoundFromPSGallery = $true
             }
         }
@@ -559,7 +542,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "should not allow for repository name with wildcard and non-wildcard command name specified in same command run" {
-        {Find-PSResource -CommandName $cmdName -Repository "*Gallery",$localRepoName} | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        { Find-PSResource -CommandName $cmdName -Repository "*Gallery", $localRepoName } | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "not find resource and write error if tag does not exist for resources in any pattern matching repositories (-Repository with wildcard)" {
@@ -591,20 +574,16 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "find resource given CommandName from all repositories where it exists (-Repository with multiple non-wildcard values)" {
-        $res = Find-PSResource -CommandName $cmdName -Repository $PSGalleryName,$localRepoName
+        $res = Find-PSResource -CommandName $cmdName -Repository $PSGalleryName, $localRepoName
         $res.Count | Should -BeGreaterOrEqual 9
 
         $pkgFoundFromLocalRepo = $false
         $pkgFoundFromPSGallery = $false
 
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
+        foreach ($pkg in $res) {
+            if ($pkg.ParentResource.Repository -eq $localRepoName) {
                 $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $PSGalleryName) {
                 $pkgFoundFromPSGallery = $true
             }
         }
@@ -617,21 +596,17 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
 
     It "find resource given CommandName from all repositories where it exists and write errors for those it does not exist from (-Repository with multiple non-wildcard values)" {
         # Package with Command "Get-MyCommand" exists in the following repositories: localRepo
-        $res = Find-PSResource -CommandName $cmdName2 -Repository $PSGalleryName,$localRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -CommandName $cmdName2 -Repository $PSGalleryName, $localRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -HaveCount 1
         $err | Should -HaveCount 1
 
         $pkgFoundFromLocalRepo = $false
         $pkgFoundFromPSGallery = $false
 
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
+        foreach ($pkg in $res) {
+            if ($pkg.ParentResource.Repository -eq $localRepoName) {
                 $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $PSGalleryName) {
                 $pkgFoundFromPSGallery = $true
             }
         }
@@ -645,7 +620,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "find resource given CommandName from repository where it exists and not find and write error for unsupported single specific repository (-Repository with single non-wildcard value)" {
-        $res = Find-PSResource -CommandName $cmdName -Repository $localRepoName,$NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -CommandName $cmdName -Repository $localRepoName, $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -HaveCount 1
         $err | Should -HaveCount 1
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindCommandOrDscResourceFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -654,18 +629,12 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkgFoundFromPSGallery = $false
         $pkgFoundFromNuGetGallery = $false
 
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
+        foreach ($pkg in $res) {
+            if ($pkg.ParentResource.Repository -eq $localRepoName) {
                 $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $PSGalleryName) {
                 $pkgFoundFromPSGallery = $true
-            }
-            elseif($pkg.ParentResource.Repository -eq $NuGetGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $NuGetGalleryName) {
                 $pkgFoundFromNuGetGallery = $true
             }
         }
@@ -685,14 +654,10 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkgFoundFromLocalRepo = $false
         $pkgFoundFromPSGallery = $false
 
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
+        foreach ($pkg in $res) {
+            if ($pkg.ParentResource.Repository -eq $localRepoName) {
                 $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $PSGalleryName) {
                 $pkgFoundFromPSGallery = $true
             }
         }
@@ -711,7 +676,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "not find resource when it has one DSCResourceName specified but not other and report error (without -Repository specified)" {
-        $res = Find-PSResource -DscResourceName $dscName,"NonExistantDSCResourceName" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -DscResourceName $dscName, "NonExistantDSCResourceName" -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -HaveCount 0
         $err | Should -HaveCount 1
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageWithCmdOrDscNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -725,7 +690,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "not find resource and discard DSCREsource entry containing wildcard, but search for other non-wildcard DSCResourceName entries (without -Repository specified)" {
-        $res = Find-PSResource -DscResourceName $dscName,"myDSCResourceName*" -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -DscResourceName $dscName, "myDSCResourceName*" -ErrorVariable err -ErrorAction SilentlyContinue
         $err | Should -HaveCount 1
         $err[0].FullyQualifiedErrorId | Should -BeExactly "WildcardsUnsupportedForCommandNameorDSCResourceName,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
 
@@ -733,14 +698,10 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkgFoundFromLocalRepo = $false
         $pkgFoundFromPSGallery = $false
 
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
+        foreach ($pkg in $res) {
+            if ($pkg.ParentResource.Repository -eq $localRepoName) {
                 $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $PSGalleryName) {
                 $pkgFoundFromPSGallery = $true
             }
         }
@@ -760,14 +721,10 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkgFoundFromLocalRepo = $false
         $pkgFoundFromPSGallery = $false
 
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
+        foreach ($pkg in $res) {
+            if ($pkg.ParentResource.Repository -eq $localRepoName) {
                 $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $PSGalleryName) {
                 $pkgFoundFromPSGallery = $true
             }
         }
@@ -779,7 +736,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "should not allow for repository name with wildcard and non-wildcard command name specified in same command run" {
-        {Find-PSResource -DscResourceName $dscName -Repository "*Gallery",$localRepoName} | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        { Find-PSResource -DscResourceName $dscName -Repository "*Gallery", $localRepoName } | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
     It "not find resource and write error if tag does not exist for resources in any pattern matching repositories (-Repository with wildcard)" {
@@ -812,20 +769,16 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "find resource given DSCResourceName from all repositories where it exists (-Repository with multiple non-wildcard values)" {
-        $res = Find-PSResource -DscResourceName $dscName -Repository $PSGalleryName,$localRepoName
+        $res = Find-PSResource -DscResourceName $dscName -Repository $PSGalleryName, $localRepoName
         $res.Count | Should -BeGreaterOrEqual 3
 
         $pkgFoundFromLocalRepo = $false
         $pkgFoundFromPSGallery = $false
 
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
+        foreach ($pkg in $res) {
+            if ($pkg.ParentResource.Repository -eq $localRepoName) {
                 $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $PSGalleryName) {
                 $pkgFoundFromPSGallery = $true
             }
         }
@@ -838,21 +791,17 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
 
     It "find resource given DSCResourceName from all repositories where it exists and write errors for those it does not exist from (-Repository with multiple non-wildcard values)" {
         # Package with DSCResourceName "MyDSCResource" exists in the following repositories: localRepo
-        $res = Find-PSResource -DscResourceName $dscName2 -Repository $PSGalleryName,$localRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -DscResourceName $dscName2 -Repository $PSGalleryName, $localRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -HaveCount 1
         $err | Should -HaveCount 1
 
         $pkgFoundFromLocalRepo = $false
         $pkgFoundFromPSGallery = $false
 
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
+        foreach ($pkg in $res) {
+            if ($pkg.ParentResource.Repository -eq $localRepoName) {
                 $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $PSGalleryName) {
                 $pkgFoundFromPSGallery = $true
             }
         }
@@ -866,7 +815,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "find resource given DSCResourceName from repository where it exists and not find and write error for unsupported specific repository (-Repository with single non-wildcard value)" {
-        $res = Find-PSResource -DscResourceName $dscName -Repository $localRepoName,$NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -DscResourceName $dscName -Repository $localRepoName, $NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -HaveCount 1
         $err | Should -HaveCount 1
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindCommandOrDscResourceFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -875,18 +824,12 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkgFoundFromPSGallery = $false
         $pkgFoundFromNuGetGallery = $false
 
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
+        foreach ($pkg in $res) {
+            if ($pkg.ParentResource.Repository -eq $localRepoName) {
                 $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $PSGalleryName) {
                 $pkgFoundFromPSGallery = $true
-            }
-            elseif($pkg.ParentResource.Repository -eq $NuGetGalleryName)
-            {
+            } elseif ($pkg.ParentResource.Repository -eq $NuGetGalleryName) {
                 $pkgFoundFromNuGetGallery = $true
             }
         }

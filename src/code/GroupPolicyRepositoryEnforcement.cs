@@ -96,7 +96,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             bool isAllowed = false;
 
-            if(GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled())
+            if (GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled())
             {
                 var allowedList = GroupPolicyRepositoryEnforcement.GetAllowedRepositoryURIs();
 
@@ -146,7 +146,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        var valueNames =  psrgKey.GetValueNames();
+                        var valueNames = psrgKey.GetValueNames();
 
                         // This means it is disabled
                         if (valueNames is null || valueNames.Length == 0 || valueNames.Length == 1 && valueNames[0].Equals("**delvals.", StringComparison.OrdinalIgnoreCase))

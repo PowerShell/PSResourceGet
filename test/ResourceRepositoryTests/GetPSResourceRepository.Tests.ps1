@@ -48,7 +48,7 @@ Describe "Test Get-PSResourceRepository" -tags 'CI' {
         Register-PSResourceRepository -Name $TestRepoName2 -Uri $tmpDir2Path
         Register-PSResourceRepository -Name "MyGallery" -Uri $tmpDir3Path
 
-        $res = Get-PSResourceRepository -Name "testReposit*","*Gallery"
+        $res = Get-PSResourceRepository -Name "testReposit*", "*Gallery"
         foreach ($entry in $res) {
             $entry.Name | Should -Match "testReposit|Gallery"
         }
@@ -58,9 +58,9 @@ Describe "Test Get-PSResourceRepository" -tags 'CI' {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         Register-PSResourceRepository -Name "MyGallery" -Uri $tmpDir2Path
 
-        $res = Get-PSResourceRepository -Name $TestRepoName1,"MyGallery"
+        $res = Get-PSResourceRepository -Name $TestRepoName1, "MyGallery"
         foreach ($entry in $res) {
-            $entry.Name | Should -BeIn $TestRepoName1,"MyGallery"
+            $entry.Name | Should -BeIn $TestRepoName1, "MyGallery"
         }
     }
 
@@ -78,13 +78,13 @@ Describe "Test Get-PSResourceRepository" -tags 'CI' {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         Register-PSResourceRepository -Name $TestRepoName2 -Uri $tmpDir2Path
 
-        $res = Get-PSResourceRepository -Name $TestRepoName1,$nonRegisteredRepoName,$TestRepoName2 -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Get-PSResourceRepository -Name $TestRepoName1, $nonRegisteredRepoName, $TestRepoName2 -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSResourceRepository"
 
         # should have successfully got the other valid/registered repositories with no error
         foreach ($entry in $res) {
-            $entry.Name | Should -BeIn $TestRepoName1,$TestRepoName2
+            $entry.Name | Should -BeIn $TestRepoName1, $TestRepoName2
         }
     }
 
@@ -97,18 +97,18 @@ Describe "Test Get-PSResourceRepository" -tags 'CI' {
 
         # should have successfully got the other valid/registered repositories with no error
         foreach ($entry in $res) {
-            $entry.Name | Should -BeIn "localtestrepo1","localtestrepo2"
+            $entry.Name | Should -BeIn "localtestrepo1", "localtestrepo2"
         }
     }
 
     It "throw error and get no repositories when provided null Name" {
         # $errorMsg = "Cannot validate argument on parameter 'Name'. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again."
-        {Get-PSResourceRepository -Name $null -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSResourceRepository"
+        { Get-PSResourceRepository -Name $null -ErrorAction Stop } | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSResourceRepository"
     }
 
     It "throw error and get no repositories when provided empty string Name" {
         # $errorMsg = "Cannot validate argument on parameter 'Name'. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again."
-        {Get-PSResourceRepository -Name "" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSResourceRepository"
+        { Get-PSResourceRepository -Name "" -ErrorAction Stop } | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSResourceRepository"
     }
 
     It "find all repositories if no Name provided" {

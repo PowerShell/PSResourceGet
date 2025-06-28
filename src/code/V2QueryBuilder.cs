@@ -25,7 +25,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         ///     If no criteria are added with <seealso cref="NuGetV2FilterBuilder.AddCriterion(string)"/>, the built query string will not contain a <c>$filter</c> parameter unless <seealso cref="ShouldEmitEmptyFilter"/> is true.
         /// </remarks>
         internal NuGetV2FilterBuilder FilterBuilder { get; private set; }
-        
+
         /// <summary>
         ///     Indicates whether an empty <c>$filter</c> parameter should be emitted if <seealso cref="FilterBuilder"/> contains no criteria.
         /// </summary>
@@ -80,7 +80,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 QueryParameters["$filter"] = FilterBuilder.BuildFilterString();
             }
 
-            if (SearchTerm != null) {
+            if (SearchTerm != null)
+            {
                 QueryParameters["searchTerm"] = SearchTerm;
             }
 

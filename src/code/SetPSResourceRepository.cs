@@ -143,15 +143,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             List<PSRepositoryInfo> items = new List<PSRepositoryInfo>();
 
-            switch(ParameterSetName)
+            switch (ParameterSetName)
             {
                 case NameParameterSet:
                     try
                     {
-                        items.Add(RepositorySettings.UpdateRepositoryStore(Name, 
-                            _uri, 
+                        items.Add(RepositorySettings.UpdateRepositoryStore(Name,
+                            _uri,
                             Priority,
-                            Trusted, 
+                            Trusted,
                             isSet,
                             DefaultPriority,
                             repoApiVersion,
@@ -159,7 +159,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             this,
                             out string errorMsg));
 
-                        if (!string.IsNullOrEmpty(errorMsg))  
+                        if (!string.IsNullOrEmpty(errorMsg))
                         {
                             ThrowTerminatingError(new ErrorRecord(
                                 new PSInvalidOperationException(errorMsg),
@@ -200,7 +200,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (PassThru)
             {
-                foreach(PSRepositoryInfo item in items)
+                foreach (PSRepositoryInfo item in items)
                 {
                     WriteObject(item);
                 }
@@ -267,19 +267,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             isSet = false;
             if (repo.ContainsKey("Trusted"))
             {
-                repoTrusted = (bool) repo["Trusted"];
+                repoTrusted = (bool)repo["Trusted"];
                 isSet = true;
             }
 
             PSCredentialInfo repoCredentialInfo = null;
             if (repo.ContainsKey("CredentialInfo") &&
-                !Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject) repo["CredentialInfo"],
+                !Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject)repo["CredentialInfo"],
                     cmdletPassedIn: this,
                     repoCredentialInfo: out repoCredentialInfo,
                     errorRecord: out ErrorRecord errorRecord1))
             {
                 WriteError(errorRecord1);
-                
+
                 return null;
             }
 

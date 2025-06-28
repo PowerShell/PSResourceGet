@@ -104,7 +104,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         internal bool IsMARRepository()
         {
-            return (ApiVersion == APIVersion.ContainerRegistry && Uri.Host.StartsWith("mcr.microsoft") );
+            return (ApiVersion == APIVersion.ContainerRegistry && Uri.Host.StartsWith("mcr.microsoft"));
         }
 
         #endregion

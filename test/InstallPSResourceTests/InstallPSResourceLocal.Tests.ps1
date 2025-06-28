@@ -108,8 +108,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $Version = "(1.0.0.0)"
         try {
             Install-PSResource -Name $testModuleName -Version $Version -Repository $localRepo -TrustRepository -ErrorAction SilentlyContinue
-        }
-        catch
+        } catch
         {}
         $Error[0].FullyQualifiedErrorId | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 

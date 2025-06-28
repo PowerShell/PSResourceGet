@@ -104,7 +104,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         internal Assembly LoadFromAssemblyPath(string assemblyPath)
         {
-            return (Assembly) _loadFromAssemblyPath.Invoke(_customContext, new[] { assemblyPath });
+            return (Assembly)_loadFromAssemblyPath.Invoke(_customContext, new[] { assemblyPath });
         }
 
         internal static AssemblyLoadContextProxy CreateLoadContext(string name)

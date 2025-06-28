@@ -6,8 +6,7 @@ Import-Module $modPath -Force -Verbose
 
 $testDir = (get-item $psscriptroot).parent.FullName
 
-function CreateTestModule
-{
+function CreateTestModule {
     param (
         [string] $Path = "$TestDrive",
         [string] $ModuleName = 'TestModule'
@@ -69,8 +68,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $script:tmpModulesPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
         $script:PublishModuleName = "PSGetTestModule"
         $script:PublishModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:PublishModuleName
-        if(!(Test-Path $script:PublishModuleBase))
-        {
+        if (!(Test-Path $script:PublishModuleBase)) {
             New-Item -Path $script:PublishModuleBase -ItemType Directory -Force
         }
 
@@ -79,7 +77,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         New-Item $script:destinationPath -ItemType directory -Force
     }
     AfterAll {
-       Get-RevertPSResourceRepositoryFile
+        Get-RevertPSResourceRepositoryFile
     }
 
     It "Should not publish module to ADO repository feed (public) when Credentials are incorrect" {

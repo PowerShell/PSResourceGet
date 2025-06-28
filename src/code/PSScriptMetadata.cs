@@ -114,7 +114,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 author = Environment.UserName;
             }
 
-            Version = !String.IsNullOrEmpty(version) ? new NuGetVersion (version) : new NuGetVersion("1.0.0.0");
+            Version = !String.IsNullOrEmpty(version) ? new NuGetVersion(version) : new NuGetVersion("1.0.0.0");
             Guid = (guid == null || guid == Guid.Empty) ? Guid.NewGuid() : guid;
             Author = !String.IsNullOrEmpty(author) ? author : Environment.UserName;
             CompanyName = companyName;
@@ -134,7 +134,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// This constructor is called by internal cmdlet methods and creates a PSScriptFileInfo with default values
         /// for the parameters. Calling a method like PSScriptMetadata.ParseConentIntoObj() would then populate those properties.
         /// </summary>
-        internal PSScriptMetadata() {}
+        internal PSScriptMetadata() { }
 
         #endregion
 
@@ -160,9 +160,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (parsedMetadata.Count == 0)
             {
                 errors = new ErrorRecord[]{ new ErrorRecord(
-                     new InvalidOperationException("PowerShell script '<#PSScriptInfo .. #>' comment block contains no metadata"), 
-                    "psScriptInfoBlockMissingMetadataError", 
-                    ErrorCategory.ParserError, 
+                     new InvalidOperationException("PowerShell script '<#PSScriptInfo .. #>' comment block contains no metadata"),
+                    "psScriptInfoBlockMissingMetadataError",
+                    ErrorCategory.ParserError,
                     null) };
 
                 return false;
@@ -175,53 +175,54 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             // now populate the object instance
-            string[] delimeter = new string[]{" ", ","};
+            string[] delimeter = new string[] { " ", "," };
 
             Uri parsedLicenseUri = null;
-            if (!String.IsNullOrEmpty((string) parsedMetadata["LICENSEURI"]))
+            if (!String.IsNullOrEmpty((string)parsedMetadata["LICENSEURI"]))
             {
-                if (!Uri.TryCreate((string) parsedMetadata["LICENSEURI"], UriKind.Absolute, out parsedLicenseUri))
+                if (!Uri.TryCreate((string)parsedMetadata["LICENSEURI"], UriKind.Absolute, out parsedLicenseUri))
                 {
-                    msgsList.Add($"LicenseUri property {(string) parsedMetadata["LICENSEURI"]} could not be created as a Uri");   
+                    msgsList.Add($"LicenseUri property {(string)parsedMetadata["LICENSEURI"]} could not be created as a Uri");
                 }
             }
 
             Uri parsedProjectUri = null;
-            if (!String.IsNullOrEmpty((string) parsedMetadata["PROJECTURI"]))
+            if (!String.IsNullOrEmpty((string)parsedMetadata["PROJECTURI"]))
             {
-                if (!Uri.TryCreate((string) parsedMetadata["PROJECTURI"], UriKind.Absolute, out parsedProjectUri))
+                if (!Uri.TryCreate((string)parsedMetadata["PROJECTURI"], UriKind.Absolute, out parsedProjectUri))
                 {
-                    msgsList.Add($"ProjectUri property {(string) parsedMetadata["PROJECTURI"]} could not be created as Uri");
+                    msgsList.Add($"ProjectUri property {(string)parsedMetadata["PROJECTURI"]} could not be created as Uri");
                 }
             }
 
             Uri parsedIconUri = null;
-            if (!String.IsNullOrEmpty((string) parsedMetadata["ICONURI"]))
+            if (!String.IsNullOrEmpty((string)parsedMetadata["ICONURI"]))
             {
-                if (!Uri.TryCreate((string) parsedMetadata["ICONURI"], UriKind.Absolute, out parsedIconUri))
+                if (!Uri.TryCreate((string)parsedMetadata["ICONURI"], UriKind.Absolute, out parsedIconUri))
                 {
-                    msgsList.Add($"IconUri property {(string) parsedMetadata["ICONURI"]} could not be created as Uri");
+                    msgsList.Add($"IconUri property {(string)parsedMetadata["ICONURI"]} could not be created as Uri");
                 }
             }
 
             // now populate PSScriptMetadata object properties with parsed metadata
-            Author = (string) parsedMetadata["AUTHOR"];
-            Version = new NuGetVersion((string) parsedMetadata["VERSION"]);
-            Guid = new Guid((string) parsedMetadata["GUID"]);
+            Author = (string)parsedMetadata["AUTHOR"];
+            Version = new NuGetVersion((string)parsedMetadata["VERSION"]);
+            Guid = new Guid((string)parsedMetadata["GUID"]);
 
-            CompanyName = (string) parsedMetadata["COMPANYNAME"] ?? String.Empty;
-            Copyright = (string) parsedMetadata["COPYRIGHT"] ?? String.Empty;
+            CompanyName = (string)parsedMetadata["COMPANYNAME"] ?? String.Empty;
+            Copyright = (string)parsedMetadata["COPYRIGHT"] ?? String.Empty;
 
             LicenseUri = parsedLicenseUri;
             ProjectUri = parsedProjectUri;
             IconUri = parsedIconUri;
-            
-            Tags = Utils.GetStringArrayFromString(delimeter, (string) parsedMetadata["TAGS"]);;
-            ExternalModuleDependencies = Utils.GetStringArrayFromString(delimeter, (string) parsedMetadata["EXTERNALMODULEDEPENDENCIES"]);
-            RequiredScripts = Utils.GetStringArrayFromString(delimeter, (string) parsedMetadata["REQUIREDSCRIPTS"]);
-            ExternalScriptDependencies = Utils.GetStringArrayFromString(delimeter, (string) parsedMetadata["EXTERNALSCRIPTDEPENDENCIES"]);
-            ReleaseNotes = (string) parsedMetadata["RELEASENOTES"] ?? String.Empty;
-            PrivateData = (string) parsedMetadata["PRIVATEDATA"] ?? String.Empty;
+
+            Tags = Utils.GetStringArrayFromString(delimeter, (string)parsedMetadata["TAGS"]);
+            ;
+            ExternalModuleDependencies = Utils.GetStringArrayFromString(delimeter, (string)parsedMetadata["EXTERNALMODULEDEPENDENCIES"]);
+            RequiredScripts = Utils.GetStringArrayFromString(delimeter, (string)parsedMetadata["REQUIREDSCRIPTS"]);
+            ExternalScriptDependencies = Utils.GetStringArrayFromString(delimeter, (string)parsedMetadata["EXTERNALSCRIPTDEPENDENCIES"]);
+            ReleaseNotes = (string)parsedMetadata["RELEASENOTES"] ?? String.Empty;
+            PrivateData = (string)parsedMetadata["PRIVATEDATA"] ?? String.Empty;
 
             msgs = msgsList.ToArray();
             return true;
@@ -252,7 +253,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
 
             Hashtable parsedHelpMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
-            char[] delimeter = new char[]{' ', ','};
+            char[] delimeter = new char[] { ' ', ',' };
             string keyName = "";
             string value = "";
 
@@ -270,15 +271,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         if (parsedHelpMetadata.ContainsKey(keyName))
                         {
                             errorsList.Add(new ErrorRecord(
-                                new InvalidOperationException("PowerShell script '<#PSScriptInfo .. #>' comment block metadata cannot contain duplicate key i.e .KEY"), 
-                                "psScriptInfoDuplicateKeyError", 
-                                ErrorCategory.ParserError, 
+                                new InvalidOperationException("PowerShell script '<#PSScriptInfo .. #>' comment block metadata cannot contain duplicate key i.e .KEY"),
+                                "psScriptInfoDuplicateKeyError",
+                                ErrorCategory.ParserError,
                                 null));
 
                             continue;
                         }
 
-                        parsedHelpMetadata.Add(keyName, value);   
+                        parsedHelpMetadata.Add(keyName, value);
                     }
 
                     // setting count to 2 will get 1st separated string (key) into part[0] and the rest (value) into part[1] if any
@@ -323,30 +324,30 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
 
-            if (!parsedMetadata.ContainsKey("VERSION") || String.IsNullOrEmpty((string) parsedMetadata["VERSION"]) || String.Equals(((string) parsedMetadata["VERSION"]).Trim(), String.Empty))
+            if (!parsedMetadata.ContainsKey("VERSION") || String.IsNullOrEmpty((string)parsedMetadata["VERSION"]) || String.Equals(((string)parsedMetadata["VERSION"]).Trim(), String.Empty))
             {
                 errorsList.Add(new ErrorRecord(
-                    new ArgumentException("PSScript file is missing the required Version property"), 
-                    "psScriptMissingVersion", 
-                    ErrorCategory.ParserError, 
+                    new ArgumentException("PSScript file is missing the required Version property"),
+                    "psScriptMissingVersion",
+                    ErrorCategory.ParserError,
                     null));
             }
 
-            if (!parsedMetadata.ContainsKey("AUTHOR") || String.IsNullOrEmpty((string) parsedMetadata["AUTHOR"]) || String.Equals(((string) parsedMetadata["AUTHOR"]).Trim(), String.Empty))
+            if (!parsedMetadata.ContainsKey("AUTHOR") || String.IsNullOrEmpty((string)parsedMetadata["AUTHOR"]) || String.Equals(((string)parsedMetadata["AUTHOR"]).Trim(), String.Empty))
             {
                 errorsList.Add(new ErrorRecord(
-                    new ArgumentException("PSScript file is missing the required Author property"), 
-                    "psScriptMissingAuthor", 
-                    ErrorCategory.ParserError, 
+                    new ArgumentException("PSScript file is missing the required Author property"),
+                    "psScriptMissingAuthor",
+                    ErrorCategory.ParserError,
                     null));
             }
 
-            if (!parsedMetadata.ContainsKey("GUID") || String.IsNullOrEmpty((string) parsedMetadata["GUID"]) || String.Equals(((string) parsedMetadata["GUID"]).Trim(), String.Empty))
+            if (!parsedMetadata.ContainsKey("GUID") || String.IsNullOrEmpty((string)parsedMetadata["GUID"]) || String.Equals(((string)parsedMetadata["GUID"]).Trim(), String.Empty))
             {
                 errorsList.Add(new ErrorRecord(
-                    new ArgumentException("PSScript file is missing the required Guid property"), 
-                    "psScriptMissingGuid", 
-                    ErrorCategory.ParserError, 
+                    new ArgumentException("PSScript file is missing the required Guid property"),
+                    "psScriptMissingGuid",
+                    ErrorCategory.ParserError,
                     null));
             }
 
@@ -365,9 +366,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (Version == null || String.IsNullOrEmpty(Version.ToString()))
             {
                 errorsList.Add(new ErrorRecord(
-                    new ArgumentException("PSScript file is missing the required Version property"), 
-                    "psScriptMissingVersion", 
-                    ErrorCategory.ParserError, 
+                    new ArgumentException("PSScript file is missing the required Version property"),
+                    "psScriptMissingVersion",
+                    ErrorCategory.ParserError,
                     null));
                 validPSScriptInfo = false;
             }
@@ -375,9 +376,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (String.IsNullOrEmpty(Author))
             {
                 errorsList.Add(new ErrorRecord(
-                    new ArgumentException("PSScript file is missing the required Author property"), 
-                    "psScriptMissingAuthor", 
-                    ErrorCategory.ParserError, 
+                    new ArgumentException("PSScript file is missing the required Author property"),
+                    "psScriptMissingAuthor",
+                    ErrorCategory.ParserError,
                     null));
                 validPSScriptInfo = false;
             }
@@ -386,8 +387,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 errorsList.Add(new ErrorRecord(
                     new ArgumentException("PSScript file is missing the required Guid property"),
-                    "psScriptMissingGuid", 
-                    ErrorCategory.ParserError, 
+                    "psScriptMissingGuid",
+                    ErrorCategory.ParserError,
                     null));
                 validPSScriptInfo = false;
             }
@@ -484,10 +485,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 if (!NuGetVersion.TryParse(version, out NuGetVersion updatedVersion))
                 {
-                    error =  new ErrorRecord(
-                        new ArgumentException("Version provided for update could not be parsed successfully into NuGetVersion"), 
-                        "VersionParseIntoNuGetVersion", 
-                        ErrorCategory.ParserError, 
+                    error = new ErrorRecord(
+                        new ArgumentException("Version provided for update could not be parsed successfully into NuGetVersion"),
+                        "VersionParseIntoNuGetVersion",
+                        ErrorCategory.ParserError,
                         null);
 
                     return false;
@@ -506,32 +507,39 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 Author = author;
             }
 
-            if (!String.IsNullOrEmpty(companyName)){
+            if (!String.IsNullOrEmpty(companyName))
+            {
                 CompanyName = companyName;
             }
 
-            if (!String.IsNullOrEmpty(copyright)){
+            if (!String.IsNullOrEmpty(copyright))
+            {
                 Copyright = copyright;
             }
 
-            if (tags != null && tags.Length != 0){
+            if (tags != null && tags.Length != 0)
+            {
                 Tags = tags;
             }
 
-            if (licenseUri != null && !licenseUri.Equals(default(Uri))){
+            if (licenseUri != null && !licenseUri.Equals(default(Uri)))
+            {
                 LicenseUri = licenseUri;
             }
 
-            if (projectUri != null && !projectUri.Equals(default(Uri))){
+            if (projectUri != null && !projectUri.Equals(default(Uri)))
+            {
                 ProjectUri = projectUri;
             }
 
-            if (iconUri != null && !iconUri.Equals(default(Uri))){
+            if (iconUri != null && !iconUri.Equals(default(Uri)))
+            {
                 IconUri = iconUri;
             }
 
-            if (externalModuleDependencies != null && externalModuleDependencies.Length != 0){
-                ExternalModuleDependencies = externalModuleDependencies;                
+            if (externalModuleDependencies != null && externalModuleDependencies.Length != 0)
+            {
+                ExternalModuleDependencies = externalModuleDependencies;
             }
 
             if (requiredScripts != null && requiredScripts.Length != 0)
@@ -539,8 +547,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 RequiredScripts = requiredScripts;
             }
 
-            if (externalScriptDependencies != null && externalScriptDependencies.Length != 0){
-                ExternalScriptDependencies = externalScriptDependencies;                
+            if (externalScriptDependencies != null && externalScriptDependencies.Length != 0)
+            {
+                ExternalScriptDependencies = externalScriptDependencies;
             }
 
             if (!String.IsNullOrEmpty(releaseNotes))

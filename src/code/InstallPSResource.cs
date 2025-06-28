@@ -290,13 +290,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    foreach (var inputObj in InputObject) {
+                    foreach (var inputObj in InputObject)
+                    {
                         string normalizedVersionString = Utils.GetNormalizedVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
                         ProcessInstallHelper(
                             pkgNames: new string[] { inputObj.Name },
                             pkgVersion: normalizedVersionString,
                             pkgPrerelease: inputObj.IsPrerelease,
-                            pkgRepository: new string[]{ inputObj.Repository },
+                            pkgRepository: new string[] { inputObj.Repository },
                             pkgCredential: Credential,
                             reqResourceParams: null);
                     }
@@ -497,7 +498,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     pkgNames: new string[] { pkgName },
                     pkgVersion: pkgVersion,
                     pkgPrerelease: pkgParams.Prerelease,
-                    pkgRepository: pkgParams.Repository != null ? new string[] { pkgParams.Repository } : new string[]{},
+                    pkgRepository: pkgParams.Repository != null ? new string[] { pkgParams.Repository } : new string[] { },
                     pkgCredential: pkgCredential,
                     reqResourceParams: pkgParams);
             }
@@ -506,7 +507,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private void ProcessInstallHelper(string[] pkgNames, string pkgVersion, bool pkgPrerelease, string[] pkgRepository, PSCredential pkgCredential, InstallPkgParams reqResourceParams)
         {
             WriteDebug("In InstallPSResource::ProcessInstallHelper()");
-            var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
+            var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries: false, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {
                 WriteError(new ErrorRecord(

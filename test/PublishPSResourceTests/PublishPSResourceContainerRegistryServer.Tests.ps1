@@ -4,8 +4,7 @@
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-function CreateTestModule
-{
+function CreateTestModule {
     param (
         [string] $Path = "$TestDrive",
         [string] $ModuleName = 'temp-testmodule'
@@ -51,12 +50,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         $usingAzAuth = $env:USINGAZAUTH -eq 'true'
 
-        if ($usingAzAuth)
-        {
+        if ($usingAzAuth) {
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -Verbose
-        }
-        else
-        {
+        } else {
             $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
         }
@@ -65,11 +61,10 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $script:tmpModulesPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
         $script:PublishModuleName = "temp-testmodule" + [System.Guid]::NewGuid();
         $script:PublishModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:PublishModuleName
-        if(!(Test-Path $script:PublishModuleBase))
-        {
+        if (!(Test-Path $script:PublishModuleBase)) {
             New-Item -Path $script:PublishModuleBase -ItemType Directory -Force
         }
-		$script:PublishModuleBaseUNC = $script:PublishModuleBase -Replace '^(.):', '\\localhost\$1$'
+        $script:PublishModuleBaseUNC = $script:PublishModuleBase -Replace '^(.):', '\\localhost\$1$'
 
         # create names of other modules and scripts that will be referenced in test
         $script:ModuleWithoutRequiredModuleName = "temp-testmodulewithoutrequiredmodule-" + [System.Guid]::NewGuid()
@@ -84,8 +79,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         #Create folder where we shall place all script files to be published for these tests
         $script:tmpScriptsFolderPath = Join-Path -Path $TestDrive -ChildPath "tmpScriptsPath"
-        if(!(Test-Path $script:tmpScriptsFolderPath))
-        {
+        if (!(Test-Path $script:tmpScriptsFolderPath)) {
             $null = New-Item -Path $script:tmpScriptsFolderPath -ItemType Directory -Force
         }
 
@@ -102,8 +96,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $script:testNupkgsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testNupkgs"
     }
     AfterEach {
-        if(!(Test-Path $script:PublishModuleBase))
-        {
+        if (!(Test-Path $script:PublishModuleBase)) {
             Remove-Item -Path $script:PublishModuleBase -Recurse -Force
         }
     }
@@ -344,21 +337,21 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Version | Should -Be $correctVersion
     }
 
-    It "Publish a script"{
+    It "Publish a script" {
         $scriptVersion = "1.0.0"
         $params = @{
-            Version = $scriptVersion
-            GUID = [guid]::NewGuid()
-            Author = 'Jane'
-            CompanyName = 'Microsoft Corporation'
-            Copyright = '(c) 2024 Microsoft Corporation. All rights reserved.'
-            Description = "Description for the $script:ScriptName script"
-            LicenseUri = "https://$script:ScriptName.com/license"
-            IconUri = "https://$script:ScriptName.com/icon"
-            ProjectUri = "https://$script:ScriptName.com"
-            Tags = @('Tag1','Tag2', "Tag-$script:ScriptName-$scriptVersion")
+            Version      = $scriptVersion
+            GUID         = [guid]::NewGuid()
+            Author       = 'Jane'
+            CompanyName  = 'Microsoft Corporation'
+            Copyright    = '(c) 2024 Microsoft Corporation. All rights reserved.'
+            Description  = "Description for the $script:ScriptName script"
+            LicenseUri   = "https://$script:ScriptName.com/license"
+            IconUri      = "https://$script:ScriptName.com/icon"
+            ProjectUri   = "https://$script:ScriptName.com"
+            Tags         = @('Tag1', 'Tag2', "Tag-$script:ScriptName-$scriptVersion")
             ReleaseNotes = "$script:ScriptName release notes"
-            }
+        }
 
         $scriptPath = (Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$script:ScriptName.ps1")
         New-PSScriptFileInfo @params -Path $scriptPath
@@ -404,7 +397,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     It "Should publish a script with ExternalModuleDependencies that are not published" {
         $scriptVersion = "1.0.0"
         $scriptPath = Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$script:ScriptWithExternalDeps.ps1"
-        New-PSScriptFileInfo -Description 'test' -Version $scriptVersion -RequiredModules @{ModuleName='testModule'} -ExternalModuleDependencies 'testModule' -Path $scriptPath -Force
+        New-PSScriptFileInfo -Description 'test' -Version $scriptVersion -RequiredModules @{ModuleName = 'testModule' } -ExternalModuleDependencies 'testModule' -Path $scriptPath -Force
 
         Publish-PSResource -Path $scriptPath -Repository $ACRRepoName
 
@@ -499,7 +492,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $psm1Path = Join-Path -Path $script:PublishModuleBase -ChildPath $fileName
         $null = New-Item -Path $psm1Path -ItemType File -Force
 
-        {Publish-PSResource -Path $psm1Path -Repository $ACRRepoName -ErrorAction Stop} | Should -Throw -ErrorId "InvalidPublishPath,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        { Publish-PSResource -Path $psm1Path -Repository $ACRRepoName -ErrorAction Stop } | Should -Throw -ErrorId "InvalidPublishPath,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
     It "Publish a module with -ModulePrefix" {

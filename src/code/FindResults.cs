@@ -22,13 +22,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
     public sealed class FindResults
     {
         public string[] StringResponse { get; private set; } = Utils.EmptyStrArray;
-        public Hashtable[] HashtableResponse { get; private set; } = new Hashtable[]{};
+        public Hashtable[] HashtableResponse { get; private set; } = new Hashtable[] { };
         public FindResponseType ResponseType { get; set; }
 
         public FindResults()
         {
             this.StringResponse = Utils.EmptyStrArray;
-            this.HashtableResponse = new Hashtable[]{};
+            this.HashtableResponse = new Hashtable[] { };
             this.ResponseType = FindResponseType.None;
         }
 
@@ -37,7 +37,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             this.StringResponse = stringResponse;
             this.HashtableResponse = hashtableResponse;
             this.ResponseType = responseType;
-        }   
+        }
 
         public bool IsFindResultsEmpty()
         {

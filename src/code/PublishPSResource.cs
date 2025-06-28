@@ -44,7 +44,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Specifies the path to the resource that you want to publish. This parameter accepts the path to the folder that contains the resource.
         /// Specifies a path to one or more locations. Wildcards are permitted. The default location is the current directory (.).
         /// </summary>
-        [Parameter (Mandatory = true, Position = 0, ParameterSetName = PathParameterSet, HelpMessage = "Path to the resource to be published.")]
+        [Parameter(Mandatory = true, Position = 0, ParameterSetName = PathParameterSet, HelpMessage = "Path to the resource to be published.")]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
 
@@ -80,7 +80,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty]
-        public Uri Proxy {
+        public Uri Proxy
+        {
             set
             {
                 if (value != null)
@@ -99,7 +100,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty]
-        public PSCredential ProxyCredential {
+        public PSCredential ProxyCredential
+        {
             set
             {
                 if (value != null)

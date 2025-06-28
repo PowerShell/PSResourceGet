@@ -524,11 +524,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (HttpRequestException hre)
             {
-                 errRecord = new ErrorRecord(
-                    hre,
-                    "RegistryAnonymousAcquireError",
-                    ErrorCategory.ConnectionError,
-                    this);
+                errRecord = new ErrorRecord(
+                   hre,
+                   "RegistryAnonymousAcquireError",
+                   ErrorCategory.ConnectionError,
+                   this);
 
                 return false;
             }
@@ -1239,7 +1239,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::PushNupkgContainerRegistry()");
 
             // if isNupkgPathSpecified, then we need to publish the original .nupkg file, as it may be signed
-            string fullNupkgFile = isNupkgPathSpecified ? originalNupkgPath :           System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
+            string fullNupkgFile = isNupkgPathSpecified ? originalNupkgPath : System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
 
             string pkgNameForUpload = string.IsNullOrEmpty(modulePrefix) ? packageName : modulePrefix + "/" + packageName;
             string packageNameLowercase = pkgNameForUpload.ToLower();

@@ -141,7 +141,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// </summary>
         public static string[] GetStringArray(ArrayList list)
         {
-            if (list == null) { return null; }
+            if (list == null)
+            { return null; }
 
             var strArray = new string[list.Count];
             for (int i = 0; i < list.Count; i++)
@@ -353,7 +354,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
            out VersionRange versionRange)
         {
             versionRange = null;
-            if (version == null) { return false; }
+            if (version == null)
+            { return false; }
 
             if (version.Trim().Equals("*"))
             {
@@ -1609,7 +1611,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             // Remove read only file attributes first
-            foreach (var dirFilePath in Directory.GetFiles(dirPath,"*",SearchOption.AllDirectories))
+            foreach (var dirFilePath in Directory.GetFiles(dirPath, "*", SearchOption.AllDirectories))
             {
                 if (File.GetAttributes(dirFilePath).HasFlag(FileAttributes.ReadOnly))
                 {
@@ -1623,7 +1625,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 try
                 {
-                    Directory.Delete(dirPath,true);
+                    Directory.Delete(dirPath, true);
                     return;
                 }
                 catch (Exception ex)
@@ -1870,11 +1872,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             try
             {
                 XmlNodeList elemList = nuspecXmlDocument.GetElementsByTagName("metadata");
-                for(int i = 0; i < elemList.Count; i++)
+                for (int i = 0; i < elemList.Count; i++)
                 {
                     XmlNode metadataInnerXml = elemList[i];
 
-                    for(int j= 0; j<metadataInnerXml.ChildNodes.Count; j++)
+                    for (int j = 0; j < metadataInnerXml.ChildNodes.Count; j++)
                     {
                         string key = metadataInnerXml.ChildNodes[j].LocalName;
                         string value = metadataInnerXml.ChildNodes[j].InnerText;
@@ -1907,7 +1909,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             errRecord = null;
             XmlDocument doc = new XmlDocument();
             doc.PreserveWhitespace = true;
-            try { doc.Load(filePath); }
+            try
+            { doc.Load(filePath); }
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(
@@ -2029,7 +2032,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     // Extract expected output types from results pipeline.
                     foreach (var psItem in results)
                     {
-                        if (psItem == null || psItem.BaseObject == null) { continue; }
+                        if (psItem == null || psItem.BaseObject == null)
+                        { continue; }
 
                         switch (psItem.BaseObject)
                         {

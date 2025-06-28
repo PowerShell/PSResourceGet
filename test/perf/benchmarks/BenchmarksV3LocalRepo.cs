@@ -30,7 +30,7 @@ namespace Benchmarks
 
             pwsh.Invoke();
         }
-        
+
         [GlobalCleanup]
         public void GlobalCleanup()
         {

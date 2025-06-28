@@ -31,7 +31,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
     AfterEach {
         Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", `
-            "TestFindModule","ClobberTestModule1", "ClobberTestModule2", "PackageManagement", "TestTestScript", `
+            "TestFindModule", "ClobberTestModule1", "ClobberTestModule2", "PackageManagement", "TestTestScript", `
             "TestModuleWithDependency", "TestModuleWithPrereleaseDep", "PrereleaseModule" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
@@ -40,9 +40,9 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     $testCases = [array](
-        @{Name="*";                          ErrorId="NameContainsWildcard"},
-        @{Name="Test_Module*";               ErrorId="NameContainsWildcard"},
-        @{Name="Test?Module","Test[Module";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
+        @{Name = "*"; ErrorId = "NameContainsWildcard" },
+        @{Name = "Test_Module*"; ErrorId = "NameContainsWildcard" },
+        @{Name = "Test?Module", "Test[Module"; ErrorId = "ErrorFilteringNamesForUnsupportedWildcards" }
     )
 
     It "Should not install resource with wildcard in name" -TestCases $testCases {
@@ -122,8 +122,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $Version = "(1.0.0.0)"
         try {
             Install-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
-        }
-        catch {
+        } catch {
         }
         $Error[0].FullyQualifiedErrorId | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 

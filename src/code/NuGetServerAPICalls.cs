@@ -23,14 +23,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override PSRepositoryInfo Repository { get; set; }
         private readonly PSCmdlet _cmdletPassedIn;
         private HttpClient _sessionClient { get; set; }
-        private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
+        private static readonly Hashtable[] emptyHashResponses = new Hashtable[] { };
         public FindResponseType FindResponseType = FindResponseType.ResponseString;
 
         #endregion
 
         #region Constructor
 
-        public NuGetServerAPICalls (PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential, string userAgentString) : base (repository, networkCredential)
+        public NuGetServerAPICalls(PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential, string userAgentString) : base(repository, networkCredential)
         {
             this.Repository = repository;
             _cmdletPassedIn = cmdletPassedIn;
@@ -180,7 +180,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response = HttpRequestCall(requestUrl, out errRecord);
 
-            return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
+            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
         }
 
         /// <summary>
@@ -195,12 +195,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // This should return the latest stable version or the latest prerelease version (respectively)
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
-            
+
             var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
                 { "id", $"'{packageName}'" },
             });
             var filterBuilder = queryBuilder.FilterBuilder;
-            
+
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             filterBuilder.AddCriterion($"Id eq '{packageName}'");
 
@@ -516,7 +516,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 errRecord = new ErrorRecord(
                     exception: e,
                     "HttpRequestFailure",
-                    ErrorCategory.ConnectionError ,
+                    ErrorCategory.ConnectionError,
                     this);
             }
             catch (ArgumentNullException e)
@@ -564,13 +564,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var filterBuilder = queryBuilder.FilterBuilder;
 
-            if (includePrerelease) {
+            if (includePrerelease)
+            {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                 filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
-            } else {
+            }
+            else
+            {
                 filterBuilder.AddCriterion("IsLatestVersion");
             }
-            
+
             var requestUrl = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
 
             return HttpRequestCall(requestUrl, out errRecord);
@@ -592,10 +595,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var filterBuilder = queryBuilder.FilterBuilder;
 
-            if (includePrerelease) {
+            if (includePrerelease)
+            {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                 filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
-            } else {
+            }
+            else
+            {
                 filterBuilder.AddCriterion("IsLatestVersion");
             }
 
@@ -627,15 +633,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var filterBuilder = queryBuilder.FilterBuilder;
 
-            if (includePrerelease) {
+            if (includePrerelease)
+            {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                 filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
-            } else {
+            }
+            else
+            {
                 filterBuilder.AddCriterion("IsLatestVersion");
             }
 
 
-            var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
+            var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (names.Length == 0)
             {
@@ -707,14 +716,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var filterBuilder = queryBuilder.FilterBuilder;
 
-            if (includePrerelease) {
+            if (includePrerelease)
+            {
                 filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-            } else {
+            }
+            else
+            {
                 filterBuilder.AddCriterion("IsLatestVersion");
             }
 
-            var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
+            var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (names.Length == 0)
             {
@@ -840,7 +852,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 filterBuilder.AddCriterion(maxPart);
             }
 
-            if (!includePrerelease) {
+            if (!includePrerelease)
+            {
                 filterBuilder.AddCriterion("IsPrerelease eq false");
             }
 
