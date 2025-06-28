@@ -47,10 +47,13 @@ function Get-Bullet {
 #>
 function Get-Changelog {
     # This will take some time because it has to pull all PRs and then filter
-    $script:PullRequests = $script:Repo | Get-GitHubPullRequest -State 'closed' |
-    Where-Object { $_.labels.LabelName -match 'Release' } |
-    Where-Object { -not $_.title.StartsWith("[WIP]") } |
-    Where-Object { -not $_.title.StartsWith("WIP") }
+    $script:PullRequests = $script:Repo |
+        Get-GitHubPullRequest -State 'closed' |
+        Where-Object -FilterScript {
+            $_.labels.LabelName -match 'Release' -and
+            -not $_.title.StartsWith("[WIP]") -and
+            -not $_.title.StartsWith("WIP")
+        }
 
     $PullRequests | ForEach-Object {
         if ($_.labels.LabelName -match 'PR-Bug') {
