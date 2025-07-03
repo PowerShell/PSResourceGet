@@ -1234,12 +1234,13 @@ namespace Microsoft.PowerShell.PSResourceGet
             Hashtable dependencies,
             bool isNupkgPathSpecified,
             string originalNupkgPath,
+            string latestTag,
             out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::PushNupkgContainerRegistry()");
 
             // if isNupkgPathSpecified, then we need to publish the original .nupkg file, as it may be signed
-            string fullNupkgFile = isNupkgPathSpecified ? originalNupkgPath :           System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
+            string fullNupkgFile = isNupkgPathSpecified ? originalNupkgPath : System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
 
             string pkgNameForUpload = string.IsNullOrEmpty(modulePrefix) ? packageName : modulePrefix + "/" + packageName;
             string packageNameLowercase = pkgNameForUpload.ToLower();
@@ -1285,7 +1286,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             // Create and upload manifest
-            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, packageName, modulePrefix, resourceType, metadataJson, configFilePath, packageVersion, containerRegistryAccessToken, out errRecord);
+            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, packageName, modulePrefix, resourceType, metadataJson, configFilePath, packageVersion, latestTag, containerRegistryAccessToken, out errRecord);
             if (errRecord != null)
             {
                 return false;
@@ -1459,6 +1460,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string metadataJson,
             string configFilePath,
             NuGetVersion pkgVersion,
+            string latestTag,
             string containerRegistryAccessToken,
             out ErrorRecord errRecord)
         {
@@ -1476,15 +1478,24 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             _cmdletPassedIn.WriteVerbose("Create the manifest layer");
             bool manifestCreated = false;
+            string currentTag = pkgVersion.OriginalVersion;
             try
             {
-                HttpResponseMessage manifestResponse = UploadManifest(packageNameLowercase, pkgVersion.OriginalVersion, configFilePath, true, containerRegistryAccessToken).Result;
+                HttpResponseMessage manifestResponse = UploadManifest(packageNameLowercase, currentTag, configFilePath, true, containerRegistryAccessToken).Result;
                 manifestCreated = manifestResponse.IsSuccessStatusCode;
+
+                if (!String.IsNullOrEmpty(latestTag))
+                {
+                    // we also want to publish this pkg version with latest/preview tag pointing to it
+                    currentTag = latestTag;
+                    HttpResponseMessage tagManifestResponse = UploadManifest(packageNameLowercase, latestTag, configFilePath, true, containerRegistryAccessToken).Result;
+                    manifestCreated = manifestResponse.IsSuccessStatusCode;
+                }
             }
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(
-                    new UploadBlobException($"Error occured while uploading package manifest to ContainerRegistry: {e.GetType()} '{e.Message}'", e),
+                    new UploadBlobException($"Error occured while uploading package manifest with tag '{currentTag}' to ContainerRegistry: {e.GetType()} '{e.Message}'", e),
                     "PackageManifestUploadError",
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
