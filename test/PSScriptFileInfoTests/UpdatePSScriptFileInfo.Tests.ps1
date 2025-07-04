@@ -29,8 +29,7 @@ Describe "Test Update-PSScriptFileInfo" -tags 'CI' {
     }
 
     AfterEach {
-        if (Test-Path -Path $script:testScriptFilePath)
-        {
+        if (Test-Path -Path $script:testScriptFilePath) {
             Remove-Item $script:testScriptFilePath
         }
     }
@@ -170,7 +169,7 @@ Describe "Test Update-PSScriptFileInfo" -tags 'CI' {
     It "update script file ExternalModuleDependencies property" {
         $externalModuleDep1 = "ExternalModuleDep1"
         $externalModuleDep2 = "ExternalModuleDep2"
-        Update-PSScriptFileInfo -Path $script:testScriptFilePath -ExternalModuleDependencies $externalModuleDep1,$externalModuleDep2
+        Update-PSScriptFileInfo -Path $script:testScriptFilePath -ExternalModuleDependencies $externalModuleDep1, $externalModuleDep2
         Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath  | Should -BeTrue
@@ -183,7 +182,7 @@ Describe "Test Update-PSScriptFileInfo" -tags 'CI' {
     It "update script file ExternalScriptDependencies property" {
         $externalScriptDep1 = "ExternalScriptDep1"
         $externalScriptDep2 = "ExternalScriptDep2"
-        Update-PSScriptFileInfo -Path $script:testScriptFilePath -ExternalScriptDependencies $externalScriptDep1,$externalScriptDep2
+        Update-PSScriptFileInfo -Path $script:testScriptFilePath -ExternalScriptDependencies $externalScriptDep1, $externalScriptDep2
         Test-PSScriptFileInfo $script:testScriptFilePath | Should -Be $true
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
@@ -249,10 +248,10 @@ Describe "Test Update-PSScriptFileInfo" -tags 'CI' {
     }
 
     It "update script file RequiredModules property" {
-        $hashtable1 = @{ModuleName = "RequiredModule1"}
-        $hashtable2 = @{ModuleName = "RequiredModule2"; ModuleVersion = "1.0.0.0"}
-        $hashtable3 = @{ModuleName = "RequiredModule3"; RequiredVersion = "2.5.0.0"}
-        $hashtable4 = @{ModuleName = "RequiredModule4"; ModuleVersion = "1.1.0.0"; MaximumVersion = "2.0.0.0"}
+        $hashtable1 = @{ModuleName = "RequiredModule1" }
+        $hashtable2 = @{ModuleName = "RequiredModule2"; ModuleVersion = "1.0.0.0" }
+        $hashtable3 = @{ModuleName = "RequiredModule3"; RequiredVersion = "2.5.0.0" }
+        $hashtable4 = @{ModuleName = "RequiredModule4"; ModuleVersion = "1.1.0.0"; MaximumVersion = "2.0.0.0" }
         $requiredModules = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
         Update-PSScriptFileInfo -Path $script:testScriptFilePath -RequiredModules $requiredModules

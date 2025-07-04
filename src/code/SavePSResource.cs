@@ -168,7 +168,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Suppresses progress information.
         /// </summary>
-        [Parameter] 
+        [Parameter]
         public SwitchParameter Quiet { get; set; }
 
         /// <summary>

@@ -26,8 +26,7 @@ Describe 'GroupPolicyEnforcement API Tests' -Tags 'CI' {
 
             $allowedReps = [Microsoft.PowerShell.PSResourceGet.Cmdlets.GroupPolicyRepositoryEnforcement]::GetAllowedRepositoryURIs()
             $allowedReps.AbsoluteUri | Should -Be @("https://www.example.com/")
-        }
-        finally {
+        } finally {
             [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('EnableGPRegistryHook', $false)
             [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('GPEnabledStatus', $false)
             [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('AllowedUri', $null)
@@ -54,8 +53,7 @@ Describe 'GroupPolicyEnforcement Cmdlet Tests' -Tags 'CI' {
             $psrep = Get-PSResourceRepository -Name 'Example'
             $psrep | Should -Not -BeNullOrEmpty
             $psrep.IsAllowedByPolicy | Should -BeTrue
-        }
-        finally {
+        } finally {
             Unregister-PSResourceRepository -Name 'Example'
         }
     }
@@ -68,8 +66,7 @@ Describe 'GroupPolicyEnforcement Cmdlet Tests' -Tags 'CI' {
             # Allow PSGallery and it should not fail
             [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('AllowedUri', " https://www.powershellgallery.com/api/v2")
             { Find-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop } | Should -Not -Throw
-        }
-        finally {
+        } finally {
             Unregister-PSResourceRepository -Name 'Example'
         }
     }
@@ -81,9 +78,8 @@ Describe 'GroupPolicyEnforcement Cmdlet Tests' -Tags 'CI' {
 
             # Allow PSGallery and it should not fail
             [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('AllowedUri', " https://www.powershellgallery.com/api/v2")
-            { Install-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop -TrustRepository} | Should -Not -Throw
-        }
-        finally {
+            { Install-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop -TrustRepository } | Should -Not -Throw
+        } finally {
             Unregister-PSResourceRepository -Name 'Example'
         }
     }
@@ -95,9 +91,8 @@ Describe 'GroupPolicyEnforcement Cmdlet Tests' -Tags 'CI' {
 
             # Allow PSGallery and it should not fail
             [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook('AllowedUri', " https://www.powershellgallery.com/api/v2")
-            { Save-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop -TrustRepository} | Should -Not -Throw
-        }
-        finally {
+            { Save-PSResource -Repository PSGallery -Name 'Az.Accounts' -ErrorAction Stop -TrustRepository } | Should -Not -Throw
+        } finally {
             Unregister-PSResourceRepository -Name 'Example'
         }
     }

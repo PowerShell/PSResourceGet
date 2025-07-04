@@ -15,8 +15,7 @@ function Import-PSGetRepository {
     $IsOSWindows = $Runtime::IsOSPlatform($OSPlatform::Windows)
     if ($IsOSWindows) {
         $PSGetAppLocalPath = Microsoft.PowerShell.Management\Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Microsoft\Windows\PowerShell\PowerShellGet\'
-    }
-    else {
+    } else {
         $PSGetAppLocalPath = Microsoft.PowerShell.Management\Join-Path -Path ([System.Management.Automation.Platform]::SelectProductNameForDirectory('CACHE')) -ChildPath 'PowerShellGet'
     }
     $PSRepositoriesFilePath = Microsoft.PowerShell.Management\Join-Path -Path $PSGetAppLocalPath -ChildPath "PSRepositories.xml"
@@ -27,7 +26,7 @@ function Import-PSGetRepository {
     if ($PSGetRepositories.Count) {
         $repos = @(
             $PSGetRepositories.Values |
-            Microsoft.PowerShell.Core\Where-Object {$_.PackageManagementProvider -eq 'NuGet'-and $_.Name -ne 'PSGallery'} |
+            Microsoft.PowerShell.Core\Where-Object { $_.PackageManagementProvider -eq 'NuGet' -and $_.Name -ne 'PSGallery' } |
             Microsoft.PowerShell.Utility\Select-Object Name, Trusted, SourceLocation
         )
 
@@ -37,25 +36,23 @@ function Import-PSGetRepository {
             $repos | Microsoft.PowerShell.Core\ForEach-Object {
                 try {
                     $message = 'Registering {0} at {1} -Trusted:${2} -Force:${3}.' -f $_.Name,
-                        $_.SourceLocation, $_.Trusted, $Force
+                    $_.SourceLocation, $_.Trusted, $Force
                     if ($PSCmdlet.ShouldProcess($message, $_.Name, 'Register-PSResourceRepository')) {
                         $registerPSResourceRepositorySplat = @{
-                            Name = $_.Name
-                            Uri = $_.SourceLocation
-                            Trusted = $_.Trusted
-                            PassThru = $true
-                            Force = $Force
-                            ApiVersion = if ([Uri]::new($_.SourceLocation).Scheme -eq 'file') {'local'} else {'v2'}
+                            Name       = $_.Name
+                            Uri        = $_.SourceLocation
+                            Trusted    = $_.Trusted
+                            PassThru   = $true
+                            Force      = $Force
+                            ApiVersion = if ([Uri]::new($_.SourceLocation).Scheme -eq 'file') { 'local' } else { 'v2' }
                         }
                         Register-PSResourceRepository @registerPSResourceRepositorySplat
                     }
-                }
-                catch [System.Management.Automation.PSInvalidOperationException] {
+                } catch [System.Management.Automation.PSInvalidOperationException] {
                     if ($_.Exception.Message -match 'already exists') {
                         Microsoft.PowerShell.Utility\Write-Warning $_.Exception.Message
                         Microsoft.PowerShell.Utility\Write-Warning 'Use the -Force switch to overwrite existing repositories.'
-                    }
-                    else {
+                    } else {
                         throw $_.Exception
                     }
                 }

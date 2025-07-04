@@ -207,7 +207,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ErrorCategory.InvalidArgument,
                     this));
             }
-            
+
             ModuleSpecification[] validatedRequiredModuleSpecifications = Array.Empty<ModuleSpecification>();
             if (RequiredModules != null && RequiredModules.Length > 0)
             {
@@ -241,7 +241,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     WriteError(error);
                 }
 
-                return; 
+                return;
             }
 
             bool signatureRemoved = false;
@@ -256,7 +256,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ErrorCategory.InvalidOperation,
                         this));
                 }
-                
+
                 signatureRemoved = true;
             }
 
@@ -290,16 +290,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return;
             }
-                  
+
             string tempScriptPath = null;
             try
             {
                 tempScriptPath = System.IO.Path.GetTempFileName();
 
-                File.WriteAllLines(tempScriptPath, updatedPSScriptFileContents); 
-                File.Copy(tempScriptPath, resolvedPath, overwrite: true);     
+                File.WriteAllLines(tempScriptPath, updatedPSScriptFileContents);
+                File.Copy(tempScriptPath, resolvedPath, overwrite: true);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 WriteError(new ErrorRecord(
                     new PSInvalidOperationException($"Could not update .ps1 file due to: {e.Message}"),

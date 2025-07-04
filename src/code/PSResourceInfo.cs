@@ -985,7 +985,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 if (rootDom.TryGetProperty("CompanyName", out JsonElement companyNameElement))
-                {                
+                {
                     metadata["CompanyName"] = companyNameElement.ToString();
                 }
                 else
