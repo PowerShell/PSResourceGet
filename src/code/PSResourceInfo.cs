@@ -724,12 +724,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     if (dependencyGroupsElement.ValueKind == JsonValueKind.Array)
                     {
-                        foreach (
-                            JsonElement dependencyGroup in dependencyGroupsElement.EnumerateArray().Where(
-                                x => x.TryGetProperty("id", out JsonElement idProperty) &&
-                                !string.IsNullOrWhiteSpace(idProperty.GetString())
-                            )
-                        )
+                        foreach (JsonElement dependencyGroup in dependencyGroupsElement.EnumerateArray())
                         {
                             if (dependencyGroup.TryGetProperty("dependencies", out JsonElement dependenciesElement))
                             {
