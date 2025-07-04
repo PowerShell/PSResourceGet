@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../../src/code/PSResourceGet.csproj" />
+    <ProjectReference Include="../../../src/code/Microsoft.PowerShell.PSResourceGet.csproj" />
   </ItemGroup>
 
   <ItemGroup>
