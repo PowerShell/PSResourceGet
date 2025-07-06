@@ -454,7 +454,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // If script, just move the files over, if module, move the version directory over
             var tempModuleVersionDir = (!isModule || isLocalRepo) ? dirNameVersion
-                : Path.Combine(tempInstallPath, pkgInfo.Name.ToLower(), newVersion);
+                : Path.Combine(tempInstallPath, pkgInfo.Name, newVersion);
 
             _cmdletPassedIn.WriteVerbose($"Installation source path is: '{tempModuleVersionDir}'");
             _cmdletPassedIn.WriteVerbose($"Installation destination path is: '{finalModuleVersionDir}'");
@@ -984,7 +984,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 // Expand the zip file
                 var pkgVersion = pkgToInstall.Version.ToString();
-                var tempDirNameVersion = Path.Combine(tempInstallPath, pkgName.ToLower(), pkgVersion);
+                var tempDirNameVersion = Path.Combine(tempInstallPath, pkgName, pkgVersion);
                 Directory.CreateDirectory(tempDirNameVersion);
 
                 if (!TryExtractToDirectory(pathToFile, tempDirNameVersion, out error))
