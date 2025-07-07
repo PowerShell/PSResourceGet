@@ -1,5 +1,9 @@
 {
+  "[csharp]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
+  },
   "[powershell]": {
+    "editor.defaultFormatter": "ms-vscode.powershell",
     "files.trimTrailingWhitespace": true
   },
   "csharp.semanticHighlighting.enabled": true,
