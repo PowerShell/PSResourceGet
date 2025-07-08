@@ -29,7 +29,7 @@ variables:
     value: onebranch.azurecr.io/windows/ltsc2022/vse2022:latest # Docker image which is used to build the project https://aka.ms/obpipelines/containers
 
 resources:
-  repositories: 
+  repositories:
     - repository: onebranchTemplates
       type: git
       name: OneBranch.Pipelines/GovernedTemplates
@@ -41,6 +41,8 @@ extends:
     featureFlags:
       WindowsHostVersion: '1ESWindows2022'
     customTags: 'ES365AIMigrationTooling'
+    release:
+      category: NonAzure
     globalSdl:
       disableLegacyManifest: true
       sbom:
@@ -58,7 +60,7 @@ extends:
         binskim:
           enabled: true
         apiscan:
-          enabled: false    
+          enabled: false
 
     stages:
     - stage: stagebuild
@@ -113,8 +115,6 @@ extends:
           inputs:
             packageType: 'sdk'
             useGlobalJson: true
-            # this is to ensure that we are installing the dotnet at the same location as container by default install the dotnet sdks
-            installationPath: 'C:\Program Files\dotnet\'
             workingDirectory: $(repoRoot)
 
         - task: CodeQL3000Init@0 # Add CodeQL Init task right before your 'Build' step.
@@ -124,15 +124,6 @@ extends:
             Enabled: true
             AnalyzeInPipeline: true
             Language: csharp
-
-        - pwsh: |
-            $module = 'Microsoft.PowerShell.PSResourceGet'
-            Write-Verbose "installing $module..." -verbose
-            $ProgressPreference = 'SilentlyContinue'
-            Install-Module $module -AllowClobber -Force
-          displayName: Install PSResourceGet 0.9.0 or above for build.psm1
-          env:
-            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
         # this is installing .NET
         - pwsh: |
@@ -167,14 +158,14 @@ extends:
               }
             }
           displayName: Find all 3rd party files that need to be signed
-          
+
         - task: onebranch.pipeline.signing@1
           displayName: Sign 3rd Party files
           inputs:
             command: 'sign'
             signing_profile: 135020002
             files_to_sign: '*.dll'
-            search_root: $(signSrcPath)/Microsoft.PowerShell.PSResourceGet/UnsignedDependencies 
+            search_root: $(signSrcPath)/Microsoft.PowerShell.PSResourceGet/UnsignedDependencies
 
         - pwsh: |
             $newlySignedDepsPath = Join-Path -Path $(signSrcPath) -ChildPath "Microsoft.PowerShell.PSResourceGet" -AdditionalChildPath "UnsignedDependencies"
@@ -216,7 +207,7 @@ extends:
             value: $(Build.SourcesDirectory)\PSResourceGet\.config\tsaoptions.json
          # Disable because SBOM was already built in the previous job
           - name: ob_sdl_sbom_enabled
-            value: false
+            value: true
           - name: signOutPath
             value: $(repoRoot)/signed
           - name: ob_signing_setup_enabled
@@ -250,15 +241,12 @@ extends:
           displayName: Capture artifacts directory structure
 
         - pwsh: |
-            $module = 'Microsoft.PowerShell.PSResourceGet'
-            Write-Verbose "installing $module..." -verbose
-            $ProgressPreference = 'SilentlyContinue'
-            Install-Module $module -AllowClobber -Force
-          displayName: Install PSResourceGet 0.9.0 or above for build.psm1
+            # This need to be done before set-location so the module from PSHome is loaded
+            Import-Module -Name Microsoft.PowerShell.PSResourceGet -Force
 
-        - pwsh: |
             Set-Location "$(signOutPath)\Microsoft.PowerShell.PSResourceGet"
-            New-Item -ItemType Directory -Path "$(signOutPath)\PublishedNupkg" -Force
+            $null = New-Item -ItemType Directory -Path "$(signOutPath)\PublishedNupkg" -Force
+
             Register-PSResourceRepository -Name 'localRepo' -Uri "$(signOutPath)\PublishedNupkg"
             Publish-PSResource -Path "$(signOutPath)\Microsoft.PowerShell.PSResourceGet" -Repository 'localRepo' -Verbose
           displayName: Create nupkg for publishing
@@ -274,7 +262,7 @@ extends:
         - pwsh: |
             Set-Location "$(signOutPath)\PublishedNupkg"
             Write-Host "Contents of signOutPath:"
-            Get-ChildItem "$(signOutPath)" -Recurse 
+            Get-ChildItem "$(signOutPath)" -Recurse
           displayName: Find Nupkg
 
         - task: CopyFiles@2
@@ -282,10 +270,10 @@ extends:
           inputs:
             Contents: $(signOutPath)\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg
             TargetFolder: $(ob_outputDirectory)
-        
+
         - pwsh: |
             Write-Host "Contents of ob_outputDirectory:"
-            Get-ChildItem "$(ob_outputDirectory)" -Recurse 
+            Get-ChildItem "$(ob_outputDirectory)" -Recurse
           displayName: Find Signed Nupkg
 
     - stage: release
@@ -293,12 +281,14 @@ extends:
       dependsOn: stagebuild
       variables:
         version: $[ stageDependencies.build.main.outputs['package.version'] ]
-        drop: $(Pipeline.Workspace)/drop_build_main
+        drop: $(Pipeline.Workspace)/drop_stagebuild_nupkg
+        ob_release_environment: 'Production'
+
       jobs:
       - job: validation
         displayName: Manual validation
         pool:
-          type: agentless
+          type: server
         timeoutInMinutes: 1440
         steps:
         - task: ManualValidation@0
@@ -306,29 +296,31 @@ extends:
           inputs:
             instructions: Please validate the release
             timeoutInMinutes: 1440
+
       - job: PSGalleryPublish
         displayName: Publish to PSGallery
         dependsOn: validation
+        templateContext:
+          inputs:
+          - input: pipelineArtifact
+            artifactName: drop_stagebuild_nupkg
         pool:
-          type: windows
+          type: release
+          os: windows
         variables:
           ob_outputDirectory: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
         steps:
-        - download: current
-          displayName: Download artifact
-
-        - pwsh: |
-            Get-ChildItem $(Pipeline.Workspace) -Recurse
-          displayName: Capture environment
-
-        - pwsh: |
-            Get-ChildItem "$(Pipeline.Workspace)/drop_stagebuild_nupkg" -Recurse
+        - task: PowerShell@2
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-ChildItem "$(Pipeline.Workspace)/" -Recurse
           displayName: Find signed Nupkg
 
         - task: NuGetCommand@2
           displayName: Push PowerShellGet module artifacts to PSGallery feed
           inputs:
             command: push
-            packagesToPush: '$(Pipeline.Workspace)\drop_stagebuild_nupkg\PSResourceGet\signed\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg'
+            packagesToPush: '$(Pipeline.Workspace)\PSResourceGet\signed\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg'
             nuGetFeedType: external
             publishFeedCredentials: PSGet-PSGalleryPush

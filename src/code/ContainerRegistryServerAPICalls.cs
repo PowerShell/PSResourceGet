@@ -38,7 +38,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         private static readonly FindResults emptyResponseResults = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
 
         const string containerRegistryRefreshTokenTemplate = "grant_type=access_token&service={0}&tenant={1}&access_token={2}"; // 0 - registry, 1 - tenant, 2 - access token
-        const string containerRegistryAccessTokenTemplate = "grant_type=refresh_token&service={0}&scope=repository:*:*&refresh_token={1}"; // 0 - registry, 1 - refresh token
+        const string containerRegistryAccessTokenTemplate = "grant_type=refresh_token&service={0}&scope=repository:*:*&scope=registry:catalog:*&refresh_token={1}"; // 0 - registry, 1 - refresh token
         const string containerRegistryOAuthExchangeUrlTemplate = "https://{0}/oauth2/exchange"; // 0 - registry
         const string containerRegistryOAuthTokenUrlTemplate = "https://{0}/oauth2/token"; // 0 - registry
         const string containerRegistryManifestUrlTemplate = "https://{0}/v2/{1}/manifests/{2}"; // 0 - registry, 1 - repo(modulename), 2 - tag(version)
@@ -46,6 +46,12 @@ namespace Microsoft.PowerShell.PSResourceGet
         const string containerRegistryFindImageVersionUrlTemplate = "https://{0}/v2/{1}/tags/list"; // 0 - registry, 1 - repo(modulename)
         const string containerRegistryStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads/"; // 0 - registry, 1 - packagename
         const string containerRegistryEndUploadTemplate = "https://{0}{1}&digest=sha256:{2}"; // 0 - registry, 1 - location, 2 - digest
+        const string defaultScope = "&scope=repository:*:*&scope=registry:catalog:*";
+        const string catalogScope = "&scope=registry:catalog:*";
+        const string grantTypeTemplate = "grant_type=access_token&service={0}{1}"; // 0 - registry, 1 - scope
+        const string authUrlTemplate = "{0}?service={1}{2}"; // 0 - realm, 1 - service, 2 - scope
+
+        const string containerRegistryRepositoryListTemplate = "https://{0}/v2/_catalog"; // 0 - registry
 
         #endregion
 
@@ -76,13 +82,13 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindAll()");
-            errRecord = new ErrorRecord(
-                new InvalidOperationException($"Find all is not supported for the ContainerRegistry server protocol repository '{Repository.Name}'"),
-                "FindAllFailure",
-                ErrorCategory.InvalidOperation,
-                this);
+            var findResult = FindPackages("*", includePrerelease, out errRecord);
+            if (errRecord != null)
+            {
+                return emptyResponseResults;
+            }
 
-            return emptyResponseResults;
+            return findResult;
         }
 
         /// <summary>
@@ -161,13 +167,13 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindNameGlobbing()");
-            errRecord = new ErrorRecord(
-                new InvalidOperationException($"FindNameGlobbing all is not supported for the ContainerRegistry server protocol repository '{Repository.Name}'"),
-                "FindNameGlobbingFailure",
-                ErrorCategory.InvalidOperation,
-                this);
+            var findResult = FindPackages(packageName, includePrerelease, out errRecord);
+            if (errRecord != null)
+            {
+                return emptyResponseResults;
+            }
 
-            return emptyResponseResults;
+            return findResult;
         }
 
         /// <summary>
@@ -321,7 +327,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return null;
             }
 
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, out errRecord);
             if (errRecord != null)
             {
                 return null;
@@ -369,7 +375,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// If no credential provided at registration then, check if the ACR endpoint can be accessed without a token. If not, try using Azure.Identity to get the az access token, then ACR refresh token and then ACR access token.
         /// Note: Access token can be empty if the repository is unauthenticated
         /// </summary>
-        internal string GetContainerRegistryAccessToken(out ErrorRecord errRecord)
+        internal string GetContainerRegistryAccessToken(bool needCatalogAccess, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessToken()");
             string accessToken = string.Empty;
@@ -391,15 +397,23 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             else
             {
-                bool isRepositoryUnauthenticated = IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), out errRecord);
+                bool isRepositoryUnauthenticated = IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), needCatalogAccess, out errRecord, out accessToken);
+                _cmdletPassedIn.WriteDebug($"Is repository unauthenticated: {isRepositoryUnauthenticated}");
+
                 if (errRecord != null)
                 {
                     return null;
                 }
 
+                if (!string.IsNullOrEmpty(accessToken))
+                {
+                    _cmdletPassedIn.WriteVerbose("Anonymous access token retrieved.");
+                    return accessToken;
+                }
+
                 if (!isRepositoryUnauthenticated)
                 {
-                    accessToken = Utils.GetAzAccessToken();
+                    accessToken = Utils.GetAzAccessToken(_cmdletPassedIn);
                     if (string.IsNullOrEmpty(accessToken))
                     {
                         errRecord = new ErrorRecord(
@@ -436,15 +450,87 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Checks if container registry repository is unauthenticated.
         /// </summary>
-        internal bool IsContainerRegistryUnauthenticated(string containerRegistyUrl, out ErrorRecord errRecord)
+        internal bool IsContainerRegistryUnauthenticated(string containerRegistyUrl, bool needCatalogAccess, out ErrorRecord errRecord, out string anonymousAccessToken)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::IsContainerRegistryUnauthenticated()");
             errRecord = null;
+            anonymousAccessToken = string.Empty;
             string endpoint = $"{containerRegistyUrl}/v2/";
             HttpResponseMessage response;
             try
             {
                 response = _sessionClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, endpoint)).Result;
+
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    // check if there is a auth challenge header
+                    if (response.Headers.WwwAuthenticate.Count() > 0)
+                    {
+                        var authHeader = response.Headers.WwwAuthenticate.First();
+                        if (authHeader.Scheme == "Bearer")
+                        {
+                            // check if there is a realm
+                            if (authHeader.Parameter.Contains("realm"))
+                            {
+                                // get the realm
+                                var realm = authHeader.Parameter.Split(',')?.Where(x => x.Contains("realm"))?.FirstOrDefault()?.Split('=')[1]?.Trim('"');
+                                // get the service
+                                var service = authHeader.Parameter.Split(',')?.Where(x => x.Contains("service"))?.FirstOrDefault()?.Split('=')[1]?.Trim('"');
+
+                                if (string.IsNullOrEmpty(realm) || string.IsNullOrEmpty(service))
+                                {
+                                    errRecord = new ErrorRecord(
+                                        new InvalidOperationException("Failed to get realm or service from the auth challenge header."),
+                                        "RegistryUnauthenticationCheckError",
+                                        ErrorCategory.InvalidResult,
+                                        this);
+
+                                    return false;
+                                }
+
+                                string content = needCatalogAccess ? String.Format(grantTypeTemplate, service, catalogScope) : String.Format(grantTypeTemplate, service, defaultScope);
+
+                                var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
+
+                                string url = needCatalogAccess ? String.Format(authUrlTemplate, realm, service, catalogScope) : String.Format(authUrlTemplate, realm, service, defaultScope);
+
+                                _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
+
+                                // we dont check the errorrecord here because we want to return false if we get a 401 and not throw an error
+                                _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
+                                ErrorRecord errRecordTemp = null;
+
+                                var results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out errRecordTemp);
+
+                                if (results == null)
+                                {
+                                    _cmdletPassedIn.WriteDebug("Failed to get access token from the realm. results is null.");
+                                    _cmdletPassedIn.WriteDebug($"ErrorRecord: {errRecordTemp}");
+                                    return false;
+                                }
+
+                                if (results["access_token"] == null)
+                                {
+                                    _cmdletPassedIn.WriteDebug($"Failed to get access token from the realm. access_token is null. results: {results}");
+                                    return false;
+                                }
+
+                                anonymousAccessToken = results["access_token"].ToString();
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (HttpRequestException hre)
+            {
+                 errRecord = new ErrorRecord(
+                    hre,
+                    "RegistryAnonymousAcquireError",
+                    ErrorCategory.ConnectionError,
+                    this);
+
+                return false;
             }
             catch (Exception e)
             {
@@ -592,6 +678,20 @@ namespace Microsoft.PowerShell.PSResourceGet
         }
 
         /// <summary>
+        /// Helper method to find all packages on container registry
+        /// </summary>
+        /// <param name="containerRegistryAccessToken"></param>
+        /// <param name="errRecord"></param>
+        /// <returns></returns>
+        internal JObject FindAllRepositories(string containerRegistryAccessToken, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindAllRepositories()");
+            string repositoryListUrl = string.Format(containerRegistryRepositoryListTemplate, Registry);
+            var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
+            return GetHttpResponseJObjectUsingDefaultHeaders(repositoryListUrl, HttpMethod.Get, defaultHeaders, out errRecord);
+        }
+
+        /// <summary>
         /// Get metadata for a package version.
         /// </summary>
         internal Hashtable GetContainerRegistryMetadata(string packageName, string exactTagVersion, string containerRegistryAccessToken, out ErrorRecord errRecord)
@@ -649,9 +749,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                             pkgVersionString += $"-{pkgPrereleaseLabelElement.ToString()}";
                         }
                     }
-                    else if (rootDom.TryGetProperty("Version", out pkgVersionElement))
+                    else if (rootDom.TryGetProperty("Version", out pkgVersionElement) || rootDom.TryGetProperty("version", out pkgVersionElement))
                     {
-                        // script metadata will have "Version" property
+                        // script metadata will have "Version" property, but nupkg only based .nuspec will have lowercase "version" property and JsonElement.TryGetProperty() is case sensitive
                         pkgVersionString = pkgVersionElement.ToString();
                     }
                     else
@@ -668,7 +768,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
                     {
                         errRecord = new ErrorRecord(
-                            new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version."),
+                            new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version for package '{packageName}'."),
                             "ParseMetadataFailure",
                             ErrorCategory.InvalidArgument,
                             this);
@@ -895,24 +995,29 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 HttpRequestMessage request = new HttpRequestMessage(method, url);
 
-                if (string.IsNullOrEmpty(content))
+                // HTTP GET does not expect a body / content.
+                if (method != HttpMethod.Get)
                 {
-                    errRecord = new ErrorRecord(
-                    exception: new ArgumentNullException($"Content is null or empty and cannot be used to make a request as its content headers."),
-                    "RequestContentHeadersNullOrEmpty",
-                    ErrorCategory.InvalidData,
-                    _cmdletPassedIn);
 
-                    return null;
-                }
-
-                request.Content = new StringContent(content);
-                request.Content.Headers.Clear();
-                if (contentHeaders != null)
-                {
-                    foreach (var header in contentHeaders)
+                    if (string.IsNullOrEmpty(content))
                     {
-                        request.Content.Headers.Add(header.Key, header.Value);
+                        errRecord = new ErrorRecord(
+                        exception: new ArgumentNullException($"Content is null or empty and cannot be used to make a request as its content headers."),
+                        "RequestContentHeadersNullOrEmpty",
+                        ErrorCategory.InvalidData,
+                        _cmdletPassedIn);
+
+                        return null;
+                    }
+
+                    request.Content = new StringContent(content);
+                    request.Content.Headers.Clear();
+                    if (contentHeaders != null)
+                    {
+                        foreach (var header in contentHeaders)
+                        {
+                            request.Content.Headers.Add(header.Key, header.Value);
+                        }
                     }
                 }
 
@@ -1115,12 +1220,11 @@ namespace Microsoft.PowerShell.PSResourceGet
         #endregion
 
         #region Publish Methods
-
         /// <summary>
         /// Helper method that publishes a package to the container registry.
         /// This gets called from Publish-PSResource.
         /// </summary>
-        internal bool PushNupkgContainerRegistry(string psd1OrPs1File,
+        internal bool PushNupkgContainerRegistry(
             string outputNupkgDir,
             string packageName,
             string modulePrefix,
@@ -1128,17 +1232,21 @@ namespace Microsoft.PowerShell.PSResourceGet
             ResourceType resourceType,
             Hashtable parsedMetadataHash,
             Hashtable dependencies,
+            bool isNupkgPathSpecified,
+            string originalNupkgPath,
             out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::PushNupkgContainerRegistry()");
-            string fullNupkgFile = System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
+
+            // if isNupkgPathSpecified, then we need to publish the original .nupkg file, as it may be signed
+            string fullNupkgFile = isNupkgPathSpecified ? originalNupkgPath :           System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
 
             string pkgNameForUpload = string.IsNullOrEmpty(modulePrefix) ? packageName : modulePrefix + "/" + packageName;
             string packageNameLowercase = pkgNameForUpload.ToLower();
 
             // Get access token (includes refresh tokens)
             _cmdletPassedIn.WriteVerbose($"Get access token for container registry server.");
-            var containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
+            var containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, out errRecord);
             if (errRecord != null)
             {
                 return false;
@@ -1603,7 +1711,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string packageNameLowercase = packageName.ToLower();
 
             string packageNameForFind = PrependMARPrefix(packageNameLowercase);
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, out errRecord);
             if (errRecord != null)
             {
                 return emptyHashResponses;
@@ -1619,8 +1727,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             List<JToken> allVersionsList = foundTags["tags"].ToList();
 
             SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, versionType, versionRange, requiredVersion, packageNameForFind, includePrerelease, out errRecord);
-            if (errRecord != null)
+            if (errRecord != null && sortedQualifyingPkgs?.Count == 0)
             {
+                _cmdletPassedIn.WriteDebug("No qualifying packages found for the specified criteria.");
                 return emptyHashResponses;
             }
 
@@ -1664,12 +1773,14 @@ namespace Microsoft.PowerShell.PSResourceGet
                 if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
                 {
                     errRecord = new ErrorRecord(
-                        new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version."),
+                        new ArgumentException($"Version {pkgVersionString} to be parsed from metadata is not a valid NuGet version for package '{packageName}'."),
                         "FindNameFailure",
                         ErrorCategory.InvalidArgument,
                         this);
 
-                    return null;
+                    _cmdletPassedIn.WriteError(errRecord);
+                    _cmdletPassedIn.WriteDebug($"Skipping package '{packageName}' with version '{pkgVersionString}' as it is not a valid NuGet version.");
+                    continue; // skip this version and continue with the next one
                 }
 
                 _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
@@ -1702,10 +1813,61 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             // If the repostitory is MAR and its not a wildcard search, we need to prefix the package name with MAR prefix.
             string updatedPackageName = Repository.IsMARRepository() && packageName.Trim() != "*"
-                                            ? string.Concat(prefix, packageName)
+                                            ? packageName.StartsWith(prefix) ? packageName : string.Concat(prefix, packageName)
                                             : packageName;
 
             return updatedPackageName;
+        }
+
+        private FindResults FindPackages(string packageName, bool includePrerelease, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindPackages()");
+            errRecord = null;
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: true, out errRecord);
+            if (errRecord != null)
+            {
+                return emptyResponseResults;
+            }
+
+            var pkgResult = FindAllRepositories(containerRegistryAccessToken, out errRecord);
+            if (errRecord != null)
+            {
+                return emptyResponseResults;
+            }
+
+            List<Hashtable> repositoriesList = new List<Hashtable>();
+            var isMAR = Repository.IsMARRepository();
+
+            // Convert the list of repositories to a list of hashtables
+            foreach (var repository in pkgResult["repositories"].ToList())
+            {
+                string repositoryName = repository.ToString();
+
+                if (isMAR && !repositoryName.StartsWith(PSRepositoryInfo.MARPrefix))
+                {
+                    continue;
+                }
+
+                // This remove the 'psresource/' prefix from the repository name for comparison with wildcard.
+                string moduleName = repositoryName.StartsWith("psresource/") ? repositoryName.Substring(11) : repositoryName;
+
+                WildcardPattern wildcardPattern = new WildcardPattern(packageName, WildcardOptions.IgnoreCase);
+
+                if (!wildcardPattern.IsMatch(moduleName))
+                {
+                    continue;
+                }
+
+                _cmdletPassedIn.WriteDebug($"Found repository: {repositoryName}");
+
+                repositoriesList.AddRange(FindPackagesWithVersionHelper(repositoryName, VersionType.VersionRange, versionRange: VersionRange.All, requiredVersion: null, includePrerelease, getOnlyLatest: true, out errRecord));
+                if (errRecord != null)
+                {
+                    return emptyResponseResults;
+                }
+            }
+
+            return new FindResults(stringResponse: new string[] { }, hashtableResponse: repositoriesList.ToArray(), responseType: containerRegistryFindResponseType);
         }
 
         #endregion

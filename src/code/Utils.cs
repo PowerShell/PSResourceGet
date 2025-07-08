@@ -23,6 +23,7 @@ using Azure.Identity;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -315,9 +316,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             string versionString,
             string prerelease)
         {
-            // versionString may be like 1.2.0.0 or 1.2.0
+            // versionString may be like 1.2.0.0 or 1.2.0 or 1.2
             // prerelease    may be      null    or "alpha1"
             // possible passed in examples:
+            // versionString: "1.2"                           <- container registry 2 digit version
+            // versionString: "1.2"     prerelease: "alpha1"  <- container registry 2 digit version
             // versionString: "1.2.0"   prerelease: "alpha1"
             // versionString: "1.2.0"   prerelease: ""        <- doubtful though
             // versionString: "1.2.0.0" prerelease: "alpha1"
@@ -330,9 +333,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             int numVersionDigits = versionString.Split('.').Count();
 
-            if (numVersionDigits == 3)
+            if (numVersionDigits == 2 || numVersionDigits == 3)
             {
-                // versionString: "1.2.0" prerelease: "alpha1"
+                // versionString: "1.2.0" prerelease: "alpha1" -> 1.2.0-alpha1
+                // versionString: "1.2"   prerelease: "alpha1" -> 1.2-alpha1
                 return versionString + "-" + prerelease;
             }
             else if (numVersionDigits == 4)
@@ -644,12 +648,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
-        public static string GetAzAccessToken()
+        public static string GetAzAccessToken(PSCmdlet cmdletPassedIn)
         {
             var credOptions = new DefaultAzureCredentialOptions
             {
                 ExcludeEnvironmentCredential = true,
-                ExcludeVisualStudioCodeCredential = true,
                 ExcludeVisualStudioCredential = true,
                 ExcludeWorkloadIdentityCredential = true,
                 ExcludeManagedIdentityCredential = true, // ManagedIdentityCredential makes the experience slow
@@ -661,8 +664,25 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             var dCred = new DefaultAzureCredential(credOptions);
             var tokenRequestContext = new TokenRequestContext(new string[] { "https://management.azure.com/.default" });
-            var token = dCred.GetTokenAsync(tokenRequestContext).Result;
-            return token.Token;
+
+            try
+            {
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
+                {
+                    var token = dCred.GetTokenAsync(tokenRequestContext, cts.Token).GetAwaiter().GetResult();
+                    return token.Token;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                cmdletPassedIn.WriteWarning("Timeout occurred while acquiring Azure access token.");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                cmdletPassedIn.WriteWarning($"Failed to acquire Azure access token: {ex.Message}");
+                return null;
+            }
         }
 
         public static string GetContainerRegistryAccessTokenFromSecretManagement(
@@ -1640,6 +1660,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// </Summary>
         public static void DeleteDirectory(string dirPath)
         {
+            if (!Directory.Exists(dirPath))
+            {
+                throw new Exception($"Path '{dirPath}' that was attempting to be deleted does not exist.");
+            }
+
             // Remove read only file attributes first
             foreach (var dirFilePath in Directory.GetFiles(dirPath,"*",SearchOption.AllDirectories))
             {
@@ -1883,6 +1908,73 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     fileStream.Close();
                 }
             }
+        }
+
+        #endregion
+
+        #region Nuspec file parsing methods
+
+        public static Hashtable GetMetadataFromNuspec(string nuspecFilePath, PSCmdlet cmdletPassedIn, out ErrorRecord errorRecord)
+        {
+            Hashtable nuspecHashtable = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
+            XmlDocument nuspecXmlDocument = LoadXmlDocument(nuspecFilePath, cmdletPassedIn, out errorRecord);
+            if (errorRecord != null)
+            {
+                return nuspecHashtable;
+            }
+
+            try
+            {
+                XmlNodeList elemList = nuspecXmlDocument.GetElementsByTagName("metadata");
+                for(int i = 0; i < elemList.Count; i++)
+                {
+                    XmlNode metadataInnerXml = elemList[i];
+
+                    for(int j= 0; j<metadataInnerXml.ChildNodes.Count; j++)
+                    {
+                        string key = metadataInnerXml.ChildNodes[j].LocalName;
+                        string value = metadataInnerXml.ChildNodes[j].InnerText;
+
+                        if (!nuspecHashtable.ContainsKey(key))
+                        {
+                            nuspecHashtable.Add(key, value);
+                        }
+                    }
+
+                }
+            }
+            catch (Exception e)
+            {
+                errorRecord = new ErrorRecord(
+                    exception: e,
+                    "GetHashtableForNuspecFailure",
+                    ErrorCategory.ReadError,
+                    cmdletPassedIn);
+            }
+
+            return nuspecHashtable;
+        }
+
+        /// <summary>
+        /// Method that loads file content into XMLDocument. Used when reading .nuspec file.
+        /// </summary>
+        public static XmlDocument LoadXmlDocument(string filePath, PSCmdlet cmdletPassedIn, out ErrorRecord errRecord)
+        {
+            errRecord = null;
+            XmlDocument doc = new XmlDocument();
+            doc.PreserveWhitespace = true;
+            try { doc.Load(filePath); }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "LoadXmlDocumentFailure",
+                    ErrorCategory.ReadError,
+                    cmdletPassedIn);
+            }
+
+            return doc;
         }
 
         #endregion

@@ -8,7 +8,7 @@
     <AssemblyVersion>1.1.0.1</AssemblyVersion>
     <FileVersion>1.1.0.1</FileVersion>
     <InformationalVersion>1.1.0.1</InformationalVersion>
-    <TargetFrameworks>net472;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net472</TargetFrameworks>
     <LangVersion>9.0</LangVersion>
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
   </PropertyGroup>
@@ -24,7 +24,8 @@
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="Azure.Identity" Version="1.11.4" />
+    <PackageReference Include="Azure.Identity" Version="1.14.0" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="6.0.5" />
     <Reference Include="System.Web" />
   </ItemGroup>
 

@@ -187,7 +187,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (repository != null && repository.Length != 0)
             {
                 // Write error and disregard repository entries containing wildcards.
-                repository = Utils.ProcessNameWildcards(repository, removeWildcardEntries:false, out string[] errorMsgs, out _);
+                repository = Utils.ProcessNameWildcards(repository, removeWildcardEntries: false, out string[] errorMsgs, out _);
                 foreach (string error in errorMsgs)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -231,7 +231,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (repositoriesToSearch != null && repositoriesToSearch.Count == 0)
                 {
                     _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                        new PSArgumentException ("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
+                        new PSArgumentException("Cannot resolve -Repository name. Run 'Get-PSResourceRepository' to view all registered repositories."),
                         "RepositoryNameIsNotResolved",
                         ErrorCategory.InvalidArgument,
                         _cmdletPassedIn));
@@ -314,7 +314,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 bool installDepsForRepo = skipDependencyCheck;
 
                 // If no more packages to install, then return
-                if (_pkgNamesToInstall.Count == 0) {
+                if (_pkgNamesToInstall.Count == 0)
+                {
                     return allPkgsInstalled;
                 }
 
@@ -338,14 +339,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 repositoryNamesToSearch.Add(repoName);
-                if ((currentRepository.ApiVersion == PSRepositoryInfo.APIVersion.V3) && (!installDepsForRepo))
-                {
-                    _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
-                    installDepsForRepo = true;
-                }
 
-                var installedPkgs = InstallPackages(_pkgNamesToInstall.ToArray(), currentRepository, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
-                foreach (var pkg in installedPkgs)
+                List<PSResourceInfo> installedPkgs = InstallPackages(_pkgNamesToInstall.ToArray(), currentRepository, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
+                foreach (PSResourceInfo pkg in installedPkgs)
                 {
                     _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                 }
@@ -491,8 +487,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         File.Delete(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
                     }
                 }
-                else {
-                    if (_includeXml) {
+                else
+                {
+                    if (_includeXml)
+                    {
                         _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, scriptXML)));
                         Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, scriptXML));
                     }
@@ -570,11 +568,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (!skipDependencyCheck)
                     {
-                        if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V3)
-                        {
-                            _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
-                        }
-
                         // Get the dependencies from the installed package.
                         if (parentPkgObj.Dependencies.Length > 0)
                         {
@@ -704,7 +697,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return packagesHash;
                     }
 
-                   break;
+                    break;
 
                 case VersionType.SpecificVersion:
                     string nugetVersionString = specificVersion.ToNormalizedString(); // 3.0.17-beta
@@ -758,7 +751,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         break;
                     }
-                } else {
+                }
+                else
+                {
                     pkgToInstall = currentResult.returnedObject;
 
                     break;
@@ -772,14 +767,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
             pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
-            if (pkgVersion == null) {
+            if (pkgVersion == null)
+            {
                 // Not all NuGet providers (e.g. Artifactory, possibly others) send NormalizedVersion in NuGet package responses.
                 // If they don't, we need to manually construct the combined version+prerelease from pkgToInstall.Version and the prerelease string.
                 pkgVersion = pkgToInstall.Version.ToString();
-                if (!String.IsNullOrEmpty(pkgToInstall.Prerelease)) {
+                if (!String.IsNullOrEmpty(pkgToInstall.Prerelease))
+                {
                     pkgVersion += $"-{pkgToInstall.Prerelease}";
                 }
             }
+
+            // For most repositories/providers the server will use the normalized version, which pkgVersion originally reflects
+            // However, for container registries the version must exactly match what was in the artifact manifest and then reflected in PSResourceInfo.Version.ToString()
+            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.ContainerRegistry)
+            {
+                pkgVersion = String.IsNullOrEmpty(pkgToInstall.Prerelease) ? pkgToInstall.Version.ToString() : $"{pkgToInstall.Version.ToString()}-{pkgToInstall.Prerelease}";
+            }
+
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             if (!_reinstall)
             {
@@ -869,11 +874,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
-                                                                        // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                        // with a mask (bitwise complement of desired attributes combination).
-                                                                        // TODO: check the attributes and if it's read only then set it
-                                                                        // attribute may be inherited from the parent
-                                                                        // TODO:  are there Linux accommodations we need to consider here?
+                                                                       // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
+                                                                       // with a mask (bitwise complement of desired attributes combination).
+                                                                       // TODO: check the attributes and if it's read only then set it
+                                                                       // attribute may be inherited from the parent
+                                                                       // TODO:  are there Linux accommodations we need to consider here?
                 dir.Attributes &= ~FileAttributes.ReadOnly;
             }
             catch (Exception e)
@@ -951,7 +956,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 bool isModule = File.Exists(moduleManifest);
                 bool isScript = File.Exists(scriptPath);
 
-                if (!isModule && !isScript) {
+                if (!isModule && !isScript)
+                {
                     scriptPath = "";
                 }
 
@@ -1381,7 +1387,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             "ForceAcceptLicense",
                             ErrorCategory.InvalidArgument,
                             _cmdletPassedIn);
-                        
+
                         return false;
                     }
                 }

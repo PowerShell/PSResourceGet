@@ -9,6 +9,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
@@ -448,12 +449,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     ContainerRegistryServerAPICalls containerRegistryServer = new ContainerRegistryServerAPICalls(repository, _cmdletPassedIn, _networkCredential, userAgentString);
 
-                    var pkgMetadataFile = (resourceType == ResourceType.Script) ? pathToScriptFileToPublish : pathToModuleManifestToPublish;
+                    if (_isNupkgPathSpecified)
+                    {
+                        // copy the .nupkg to a temp path (outputNupkgDir field) as we don't want to tamper with the original, possibly signed, .nupkg file
+                        string copiedNupkgFilePath = CopyNupkgFileToTempPath(nupkgFilePath: Path, errRecord: out ErrorRecord copyErrRecord);
+                        if (copyErrRecord != null)
+                        {
+                            _cmdletPassedIn.WriteError(copyErrRecord);
+                            return;
+                        }
 
-                    if (!containerRegistryServer.PushNupkgContainerRegistry(pkgMetadataFile, outputNupkgDir, _pkgName, modulePrefix, _pkgVersion, resourceType, parsedMetadata, dependencies, out ErrorRecord pushNupkgContainerRegistryError))
+                        // get package info (name, version, metadata hashtable) from the copied .nupkg package and then populate appropriate fields (_pkgName, _pkgVersion, parsedMetadata)
+                        GetPackageInfoFromNupkg(nupkgFilePath: copiedNupkgFilePath, errRecord: out ErrorRecord pkgInfoErrRecord);
+                        if (pkgInfoErrRecord != null)
+                        {
+                            _cmdletPassedIn.WriteError(pkgInfoErrRecord);
+                            return;
+                        }
+                    }
+
+                    if (!containerRegistryServer.PushNupkgContainerRegistry(outputNupkgDir, _pkgName, modulePrefix, _pkgVersion, resourceType, parsedMetadata, dependencies, _isNupkgPathSpecified, Path, out ErrorRecord pushNupkgContainerRegistryError))
                     {
                         _cmdletPassedIn.WriteError(pushNupkgContainerRegistryError);
-                        // exit out of processing
                         return;
                     }
                 }
@@ -463,6 +480,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         outputNupkgDir = pathToNupkgToPublish;
                     }
+
                     // This call does not throw any exceptions, but it will write unsuccessful responses to the console
                     if (!PushNupkg(outputNupkgDir, repository.Name, repository.Uri.ToString(), out ErrorRecord pushNupkgError))
                     {
@@ -482,7 +500,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             finally
             {
-                if (!_isNupkgPathSpecified)
+                // For scenarios such as Publish-PSResource -NupkgPath -Repository <non-container registry repository>, the outputNupkgDir will be set to NupkgPath path, and a temp outputDir folder will not have been created and thus doesn't need to attempt to be deleted
+                if (Directory.Exists(outputDir))
                 {
                     _cmdletPassedIn.WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
                     Utils.DeleteDirectory(outputDir);
@@ -1111,20 +1130,47 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (requiredModules != null)
             {
                 XmlElement dependenciesElement = doc.CreateElement("dependencies", nameSpaceUri);
-
                 foreach (string dependencyName in requiredModules.Keys)
                 {
                     XmlElement element = doc.CreateElement("dependency", nameSpaceUri);
-
                     element.SetAttribute("id", dependencyName);
+                    
                     string dependencyVersion = requiredModules[dependencyName].ToString();
                     if (!string.IsNullOrEmpty(dependencyVersion))
                     {
-                        element.SetAttribute("version", requiredModules[dependencyName].ToString());
+                        var requiredModulesVersionInfo = (Hashtable)requiredModules[dependencyName];
+                        string versionRange = String.Empty;
+                        if (requiredModulesVersionInfo.ContainsKey("RequiredVersion"))
+                        {
+                            // For RequiredVersion, use exact version notation [x.x.x]
+                            string requiredModulesVersion = requiredModulesVersionInfo["RequiredVersion"].ToString();
+                            versionRange = $"[{requiredModulesVersion}]";
+                        }
+                        else if (requiredModulesVersionInfo.ContainsKey("ModuleVersion") && requiredModulesVersionInfo.ContainsKey("MaximumVersion"))
+                        {
+                            // Version range when both min and max specified: [min,max]
+                            versionRange = $"[{requiredModulesVersionInfo["ModuleVersion"]}, {requiredModulesVersionInfo["MaximumVersion"]}]";
+                        }
+                        else if (requiredModulesVersionInfo.ContainsKey("ModuleVersion"))
+                        {
+                            // Only min specified: min (which means ≥ min)
+                            versionRange = requiredModulesVersionInfo["ModuleVersion"].ToString();
+                        }
+                        else if (requiredModulesVersionInfo.ContainsKey("MaximumVersion"))
+                        {
+                            // Only max specified: (, max]
+                            versionRange = $"(, {requiredModulesVersionInfo["MaximumVersion"]}]";
+                        }
+
+                        if (!string.IsNullOrEmpty(versionRange))
+                        {
+                            element.SetAttribute("version", versionRange);
+                        }
                     }
 
                     dependenciesElement.AppendChild(element);
                 }
+
                 metadataElement.AppendChild(dependenciesElement);
             }
 
@@ -1162,19 +1208,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (LanguagePrimitives.TryConvertTo<Hashtable>(reqModule, out Hashtable moduleHash))
                 {
                     string moduleName = moduleHash["ModuleName"] as string;
-
-                    if (moduleHash.ContainsKey("ModuleVersion"))
+                    var versionInfo = new Hashtable();
+            
+                    // RequiredVersion cannot be used with ModuleVersion or MaximumVersion
+                    if (moduleHash.ContainsKey("RequiredVersion"))
                     {
-                        dependenciesHash.Add(moduleName, moduleHash["ModuleVersion"]);
+                        versionInfo["RequiredVersion"] = moduleHash["RequiredVersion"].ToString();
                     }
-                    else if (moduleHash.ContainsKey("RequiredVersion"))
+                    else 
                     {
-                        dependenciesHash.Add(moduleName, moduleHash["RequiredVersion"]);
+                        // ModuleVersion and MaximumVersion can be used together
+                        if (moduleHash.ContainsKey("ModuleVersion"))
+                        {
+                            versionInfo["ModuleVersion"] = moduleHash["ModuleVersion"].ToString();
+                        }
+                        if (moduleHash.ContainsKey("MaximumVersion"))
+                        {
+                            versionInfo["MaximumVersion"] = moduleHash["MaximumVersion"].ToString();
+                        }
                     }
-                    else
-                    {
-                        dependenciesHash.Add(moduleName, string.Empty);
-                    }
+                    dependenciesHash.Add(moduleName, versionInfo);
                 }
                 else if (LanguagePrimitives.TryConvertTo<string>(reqModule, out string moduleName))
                 {
@@ -1249,6 +1302,191 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// This method is called by Publish-PSResource when the -NupkgPath parameter is specified
+        /// The method copies the .nupkg file to a temp path (populated at outputNupkgDir field) as we dont' want to extract and read original .nupkg file
+        /// </summary>
+        private string CopyNupkgFileToTempPath(string nupkgFilePath, out ErrorRecord errRecord)
+        {
+            errRecord = null;
+            string destinationFilePath = String.Empty;
+            var packageFullName = System.IO.Path.GetFileName(nupkgFilePath);
+            try
+            {
+                if (!Directory.Exists(outputDir))
+                {
+                    Directory.CreateDirectory(outputDir);
+                    if (!Directory.Exists(outputNupkgDir))
+                    {
+                        Directory.CreateDirectory(outputNupkgDir);
+                    }
+                }
+
+                destinationFilePath = System.IO.Path.Combine(outputNupkgDir, packageFullName);
+                File.Copy(Path, destinationFilePath);
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    new ArgumentException($"Error moving .nupkg at -NupkgPath to temp nupkg dir path '{outputNupkgDir}' due to: '{e.Message}'."),
+                    "ErrorMovingNupkg",
+                    ErrorCategory.NotSpecified,
+                    this);
+
+                // exit process record
+                return destinationFilePath;
+            }
+
+            return destinationFilePath;
+        }
+
+        /// <summary>
+        /// Get package info from the .nupkg file provided, inluding package name (_pkgName), package version (_pkgVersion), and metadata parsed into a hashtable (parsedMetadata)
+        /// </summary>
+        private void GetPackageInfoFromNupkg(string nupkgFilePath, out ErrorRecord errRecord)
+        {
+            errRecord = null;
+            Regex rx = new Regex(@"\.\d+\.", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            var packageFullName = System.IO.Path.GetFileName(nupkgFilePath);
+            MatchCollection matches = rx.Matches(packageFullName);
+            if (matches.Count == 0)
+            {
+                return;
+            }
+
+            Match match = matches[0];
+
+            GroupCollection groups = match.Groups;
+            if (groups.Count == 0)
+            {
+                return;
+            }
+
+            Capture group = groups[0];
+
+            string pkgFoundName = packageFullName.Substring(0, group.Index);
+
+            string version = packageFullName.Substring(group.Index + 1, packageFullName.LastIndexOf('.') - group.Index - 1);
+            _cmdletPassedIn.WriteDebug($"Found package '{pkgFoundName}', version '{version}', from packageFullName '{packageFullName}' at path '{Path}'");
+
+            if (!NuGetVersion.TryParse(version, out NuGetVersion nugetVersion))
+            {
+                errRecord = new ErrorRecord(
+                    new ArgumentException($"Error parsing version '{version}' into NuGetVersion instance."),
+                    "ErrorParsingNuGetVersion",
+                    ErrorCategory.NotSpecified,
+                    this);
+
+                return;
+            }
+
+            _pkgName = pkgFoundName;
+            _pkgVersion = nugetVersion;
+            parsedMetadata = GetMetadataFromNupkg(nupkgFilePath, _pkgName, out errRecord);
+        }
+
+        /// <summary>
+        /// Extract copied .nupkg, find metadata file (either .ps1, .psd1, or .nuspec) and read metadata into a hashtable
+        /// </summary>
+        internal Hashtable GetMetadataFromNupkg(string copiedNupkgPath, string packageName, out ErrorRecord errRecord)
+        {
+            Hashtable pkgMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
+            errRecord = null;
+
+            // in temp directory create an "extract" folder to which we'll copy .nupkg to, extract contents, etc.
+            string nupkgDirPath = Directory.GetParent(copiedNupkgPath).FullName; //someGuid/nupkg/myPkg.nupkg -> /someGuid/nupkg
+            string tempPath = Directory.GetParent(nupkgDirPath).FullName; // someGuid
+            var extractPath = System.IO.Path.Combine(tempPath, "extract"); // someGuid/extract
+
+            try
+            {
+                var dir = Directory.CreateDirectory(extractPath);
+                dir.Attributes &= ~FileAttributes.ReadOnly;
+
+                // change extension to .zip
+                string zipFilePath = System.IO.Path.ChangeExtension(copiedNupkgPath, ".zip");
+                File.Move(copiedNupkgPath, zipFilePath);
+
+                // extract from .zip
+                _cmdletPassedIn.WriteDebug($"Extracting '{zipFilePath}' to '{extractPath}'");
+                System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, extractPath);
+
+                string psd1FilePath = String.Empty;
+                string ps1FilePath = String.Empty;
+                string nuspecFilePath = String.Empty;
+                Utils.GetMetadataFilesFromPath(extractPath, packageName, out psd1FilePath, out ps1FilePath, out nuspecFilePath, out string properCasingPkgName);
+
+                List<string> pkgTags = new List<string>();
+
+                if (File.Exists(psd1FilePath))
+                {
+                    _cmdletPassedIn.WriteDebug($"Attempting to read module manifest file '{psd1FilePath}'");
+                    if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
+                    {
+                        errRecord = new ErrorRecord(
+                            readManifestError, 
+                            "GetMetadataFromNupkgFailure", 
+                            ErrorCategory.ParserError, 
+                            this);
+                        
+                        return pkgMetadata;
+                    }
+                }
+                else if (File.Exists(ps1FilePath))
+                {
+                    _cmdletPassedIn.WriteDebug($"Attempting to read script file '{ps1FilePath}'");
+                    if (!PSScriptFileInfo.TryTestPSScriptFileInfo(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
+                    {
+                        errRecord = new ErrorRecord(
+                            new InvalidDataException($"PSScriptFile could not be read properly"), 
+                            "GetMetadataFromNupkgFailure", 
+                            ErrorCategory.ParserError, 
+                            this);
+
+                        return pkgMetadata;
+                    }
+
+                    pkgMetadata = parsedScript.ToHashtable();
+                }
+                else if (File.Exists(nuspecFilePath))
+                {
+                    _cmdletPassedIn.WriteDebug($"Attempting to read nuspec file '{nuspecFilePath}'");
+                    pkgMetadata = Utils.GetMetadataFromNuspec(nuspecFilePath, _cmdletPassedIn, out errRecord);
+                    if (errRecord != null)
+                    {
+                        return pkgMetadata;
+                    }
+                }
+                else
+                {
+                    errRecord = new ErrorRecord(
+                        new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"),
+                        "GetMetadataFromNupkgFailure", 
+                        ErrorCategory.InvalidData, 
+                        this);
+                        
+                    return pkgMetadata;
+                }
+            }
+            catch (Exception e)
+            {
+               errRecord = new ErrorRecord(
+                   new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"), 
+                   "GetMetadataFromNupkgFailure", 
+                   ErrorCategory.InvalidOperation, 
+                   this);
+            }
+            finally
+            {
+                if (Directory.Exists(extractPath))
+                {
+                    Utils.DeleteDirectory(extractPath);
+                }
+            }
+
+            return pkgMetadata;
         }
 
         #endregion

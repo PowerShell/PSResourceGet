@@ -4,7 +4,7 @@
 @{
     RootModule             = './Microsoft.PowerShell.PSResourceGet.dll'
     NestedModules          = @('./Microsoft.PowerShell.PSResourceGet.psm1')
-    ModuleVersion          = '1.1.0'
+    ModuleVersion          = '1.2.0'
     CompatiblePSEditions   = @('Core', 'Desktop')
     GUID                   = 'e4e0bda1-0703-44a5-b70d-8fe704cd0643'
     Author                 = 'Microsoft Corporation'
@@ -46,7 +46,7 @@
         'udres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'rc3'
+            Prerelease   = 'preview1'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -56,6 +56,39 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.2.0-preview1
+
+### New Features
+- Dependency support for PSResources in v3 repositories (#1778 Thanks @o-l-a-v!)
+
+### Bug Fix
+- Updated dependencies and added connection timeout to improve CI tests reliability (#1829)
+- Improvements in `ContainerRegistry` repositories in listing repository catalog  (#1831)
+- Wildcard attribute added to `-Repository` parameter of `Install-PSResource` (#1808)
+
+## 1.1.1
+
+### Bug Fix
+- Bugfix to retrieve all metadata properties when finding a PSResource from a ContainerRegistry repository (#1799)
+- Update README.md (#1798)
+- Use authentication challenge for unauthenticated ContainerRegistry repository (#1797)
+- Bugfix for Install-PSResource with varying digit version against ContainerRegistry repository (#1796)
+- Bugfix for updating ContainerRegistry dependency parsing logic to account for AzPreview package (#1792)
+- Add wildcard support for MAR repository for FindAll and FindByName (#1786)
+- Bugfix for nuspec dependency version range calculation for RequiredModules (#1784)
+
+## 1.1.0
+
+### Bug Fix
+- Bugfix for publishing .nupkg file to ContainerRegistry repository (#1763)
+- Bugfix for PMPs like Artifactory needing modified filter query parameter to proxy upstream (#1761)
+- Bugfix for ContainerRegistry repository to parse out dependencies from metadata (#1766)
+- Bugfix for Install-PSResource Null pointer occurring when package is present only in upstream feed in ADO (#1760)
+- Bugfix for local repository casing issue on Linux (#1750)
+- Update README.md (#1759)
+- Bug fix for case sensitive License.txt when RequireLicense is specified (#1757)
+- Bug fix for broken -Quiet parameter for Save-PSResource (#1745)
+
 ## 1.1.0-rc3
 
 ### Bug Fix

@@ -8,6 +8,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 
     BeforeAll{
         $testModuleName = "test-module"
+        $testModuleWith2DigitVersion = "test-2DigitPkg"
         $testModuleParentName = "test_parent_mod"
         $testModuleDependencyName = "test_dependency_mod"
         $testScriptName = "test-script"
@@ -82,6 +83,25 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Count | Should -BeGreaterOrEqual 1
     }
 
+    It "Find resource when version contains different number of digits than the normalized version" {
+        # the resource has version "1.0", but querying with any equivalent version should work
+        $res1DigitVersion = Find-PSResource -Name $testModuleWith2DigitVersion -Version "1" -Repository $ACRRepoName
+        $res1DigitVersion | Should -Not -BeNullOrEmpty
+        $res1DigitVersion.Version | Should -Be "1.0"
+
+        $res2DigitVersion = Find-PSResource -Name $testModuleWith2DigitVersion -Version "1.0" -Repository $ACRRepoName
+        $res2DigitVersion | Should -Not -BeNullOrEmpty
+        $res2DigitVersion.Version | Should -Be "1.0"
+
+        $res3DigitVersion = Find-PSResource -Name $testModuleWith2DigitVersion -Version "1.0.0" -Repository $ACRRepoName
+        $res3DigitVersion | Should -Not -BeNullOrEmpty
+        $res3DigitVersion.Version | Should -Be "1.0"
+
+        $res4DigitVersion = Find-PSResource -Name $testModuleWith2DigitVersion -Version "1.0.0.0" -Repository $ACRRepoName
+        $res4DigitVersion | Should -Not -BeNullOrEmpty
+        $res4DigitVersion.Version | Should -Be "1.0"
+    }
+
     It "Find module and dependencies when -IncludeDependencies is specified" {
         $res = Find-PSResource -Name $testModuleParentName -Repository $ACRRepoName -IncludeDependencies
         $res | Should -Not -BeNullOrEmpty
@@ -151,12 +171,11 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindCommandOrDscResourceFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
-    It "Should not find all resources given Name '*'" {
+    It "Should find all resources given Name '*'" {
         # FindAll()
         $res = Find-PSResource -Name "*" -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
-        $res | Should -BeNullOrEmpty
-        $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "FindAllFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterThan 0
     }
 
     It "Should find script given Name" {
@@ -227,22 +246,88 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "1.0.0"
         $res.Type.ToString() | Should -Be "Script"
     }
+
+    It "Should find resource with dependency, given Name and Version" {
+        $res = Find-PSResource -Name "Az.Storage" -Version "8.0.0" -Repository $ACRRepoName
+        $res.Dependencies.Length | Should -Be 1
+        $res.Dependencies[0].Name | Should -Be "Az.Accounts"
+    }
+
+    It "Should find resource and its associated author, licenseUri, projectUri, releaseNotes, etc properties" {
+        $res = Find-PSResource -Name "Az.Storage" -Version "8.0.0" -Repository $ACRRepoName
+        $res.Author | Should -Be "Microsoft Corporation"
+        $res.CompanyName | Should -Be "Microsoft Corporation"
+        $res.LicenseUri | Should -Be "https://aka.ms/azps-license"
+        $res.ProjectUri | Should -Be "https://github.com/Azure/azure-powershell"
+        $res.ReleaseNotes.Length | Should -Not -Be 0
+        $res.Tags.Length | Should -Be 5
+    }
 }
 
 Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
     BeforeAll {
-        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", "azure-powershell/");
         Register-PSResourceRepository -Name "MAR" -Uri "https://mcr.microsoft.com" -ApiVersion "ContainerRegistry"
     }
 
     AfterAll {
-        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", $null);
         Unregister-PSResourceRepository -Name "MAR"
     }
 
     It "Should find resource given specific Name, Version null" {
         $res = Find-PSResource -Name "Az.Accounts" -Repository "MAR"
         $res.Name | Should -Be "Az.Accounts"
-        $res.Version | Should -Be "3.0.4"
+        $res.Version | Should -BeGreaterThan ([Version]"4.0.0")
+    }
+
+    It "Should find resource and its dependency given specific Name and Version" {
+        $res = Find-PSResource -Name "Az.Storage" -Version "8.0.0" -Repository "MAR"
+        $res.Dependencies.Length | Should -Be 1
+        $res.Dependencies[0].Name | Should -Be "Az.Accounts"
+    }
+
+    It "Should find Azpreview resource and it's dependency given specific Name and Version" {
+        $res = Find-PSResource -Name "Azpreview" -Version "13.2.0" -Repository "MAR"
+        $res.Dependencies.Length | Should -Not -Be 0
+    }
+
+    It "Should find resource with wildcard in Name" {
+        $res = Find-PSResource -Name "Az.App*" -Repository "MAR"
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterThan 1
+    }
+
+    It "Should find all resource with wildcard in Name" {
+        $res = Find-PSResource -Name "*" -Repository "MAR"
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterThan 1
+    }
+}
+
+# Skip this test fo
+Describe 'Test Find-PSResource for unauthenticated ACR repository' -tags 'CI' {
+    BeforeAll {
+        $skipOnWinPS =  $PSVersionTable.PSVersion.Major -eq 5
+
+        if (-not $skipOnWinPS) {
+            Register-PSResourceRepository -Name "Unauthenticated" -Uri "https://psresourcegetnoauth.azurecr.io/" -ApiVersion "ContainerRegistry"
+        }
+    }
+
+    AfterAll {
+        if (-not $skipOnWinPS) {
+            Unregister-PSResourceRepository -Name "Unauthenticated"
+        }
+    }
+
+    It "Should find resource given specific Name, Version null" {
+
+        if ($skipOnWinPS) {
+            Set-ItResult -Pending -Because "Skipping test on Windows PowerShell"
+            return
+        }
+
+        $res = Find-PSResource -Name "hello-world" -Repository "Unauthenticated"
+        $res.Name | Should -Be "hello-world"
+        $res.Version | Should -Be "5.0.0"
     }
 }
