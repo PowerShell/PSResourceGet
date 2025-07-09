@@ -83,6 +83,7 @@ jobs:
 
         
         $VSS_NUGET_EXTERNAL_FEED_ENDPOINTS = "{'endpointCredentials': [{'endpoint':$($ADORepoUri), 'username': 'AzureDevOps', 'password':$($azt.Token)}]}"
+        $VSS_NUGET_EXTERNAL_FEED_ENDPOINTS = "{\"endpointCredentials\": [{\"endpoint\":\"$($ADORepoUri)\", \"username\": \"AzureDevOps\", \"password\":\"$($azt.Token)\"}]}"
 
         $vstsCommandString = "vso[task.setvariable variable=VSS_NUGET_EXTERNAL_FEED_ENDPOINTS]$VSS_NUGET_EXTERNAL_FEED_ENDPOINTS"
         Write-Host "sending " + $vstsCommandString
