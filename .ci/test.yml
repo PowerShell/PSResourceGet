@@ -82,7 +82,7 @@ jobs:
         $ADORepoUri = "https://pkgs.dev.azure.com/powershell-rel/PSResourceGet/_packaging/psrg-credprovidertest/nuget/v2"
 
         
-        $VSS_NUGET_EXTERNAL_FEED_ENDPOINTS = "{'endpointCredentials': [{'endpoint':$ADOV2RepoUri, 'password':$($azt.Token)}]}"
+        $VSS_NUGET_EXTERNAL_FEED_ENDPOINTS = "{'endpointCredentials': [{'endpoint':$($ADOV2RepoUri), 'password':$($azt.Token)}]}"
 
         $vstsCommandString = "vso[task.setvariable variable=VSS_NUGET_EXTERNAL_FEED_ENDPOINTS]$VSS_NUGET_EXTERNAL_FEED_ENDPOINTS"
         Write-Host "sending " + $vstsCommandString
