@@ -82,11 +82,10 @@ jobs:
         $ADORepoUri = "https://pkgs.dev.azure.com/powershell-rel/PSResourceGet/_packaging/psrg-credprovidertest/nuget/v2"
 
         
-        $VSS_NUGET_EXTERNAL_FEED_ENDPOINTS = "{'endpointCredentials': [{'endpoint':$($ADORepoUri), 'password':$($azt.Token)}]}"
+        $VSS_NUGET_EXTERNAL_FEED_ENDPOINTS = "{'endpointCredentials': [{'endpoint':$($ADORepoUri), 'username': 'AzureDevOps', 'password':$($azt.Token)}]}"
 
         $vstsCommandString = "vso[task.setvariable variable=VSS_NUGET_EXTERNAL_FEED_ENDPOINTS]$VSS_NUGET_EXTERNAL_FEED_ENDPOINTS"
         Write-Host "sending " + $vstsCommandString
-        Write-Host "sending azt  $($azt.Token)"
         Write-Host "##$vstsCommandString"
     displayName: 'Setup Azure Artifacts Credential Provider secret'
     condition: eq(${{ parameters.useAzAuth }}, false)
