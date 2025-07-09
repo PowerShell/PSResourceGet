@@ -87,8 +87,6 @@ jobs:
         $vstsCommandString = "vso[task.setvariable variable=VSS_NUGET_EXTERNAL_FEED_ENDPOINTS]$VSS_NUGET_EXTERNAL_FEED_ENDPOINTS"
         Write-Host "sending " + $vstsCommandString
         Write-Host "##$vstsCommandString"
-        $plain = ConvertFrom-SecureString $($azt.Token) -AsPlainText
-        write-host "plain: $plain"
     displayName: 'Setup Azure Artifacts Credential Provider secret'
     condition: eq(${{ parameters.useAzAuth }}, false)
 
