@@ -25,12 +25,8 @@ Describe 'Test Azure Artifacts Credential Provider' -tags 'CI' {
     }
 
     It "Find resource given specific Name and Repository" {
-        # Get user-level environment variable
-        $vssVar = Get-ItemProperty -Path "HKCU:\Environment" -Name "VSS_NUGET_EXTERNAL_FEED_ENDPOINTS"
-        
-        Write-Host "$($vssVar.VSS_NUGET_EXTERNAL_FEED_ENDPOINTS)"
-        
-        Write-Host "$vssVar"
+        Write-Host "Var: $env:VSS_NUGET_EXTERNAL_FEED_ENDPOINTS"
+
         $res = Find-PSResource -Name $TestModuleName -Repository $ADORepoName -Verbose
         $res.Name | Should -Be $TestModuleName
     }
