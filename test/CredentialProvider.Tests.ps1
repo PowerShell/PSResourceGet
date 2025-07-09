@@ -7,7 +7,7 @@ Describe 'Test Azure Artifacts Credential Provider' -tags 'CI' {
 
     BeforeAll{
         $TestModuleName = "TestModule99"
-        $ADORepoName = "ADORepository"
+        $ADORepoName = "psrg-credprovidertest"
         $ADORepoUri = "https://pkgs.dev.azure.com/powershell-rel/PSResourceGet/_packaging/psrg-credprovidertest/nuget/v2"
         #https://pkgs.dev.azure.com/powershell-rel/PSResourceGet/_packaging/psrg-credprovidertest/nuget/v3/index.json
         $LocalRepoName = "LocalRepository"
