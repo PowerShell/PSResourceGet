@@ -1,0 +1,117 @@
+{
+  "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+  "description": "This resource manages PowerShell resources using PSResourceGet.",
+  "type": "Microsoft.PowerShell.PSResourceGet/PSResources",
+  "version": "0.0.1",
+  "get": {
+    "executable": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NonInteractive",
+      "-NoProfile",
+      "-Command",
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresources' -operation 'get'"
+    ],
+    "input": "stdin"
+  },
+  "set": {
+    "executable": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NonInteractive",
+      "-NoProfile",
+      "-Command",
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresources' -operation set"
+    ],
+    "input": "stdin"
+  },
+  "export": {
+    "executable": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NonInteractive",
+      "-NoProfile",
+      "-Command",
+      "./psresourceget.ps1 -resourcetype 'psresources' -operation export"
+    ],
+    "input": "stdin"
+  },
+  "schema": {
+    "embedded": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "PSResources",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repositoryName": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "scope": {
+          "$ref": "#/definitions/Scope",
+          "writeOnly": true
+        },
+        "resources": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/PSResource"
+          }
+        }
+      },
+      "definitions": {
+        "Scope": {
+          "type": "integer",
+          "description": "",
+          "x-enumNames": [
+            "CurrentUser",
+            "AllUsers"
+          ],
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "PSResource": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "version": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "scope": {
+              "$ref": "#/definitions/Scope",
+              "writeOnly": true
+            },
+            "repositoryName": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "preRelease": {
+              "type": "boolean",
+              "writeOnly": true
+            },
+            "_exists": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}
