@@ -6,7 +6,7 @@ Import-Module "$psscriptroot\PSGetTestUtils.psm1" -Force
 Describe 'Test Azure Artifacts Credential Provider' -tags 'CI' {
 
     BeforeAll{
-        $TestModuleName = "TestModule99"
+        $TestModuleName = "testmodule99"
         $ADORepoName = "psrg-credprovidertest"
         $ADORepoUri = "https://pkgs.dev.azure.com/powershell-rel/PSResourceGet/_packaging/psrg-credprovidertest/nuget/v2"
         #https://pkgs.dev.azure.com/powershell-rel/PSResourceGet/_packaging/psrg-credprovidertest/nuget/v3/index.json
@@ -25,8 +25,6 @@ Describe 'Test Azure Artifacts Credential Provider' -tags 'CI' {
     }
 
     It "Find resource given specific Name and Repository" {
-        Write-Host "Var: $env:VSS_NUGET_EXTERNAL_FEED_ENDPOINTS"
-
         $res = Find-PSResource -Name $TestModuleName -Repository $ADORepoName -Verbose
         $res.Name | Should -Be $TestModuleName
     }
