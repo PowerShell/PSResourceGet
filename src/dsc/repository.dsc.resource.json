@@ -1,6 +1,7 @@
 {
-    "$schema": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2024/04/bundled/resource/manifest.json",
-    "type": "Microsoft.PowerShell.Debug/Echo",
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "description": "This resource manages PowerShell repositories using PSResourceGet.",
+    "type": "Microsoft.PowerShell.PSResourceGet/Repository",
     "version": "0.0.1",
     "get": {
         "executable": "pwsh",
@@ -9,7 +10,7 @@
             "-NonInteractive",
             "-NoProfile",
             "-Command",
-            "./psresourceget.ps1 -resourcetype 'repository' -operation get"
+            "$Input | ./psresourceget.ps1 -resourcetype 'repository' -operation 'get'"
         ],
         "input": "stdin"
     },
@@ -20,7 +21,7 @@
             "-NonInteractive",
             "-NoProfile",
             "-Command",
-            "./psresourceget.ps1 -resourcetype 'repository' -operation set"
+            "$Input | ./psresourceget.ps1 -resourcetype 'repository' -operation set"
         ],
         "input": "stdin"
     },
@@ -32,17 +33,6 @@
             "-NoProfile",
             "-Command",
             "./psresourceget.ps1 -resourcetype 'repository' -operation export"
-        ],
-        "input": "stdin"
-    },
-    "test": {
-        "executable": "pwsh",
-        "args": [
-            "-NoLogo",
-            "-NonInteractive",
-            "-NoProfile",
-            "-Command",
-            "./psresourceget.ps1 -resourcetype 'repository' -operation test"
         ],
         "input": "stdin"
     },
