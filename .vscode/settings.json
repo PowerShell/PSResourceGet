@@ -2,5 +2,6 @@
     "csharp.semanticHighlighting.enabled": true,
     "dotnet.automaticallyCreateSolutionInWorkspace": false,
     "omnisharp.enableEditorConfigSupport": true,
-    "omnisharp.enableRoslynAnalyzers": true
+    "omnisharp.enableRoslynAnalyzers": true,
+    "sarif-viewer.connectToGithubCodeScanning": "off"
 }
