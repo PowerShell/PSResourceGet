@@ -76,7 +76,7 @@ jobs:
       pwsh: true
       inline: |
         Write-Verbose -Verbose "Setting up secret for Azure Artifacts Credential Provider"
-        $azt = (Get-AzAccessToken).Token | ConnvertFrom-SecureString -AsPlainText
+        $azt = (Get-AzAccessToken).Token | ConvertFrom-SecureString -AsPlainText
 
         Write-Verbose -Verbose "Setting up Azure Artifacts Credential Provider secret - token - $azt"
 
