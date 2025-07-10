@@ -76,12 +76,13 @@ jobs:
       pwsh: true
       inline: |
         Write-Verbose -Verbose "Setting up secret for Azure Artifacts Credential Provider"
-        $azt = Get-AzAccessToken
+        $azt = (Get-AzAccessToken).Token
 
         $ADORepoName = "psrg-credprovidertest"
         $ADORepoUri = "https://pkgs.dev.azure.com/powershell-rel/PSResourceGet/_packaging/psrg-credprovidertest/nuget/v2"
 
-        $VSS_NUGET_EXTERNAL_FEED_ENDPOINTS = "{`"endpointCredentials`":[{`"endpoint`":`"$ADORepoUri`",`"password`":`"$($azt.Token)`"}]}"
+        $endpointCredsObj = @{ endpointCredentials = @( @{ endpoint = $ADoRepoURI; password = $azt })}
+        $VSS_NUGET_EXTERNAL_FEED_ENDPOINTS = $endpointCredsObj | ConvertTo-Json -Compress
 
         $vstsCommandString = "vso[task.setvariable variable=VSS_NUGET_EXTERNAL_FEED_ENDPOINTS]$VSS_NUGET_EXTERNAL_FEED_ENDPOINTS"
         Write-Host "sending " + $vstsCommandString
