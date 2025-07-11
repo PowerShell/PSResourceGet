@@ -25,6 +25,10 @@ Describe 'Test Azure Artifacts Credential Provider' -tags 'CI' {
     }
 
     It "Find resource given specific Name and Repository" {
+        $DebugPreference = "continue"
+        Find-PSResource -Name "*" -Repository $ADORepoName -verbose -Debug | write-verbose -verbose
+
+
         $res = Find-PSResource -Name $TestModuleName -Repository $ADORepoName -Verbose
         $res.Name | Should -Be $TestModuleName
     }
