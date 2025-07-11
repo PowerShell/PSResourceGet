@@ -25,10 +25,6 @@ Describe 'Test Azure Artifacts Credential Provider' -tags 'CI' {
     }
 
     It "Find resource given specific Name and Repository" {
-        $DebugPreference = "continue"
-        Find-PSResource -Name "*" -Repository $ADORepoName -verbose -Debug | write-verbose -verbose
-
-
         $res = Find-PSResource -Name $TestModuleName -Repository $ADORepoName -Verbose
         $res.Name | Should -Be $TestModuleName
     }
@@ -59,6 +55,12 @@ Describe 'Test Azure Artifacts Credential Provider' -tags 'CI' {
         Register-PSResourceRepository -Name $ADORepoName -Uri $ADORepoUri -Force
         $repo = Get-PSResourceRepository -Name $ADORepoName
         $repo.CredentialProvider | Should -Be "AzArtifacts"
+    }
+
+    It "Register repository with ADO Uri and CredentialProvider set to 'None')" {
+        Register-PSResourceRepository -Name $ADORepoName -Uri $ADORepoUri -CredentialProvider None -Force
+        $repo = Get-PSResourceRepository -Name $ADORepoName
+        $repo.CredentialProvider | Should -Be "None"
     }
 
     It "Set CredentialProvider for ADO repository" {
