@@ -113,7 +113,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // It should also not appear when using the 'Repositories' parameter set.
             if (repository is not null && 
                 (repository.Name.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) ||
-                RepositoriesParameterSet.Equals(RepositoriesParameterSet) ||
+                ParameterSetName.Equals(RepositoriesParameterSet) ||
                 repository.Uri.AbsoluteUri.EndsWith(".azurecr.io") || repository.Uri.AbsoluteUri.EndsWith(".azurecr.io/") || repository.Uri.AbsoluteUri.Contains("mcr.microsoft.com")))
             {
                 return null;
