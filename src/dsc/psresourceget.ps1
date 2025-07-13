@@ -1,4 +1,5 @@
-using namespace NuGet.Versioning
+## Copyright (c) Microsoft Corporation. All rights reserved.
+## Licensed under the MIT License.
 
 [CmdletBinding()]
 param(
@@ -33,8 +34,6 @@ trap {
 
 function GetAllPSResources {
     $resources = Get-PSResource
-
-
 }
 
 function GetOperation {
@@ -73,6 +72,8 @@ function GetOperation {
             $resourcesExist = @()
             $resourcesMissing = @()
 
+            Add-Type -AssemblyName "$PSScriptRoot/dependencies/NuGet.Versioning.dll"
+
             foreach ($resource in $allPSResources) {
                 foreach ($inputResource in $inputObj.resources) {
                     if ($resource.Name -eq $inputResource.Name) {
@@ -81,23 +82,24 @@ function GetOperation {
                             try {
                                 $versionRange = [NuGet.Versioning.VersionRange]::Parse($inputResource.Version)
                                 $resourceVersion = [NuGet.Versioning.NuGetVersion]::Parse($resource.Version.ToString())
-                                if (-not $versionRange.Satisfies($resourceVersion)) {
-                                    continue
+                                if ($versionRange.Satisfies($resourceVersion)) {
+                                    $resourcesExist += $resource
                                 }
                                 else {
-                                    $resourcesExist += $resource
-                                    continue
+                                    $resourcesMissing += $inputResource
                                 }
-                            } catch {
+                            }
+                            catch {
                                 # Fallback: simple string comparison (not full NuGet range support)
-                                if ($resource.Version.ToString() -ne $inputObj.resources.Version) {
-                                    continue
+                                if ($resource.Version.ToString() -eq $inputResource.Version) {
+                                    $resourcesExist += $resource
+                                }
+                                else {
+                                    $resourcesMissing += $inputResource
                                 }
                             }
                         }
                     }
-
-                    $resourcesMissing += $resource
                 }
             }
 
