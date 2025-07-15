@@ -31,7 +31,6 @@ Describe 'Test Azure Artifacts Credential Provider' -tags 'CI' {
     
     It "Install resource given specific Name and Repository" {
         Install-PSResource -Name $TestModuleName -Repository $ADORepoName
-        
         Get-InstalledPSResource -Name $TestModuleName | Should -Not -BeNullOrEmpty
     }
 
