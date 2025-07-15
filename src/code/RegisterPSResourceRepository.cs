@@ -121,7 +121,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // It should also not appear when using the 'Repositories' parameter set.
             if (ParameterSetName.Equals(PSGalleryParameterSet) || 
                 ParameterSetName.Equals(RepositoriesParameterSet) ||
-                Utils.IsContainerRegistry(Uri))
+                PSRepositoryInfo.IsContainerRegistry(Uri))
             {
                 return null;
             }

@@ -287,7 +287,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 sourceTrusted = currentRepository.Trusted || trustRepository;
 
                 // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
-                _networkCredential = Utils.SetNetworkCredentials(currentRepository, _networkCredential, _cmdletPassedIn);
+                _networkCredential = currentRepository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
 
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
 
