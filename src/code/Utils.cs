@@ -968,6 +968,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return networkCredential;
         }
 
+        #endregion
+
+        #region Credential methods
+        
         public static NetworkCredential SetCredentialProviderNetworkCredential(
             PSRepositoryInfo repository,
             NetworkCredential networkCredential,
@@ -992,6 +996,37 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return networkCredential;
         }
 
+        public static NetworkCredential SetNetworkCredentials(PSRepositoryInfo repository, NetworkCredential networkCredential, PSCmdlet cmdletPassedIn)
+        {
+            NetworkCredential networkCreds = new NetworkCredential();
+            if (repository.CredentialProvider.Equals(PSRepositoryInfo.CredentialProviderType.AzArtifacts))
+            {
+                cmdletPassedIn.WriteVerbose("Setting credential provider network credentials");
+                networkCreds = Utils.SetCredentialProviderNetworkCredential(repository, networkCredential, cmdletPassedIn);
+            }
+            else
+            {
+                cmdletPassedIn.WriteVerbose("Setting Secret Management network credentials");
+                networkCreds = Utils.SetSecretManagementNetworkCredential(repository, networkCredential, cmdletPassedIn);
+            }
+
+            return networkCreds;
+        }     
+
+        #endregion
+
+        #region Container Registry methods
+
+        public static bool IsContainerRegistry(string uri)
+        {
+            if (uri.EndsWith(".azurecr.io") || uri.EndsWith(".azurecr.io/") || uri.Contains("mcr.microsoft.com") || uri.StartsWith("mcr.microsoft"))
+            {
+                return true;
+            }
+
+            return false;
+        }
+        
         #endregion
 
         #region Path methods
@@ -1259,19 +1294,21 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
-        internal static string GetCaseInsensitiveFilePath(string directory, string fileName)
+        internal static bool TryGetCaseInsensitiveFilePath(string directory, string fileName, out string fileFound)
         {
+            fileFound = String.Empty;
             var files = Directory.GetFiles(directory);
             foreach (var file in files)
             {
                 if (string.Equals(Path.GetFileName(file), fileName, StringComparison.OrdinalIgnoreCase))
                 {
-                    return file;
+                    fileFound = file;
+                    return true;
                 }
             }
 
             // File not found
-            return null;
+            return false;
         }
 
         #endregion

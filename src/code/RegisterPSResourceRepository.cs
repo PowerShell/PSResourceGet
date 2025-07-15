@@ -121,13 +121,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // It should also not appear when using the 'Repositories' parameter set.
             if (ParameterSetName.Equals(PSGalleryParameterSet) || 
                 ParameterSetName.Equals(RepositoriesParameterSet) ||
-                Uri.EndsWith(".azurecr.io") || Uri.EndsWith(".azurecr.io/") || Uri.Contains("mcr.microsoft.com"))
+                Utils.IsContainerRegistry(Uri))
             {
                 return null;
             }
 
-            _credentialProvider = new CredentialProviderDynamicParameters();
-            return _credentialProvider;
+            return new CredentialProviderDynamicParameters();
         }
 
         #endregion

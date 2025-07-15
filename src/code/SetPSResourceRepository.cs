@@ -114,13 +114,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (repository is not null && 
                 (repository.Name.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) ||
                 ParameterSetName.Equals(RepositoriesParameterSet) ||
-                repository.Uri.AbsoluteUri.EndsWith(".azurecr.io") || repository.Uri.AbsoluteUri.EndsWith(".azurecr.io/") || repository.Uri.AbsoluteUri.Contains("mcr.microsoft.com")))
+                Utils.IsContainerRegistry(repository.Uri.AbsoluteUri)))
             {
                 return null;
             }
 
-            _credentialProvider = new CredentialProviderDynamicParameters();
-            return _credentialProvider;
+            return new CredentialProviderDynamicParameters();
         }
 
         #endregion

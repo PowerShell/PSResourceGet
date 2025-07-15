@@ -160,13 +160,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 if (Environment.OSVersion.Platform == PlatformID.Unix)
                 {
                     FileInfo fileInfo = new FileInfo(credProviderPath);
-                    string resolvedFilePath = Utils.GetCaseInsensitiveFilePath(fileInfo.Directory.FullName, _credProviderDll);
-                    if (resolvedFilePath != null)
-                    {
-                        credProviderPath = resolvedFilePath;
-                    }
-                    else
-                    {
+                    if (!Utils.TryGetCaseInsensitiveFilePath(fileInfo.Directory.FullName, _credProviderDll, out credProviderPath))
+                    { 
                         cmdletPassedIn.WriteError(new ErrorRecord(
                             new FileNotFoundException($"Path found '{credProviderPath}' is not a valid Azure Artifact Credential Provider executable. See https://github.com/NuGet/Home/wiki/NuGet-cross-plat-authentication-plugin#plugin-installation-and-discovery to set up the Credential Provider."),
                             "CredentialProviderFileNotFound",
