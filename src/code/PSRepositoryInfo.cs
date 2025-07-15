@@ -113,19 +113,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             return false;
         }
-        
-        public static NetworkCredential SetNetworkCredentials(PSRepositoryInfo repository, NetworkCredential networkCredential, PSCmdlet cmdletPassedIn)
+
+        public NetworkCredential SetNetworkCredentials(NetworkCredential networkCredential, PSCmdlet cmdletPassedIn)
         {
             NetworkCredential networkCreds = new NetworkCredential();
-            if (repository.CredentialProvider.Equals(PSRepositoryInfo.CredentialProviderType.AzArtifacts))
+            if (CredentialProvider.Equals(PSRepositoryInfo.CredentialProviderType.AzArtifacts))
             {
                 cmdletPassedIn.WriteVerbose("Setting credential provider network credentials");
-                networkCreds = Utils.SetCredentialProviderNetworkCredential(repository, networkCredential, cmdletPassedIn);
+                networkCreds = Utils.SetCredentialProviderNetworkCredential(this, networkCredential, cmdletPassedIn);
             }
             else
             {
                 cmdletPassedIn.WriteVerbose("Setting Secret Management network credentials");
-                networkCreds = Utils.SetSecretManagementNetworkCredential(repository, networkCredential, cmdletPassedIn);
+                networkCreds = Utils.SetSecretManagementNetworkCredential(this, networkCredential, cmdletPassedIn);
             }
 
             return networkCreds;

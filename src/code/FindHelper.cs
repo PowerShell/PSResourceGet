@@ -204,7 +204,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repositoryNamesToSearch.Add(currentRepository.Name);
 
                 // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
-                _networkCredential = Utils.SetNetworkCredentials(currentRepository, _networkCredential, _cmdletPassedIn);
+                _networkCredential = currentRepository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
 
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
                 if (currentServer == null)
@@ -392,7 +392,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repositoryNamesToSearch.Add(currentRepository.Name);
 
                 // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
-                _networkCredential = Utils.SetNetworkCredentials(currentRepository, _networkCredential, _cmdletPassedIn);
+                _networkCredential = currentRepository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
 
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
                 if (currentServer == null)
@@ -599,7 +599,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repositoryNamesToSearch.Add(currentRepository.Name);
 
                 // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
-                _networkCredential = Utils.SetNetworkCredentials(currentRepository, _networkCredential, _cmdletPassedIn);
+                _networkCredential = currentRepository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
 
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
                 if (currentServer == null)
