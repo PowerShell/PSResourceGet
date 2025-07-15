@@ -126,7 +126,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            return new CredentialProviderDynamicParameters();
+            _credentialProvider = new CredentialProviderDynamicParameters();
+            return _credentialProvider;
         }
 
         #endregion
