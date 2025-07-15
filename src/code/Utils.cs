@@ -996,37 +996,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return networkCredential;
         }
 
-        public static NetworkCredential SetNetworkCredentials(PSRepositoryInfo repository, NetworkCredential networkCredential, PSCmdlet cmdletPassedIn)
-        {
-            NetworkCredential networkCreds = new NetworkCredential();
-            if (repository.CredentialProvider.Equals(PSRepositoryInfo.CredentialProviderType.AzArtifacts))
-            {
-                cmdletPassedIn.WriteVerbose("Setting credential provider network credentials");
-                networkCreds = Utils.SetCredentialProviderNetworkCredential(repository, networkCredential, cmdletPassedIn);
-            }
-            else
-            {
-                cmdletPassedIn.WriteVerbose("Setting Secret Management network credentials");
-                networkCreds = Utils.SetSecretManagementNetworkCredential(repository, networkCredential, cmdletPassedIn);
-            }
-
-            return networkCreds;
-        }     
-
-        #endregion
-
-        #region Container Registry methods
-
-        public static bool IsContainerRegistry(string uri)
-        {
-            if (uri.EndsWith(".azurecr.io") || uri.EndsWith(".azurecr.io/") || uri.Contains("mcr.microsoft.com") || uri.StartsWith("mcr.microsoft"))
-            {
-                return true;
-            }
-
-            return false;
-        }
-        
         #endregion
 
         #region Path methods
