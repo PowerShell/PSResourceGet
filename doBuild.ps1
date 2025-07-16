@@ -6,7 +6,7 @@
 Implement build and packaging of the package and place the output $OutDirectory/$ModuleName
 #>
 function DoBuild {
-    Write-Verbose -Verbose -Message "Starting DoBuild  for $ModuleName with configuration: $BuildConfiguration, framework: $BuildFramework"
+    Write-Verbose -Verbose -Message "Starting DoBuild for $ModuleName with configuration: $BuildConfiguration, framework: $BuildFramework"
 
     # Module build out path
     $BuildOutPath = [System.IO.Path]::Combine($OutDirectory, $ModuleName)
