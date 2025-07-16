@@ -3,6 +3,7 @@
 
 using System;
 using System.Management.Automation;
+using System.Net;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -27,30 +28,26 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             ContainerRegistry
         }
 
+        public enum CredentialProviderType
+        {
+            None,
+            AzArtifacts
+        }
+
         #endregion
 
         #region Constructor
 
-        public PSRepositoryInfo(string name, Uri uri, int priority, bool trusted, PSCredentialInfo credentialInfo, APIVersion apiVersion, bool allowed)
+        public PSRepositoryInfo(string name, Uri uri, int priority, bool trusted, PSCredentialInfo credentialInfo, CredentialProviderType credentialProvider, APIVersion apiVersion, bool allowed)
         {
             Name = name;
             Uri = uri;
             Priority = priority;
             Trusted = trusted;
             CredentialInfo = credentialInfo;
+            CredentialProvider = credentialProvider;
             ApiVersion = apiVersion;
             IsAllowedByPolicy = allowed;
-        }
-
-        #endregion
-
-        #region Enum
-
-        public enum RepositoryProviderType
-        {
-            None,
-            ACR,
-            AzureDevOps
         }
 
         #endregion
@@ -58,43 +55,43 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         #region Properties
 
         /// <summary>
-        /// the Name of the repository
+        /// The Name of the repository.
         /// </summary>
         public string Name { get; }
 
         /// <summary>
-        /// the Uri for the repository
+        /// The Uri for the repository.
         /// </summary>
         public Uri Uri { get; }
 
         /// <summary>
-        /// whether the repository is trusted
+        /// Whether the repository is trusted.
         /// </summary>
         public bool Trusted { get; }
 
         /// <summary>
-        /// the priority of the repository
+        /// The priority of the repository.
         /// </summary>
         [ValidateRange(0, 100)]
         public int Priority { get; }
 
         /// <summary>
-        /// the type of repository provider (eg, AzureDevOps, ContainerRegistry, etc.)
+        /// The credential information for repository authentication.
         /// </summary>
-        public RepositoryProviderType RepositoryProvider { get; }
+        public PSCredentialInfo CredentialInfo { get; set; }
 
         /// <summary>
-        /// the credential information for repository authentication
+        /// Specifies which credential provider to use.
         /// </summary>
-        public PSCredentialInfo CredentialInfo { get; }
+        public CredentialProviderType CredentialProvider { get; set; }
 
         /// <summary>
-        /// the API protocol version for the repository
+        /// The API protocol version for the repository.
         /// </summary>
         public APIVersion ApiVersion { get; }
 
         // <summary>
-        /// is it allowed by policy
+        /// Specifies whether the repository is allowed by policy.
         /// </summary>
         public bool IsAllowedByPolicy { get; set; }
 
@@ -104,9 +101,46 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         internal bool IsMARRepository()
         {
-            return (ApiVersion == APIVersion.ContainerRegistry && Uri.Host.StartsWith("mcr.microsoft") );
+            return (ApiVersion == APIVersion.ContainerRegistry && Uri.Host.StartsWith("mcr.microsoft"));
         }
 
+        public bool IsContainerRegistry()
+        {
+            if (ApiVersion == APIVersion.ContainerRegistry || Uri.Host.EndsWith(".azurecr.io") || Uri.Host.Equals("mcr.microsoft.com", StringComparison.OrdinalIgnoreCase) || Uri.Host.StartsWith("mcr.microsoft"))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool IsValidContainerRegistryURL(string uri)
+        {
+            if (uri.EndsWith(".azurecr.io") || uri.EndsWith(".azurecr.io/") || uri.Contains("mcr.microsoft"))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public NetworkCredential SetNetworkCredentials(NetworkCredential networkCredential, PSCmdlet cmdletPassedIn)
+        {
+            NetworkCredential networkCreds = new NetworkCredential();
+            if (CredentialProvider.Equals(PSRepositoryInfo.CredentialProviderType.AzArtifacts))
+            {
+                cmdletPassedIn.WriteVerbose("Setting credential provider network credentials");
+                networkCreds = Utils.SetCredentialProviderNetworkCredential(this, networkCredential, cmdletPassedIn);
+            }
+            else
+            {
+                cmdletPassedIn.WriteVerbose("Setting Secret Management network credentials");
+                networkCreds = Utils.SetSecretManagementNetworkCredential(this, networkCredential, cmdletPassedIn);
+            }
+
+            return networkCreds;
+        }     
+        
         #endregion
     }
 }

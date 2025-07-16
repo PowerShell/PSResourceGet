@@ -380,7 +380,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
-                _networkCredential = Utils.SetNetworkCredential(repository, _networkCredential, _cmdletPassedIn);
+                // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
+                _networkCredential = repository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
 
                 // Check if dependencies already exist within the repo if:
                 // 1) the resource to publish has dependencies and

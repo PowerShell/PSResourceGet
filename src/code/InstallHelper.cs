@@ -286,7 +286,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string repoName = currentRepository.Name;
                 sourceTrusted = currentRepository.Trusted || trustRepository;
 
-                _networkCredential = Utils.SetNetworkCredential(currentRepository, _networkCredential, _cmdletPassedIn);
+                // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
+                _networkCredential = currentRepository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
+
                 ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
 
                 if (currentServer == null)
@@ -351,59 +353,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             return allPkgsInstalled;
-        }
-
-        /// <summary>
-        /// Checks if any of the package versions are already installed and if they are removes them from the list of packages to install.
-        /// </summary>
-        private List<PSResourceInfo> FilterByInstalledPkgs(List<PSResourceInfo> packages)
-        {
-            // Package install paths.
-            // _pathsToInstallPkg will only contain the paths specified within the -Scope param (if applicable).
-            // _pathsToSearch will contain all resource package subdirectories within _pathsToInstallPkg path locations.
-            // e.g.:
-            // ./InstallPackagePath1/PackageA
-            // ./InstallPackagePath1/PackageB
-            // ./InstallPackagePath2/PackageC
-            // ./InstallPackagePath3/PackageD
-
-            _cmdletPassedIn.WriteDebug("In InstallHelper::FilterByInstalledPkgs()");
-            // Get currently installed packages.
-            var getHelper = new GetHelper(_cmdletPassedIn);
-            var installedPackageNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
-            foreach (var installedPkg in getHelper.GetInstalledPackages(
-                pkgs: packages,
-                pathsToSearch: _pathsToSearch))
-            {
-                installedPackageNames.Add(installedPkg.Name);
-            }
-
-            if (installedPackageNames.Count is 0)
-            {
-                return packages;
-            }
-
-            // Return only packages that are not already installed.
-            var filteredPackages = new List<PSResourceInfo>();
-            foreach (var pkg in packages)
-            {
-                if (!installedPackageNames.Contains(pkg.Name))
-                {
-                    // Add packages that still need to be installed.
-                    filteredPackages.Add(pkg);
-                }
-                else
-                {
-                    // Remove from tracking list of packages to install.
-                    pkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string normalizedVersion);
-                    _cmdletPassedIn.WriteWarning($"Resource '{pkg.Name}' with version '{normalizedVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
-
-                    // Remove from tracking list of packages to install.
-                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
-                }
-            }
-
-            return filteredPackages;
         }
 
         /// <summary>
