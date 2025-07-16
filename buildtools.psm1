@@ -172,7 +172,7 @@ function Invoke-ModuleTests {
     $excludeTag = 'ManualValidationOnly'
     $testResultFileName = 'result.pester.xml'
     $testPath = $config.TestPath
-    Write-Verbose -Verbose $config.ModuleName
+    Write-Verbose -Verbose -Message $config.ModuleName
     $moduleToTest = Join-Path -Path $config.BuildOutputPath -ChildPath 'Microsoft.PowerShell.PSResourceGet'
 
     if ($TestFilePath.Count -gt 1) {
