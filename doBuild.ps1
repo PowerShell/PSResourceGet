@@ -5,50 +5,41 @@
 .DESCRIPTION
 Implement build and packaging of the package and place the output $OutDirectory/$ModuleName
 #>
-function DoBuild
-{
+function DoBuild {
     Write-Verbose -Verbose -Message "Starting DoBuild  for $ModuleName with configuration: $BuildConfiguration, framework: $BuildFramework"
 
     # Module build out path
-    $BuildOutPath = "${OutDirectory}/${ModuleName}"
+    $BuildOutPath = [System.IO.Path]::Combine($OutDirectory, $ModuleName)
     Write-Verbose -Verbose -Message "Module output file path: '$BuildOutPath'"
 
     # Module build source path
-    $BuildSrcPath = "bin/${BuildConfiguration}/${BuildFramework}/publish"
+    $BuildSrcPath = [System.IO.Path]::Combine($SrcPath, 'code', 'bin', $BuildConfiguration, $BuildFramework, 'publish')
     Write-Verbose -Verbose -Message "Module build source path: '$BuildSrcPath'"
 
-    # Copy module .psd1 file
-    Write-Verbose -Verbose "Copy-Item ${SrcPath}/${ModuleName}.psd1 to $BuildOutPath"
-    Copy-Item -Path "${SrcPath}/${ModuleName}.psd1" -Dest "$BuildOutPath" -Force
-
-    # Copy module .psm1 file
-    Write-Verbose -Verbose "Copy-Item ${SrcPath}/${ModuleName}.psm1 to $BuildOutPath"
-    Copy-Item -Path "${SrcPath}/${ModuleName}.psm1" -Dest "$BuildOutPath" -Force
-
-    #Copy module format ps1xml file
-    Write-Verbose -Verbose -Message "Copy-Item ${SrcPath}/${FormatFileName}.ps1xml to $BuildOutPath"
-    Copy-Item -Path "${SrcPath}/${FormatFileName}.ps1xml" -Dest "$BuildOutPath" -Force
-
-    # Copy license
-    Write-Verbose -Verbose -Message "Copying LICENSE file to '$BuildOutPath'"
-    Copy-Item -Path "./LICENSE" -Dest "$BuildOutPath"
-
-    # Copy notice
-    Write-Verbose -Verbose -Message "Copying Notice.txt to '$BuildOutPath'"
-    Copy-Item -Path "./Notice.txt" -Dest "$BuildOutPath"
-
-    # Copy Group Policy files
-    Write-Verbose -Verbose -Message "Copying InstallPSResourceGetPolicyDefinitions.ps1 to '$BuildOutPath'"
-    Copy-Item -Path "${SrcPath}/InstallPSResourceGetPolicyDefinitions.ps1" -Dest "$BuildOutPath" -Force
-
-    Write-Verbose -Verbose -Message "Copying PSResourceRepository.adml to '$BuildOutPath'"
-    Copy-Item -Path "${SrcPath}/PSResourceRepository.adml" -Dest "$BuildOutPath" -Force
-
-    Write-Verbose -Verbose -Message "Copying PSResourceRepository.admx to '$BuildOutPath'"
-    Copy-Item -Path "${SrcPath}/PSResourceRepository.admx" -Dest "$BuildOutPath" -Force
+    # Copy files
+    $FilesToCopy = [string[]](
+        # Module .psd1 file
+        [System.IO.Path]::Combine($SrcPath, $ModuleName + '.psd1'),
+        # Module .psm1 file
+        [System.IO.Path]::Combine($SrcPath, $ModuleName + '.psm1'),
+        # Module format ps1xml file
+        [System.IO.Path]::Combine($SrcPath, $ModuleName + '.ps1xml'),
+        # License
+        [System.IO.Path]::Combine('.', 'LICENSE'),
+        # Notice
+        [System.IO.Path]::Combine('.', 'Notice.txt'),
+        # Group Policy files
+        [System.IO.Path]::Combine($SrcPath, 'InstallPSResourceGetPolicyDefinitions.ps1'),
+        [System.IO.Path]::Combine($SrcPath, 'PSResourceRepository.adml'),
+        [System.IO.Path]::Combine($SrcPath, 'PSResourceRepository.admx')
+    )
+    foreach ($File in $FilesToCopy) {
+        Write-Verbose -Message ('Copying "{0}" to "{1}"' -f $File, $BuildOutPath)
+        Copy-Item -Path $File -Destination $BuildOutPath -Force
+    }
 
     # Build and place binaries
-    if ( Test-Path "${SrcPath}/code" ) {
+    if (Test-Path -Path "${SrcPath}/code") {
         Write-Verbose -Verbose -Message "Building assembly and copying to '$BuildOutPath'"
         # Build code and place it in the staging location
         Push-Location "${SrcPath}/code"
@@ -58,8 +49,8 @@ function DoBuild
 
             # Check for dotnet for Windows (we only build on Windows platforms).
             if ($null -eq $dotnetCommand) {
-                Write-Verbose -Verbose -Message "dotnet.exe cannot be found in current path. Looking in ProgramFiles path."
-                $dotnetCommandPath = Join-Path -Path $env:ProgramFiles -ChildPath "dotnet\dotnet.exe"
+                Write-Verbose -Verbose -Message 'dotnet.exe cannot be found in current path. Looking in ProgramFiles path.'
+                $dotnetCommandPath = [System.IO.Path]::Combine($env:ProgramFiles, 'dotnet', 'dotnet.exe')
                 $dotnetCommand = Get-Command -Name $dotnetCommandPath -ErrorAction Ignore
                 if ($null -eq $dotnetCommand) {
                     throw "Dotnet.exe cannot be found: $dotnetCommandPath is unavailable for build."
@@ -126,12 +117,10 @@ function DoBuild
             $buildSuccess = $true
 
             # Copy module binaries
-            foreach ($fileName in $assemblyNames)
-            {
+            foreach ($fileName in $assemblyNames) {
                 # Copy bin file
                 $filePath = Join-Path -Path $BuildSrcPath -ChildPath "${fileName}.dll"
-                if (! (Test-Path -Path $filePath))
-                {
+                if (-not (Test-Path -Path $filePath)) {
                     Write-Error "Expected file $filePath is missing from build output."
                     $BuildSuccess = $false
                     continue
@@ -141,13 +130,12 @@ function DoBuild
 
                 # Copy pdb file if available
                 $filePathPdb = Join-Path -Path $BuildSrcPath -ChildPath "${fileName}.pdb"
-                if (Test-Path -Path $filePathPdb)
-                {
+                if (Test-Path -Path $filePathPdb) {
                     Copy-Item -Path $filePathPdb -Dest $BuildOutPath -Verbose -Force
                 }
             }
 
-            $depsOutputBinPath = Join-Path -Path $BuildOutPath -ChildPath "dependencies"
+            $depsOutputBinPath = Join-Path -Path $BuildOutPath -ChildPath 'dependencies'
 
             if (-not (Test-Path $depsOutputBinPath)) {
                 Write-Verbose -Verbose -Message "Creating output path for dependencies: $depsOutputBinPath"
@@ -155,12 +143,10 @@ function DoBuild
             }
 
             # Copy dependencies
-            foreach ($fileName in $depAssemblyNames)
-            {
+            foreach ($fileName in $depAssemblyNames) {
                 # Copy bin file
                 $filePath = Join-Path -Path $BuildSrcPath -ChildPath "${fileName}.dll"
-                if (! (Test-Path -Path $filePath))
-                {
+                if (-not (Test-Path -Path $filePath)) {
                     Write-Error "Expected file $filePath is missing from build output."
                     $BuildSuccess = $false
                     continue
@@ -169,28 +155,23 @@ function DoBuild
                 Copy-Item -Path $filePath -Dest $depsOutputBinPath -Verbose -Force
             }
 
-            if (! $buildSuccess)
-            {
-                throw "Build failed to create expected binaries."
+            if (-not $buildSuccess) {
+                throw 'Build failed to create expected binaries.'
             }
 
-            if (! (Test-Path -Path "$BuildSrcPath/${ModuleName}.dll"))
-            {
+            if (-not (Test-Path -Path "$BuildSrcPath/${ModuleName}.dll")) {
                 throw "Expected binary was not created: $BuildSrcPath/${ModuleName}.dll"
             }
-        }
-        catch {
+        } catch {
             Write-Verbose -Verbose -Message "dotnet build failed with error: $_"
             Write-Error "dotnet build failed with error: $_"
-        }
-        finally {
+        } finally {
             Pop-Location
         }
-    }
-    else {
+    } else {
         Write-Verbose -Verbose -Message "No code to build in '${SrcPath}/code'"
     }
 
     ## Add build and packaging here
-    Write-Verbose -Verbose -Message "Ending DoBuild"
+    Write-Verbose -Verbose -Message 'Ending DoBuild'
 }
