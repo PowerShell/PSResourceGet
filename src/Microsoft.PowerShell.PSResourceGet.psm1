@@ -18,7 +18,7 @@ function Import-PSGetRepository {
     } else {
         $PSGetAppLocalPath = Microsoft.PowerShell.Management\Join-Path -Path ([System.Management.Automation.Platform]::SelectProductNameForDirectory('CACHE')) -ChildPath 'PowerShellGet'
     }
-    $PSRepositoriesFilePath = Microsoft.PowerShell.Management\Join-Path -Path $PSGetAppLocalPath -ChildPath "PSRepositories.xml"
+    $PSRepositoriesFilePath = Microsoft.PowerShell.Management\Join-Path -Path $PSGetAppLocalPath -ChildPath 'PSRepositories.xml'
     $PSGetRepositories = Microsoft.PowerShell.Utility\Import-Clixml $PSRepositoriesFilePath -ea SilentlyContinue
 
     Microsoft.PowerShell.Utility\Write-Verbose ('Found {0} registered PowerShellGet repositories.' -f $PSGetRepositories.Count)
@@ -26,8 +26,8 @@ function Import-PSGetRepository {
     if ($PSGetRepositories.Count) {
         $repos = @(
             $PSGetRepositories.Values |
-            Microsoft.PowerShell.Core\Where-Object { $_.PackageManagementProvider -eq 'NuGet' -and $_.Name -ne 'PSGallery' } |
-            Microsoft.PowerShell.Utility\Select-Object Name, Trusted, SourceLocation
+                Microsoft.PowerShell.Core\Where-Object { $_.PackageManagementProvider -eq 'NuGet' -and $_.Name -ne 'PSGallery' } |
+                Microsoft.PowerShell.Utility\Select-Object Name, Trusted, SourceLocation
         )
 
         Microsoft.PowerShell.Utility\Write-Verbose ('Selected {0} NuGet repositories.' -f $repos.Count)

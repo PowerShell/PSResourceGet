@@ -19,9 +19,9 @@ function Update-Branch {
     [CmdletBinding(SupportsShouldProcess)]
     param()
     $Branch = git branch --show-current
-    if ($Branch -ne "release") {
-        if ($PSCmdlet.ShouldProcess("release", "git checkout -B")) {
-            git checkout -B "release"
+    if ($Branch -ne 'release') {
+        if ($PSCmdlet.ShouldProcess('release', 'git checkout -B')) {
+            git checkout -B 'release'
         }
     }
 }
@@ -35,7 +35,7 @@ function Get-Bullet {
         [Parameter(Mandatory, ValueFromPipeline)]
         [PSCustomObject]$PullRequest
     )
-    ("-", $PullRequest.title, ("(#" + $PullRequest.PullRequestNumber + ")") -join " ").Trim()
+    ('-', $PullRequest.title, ('(#' + $PullRequest.PullRequestNumber + ')') -join ' ').Trim()
 }
 
 <#
@@ -51,8 +51,8 @@ function Get-Changelog {
         Get-GitHubPullRequest -State 'closed' |
         Where-Object -FilterScript {
             $_.labels.LabelName -match 'Release' -and
-            -not $_.title.StartsWith("[WIP]") -and
-            -not $_.title.StartsWith("WIP")
+            -not $_.title.StartsWith('[WIP]') -and
+            -not $_.title.StartsWith('WIP')
         }
 
     $PullRequests | ForEach-Object {
@@ -75,13 +75,13 @@ function Set-Changelog {
     )
     @(
         "## $Version"
-        ""
-        "### New Features"
+        ''
+        '### New Features'
         $script:NewFeatures
-        ""
-        "### Bug Fixes"
+        ''
+        '### Bug Fixes'
         $script:BugFixes
-        ""
+        ''
     )
 }
 
@@ -115,17 +115,17 @@ function Update-PSDFile {
         [Parameter(Mandatory)]
         [string]$Version
     )
-    $CurrentPSDFile = Get-Content -Path ".\src\PSResourceGet.psd1"
-    $Header = $CurrentPSDFile.Where({ $_.StartsWith("## ") }, "First")
+    $CurrentPSDFile = Get-Content -Path '.\src\PSResourceGet.psd1'
+    $Header = $CurrentPSDFile.Where({ $_.StartsWith('## ') }, 'First')
 
     @(
-        $CurrentPSDFile.Where({ $_ -eq $Header }, "Until")
+        $CurrentPSDFile.Where({ $_ -eq $Header }, 'Until')
         Set-Changelog $Version
-        $CurrentPSDFile.Where({ $_ -eq $Header }, "SkipUntil")
-    ) | Set-Content -Encoding utf8NoBOM -Path ".\src\PSResourceGet.psd1"
+        $CurrentPSDFile.Where({ $_ -eq $Header }, 'SkipUntil')
+    ) | Set-Content -Encoding utf8NoBOM -Path '.\src\PSResourceGet.psd1'
 
-    if ($PSCmdlet.ShouldProcess(".\src\PSResourceGet.psd1", "git add")) {
-        git add "src\PSResourceGet.psd1"
+    if ($PSCmdlet.ShouldProcess('.\src\PSResourceGet.psd1', 'git add')) {
+        git add 'src\PSResourceGet.psd1'
     }
 }
 
@@ -144,22 +144,22 @@ function New-ReleasePR {
     )
 
     Update-Branch
-    if ($PSCmdlet.ShouldProcess("$script:ChangelogFile", "git commit")) {
+    if ($PSCmdlet.ShouldProcess("$script:ChangelogFile", 'git commit')) {
         git add $ChangelogFile
         git commit -m "Update CHANGELOG for ``$Version``"
     }
 
-    if ($PSCmdlet.ShouldProcess("release", "git push")) {
-        Write-Host "Pushing release branch..."
+    if ($PSCmdlet.ShouldProcess('release', 'git push')) {
+        Write-Host 'Pushing release branch...'
         git push --force-with-lease origin release
     }
 
     $Params = @{
         Head  = "$($Username):release"
-        Base  = "master"
+        Base  = 'master'
         Draft = $true
         Title = "Update CHANGELOG for ``$Version``"
-        Body  = "An automated PR to update the CHANGELOG.md file for a new release"
+        Body  = 'An automated PR to update the CHANGELOG.md file for a new release'
     }
 
     $PR = $script:Repo | New-GitHubPullRequest @Params
@@ -189,9 +189,9 @@ function New-Release {
 #>
 function Remove-Release-Label {
     $script:PullRequests = $script:Repo | Get-GitHubPullRequest -State 'closed' |
-    Where-Object { $_.labels.LabelName -match 'Release' } |
-    Where-Object { -not $_.title.StartsWith("[WIP]") } |
-    Where-Object { -not $_.title.StartsWith("WIP") }
+        Where-Object { $_.labels.LabelName -match 'Release' } |
+        Where-Object { -not $_.title.StartsWith('[WIP]') } |
+        Where-Object { -not $_.title.StartsWith('WIP') }
 
     $script:PullRequests | ForEach-Object {
         $script:Repo | Remove-GitHubIssueLabel -Label Release -Issue $_.PullRequestNumber
