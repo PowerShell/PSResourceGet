@@ -114,7 +114,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (repository is not null && 
                 (repository.Name.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) ||
                 ParameterSetName.Equals(RepositoriesParameterSet) ||
-                PSRepositoryInfo.IsContainerRegistry(repository.Uri.AbsoluteUri)))
+                repository.IsContainerRegistry()))
             {
                 return null;
             }

@@ -117,11 +117,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         public object GetDynamicParameters()
         {
-            // Dynamic parameter '-CredentialProvider' should not appear for PSGallery, or any container registry repository.
+            // Dynamic parameter '-CredentialProvider' should not appear for PSGallery or any container registry repository.
             // It should also not appear when using the 'Repositories' parameter set.
             if (ParameterSetName.Equals(PSGalleryParameterSet) || 
                 ParameterSetName.Equals(RepositoriesParameterSet) ||
-                PSRepositoryInfo.IsContainerRegistry(Uri))
+                PSRepositoryInfo.IsValidContainerRegistryURL(Uri))
             {
                 return null;
             }

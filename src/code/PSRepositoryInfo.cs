@@ -104,9 +104,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return (ApiVersion == APIVersion.ContainerRegistry && Uri.Host.StartsWith("mcr.microsoft"));
         }
 
-        public static bool IsContainerRegistry(string uri)
+        public bool IsContainerRegistry()
         {
-            if (uri.EndsWith(".azurecr.io") || uri.EndsWith(".azurecr.io/") || uri.Contains("mcr.microsoft.com") || uri.StartsWith("mcr.microsoft"))
+            if (ApiVersion == APIVersion.ContainerRegistry || Uri.Host.EndsWith(".azurecr.io") || Uri.Host.Equals("mcr.microsoft.com", StringComparison.OrdinalIgnoreCase) || Uri.Host.StartsWith("mcr.microsoft"))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool IsValidContainerRegistryURL(string uri)
+        {
+            if (uri.EndsWith(".azurecr.io") || uri.EndsWith(".azurecr.io/") || uri.Contains("mcr.microsoft"))
             {
                 return true;
             }
