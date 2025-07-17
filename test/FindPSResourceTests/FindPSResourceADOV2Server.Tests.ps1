@@ -14,7 +14,7 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $ADOV2RepoName = "PSGetTestingPublicFeed"
         $ADOV2RepoUri = "https://pkgs.dev.azure.com/powershell/PowerShell/_packaging/psresourceget-public-test-ci/nuget/v2"
         Get-NewPSResourceRepositoryFile
-        Register-PSResourceRepository -Name $ADOV2RepoName -Uri $ADOV2RepoUri
+        Register-PSResourceRepository -Name $ADOV2RepoName -Uri $ADOV2RepoUri -CredentialProvider "None"
     }
 
     AfterAll {

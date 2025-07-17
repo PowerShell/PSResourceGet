@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System;
@@ -62,7 +62,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 // Add PSGallery to the newly created store
                 Uri psGalleryUri = new Uri(PSGalleryRepoUri);
-                Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null, PSRepositoryInfo.APIVersion.V2, force: false);
+                Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null, repoCredentialProvider: CredentialProviderType.None, APIVersion.V2, force: false);
             }
 
             // Open file (which should exist now), if cannot/is corrupted then throw error
@@ -76,7 +76,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
-        public static PSRepositoryInfo AddRepository(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSRepositoryInfo.APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, bool force, PSCmdlet cmdletPassedIn, out string errorMsg)
+        public static PSRepositoryInfo AddRepository(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, CredentialProviderType? repoCredentialProvider, bool force, PSCmdlet cmdletPassedIn, out string errorMsg)
         {
             errorMsg = String.Empty;
             if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase))
@@ -85,11 +85,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return null;
             }
 
-            return AddToRepositoryStore(repoName, repoUri, repoPriority, repoTrusted, apiVersion, repoCredentialInfo, force, cmdletPassedIn, out errorMsg);
+            return AddToRepositoryStore(repoName, repoUri, repoPriority, repoTrusted, apiVersion, repoCredentialInfo, repoCredentialProvider, force, cmdletPassedIn, out errorMsg);
         }
 
 
-        public static PSRepositoryInfo AddToRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSRepositoryInfo.APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, bool force, PSCmdlet cmdletPassedIn, out string errorMsg)
+        public static PSRepositoryInfo AddToRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, CredentialProviderType? credentialProvider, bool force, PSCmdlet cmdletPassedIn, out string errorMsg)
         {
             errorMsg = string.Empty;
             // remove trailing and leading whitespaces, and if Name is just whitespace Name should become null now and be caught by following condition
@@ -106,7 +106,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return null;
             }
 
-            PSRepositoryInfo.APIVersion resolvedAPIVersion = apiVersion ?? GetRepoAPIVersion(repoUri);
+            APIVersion resolvedAPIVersion = apiVersion ?? GetRepoAPIVersion(repoUri);
 
             if (repoCredentialInfo != null)
             {
@@ -131,6 +131,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
             }
 
+            CredentialProviderType resolvedCredentialProvider = credentialProvider ?? CredentialProviderType.None;
+            // If it's an ADO feed with an ADO designated URL (eg: msazure.pkgs.) then add the 'CredentialProvider' attribute to the repository and by default set it to AzArtifacts
+            if ((repoUri.AbsoluteUri.Contains("pkgs.dev.azure.com") || repoUri.AbsoluteUri.Contains("pkgs.visualstudio.com")) && credentialProvider == null)
+            {
+                resolvedCredentialProvider = CredentialProviderType.AzArtifacts;
+            }
+
             if (!cmdletPassedIn.ShouldProcess(repoName, "Register repository to repository store"))
             {
                 return null;
@@ -141,13 +148,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return null;
             }
 
-            var repo = RepositorySettings.Add(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, resolvedAPIVersion, force);
+            var repo = Add(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, resolvedCredentialProvider, resolvedAPIVersion, force);
 
             return repo;
         }
 
 
-        public static PSRepositoryInfo UpdateRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, bool isSet, int defaultPriority, PSRepositoryInfo.APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string errorMsg)
+        public static PSRepositoryInfo UpdateRepositoryStore(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, bool isSet, int defaultPriority, APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, CredentialProviderType? credentialProvider, PSCmdlet cmdletPassedIn, out string errorMsg)
         {
             errorMsg = string.Empty;
             // repositories with Uri Scheme "temp" may have PSPath Uri's like: "Temp:\repo"
@@ -182,7 +189,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             // determine trusted value to pass in (true/false if set, null otherwise, hence the nullable bool variable)
             bool? _trustedNullable = isSet ? new bool?(repoTrusted) : new bool?();
-
+            
             if (repoCredentialInfo != null)
             {
                 bool isSecretManagementModuleAvailable = Utils.IsSecretManagementModuleAvailable(repoName, cmdletPassedIn);
@@ -216,7 +223,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return null;
             }
 
-            return Update(repoName, repoUri, repoPriority, _trustedNullable, apiVersion, repoCredentialInfo, cmdletPassedIn, out errorMsg);
+            return Update(repoName, repoUri, repoPriority, _trustedNullable, apiVersion, repoCredentialInfo, credentialProvider, cmdletPassedIn, out errorMsg);
         }
 
         /// <summary>
@@ -224,7 +231,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// Returns: PSRepositoryInfo containing information about the repository just added to the repository store
         /// </summary>
         /// <param name="sectionName"></param>
-        public static PSRepositoryInfo Add(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo, PSRepositoryInfo.APIVersion apiVersion, bool force)
+        public static PSRepositoryInfo Add(string repoName, Uri repoUri, int repoPriority, bool repoTrusted, PSCredentialInfo repoCredentialInfo, CredentialProviderType repoCredentialProvider, APIVersion apiVersion, bool force)
         {
             try
             {
@@ -238,7 +245,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
 
                     // Delete the existing repository before overwriting it (otherwire multiple repos with the same name will be added)
-                    List<PSRepositoryInfo> removedRepositories = RepositorySettings.Remove(new string[] { repoName }, out string[] errorList);
+                    List<PSRepositoryInfo> removedRepositories = Remove(new string[] { repoName }, out string[] errorList);
 
                     // Need to load the document again because of changes after removing
                     doc = LoadXDocument(FullRepositoryPath);
@@ -261,7 +268,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     new XAttribute("Url", repoUri),
                     new XAttribute("APIVersion", apiVersion),
                     new XAttribute("Priority", repoPriority),
-                    new XAttribute("Trusted", repoTrusted)
+                    new XAttribute("Trusted", repoTrusted),
+                    new XAttribute("CredentialProvider", repoCredentialProvider)
                     );
 
                 if (repoCredentialInfo != null)
@@ -282,14 +290,14 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(repoUri) : true;
 
-            return new PSRepositoryInfo(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, apiVersion, isAllowed);
+            return new PSRepositoryInfo(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, repoCredentialProvider, apiVersion, isAllowed);
         }
 
         /// <summary>
         /// Updates a repository name, Uri, priority, installation policy, or credential information
         /// Returns:  void
         /// </summary>
-        public static PSRepositoryInfo Update(string repoName, Uri repoUri, int repoPriority, bool? repoTrusted, PSRepositoryInfo.APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, PSCmdlet cmdletPassedIn, out string errorMsg)
+        public static PSRepositoryInfo Update(string repoName, Uri repoUri, int repoPriority, bool? repoTrusted, APIVersion? apiVersion, PSCredentialInfo repoCredentialInfo, CredentialProviderType? credentialProvider, PSCmdlet cmdletPassedIn, out string errorMsg)
         {
             errorMsg = string.Empty;
             PSRepositoryInfo updatedRepo;
@@ -303,7 +311,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     bool repoIsTrusted = !(repoTrusted == null || repoTrusted == false);
                     repoPriority = repoPriority < 0 ? DefaultPriority : repoPriority;
 
-                    return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, apiVersion, repoCredentialInfo, force: true, cmdletPassedIn, out errorMsg);
+                    return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, apiVersion, repoCredentialInfo, credentialProvider, force:true, cmdletPassedIn, out errorMsg);
                 }
 
                 // Check that repository node we are attempting to update has all required attributes: Name, Url (or Uri), Priority, Trusted.
@@ -417,15 +425,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // Update APIVersion if necessary
-                PSRepositoryInfo.APIVersion resolvedAPIVersion = PSRepositoryInfo.APIVersion.Unknown;
+                APIVersion resolvedAPIVersion = APIVersion.Unknown;
                 if (apiVersion != null)
                 {
-                    resolvedAPIVersion = (PSRepositoryInfo.APIVersion)apiVersion;
+                    resolvedAPIVersion = (APIVersion)apiVersion;
                     node.Attribute("APIVersion").Value = resolvedAPIVersion.ToString();
                 }
                 else
                 {
-                    resolvedAPIVersion = (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true);
+                    resolvedAPIVersion = (APIVersion)Enum.Parse(typeof(APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true);
                 }
 
 
@@ -445,14 +453,29 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 }
 
+                // Update CredentialProvider if necessary
+                CredentialProviderType resolvedCredentialProvider = credentialProvider ?? CredentialProviderType.None;
+                if (credentialProvider != null)
+                {
+                    resolvedCredentialProvider = (CredentialProviderType)credentialProvider;
+                    if (node.Attribute("CredentialProvider") == null)
+                    {
+                        node.Add(new XAttribute("CredentialProvider", resolvedCredentialProvider.ToString()));
+                    }
+                    else
+                    {
+                        node.Attribute("CredentialProvider").Value = resolvedCredentialProvider.ToString();
+                    }
+                }
+
                 bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(thisUrl) : true;
 
-                RepositoryProviderType repositoryProvider = GetRepositoryProviderType(thisUrl);
                 updatedRepo = new PSRepositoryInfo(repoName,
                     thisUrl,
                     Int32.Parse(node.Attribute("Priority").Value),
                     Boolean.Parse(node.Attribute("Trusted").Value),
                     thisCredentialInfo,
+                    resolvedCredentialProvider,
                     resolvedAPIVersion,
                     isAllowed);
 
@@ -523,6 +546,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     continue;
                 }
 
+                CredentialProviderType resolvedCredentialProvider = CredentialProviderType.None;
+                if (node.Attribute("CredentialProvider") != null)
+                {
+                    resolvedCredentialProvider = (CredentialProviderType)Enum.Parse(typeof(CredentialProviderType), node.Attribute("CredentialProvider").Value, ignoreCase: true);
+                }
+
                 // determine if repo had Url or Uri (less likely) attribute
                 bool urlAttributeExists = node.Attribute("Url") != null;
                 bool uriAttributeExists = node.Attribute("Uri") != null;
@@ -537,14 +566,14 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(repoUri) : true;
 
-                RepositoryProviderType repositoryProvider = GetRepositoryProviderType(repoUri);
                 removedRepos.Add(
                     new PSRepositoryInfo(repo,
                         new Uri(node.Attribute(attributeUrlUriName).Value),
                         Int32.Parse(node.Attribute("Priority").Value),
                         Boolean.Parse(node.Attribute("Trusted").Value),
                         repoCredentialInfo,
-                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true),
+                        resolvedCredentialProvider,
+                        (APIVersion)Enum.Parse(typeof(APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true),
                         isAllowed));
 
                 // Remove item from file
@@ -630,11 +659,17 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     if (repo.Attribute("APIVersion") == null)
                     {
-                        PSRepositoryInfo.APIVersion apiVersion = GetRepoAPIVersion(thisUrl);
+                        APIVersion apiVersion = GetRepoAPIVersion(thisUrl);
 
                         XElement repoXElem = FindRepositoryElement(doc, repo.Attribute("Name").Value);
                         repoXElem.SetAttributeValue("APIVersion", apiVersion.ToString());
                         doc.Save(FullRepositoryPath);
+                    }
+
+                    CredentialProviderType credentialProvider = CredentialProviderType.None;
+                    if (repo.Attribute("CredentialProvider") != null)
+                    {
+                        credentialProvider = (CredentialProviderType)Enum.Parse(typeof(CredentialProviderType), repo.Attribute("CredentialProvider").Value, ignoreCase: true);
                     }
 
                     PSCredentialInfo thisCredentialInfo;
@@ -669,8 +704,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         continue;
                     }
 
-                    RepositoryProviderType repositoryProvider = GetRepositoryProviderType(thisUrl);
-
                     bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(thisUrl) : true;
 
                     PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(repo.Attribute("Name").Value,
@@ -678,7 +711,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         Int32.Parse(repo.Attribute("Priority").Value),
                         Boolean.Parse(repo.Attribute("Trusted").Value),
                         thisCredentialInfo,
-                        (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), repo.Attribute("APIVersion").Value, ignoreCase: true),
+                        credentialProvider,
+                        (APIVersion)Enum.Parse(typeof(APIVersion), repo.Attribute("APIVersion").Value, ignoreCase: true),
                         isAllowed);
 
                     foundRepos.Add(currentRepoItem);
@@ -738,11 +772,17 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                         if (node.Attribute("APIVersion") == null)
                         {
-                            PSRepositoryInfo.APIVersion apiVersion = GetRepoAPIVersion(thisUrl);
+                            APIVersion apiVersion = GetRepoAPIVersion(thisUrl);
 
                             XElement repoXElem = FindRepositoryElement(doc, node.Attribute("Name").Value);
                             repoXElem.SetAttributeValue("APIVersion", apiVersion.ToString());
                             doc.Save(FullRepositoryPath);
+                        }
+
+                        CredentialProviderType credentialProvider = CredentialProviderType.None;
+                        if (node.Attribute("CredentialProvider") != null)
+                        {
+                            credentialProvider = (CredentialProviderType)Enum.Parse(typeof(CredentialProviderType), node.Attribute("CredentialProvider").Value, ignoreCase: true);
                         }
 
                         PSCredentialInfo thisCredentialInfo;
@@ -777,8 +817,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             continue;
                         }
 
-                        RepositoryProviderType repositoryProvider = GetRepositoryProviderType(thisUrl);
-
                         bool isAllowed = GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled() ? GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(thisUrl) : true;
 
                         PSRepositoryInfo currentRepoItem = new PSRepositoryInfo(node.Attribute("Name").Value,
@@ -786,7 +824,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             Int32.Parse(node.Attribute("Priority").Value),
                             Boolean.Parse(node.Attribute("Trusted").Value),
                             thisCredentialInfo,
-                            (PSRepositoryInfo.APIVersion)Enum.Parse(typeof(PSRepositoryInfo.APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true),
+                            credentialProvider,
+                            (APIVersion)Enum.Parse(typeof(APIVersion), node.Attribute("APIVersion").Value, ignoreCase: true),
                             isAllowed);
 
                         foundRepos.Add(currentRepoItem);
@@ -840,57 +879,38 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return XDocument.Load(xmlReader);
         }
 
-        private static PSRepositoryInfo.APIVersion GetRepoAPIVersion(Uri repoUri)
+        private static APIVersion GetRepoAPIVersion(Uri repoUri)
         {
             if (repoUri.AbsoluteUri.EndsWith("/v2", StringComparison.OrdinalIgnoreCase))
             {
                 // Scenario: V2 server protocol repositories (i.e PSGallery)
-                return PSRepositoryInfo.APIVersion.V2;
+                return APIVersion.V2;
             }
             else if (repoUri.AbsoluteUri.EndsWith("/index.json", StringComparison.OrdinalIgnoreCase))
             {
                 // Scenario: V3 server protocol repositories (i.e NuGet.org, Azure Artifacts (ADO), Artifactory, Github Packages, MyGet.org)
-                return PSRepositoryInfo.APIVersion.V3;
+                return APIVersion.V3;
             }
             else if (repoUri.AbsoluteUri.EndsWith("/nuget", StringComparison.OrdinalIgnoreCase))
             {
                 // Scenario: ASP.Net application feed created with NuGet.Server to host packages
-                return PSRepositoryInfo.APIVersion.NugetServer;
+                return APIVersion.NugetServer;
             }
             else if (repoUri.Scheme.Equals(Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase) || repoUri.Scheme.Equals("temp", StringComparison.OrdinalIgnoreCase))
             {
                 // repositories with Uri Scheme "temp" may have PSPath Uri's like: "Temp:\repo" and we should consider them as local repositories.
-                return PSRepositoryInfo.APIVersion.Local;
+                return APIVersion.Local;
             }
-            else if (repoUri.AbsoluteUri.EndsWith(".azurecr.io") || repoUri.AbsoluteUri.EndsWith(".azurecr.io/") || repoUri.AbsoluteUri.Contains("mcr.microsoft.com"))
+            else if (IsValidContainerRegistryURL(repoUri.AbsoluteUri))
             {
-                return PSRepositoryInfo.APIVersion.ContainerRegistry;
+                return APIVersion.ContainerRegistry;
             }
             else
             {
-                return PSRepositoryInfo.APIVersion.Unknown;
+                return APIVersion.Unknown;
             }
         }
 
-        private static RepositoryProviderType GetRepositoryProviderType(Uri repoUri)
-        {
-            string absoluteUri = repoUri.AbsoluteUri;
-            // We want to use contains instead of EndsWith to accomodate for trailing '/'
-            if (absoluteUri.Contains("azurecr.io") || absoluteUri.Contains("mcr.microsoft.com"))
-            {
-                return RepositoryProviderType.ACR;
-            }
-            // TODO: add a regex for this match
-            // eg: *pkgs.*/_packaging/*
-            else if (absoluteUri.Contains("pkgs."))
-            {
-                return RepositoryProviderType.AzureDevOps;
-            }
-            else
-            {
-                return RepositoryProviderType.None;
-            }
-        }
         #endregion
     }
 }

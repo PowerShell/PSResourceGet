@@ -949,7 +949,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
-        public static NetworkCredential SetNetworkCredential(
+        public static NetworkCredential SetSecretManagementNetworkCredential(
             PSRepositoryInfo repository,
             NetworkCredential networkCredential,
             PSCmdlet cmdletPassedIn)
@@ -965,6 +965,34 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 networkCredential = new NetworkCredential(repoCredential.UserName, repoCredential.Password);
 
                 cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repository.Name);
+            }
+
+            return networkCredential;
+        }
+
+        #endregion
+
+        #region Credential methods
+        
+        public static NetworkCredential SetCredentialProviderNetworkCredential(
+            PSRepositoryInfo repository,
+            NetworkCredential networkCredential,
+            PSCmdlet cmdletPassedIn)
+        {
+            // Explicitly passed in Credential takes precedence over repository credential provider.
+            if (networkCredential == null)
+            {
+                cmdletPassedIn.WriteVerbose("Attempting to retrieve credentials from Azure Artifacts Credential Provider.");
+                PSCredential repoCredential = CredentialProvider.GetCredentialsFromProvider(repository.Uri, cmdletPassedIn);
+                if (repoCredential == null)
+                {
+                    cmdletPassedIn.WriteVerbose("Unable to retrieve credentials from Azure Artifacts Credential Provider.  Network credentials are null.");
+                }
+                else
+                {
+                    networkCredential = new NetworkCredential(repoCredential.UserName, repoCredential.Password);
+                    cmdletPassedIn.WriteVerbose("Credential successfully read from Azure Artifacts Credential Provider for repository: " + repository.Name);
+                }
             }
 
             return networkCredential;
@@ -1236,6 +1264,24 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
             }
         }
+
+        internal static bool TryGetCaseInsensitiveFilePath(string directory, string fileName, out string fileFound)
+        {
+            fileFound = String.Empty;
+            var files = Directory.GetFiles(directory);
+            foreach (var file in files)
+            {
+                if (string.Equals(Path.GetFileName(file), fileName, StringComparison.OrdinalIgnoreCase))
+                {
+                    fileFound = file;
+                    return true;
+                }
+            }
+
+            // File not found
+            return false;
+        }
+
         #endregion
 
         #region PSDataFile parsing
@@ -1542,6 +1588,23 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             errors = errorList.ToArray();
             validatedModuleSpecs = moduleSpecsList.ToArray();
             return moduleSpecCreatedSuccessfully;
+        }
+
+        public static SecureString ConvertToSecureString(string input)
+        {
+            if (input == null) {
+                throw new ArgumentNullException(nameof(input));
+            }
+            
+            SecureString secureString = new SecureString();
+            foreach (char c in input)
+            {
+                secureString.AppendChar(c);
+            }
+
+            secureString.MakeReadOnly();
+            
+            return secureString;
         }
 
         #endregion

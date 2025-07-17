@@ -5,7 +5,7 @@ $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
+Describe 'Test Install-PSResource for ADO V3Server scenarios' -tags 'CI' {
 
     BeforeAll {
         $testModuleName = "test_local_mod"
@@ -14,7 +14,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $ADORepoName = "PSGetTestingPublicFeed"
         $ADORepoUri = "https://pkgs.dev.azure.com/powershell/PowerShell/_packaging/psresourceget-public-test-ci/nuget/v3/index.json"
         Get-NewPSResourceRepositoryFile
-        Register-PSResourceRepository -Name $ADORepoName -Uri $ADORepoUri
+        Register-PSResourceRepository -Name $ADORepoName -Uri $ADORepoUri -CredentialProvider "None"
     }
 
     AfterEach {
@@ -215,7 +215,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     }
 }
 
-Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidationOnly' {
+Describe 'Test Install-PSResource for ADO V3Server scenarios - Manual Validation' -tags 'ManualValidationOnly' {
 
     BeforeAll {
         $testModuleName = "TestModule"

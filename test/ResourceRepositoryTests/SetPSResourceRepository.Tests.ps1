@@ -178,7 +178,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         }
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
-        Set-PSResourceRepository -Repository $arrayOfHashtables
+        Set-PSResourceRepository -Repository $arrayOfHashtables -Verbose
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $res.Name | Should -Be $TestRepoName1
         $Res.Uri.LocalPath | Should -Contain $tmpDir2Path
