@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using BenchmarkDotNet;
 using BenchmarkDotNet.Attributes;
 using Microsoft.PowerShell;
 using System;
@@ -26,13 +25,13 @@ namespace Benchmarks
             pwsh.AddScript("Import-Module PowerShellGet -RequiredVersion 2.2.5 -Force");
             pwsh.Invoke();
         }
-		
+
         [GlobalCleanup]
         public void IterationCleanup()
         {
             pwsh.Dispose();
         }
-		
+
         [Benchmark]
         public void FindAzModuleV2()
         {
@@ -48,7 +47,7 @@ namespace Benchmarks
             pwsh.AddScript("Find-Module -Name Az -IncludeDependencies -Repository PSGallery");
             pwsh.Invoke();
         }
-		
+
         [Benchmark]
         public void InstallAzModuleAndDependenciesV2()
         {

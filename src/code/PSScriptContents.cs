@@ -46,7 +46,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// This constructor creates a PSScriptContents instance with default values for its properties.
         /// The calling method, like PSScriptContents.ParseContent() could then populate the properties.
         /// </summary>
-        internal PSScriptContents() {}
+        internal PSScriptContents() { }
 
         #endregion
 

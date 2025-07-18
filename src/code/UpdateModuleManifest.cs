@@ -23,7 +23,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Specifies the path and file name of the module manifest.
         /// </summary>
-        [Parameter (Position = 0, Mandatory = true, HelpMessage = "Path (including file name) to the module manifest (.psd1 file) to update.")]
+        [Parameter(Position = 0, Mandatory = true, HelpMessage = "Path (including file name) to the module manifest (.psd1 file) to update.")]
         [ValidateNotNullOrEmpty]
         public string Path { get; set; }
 
@@ -296,7 +296,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // Parse the module manifest
-            if(!Utils.TryReadManifestFile(
+            if (!Utils.TryReadManifestFile(
                         manifestFilePath: resolvedManifestPath,
                         manifestInfo: out Hashtable parsedMetadata,
                         error: out Exception manifestReadError))
@@ -676,7 +676,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ErrorCategory.InvalidOperation,
                     this);
             }
-            finally {
+            finally
+            {
                 // Clean up temp file if move fails
                 if (File.Exists(tmpModuleManifestPath))
                 {
@@ -1036,7 +1037,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ErrorCategory.InvalidOperation,
                     this);
             }
-            finally {
+            finally
+            {
                 // Clean up temp file if move fails
                 if (File.Exists(tmpModuleManifestPath))
                 {
@@ -1092,16 +1094,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             */
 
             string tagsString = string.Join(", ", tags.Select(item => "'" + item + "'"));
-            string tagLine = tags.Length != 0 ? $"Tags = @({tagsString})"  : "# Tags = @()";
+            string tagLine = tags.Length != 0 ? $"Tags = @({tagsString})" : "# Tags = @()";
 
             string licenseUriLine = licenseUri == null ? "# LicenseUri = ''" : $"LicenseUri = '{licenseUri.ToString()}'";
             string projectUriLine = projectUri == null ? "# ProjectUri = ''" : $"ProjectUri = '{projectUri.ToString()}'";
             string iconUriLine = iconUri == null ? "# IconUri = ''" : $"IconUri = '{iconUri.ToString()}'";
 
-            string releaseNotesLine = String.IsNullOrEmpty(releaseNotes) ? "# ReleaseNotes = ''": $"ReleaseNotes = '{releaseNotes}'";
+            string releaseNotesLine = String.IsNullOrEmpty(releaseNotes) ? "# ReleaseNotes = ''" : $"ReleaseNotes = '{releaseNotes}'";
             string prereleaseLine = String.IsNullOrEmpty(prerelease) ? "# Prerelease = ''" : $"Prerelease = '{prerelease}'";
 
-            string requireLicenseAcceptanceLine = requireLicenseAcceptance == null? "# RequireLicenseAcceptance = $false" : (requireLicenseAcceptance == false ? "RequireLicenseAcceptance = $false": "RequireLicenseAcceptance = $true");
+            string requireLicenseAcceptanceLine = requireLicenseAcceptance == null ? "# RequireLicenseAcceptance = $false" : (requireLicenseAcceptance == false ? "RequireLicenseAcceptance = $false" : "RequireLicenseAcceptance = $true");
 
             string externalModuleDependenciesString = string.Join(", ", externalModuleDependencies.Select(item => "'" + item + "'"));
             string externalModuleDependenciesLine = externalModuleDependencies.Length == 0 ? "# ExternalModuleDependencies = @()" : $"ExternalModuleDependencies = @({externalModuleDependenciesString})";
@@ -1153,7 +1155,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // find line that is start of PrivateData entry
             for (int i = 0; i < psd1FileLines.Length; i++)
             {
-                if (psd1FileLines[i].Trim().StartsWith("PrivateData =")){
+                if (psd1FileLines[i].Trim().StartsWith("PrivateData ="))
+                {
                     privateDataStartLine = i;
                     break;
                 }
@@ -1167,7 +1170,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     leftBracket++;
                 }
-                else if(psd1FileLines[i].Contains("}"))
+                else if (psd1FileLines[i].Contains("}"))
                 {
                     if (leftBracket > 0)
                     {
@@ -1200,7 +1203,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             newPsd1Lines.Add(privateDataString);
-            for (int i = privateDataEndLine+1; i < psd1FileLines.Length; i++)
+            for (int i = privateDataEndLine + 1; i < psd1FileLines.Length; i++)
             {
                 newPsd1Lines.Add(psd1FileLines[i]);
             }
