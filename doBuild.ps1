@@ -23,7 +23,7 @@ function DoBuild {
         # Module .psm1 file
         [System.IO.Path]::Combine($SrcPath, $ModuleName + '.psm1'),
         # Module format ps1xml file
-        [System.IO.Path]::Combine($SrcPath, $ModuleName + '.ps1xml'),
+        [System.IO.Path]::Combine($SrcPath, $FormatFileName + '.ps1xml'),
         # License
         [System.IO.Path]::Combine('.', 'LICENSE'),
         # Notice
