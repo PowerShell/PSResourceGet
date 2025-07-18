@@ -40,7 +40,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         [SupportsWildcards]
         [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
-        public string[] Name { get; set ; } = new string[] {"*"};
+        public string[] Name { get; set; } = new string[] { "*" };
 
         /// <summary>
         /// Specifies the version the resource is to be updated to.
@@ -85,11 +85,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             set
             {
-                if (WildcardPattern.ContainsWildcardCharacters(value)) 
-                { 
-                    throw new PSArgumentException("Wildcard characters are not allowed in the temporary path."); 
-                } 
-                
+                if (WildcardPattern.ContainsWildcardCharacters(value))
+                {
+                    throw new PSArgumentException("Wildcard characters are not allowed in the temporary path.");
+                }
+
                 // This will throw if path cannot be resolved
                 _tmpPath = GetResolvedProviderPathFromPSPath(value, out ProviderInfo provider).First();
             }
@@ -161,11 +161,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
             _findHelper = new FindHelper(
-                cancellationToken: _cancellationTokenSource.Token, 
+                cancellationToken: _cancellationTokenSource.Token,
                 cmdletPassedIn: this,
                 networkCredential: networkCred);
 
-             _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
+            _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }
 
         protected override void ProcessRecord()
@@ -183,7 +183,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "IncorrectVersionFormat",
                     ErrorCategory.InvalidArgument,
                     this));
-                    
+
                 return;
             }
 
@@ -262,10 +262,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             namesToProcess = Utils.ProcessNameWildcards(
                 pkgNames: namesToProcess,
-                removeWildcardEntries:false, 
+                removeWildcardEntries: false,
                 errorMsgs: out string[] errorMsgs,
                 isContainWildcard: out bool _);
-            
+
             foreach (string error in errorMsgs)
             {
                 WriteError(new ErrorRecord(
@@ -274,12 +274,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ErrorCategory.InvalidArgument,
                     this));
             }
-            
+
             // This catches the case where namesToProcess wasn't passed in as null or empty,
             // but after filtering out unsupported wildcard names there are no elements left in namesToProcess.
             if (namesToProcess.Length == 0)
             {
-                 return Utils.EmptyStrArray;
+                return Utils.EmptyStrArray;
             }
 
             if (String.Equals(namesToProcess[0], "*", StringComparison.InvariantCultureIgnoreCase))
@@ -311,7 +311,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "NoInstalledPackagesFoundWithNameProvided",
                     ErrorCategory.InvalidOperation,
                     this));
-                    
+
                 return Utils.EmptyStrArray;
             }
 

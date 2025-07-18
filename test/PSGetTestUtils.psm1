@@ -22,53 +22,36 @@ $script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 $script:NuGetGalleryName = 'NuGetGallery'
 $script:NuGetGalleryLocation = 'https://api.nuget.org/v3/index.json'
 
-if($script:IsInbox)
-{
+if ($script:IsInbox) {
     $script:ProgramFilesPSPath = Microsoft.PowerShell.Management\Join-Path -Path $env:ProgramFiles -ChildPath "WindowsPowerShell"
-}
-elseif($script:IsCoreCLR){
-    if($script:IsWindows) {
+} elseif ($script:IsCoreCLR) {
+    if ($script:IsWindows) {
         $script:ProgramFilesPSPath = Microsoft.PowerShell.Management\Join-Path -Path $env:ProgramFiles -ChildPath 'PowerShell'
-    }
-    else {
+    } else {
         $script:ProgramFilesPSPath = Split-Path -Path ([System.Management.Automation.Platform]::SelectProductNameForDirectory('SHARED_MODULES')) -Parent
     }
 }
 
-try
-{
+try {
     $script:MyDocumentsFolderPath = [Environment]::GetFolderPath("MyDocuments")
-}
-catch
-{
+} catch {
     $script:MyDocumentsFolderPath = $null
 }
 
-if($script:IsInbox)
-{
-    $script:MyDocumentsPSPath = if($script:MyDocumentsFolderPath)
-                                {
-                                    Microsoft.PowerShell.Management\Join-Path -Path $script:MyDocumentsFolderPath -ChildPath "WindowsPowerShell"
-                                }
-                                else
-                                {
-                                    Microsoft.PowerShell.Management\Join-Path -Path $env:USERPROFILE -ChildPath "Documents\WindowsPowerShell"
-                                }
-}
-elseif($script:IsCoreCLR) {
-    if($script:IsWindows)
-    {
-        $script:MyDocumentsPSPath = if($script:MyDocumentsFolderPath)
-        {
+if ($script:IsInbox) {
+    $script:MyDocumentsPSPath = if ($script:MyDocumentsFolderPath) {
+        Microsoft.PowerShell.Management\Join-Path -Path $script:MyDocumentsFolderPath -ChildPath "WindowsPowerShell"
+    } else {
+        Microsoft.PowerShell.Management\Join-Path -Path $env:USERPROFILE -ChildPath "Documents\WindowsPowerShell"
+    }
+} elseif ($script:IsCoreCLR) {
+    if ($script:IsWindows) {
+        $script:MyDocumentsPSPath = if ($script:MyDocumentsFolderPath) {
             Microsoft.PowerShell.Management\Join-Path -Path $script:MyDocumentsFolderPath -ChildPath 'PowerShell'
-        }
-        else
-        {
+        } else {
             Microsoft.PowerShell.Management\Join-Path -Path $HOME -ChildPath "Documents\PowerShell"
         }
-    }
-    else
-    {
+    } else {
         $script:MyDocumentsPSPath = Split-Path -Path ([System.Management.Automation.Platform]::SelectProductNameForDirectory('USER_MODULES')) -Parent
     }
 }
@@ -79,7 +62,7 @@ $script:ProgramFilesScriptsPath = Microsoft.PowerShell.Management\Join-Path -Pat
 $script:MyDocumentsScriptsPath = Microsoft.PowerShell.Management\Join-Path -Path $script:MyDocumentsPSPath -ChildPath 'Scripts'
 $script:TempPath = [System.IO.Path]::GetTempPath()
 
-if($script:IsWindows) {
+if ($script:IsWindows) {
     $script:PSGetProgramDataPath = Microsoft.PowerShell.Management\Join-Path -Path $env:ProgramData -ChildPath 'Microsoft\Windows\PowerShell\PSResourceGet\'
     $script:PSGetAppLocalPath = Microsoft.PowerShell.Management\Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Microsoft\Windows\PowerShell\PSResourceGet\'
 } else {
@@ -135,18 +118,15 @@ function Get-PSGetLocalAppDataPath {
     return $script:PSGetAppLocalPath
 }
 
-function Get-NuGetGalleryName
-{
+function Get-NuGetGalleryName {
     return $script:NuGetGalleryName
 }
 
-function Get-NuGetGalleryLocation
-{
+function Get-NuGetGalleryLocation {
     return $script:NuGetGalleryLocation
 }
 
-function Get-PSGalleryName
-{
+function Get-PSGalleryName {
     return $script:PSGalleryName
 }
 
@@ -158,8 +138,7 @@ function Get-NewTestDirs {
         [string[]]
         $listOfPaths
     )
-    foreach($path in $listOfPaths)
-    {
+    foreach ($path in $listOfPaths) {
         $null = New-Item -Path $path -ItemType Directory
     }
 }
@@ -169,10 +148,8 @@ function Get-RemoveTestDirs {
         [string[]]
         $listOfPaths
     )
-    foreach($path in $listOfPaths)
-    {
-        if(Test-Path -Path $path)
-        {
+    foreach ($path in $listOfPaths) {
+        if (Test-Path -Path $path) {
             Remove-Item -Path $path -Force -ErrorAction Ignore
         }
     }
@@ -232,41 +209,41 @@ function Register-LocalRepos {
     $repoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
     $null = New-Item $repoUriAddress -ItemType Directory -Force
     $localRepoParams = @{
-        Name = "psgettestlocal"
-        Uri = $repoUriAddress
+        Name     = "psgettestlocal"
+        Uri      = $repoUriAddress
         Priority = 40
-        Trusted = $false
+        Trusted  = $false
     }
     Register-PSResourceRepository @localRepoParams
 
     $repoUriAddress2 = Join-Path -Path $TestDrive -ChildPath "testdir2"
     $null = New-Item $repoUriAddress2 -ItemType Directory -Force
     $localRepoParams2 = @{
-        Name = "psgettestlocal2"
-        Uri = $repoUriAddress2
+        Name     = "psgettestlocal2"
+        Uri      = $repoUriAddress2
         Priority = 50
-        Trusted = $false
+        Trusted  = $false
     }
     Register-PSResourceRepository @localRepoParams2
 
-	# Both actually point to the same paths as the purely localpath repository, simplifying logistics
-	$repoUriAddress3 = Join-Path -Path $TestDrive -ChildPath "testdir"
+    # Both actually point to the same paths as the purely localpath repository, simplifying logistics
+    $repoUriAddress3 = Join-Path -Path $TestDrive -ChildPath "testdir"
     $path3 = Get-Item $repoUriAddress3
     $localRepoParams = @{
-        Name = "psgettestlocal3"
-        Uri = $path3.FullName -Replace '^(.):', '\\localhost\$1$'
+        Name     = "psgettestlocal3"
+        Uri      = $path3.FullName -Replace '^(.):', '\\localhost\$1$'
         Priority = 60
-        Trusted = $false
+        Trusted  = $false
     }
     Register-PSResourceRepository @localRepoParams
 
     $repoUriAddress4 = Join-Path -Path $TestDrive -ChildPath "testdir2"
     $path4 = Get-Item $repoUriAddress4
     $localRepoParams2 = @{
-        Name = "psgettestlocal4"
-        Uri = $path4.FullName -Replace '^(.):', '\\localhost\$1$'
+        Name     = "psgettestlocal4"
+        Uri      = $path4.FullName -Replace '^(.):', '\\localhost\$1$'
         Priority = 70
-        Trusted = $false
+        Trusted  = $false
     }
     Register-PSResourceRepository @localRepoParams2
 
@@ -284,10 +261,10 @@ function Register-LocalTestNupkgsRepo {
 
     $repoUriAddress = $testNupkgsFolderPath
     $localRepoParams = @{
-        Name = "localNupkgRepo"
-        Uri = $repoUriAddress
+        Name     = "localNupkgRepo"
+        Uri      = $repoUriAddress
         Priority = 70
-        Trusted = $false
+        Trusted  = $false
     }
 
     Register-PSResourceRepository @localRepoParams
@@ -295,10 +272,10 @@ function Register-LocalTestNupkgsRepo {
 
 function Register-PSGallery {
     $PSGalleryRepoParams = @{
-        Name = $script:PSGalleryName
-        Uri = $script:PSGalleryLocation
+        Name     = $script:PSGalleryName
+        Uri      = $script:PSGalleryLocation
         Priority = 1
-        Trusted = $false
+        Trusted  = $false
     }
     Register-PSResourceRepository @PSGalleryRepoParams
 
@@ -306,29 +283,27 @@ function Register-PSGallery {
 }
 
 function Unregister-LocalRepos {
-    if(Get-PSResourceRepository -Name "psgettestlocal"){
+    if (Get-PSResourceRepository -Name "psgettestlocal") {
         Unregister-PSResourceRepository -Name "psgettestlocal"
     }
-    if(Get-PSResourceRepository -Name "psgettestlocal2"){
+    if (Get-PSResourceRepository -Name "psgettestlocal2") {
         Unregister-PSResourceRepository -Name "psgettestlocal2"
     }
-	if(Get-PSResourceRepository -Name "psgettestlocal3"){
+    if (Get-PSResourceRepository -Name "psgettestlocal3") {
         Unregister-PSResourceRepository -Name "psgettestlocal3"
     }
-    if(Get-PSResourceRepository -Name "psgettestlocal4"){
+    if (Get-PSResourceRepository -Name "psgettestlocal4") {
         Unregister-PSResourceRepository -Name "psgettestlocal4"
     }
 }
-function Get-TestDriveSetUp
-{
+function Get-TestDriveSetUp {
     $testResourcesFolder = Join-Path $TestDrive -ChildPath "TestLocalDirectory"
 
     $script:testIndividualResourceFolder = Join-Path -Path $testResourcesFolder -ChildPath "PSGet_$(Get-Random)"
     $null = New-Item -Path $testIndividualResourceFolder -ItemType Directory -Force
 }
 
-function Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive
-{
+function Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive {
     Param(
         [string]
         $roleCapName
@@ -347,8 +322,7 @@ function Get-RoleCapabilityResourcePublishedToLocalRepoTestDrive
     Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
 }
 
-function Get-DSCResourcePublishedToLocalRepoTestDrive
-{
+function Get-DSCResourcePublishedToLocalRepoTestDrive {
     Param(
         [string]
         $dscName
@@ -366,8 +340,7 @@ function Get-DSCResourcePublishedToLocalRepoTestDrive
     Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
 }
 
-function Get-ScriptResourcePublishedToLocalRepoTestDrive
-{
+function Get-ScriptResourcePublishedToLocalRepoTestDrive {
     Param(
         [string]
         $scriptName,
@@ -384,26 +357,25 @@ function Get-ScriptResourcePublishedToLocalRepoTestDrive
     $null = New-Item -Path $scriptFilePath -ItemType File -Force
 
     $params = @{
-                Version = $scriptVersion
-                GUID = [guid]::NewGuid()
-                Author = 'Jane'
-                CompanyName = 'Microsoft Corporation'
-                Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
-                Description = "Description for the $scriptName script"
-                LicenseUri = "https://$scriptName.com/license"
-                IconUri = "https://$scriptName.com/icon"
-                ProjectUri = "https://$scriptName.com"
-                Tags = @('Tag1','Tag2', "Tag-$scriptName-$scriptVersion")
-                ReleaseNotes = "$scriptName release notes"
-                }
+        Version      = $scriptVersion
+        GUID         = [guid]::NewGuid()
+        Author       = 'Jane'
+        CompanyName  = 'Microsoft Corporation'
+        Copyright    = '(c) 2020 Microsoft Corporation. All rights reserved.'
+        Description  = "Description for the $scriptName script"
+        LicenseUri   = "https://$scriptName.com/license"
+        IconUri      = "https://$scriptName.com/icon"
+        ProjectUri   = "https://$scriptName.com"
+        Tags         = @('Tag1', 'Tag2', "Tag-$scriptName-$scriptVersion")
+        ReleaseNotes = "$scriptName release notes"
+    }
 
     $scriptMetadata = Create-PSScriptMetadata @params
     Set-Content -Path $scriptFilePath -Value $scriptMetadata
     Publish-PSResource -Path $scriptFilePath -Repository $scriptRepoName
 }
 
-function Get-CommandResourcePublishedToLocalRepoTestDrive
-{
+function Get-CommandResourcePublishedToLocalRepoTestDrive {
     Param(
         [string]
         $cmdName
@@ -420,8 +392,7 @@ function Get-CommandResourcePublishedToLocalRepoTestDrive
     Publish-PSResource -Path $publishModuleBase -Repository psgettestlocal
 }
 
-function Get-ModuleResourcePublishedToLocalRepoTestDrive
-{
+function Get-ModuleResourcePublishedToLocalRepoTestDrive {
     Param(
         [string]
         $moduleName,
@@ -441,15 +412,13 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
 
-function Create-TagsStringEntry
-{
+function Create-TagsStringEntry {
     Param(
         [string[]]
         $tags
     )
 
-    if (!$tags)
-    {
+    if (!$tags) {
         return ""
     }
 
@@ -457,8 +426,7 @@ function Create-TagsStringEntry
     return $tagsString
 }
 
-function New-TestModule
-{
+function New-TestModule {
     Param(
         [string]
         $path = "$TestDrive",
@@ -498,8 +466,7 @@ function New-TestModule
     $null = New-Item -Path $modulePath -ItemType Directory -Force
     $tagsEntry = Create-TagsStringEntry -tags $tags
     $prereleaseEntry = ""
-    if ($prereleaseLabel)
-    {
+    if ($prereleaseLabel) {
         $prereleaseEntry = "Prerelease = '{0}'" -f $prereleaseLabel
     }
 
@@ -525,8 +492,7 @@ function New-TestModule
     Publish-PSResource -Path $modulePath -Repository $repoName
 }
 
-function Get-ModuleResourcePublishedToLocalRepoTestDrive
-{
+function Get-ModuleResourcePublishedToLocalRepoTestDrive {
     Param(
         [string]
         $moduleName,
@@ -550,25 +516,17 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     $null = New-Item -Path $publishModuleBase -ItemType Directory -Force
 
     $version = $packageVersion
-    if (!$tags -or ($tags.Count -eq 0))
-    {
-        if (!$prereleaseLabel)
-        {
+    if (!$tags -or ($tags.Count -eq 0)) {
+        if (!$prereleaseLabel) {
             New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module"
-        }
-        else
-        {
+        } else {
             New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Prerelease $prereleaseLabel -Description "$publishModuleName module"
         }
-    }
-    else {
+    } else {
         # tags is not null or is empty
-        if (!$prereleaseLabel)
-        {
+        if (!$prereleaseLabel) {
             New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Description "$publishModuleName module" -Tags $tags
-        }
-        else
-        {
+        } else {
             New-ModuleManifest -Path (Join-Path -Path $publishModuleBase -ChildPath "$publishModuleName.psd1") -ModuleVersion $version -Prerelease $prereleaseLabel -Description "$publishModuleName module" -Tags $tags
         }
     }
@@ -576,24 +534,21 @@ function Get-ModuleResourcePublishedToLocalRepoTestDrive
     Publish-PSResource -Path $publishModuleBase -Repository $repoName
 }
 
-function RemoveItem
-{
+function RemoveItem {
     Param(
         [string]
         $path
     )
 
-    if($path -and (Test-Path $path))
-    {
+    if ($path -and (Test-Path $path)) {
         Remove-Item $path -Force -Recurse -ErrorAction SilentlyContinue
     }
 }
 
-function Create-PSScriptMetadata
-{
+function Create-PSScriptMetadata {
     [OutputType([String])]
-    [CmdletBinding(PositionalBinding=$false,
-    SupportsShouldProcess=$true)]
+    [CmdletBinding(PositionalBinding = $false,
+        SupportsShouldProcess = $true)]
 
     Param
     (
@@ -656,13 +611,12 @@ function Create-PSScriptMetadata
         [string[]]
         $ReleaseNotes,
 
-		[Parameter()]
+        [Parameter()]
         [string]
         $PrivateData
     )
 
-    Process
-    {
+    Process {
         $PSScriptInfoString = @"
 
 <#PSScriptInfo
@@ -714,8 +668,7 @@ Checks that provided PSGetInfo object contents match the expected data
 from the test information file: PSGetModuleInfo.xml
 #>
 
-function CheckForExpectedPSGetInfo
-{
+function CheckForExpectedPSGetInfo {
     param ($psGetInfo)
 
     $psGetInfo.AdditionalMetadata.Keys | Should -HaveCount 22
@@ -768,8 +721,7 @@ function CheckForExpectedPSGetInfo
     $psGetInfo.Version | Should -Be "1.1.0"
 }
 
-function Set-TestACRRepositories
-{
+function Set-TestACRRepositories {
     Param(
         [string[]]
         $repositoryNames
@@ -779,8 +731,7 @@ function Set-TestACRRepositories
     $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
     $fileExists = Test-Path -Path $acrRepositoryNamesFilePath
 
-    if ($fileExists)
-    {
+    if ($fileExists) {
         $repositoryNames | Out-File -FilePath $acrRepositoryNamesFilePath
     }
 }

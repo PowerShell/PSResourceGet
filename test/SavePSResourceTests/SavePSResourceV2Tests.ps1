@@ -104,11 +104,10 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
     }
 
     It "Should not save resource with incorrectly formatted version such as exclusive version (1.0.0.0)" {
-        $Version="(1.0.0.0)"
+        $Version = "(1.0.0.0)"
         try {
             Save-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -Path $SaveDir -ErrorAction SilentlyContinue -TrustRepository
-        }
-        catch
+        } catch
         {}
 
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ $testModuleName
@@ -127,7 +126,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
 
     It "Save a module with a dependency" {
         Save-PSResource -Name "TestModuleWithDependencyE" -Version "1.0.0.0" -Repository $PSGalleryName -Path $SaveDir -TrustRepository
-        $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq "TestModuleWithDependencyE" -or $_.Name -eq "TestModuleWithDependencyC" -or $_.Name -eq "TestModuleWithDependencyB" -or $_.Name -eq "TestModuleWithDependencyD"}
+        $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq "TestModuleWithDependencyE" -or $_.Name -eq "TestModuleWithDependencyC" -or $_.Name -eq "TestModuleWithDependencyB" -or $_.Name -eq "TestModuleWithDependencyD" }
         $pkgDirs.Count | Should -BeGreaterThan 1
         (Get-ChildItem $pkgDirs[0].FullName).Count | Should -BeGreaterThan 0
         (Get-ChildItem $pkgDirs[1].FullName).Count | Should -BeGreaterThan 0
@@ -137,7 +136,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
 
     It "Save a module with a dependency and skip saving the dependency" {
         Save-PSResource -Name "TestModuleWithDependencyE" -Version "1.0.0.0" -SkipDependencyCheck -Repository $PSGalleryName -Path $SaveDir -TrustRepository
-        $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq "TestModuleWithDependencyE"}
+        $pkgDirs = Get-ChildItem -Path $SaveDir | Where-Object { $_.Name -eq "TestModuleWithDependencyE" }
         $pkgDirs | Should -HaveCount 1
         (Get-ChildItem $pkgDirs[0].FullName) | Should -HaveCount 1
     }

@@ -21,7 +21,7 @@ public interface IServerAPICalls
     /// Examples: Search -Tag "JSON" -Repository PSGallery
     /// </summary>
     FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ErrorRecord errRecord);
-  
+
     /// <summary>
     /// Find method which allows for searching for single name and returns latest version.
     /// Name: no wildcard support

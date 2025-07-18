@@ -17,7 +17,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
     public sealed class PSScriptFileInfo
     {
         #region Properties
-        
+
         public PSScriptMetadata ScriptMetadataComment { get; set; }
 
         public PSScriptHelp ScriptHelpComment { get; set; }
@@ -109,7 +109,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             ref string[] remainingFileContent,
             out ErrorRecord error)
         {
-            error= null;
+            error = null;
 
             psScriptInfoCommentContent = new List<string>();
             helpInfoCommentContent = new List<string>();
@@ -126,7 +126,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             while (i < fileContents.Length)
             {
                 string line = fileContents[i];
-                
+
                 if (line.Trim().StartsWith("<#PSScriptInfo"))
                 {
                     int j = i + 1; // start at the next line
@@ -142,7 +142,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             i = j + 1;
                             break;
                         }
-                        
+
                         j++;
                     }
 
@@ -150,8 +150,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     {
                         error = new ErrorRecord(
                             new InvalidOperationException($"Could not parse '{scriptFileInfoPath}' as a PowerShell script file due to missing the closing '#>' for <#PSScriptInfo comment block"),
-                            "MissingEndBracketToPSScriptInfoParseError", 
-                            ErrorCategory.ParserError, 
+                            "MissingEndBracketToPSScriptInfoParseError",
+                            ErrorCategory.ParserError,
                             null);
 
                         return false;
@@ -182,7 +182,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     {
                         error = new ErrorRecord(
                             new InvalidOperationException($"Could not parse '{scriptFileInfoPath}' as a PowerShell script file due to missing the closing '#>' for HelpInfo comment block"),
-                            "MissingEndBracketToHelpInfoCommentParseError", 
+                            "MissingEndBracketToHelpInfoCommentParseError",
                             ErrorCategory.ParserError,
                             null);
 
@@ -218,8 +218,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // check for file not containing '<#PSScriptInfo ... #>' comment
                 error = new ErrorRecord(
                     new InvalidOperationException($"Could not parse '{scriptFileInfoPath}' as a PowerShell script due to it missing '<#PSScriptInfo #> block"),
-                    "MissingEndBracketToHelpInfoCommentParseError", 
-                    ErrorCategory.ParserError, 
+                    "MissingEndBracketToHelpInfoCommentParseError",
+                    ErrorCategory.ParserError,
                     null);
 
                 return false;
@@ -230,8 +230,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // check for file not containing HelpInfo comment
                 error = new ErrorRecord(
                     new InvalidOperationException($"Could not parse '{scriptFileInfoPath}' as a PowerShell script due to it missing HelpInfo comment block"),
-                    "missingHelpInfoCommentError", 
-                    ErrorCategory.ParserError, 
+                    "missingHelpInfoCommentError",
+                    ErrorCategory.ParserError,
                     null);
 
                 return false;
@@ -323,7 +323,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 remainingFileContent: ref remainingFileContent,
                 out ErrorRecord parseError))
             {
-                errors = new ErrorRecord[]{parseError};
+                errors = new ErrorRecord[] { parseError };
                 return false;
             }
 
@@ -357,7 +357,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 errors = new ErrorRecord[]{ new ErrorRecord(
                     new ArgumentException($"PSScriptFileInfo object could not be created from passed in file due to {e.Message}"),
-                    "PSScriptFileInfoObjectNotCreatedFromFileError", 
+                    "PSScriptFileInfoObjectNotCreatedFromFileError",
                     ErrorCategory.ParserError,
                     null) };
 
@@ -511,7 +511,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             Hashtable scriptHashtable = new Hashtable(StringComparer.OrdinalIgnoreCase);
 
             Hashtable metadataObjectHashtable = ScriptMetadataComment.ToHashtable();
-            foreach(string key in metadataObjectHashtable.Keys)
+            foreach (string key in metadataObjectHashtable.Keys)
             {
                 if (!scriptHashtable.ContainsKey(key))
                 {
