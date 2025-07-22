@@ -53,6 +53,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private NetworkCredential _networkCredential;
         string userAgentString = UserAgentInfo.UserAgentString();
         private bool _isNupkgPathSpecified = false;
+        private bool _isContainerRegistryLatest = false;
+        private bool _isContainerRegistryLatestPreview = false;
         private Hashtable dependencies;
         private Hashtable parsedMetadata;
         private PSCredential Credential;
@@ -88,7 +90,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string destinationPath,
             bool skipModuleManifestValidate,
             CancellationToken cancellationToken,
-            bool isNupkgPathSpecified)
+            bool isNupkgPathSpecified,
+            bool isContainerRegistryLatest,
+            bool isContainerRegistryLatestPreview)
         {
             _callerCmdlet = CallerCmdlet.PublishPSResource;
             _cmdOperation = "Publish";
@@ -100,6 +104,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             SkipModuleManifestValidate = skipModuleManifestValidate;
             _cancellationToken = cancellationToken;
             _isNupkgPathSpecified = isNupkgPathSpecified;
+            _isContainerRegistryLatest = isContainerRegistryLatest;
+            _isContainerRegistryLatestPreview = isContainerRegistryLatestPreview;
             outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
             outputNupkgDir = System.IO.Path.Combine(outputDir, "nupkg");
         }
@@ -461,7 +467,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                     }
 
-                    if (!containerRegistryServer.PushNupkgContainerRegistry(outputNupkgDir, _pkgName, modulePrefix, _pkgVersion, resourceType, parsedMetadata, dependencies, _isNupkgPathSpecified, Path, out ErrorRecord pushNupkgContainerRegistryError))
+                    string latestTag = String.Empty;
+                    if (_isContainerRegistryLatest || _isContainerRegistryLatestPreview)
+                    {
+                        latestTag = _isContainerRegistryLatest ? "latest" : "preview";
+                    }
+
+                    if (!containerRegistryServer.PushNupkgContainerRegistry(outputNupkgDir, _pkgName, modulePrefix, _pkgVersion, resourceType, parsedMetadata, dependencies, _isNupkgPathSpecified, Path, latestTag, out ErrorRecord pushNupkgContainerRegistryError))
                     {
                         _cmdletPassedIn.WriteError(pushNupkgContainerRegistryError);
                         return;
