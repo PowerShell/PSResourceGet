@@ -70,7 +70,6 @@ function GetOperation {
             }
 
             $resourcesExist = @()
-            $resourcesMissing = @()
 
             Add-Type -AssemblyName "$PSScriptRoot/dependencies/NuGet.Versioning.dll"
 
@@ -85,17 +84,11 @@ function GetOperation {
                                 if ($versionRange.Satisfies($resourceVersion)) {
                                     $resourcesExist += $resource
                                 }
-                                else {
-                                    $resourcesMissing += $inputResource
-                                }
                             }
                             catch {
                                 # Fallback: simple string comparison (not full NuGet range support)
                                 if ($resource.Version.ToString() -eq $inputResource.Version) {
                                     $resourcesExist += $resource
-                                }
-                                else {
-                                    $resourcesMissing += $inputResource
                                 }
                             }
                         }
@@ -103,7 +96,7 @@ function GetOperation {
                 }
             }
 
-            PopulatePSResourcesObjectByRepository -resourcesExist $resourcesExist -resourcesMissing $resourcesMissing -repositoryName $inputObj.repositoryName -scope $inputObj.Scope
+            PopulatePSResourcesObjectByRepository -resourcesExist $resourcesExist -inputResources $inputObj.resources -repositoryName $inputObj.repositoryName -scope $inputObj.Scope
          }
         default { throw "Unknown ResourceType: $ResourceType" }
     }
@@ -197,40 +190,44 @@ function FilterPSResourcesByRepository {
 function PopulatePSResourcesObjectByRepository {
     param (
         $resourcesExist,
-        $resourcesMissing,
+        $inputResources,
         $repositoryName,
         $scope
     )
 
     $resources = @()
+    $resourcesObj = @()
 
-    $resources += $resourcesExist | ForEach-Object {
-        [pscustomobject]@{
-            name    = $_.Name
-            version = $_.Version.ToString()
-            _exists = $true
-        }
-    }
-
-    $resources += $resourcesMissing | ForEach-Object {
-        [pscustomobject]@{
-            name    = $_.Name
-            version = $_.Version.ToString()
-            _exists = $false
-        }
-    }
-
-    $resourcesObj = if ($scope) {
-        [pscustomobject]@{
-            repositoryName = $repositoryName
-            scope          = $scope
-            resources      = $resources
+    if (-not $resourcesExist) {
+        $resourcesObj = $inputResources | ForEach-Object {
+            [pscustomobject]@{
+                name    = $_.Name
+                version = $_.Version.ToString()
+                _exists = $false
+            }
         }
     }
     else {
-        [pscustomobject]@{
-            repositoryName = $repositoryName
-            resources      = $resources
+        $resources += $resourcesExist | ForEach-Object {
+            [pscustomobject]@{
+                name    = $_.Name
+                version = $_.Version.ToString()
+                _exists = $true
+            }
+        }
+
+        $resourcesObj = if ($scope) {
+            [pscustomobject]@{
+                repositoryName = $repositoryName
+                scope          = $scope
+                resources      = $resources
+            }
+        }
+        else {
+            [pscustomobject]@{
+                repositoryName = $repositoryName
+                resources      = $resources
+            }
         }
     }
 
