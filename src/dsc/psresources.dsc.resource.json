@@ -67,13 +67,9 @@
         "Scope": {
           "type": "integer",
           "description": "",
-          "x-enumNames": [
+          "enum": [
             "CurrentUser",
             "AllUsers"
-          ],
-          "enum": [
-            0,
-            1
           ]
         },
         "PSResource": {
