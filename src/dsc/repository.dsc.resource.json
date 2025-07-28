@@ -44,50 +44,42 @@
             "additionalProperties": false,
             "properties": {
                 "name": {
-                "type": [
-                    "null",
-                    "string"
-                ]
+                    "type": [
+                        "null",
+                        "string"
+                    ]
                 },
                 "uri": {
-                "type": [
-                    "null",
-                    "string"
-                ]
+                    "type": [
+                        "null",
+                        "string"
+                    ]
                 },
                 "trusted": {
-                "type": "boolean"
+                    "type": "boolean"
                 },
                 "priority": {
-                "type": "integer"
+                    "type": "integer"
                 },
                 "repositoryType": {
-                "$ref": "#/definitions/RepositoryType"
+                    "$ref": "#/definitions/RepositoryType"
                 },
                 "_exists": {
-                "type": "boolean"
+                    "type": "boolean"
                 }
             },
             "definitions": {
                 "RepositoryType": {
-                "type": "integer",
-                "description": "",
-                "x-enumNames": [
-                    "Unknown",
-                    "V2",
-                    "V3",
-                    "Local",
-                    "NugetServer",
-                    "ContainerRegistry"
-                ],
-                "enum": [
-                    0,
-                    1,
-                    2,
-                    3,
-                    4,
-                    5
-                ]
+                    "type": "integer",
+                    "description": "",
+                    "enum": [
+                        "Unknown",
+                        "V2",
+                        "V3",
+                        "Local",
+                        "NugetServer",
+                        "ContainerRegistry"
+                    ]
                 }
             }
         }
