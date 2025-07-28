@@ -1,0 +1,87 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "description": "This resource manages PowerShell repositories using PSResourceGet.",
+    "type": "Microsoft.PowerShell.PSResourceGet/Repository",
+    "version": "0.0.1",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-Command",
+            "$Input | ./psresourceget.ps1 -resourcetype 'repository' -operation 'get'"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-Command",
+            "$Input | ./psresourceget.ps1 -resourcetype 'repository' -operation set"
+        ],
+        "input": "stdin"
+    },
+    "export": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-Command",
+            "./psresourceget.ps1 -resourcetype 'repository' -operation export"
+        ],
+        "input": "stdin"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "title": "Repository",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
+                "uri": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
+                "trusted": {
+                    "type": "boolean"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "repositoryType": {
+                    "$ref": "#/definitions/RepositoryType"
+                },
+                "_exists": {
+                    "type": "boolean"
+                }
+            },
+            "definitions": {
+                "RepositoryType": {
+                    "type": "integer",
+                    "description": "",
+                    "enum": [
+                        "Unknown",
+                        "V2",
+                        "V3",
+                        "Local",
+                        "NugetServer",
+                        "ContainerRegistry"
+                    ]
+                }
+            }
+        }
+    }
+}
