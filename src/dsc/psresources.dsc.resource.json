@@ -1,6 +1,6 @@
 {
   "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
-  "description": "This resource manages PowerShell resources using PSResourceGet.",
+  "description": "Manage PowerShell resources using PSResourceGet.",
   "type": "Microsoft.PowerShell.PSResourceGet/PSResources",
   "version": "0.0.1",
   "get": {
@@ -38,35 +38,36 @@
   },
   "schema": {
     "embedded": {
-      "$schema": "http://json-schema.org/draft-04/schema#",
+      "$schema": "http://json-schema.org/draft-2020-12/schema#",
       "title": "PSResources",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "repositoryName": {
-          "type": [
-            "null",
-            "string"
-          ]
+          "title": "Repository Name",
+          "description": "The name of the repository from where the resources are acquired.",
+          "type": "string"
         },
         "scope": {
-          "$ref": "#/definitions/Scope",
+          "title": "Scope",
+          "description": "The scope of the resources. Can be 'CurrentUser' or 'AllUsers'.",
+          "$ref": "#/$defs/Scope",
           "writeOnly": true
         },
         "resources": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "title": "Resources",
+          "description": "The list of resources to manage.",
+          "type": "array",
           "items": {
-            "$ref": "#/definitions/PSResource"
+            "$ref": "#/$defs/PSResource"
           }
         }
       },
-      "definitions": {
+      "$defs": {
         "Scope": {
           "type": "integer",
-          "description": "",
+          "title": "Scope",
+          "description": "Scope of the resource installation.",
           "enum": [
             "CurrentUser",
             "AllUsers"
@@ -77,28 +78,29 @@
           "additionalProperties": false,
           "properties": {
             "name": {
-              "type": [
-                "null",
-                "string"
-              ]
+              "title": "Name",
+              "description": "The name of the resource.",
+              "type": "string"
             },
             "version": {
-              "type": [
-                "null",
-                "string"
-              ]
+              "title": "Version",
+              "description": "The version range of the resource.",
+              "type": "string"
             },
             "scope": {
-              "$ref": "#/definitions/Scope",
+              "title": "Scope",
+              "description": "The scope of the resource. Can be 'CurrentUser' or 'AllUsers'.",
+              "$ref": "#/$defs/Scope",
               "writeOnly": true
             },
             "repositoryName": {
-              "type": [
-                "null",
-                "string"
-              ]
+              "title": "Repository Name",
+              "description": "The name of the repository from where the resource is acquired.",
+              "type": "string"
             },
             "preRelease": {
+              "title": "Pre-Release version",
+              "description": "Indicates whether to include pre-release versions of the resource.",
               "type": "boolean",
               "writeOnly": true
             },
