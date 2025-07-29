@@ -1,6 +1,6 @@
 {
     "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
-    "description": "This resource manages PowerShell repositories using PSResourceGet.",
+    "description": "Manage PowerShell repositories using PSResourceGet.",
     "type": "Microsoft.PowerShell.PSResourceGet/Repository",
     "version": "0.0.1",
     "get": {
@@ -38,40 +38,46 @@
     },
     "schema": {
         "embedded": {
-            "$schema": "http://json-schema.org/draft-04/schema#",
+            "$schema": "http://json-schema.org/draft-2020-12/schema#",
             "title": "Repository",
+            "description": "A PowerShell Resource repository from where to acquire the resources.",
             "type": "object",
             "additionalProperties": false,
             "properties": {
                 "name": {
-                    "type": [
-                        "null",
-                        "string"
-                    ]
+                    "title": "Name",
+                    "description": "The name of the repository.",
+                    "type": "string"
                 },
                 "uri": {
-                    "type": [
-                        "null",
-                        "string"
-                    ]
+                    "title": "URI",
+                    "description": "The URI of the repository.",
+                    "type": "string"
                 },
                 "trusted": {
+                    "title": "Trusted",
+                    "description": "Indicates whether the repository is trusted.",
                     "type": "boolean"
                 },
                 "priority": {
+                    "title": "Priority",
+                    "description": "The priority of the repository. Lower numbers indicate higher priority.",
                     "type": "integer"
                 },
                 "repositoryType": {
-                    "$ref": "#/definitions/RepositoryType"
+                    "title": "Repository Type",
+                    "description": "The type of the repository.",
+                    "$ref": "#/$defs/RepositoryType"
                 },
                 "_exists": {
                     "type": "boolean"
                 }
             },
-            "definitions": {
+            "$defs": {
                 "RepositoryType": {
                     "type": "integer",
-                    "description": "",
+                    "title": "Repository Type",
+                    "description": "The type of the repository. Can be 'Unknown', 'V2', 'V3', 'Local', 'NugetServer', or 'ContainerRegistry'.",
                     "enum": [
                         "Unknown",
                         "V2",
