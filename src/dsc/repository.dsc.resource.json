@@ -4,7 +4,9 @@
     "tags": [
         "linux",
         "windows",
-        "macos"
+        "macos",
+        "powershell",
+        "nuget"
     ],
     "type": "Microsoft.PowerShell.PSResourceGet/Repository",
     "version": "0.0.1",
@@ -14,6 +16,7 @@
             "-NoLogo",
             "-NonInteractive",
             "-NoProfile",
+            "-ExecutionPolicy Bypass",
             "-Command",
             "$Input | ./psresourceget.ps1 -resourcetype 'repository' -operation 'get'"
         ],
@@ -25,6 +28,7 @@
             "-NoLogo",
             "-NonInteractive",
             "-NoProfile",
+            "-ExecutionPolicy Bypass",
             "-Command",
             "$Input | ./psresourceget.ps1 -resourcetype 'repository' -operation set"
         ],
@@ -36,6 +40,7 @@
             "-NoLogo",
             "-NonInteractive",
             "-NoProfile",
+            "-ExecutionPolicy Bypass",
             "-Command",
             "./psresourceget.ps1 -resourcetype 'repository' -operation export"
         ],
