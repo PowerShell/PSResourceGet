@@ -1,6 +1,11 @@
 {
     "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
     "description": "Manage PowerShell repositories using PSResourceGet.",
+    "tags": [
+        "linux",
+        "windows",
+        "macos"
+    ],
     "type": "Microsoft.PowerShell.PSResourceGet/Repository",
     "version": "0.0.1",
     "get": {
