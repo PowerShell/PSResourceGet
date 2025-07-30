@@ -12,6 +12,7 @@ param(
     [Parameter(ValueFromPipeline)]
     $stdinput
 )
+
 function Write-Trace {
     param(
         [string]$message,
