@@ -172,7 +172,7 @@ function SetPSResources {
             $versionRange = [NuGet.Versioning.VersionRange]::Parse($version)
             $resourceVersion = [NuGet.Versioning.NuGetVersion]::Parse($_.Version.ToString())
             if (-not $versionRange.Satisfies($resourceVersion)) {
-                if ($resource._exists) {
+                if ($resource._exist) {
                     #$resourcesToInstall += $resource
                     $key = $resource.Name.ToLowerInvariant() + '-' + $resource.Version.ToLowerInvariant()
                     if (-not $resourcesToInstall.ContainsKey($key)) {
@@ -183,7 +183,7 @@ function SetPSResources {
                 $resourcesToUninstall += $_
             }
             else {
-                if (-not $resource._exists) {
+                if (-not $resource._exist) {
                     $resourcesToUninstall += $_
                 }
             }
@@ -285,7 +285,7 @@ function PopulatePSResourcesObjectByRepository {
             [pscustomobject]@{
                 name    = $_.Name
                 version = $_.Version.ToString()
-                _exists = $false
+                _exist = $false
             }
         }
     }
@@ -294,7 +294,7 @@ function PopulatePSResourcesObjectByRepository {
             [pscustomobject]@{
                 name    = $_.Name
                 version = $_.Version.ToString()
-                _exists = $true
+                _exist = $true
             }
         }
 
@@ -331,7 +331,7 @@ function PopulatePSResourcesObject {
             [pscustomobject]@{
                 name    = $_.Name
                 version = $_.Version.ToString()
-                _exists = $true
+                _exist = $true
             }
         }
 
@@ -350,7 +350,7 @@ function PopulateRepositoryObject {
     )
 
     $repository = if (-not $RepositoryInfo) {
-        Write-Trace -message "RepositoryInfo is null or empty. Returning _exists = false" -Level Information
+        Write-Trace -message "RepositoryInfo is null or empty. Returning _exist = false" -Level Information
 
         $inputJson = $stdinput | ConvertFrom-Json -ErrorAction Stop
 
@@ -360,7 +360,7 @@ function PopulateRepositoryObject {
             trusted        = $inputJson.Trusted
             priority       = $inputJson.Priority
             repositoryType = $inputJson.repositoryType
-            _exists        = $false
+            _exist        = $false
         }
     }
     else {
@@ -371,7 +371,7 @@ function PopulateRepositoryObject {
             trusted        = $RepositoryInfo.Trusted
             priority       = $RepositoryInfo.Priority
             repositoryType = $RepositoryInfo.ApiVersion
-            _exists        = $true
+            _exist        = $true
         }
     }
 

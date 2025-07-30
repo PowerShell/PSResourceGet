@@ -43,6 +43,28 @@
             "description": "A PowerShell Resource repository from where to acquire the resources.",
             "type": "object",
             "additionalProperties": false,
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "_exist": {
+                                "const": false
+                            }
+                        }
+                    },
+                    "then": {
+                        "required": [
+                            "name"
+                        ]
+                    },
+                    "else": {
+                        "required": [
+                            "name",
+                            "uri"
+                        ]
+                    }
+                }
+            ],
             "properties": {
                 "name": {
                     "title": "Name",
@@ -52,7 +74,8 @@
                 "uri": {
                     "title": "URI",
                     "description": "The URI of the repository.",
-                    "type": "string"
+                    "type": "string",
+                    "format": "uri"
                 },
                 "trusted": {
                     "title": "Trusted",
@@ -62,20 +85,22 @@
                 "priority": {
                     "title": "Priority",
                     "description": "The priority of the repository. Lower numbers indicate higher priority.",
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
                 },
                 "repositoryType": {
                     "title": "Repository Type",
                     "description": "The type of the repository.",
                     "$ref": "#/$defs/RepositoryType"
                 },
-                "_exists": {
-                    "type": "boolean"
+                "_exist": {
+                    "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json"
                 }
             },
             "$defs": {
                 "RepositoryType": {
-                    "type": "integer",
+                    "type": "string",
                     "title": "Repository Type",
                     "description": "The type of the repository. Can be 'Unknown', 'V2', 'V3', 'Local', 'NugetServer', or 'ContainerRegistry'.",
                     "enum": [
