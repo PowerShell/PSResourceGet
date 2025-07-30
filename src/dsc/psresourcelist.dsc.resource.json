@@ -4,7 +4,9 @@
   "tags": [
     "linux",
     "windows",
-    "macos"
+    "macos",
+    "powershell",
+    "nuget"
   ],
   "type": "Microsoft.PowerShell.PSResourceGet/PSResourceList",
   "version": "0.0.1",
@@ -14,6 +16,7 @@
       "-NoLogo",
       "-NonInteractive",
       "-NoProfile",
+      "-ExecutionPolicy Bypass",
       "-Command",
       "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation 'get'"
     ],
@@ -25,6 +28,7 @@
       "-NoLogo",
       "-NonInteractive",
       "-NoProfile",
+      "-ExecutionPolicy Bypass",
       "-Command",
       "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation set"
     ],
@@ -37,6 +41,7 @@
       "-NoLogo",
       "-NonInteractive",
       "-NoProfile",
+      "-ExecutionPolicy Bypass",
       "-Command",
       "./psresourceget.ps1 -resourcetype 'psresourcelist' -operation export"
     ],
@@ -48,6 +53,7 @@
       "-NoLogo",
       "-NonInteractive",
       "-NoProfile",
+      "-ExecutionPolicy Bypass",
       "-Command",
       "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation test"
     ],

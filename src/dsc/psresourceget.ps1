@@ -7,7 +7,7 @@ param(
     [ValidateSet('repository', 'psresource', 'repositories', 'psresources')]
     [string]$ResourceType,
     [Parameter(Mandatory = $true)]
-    [ValidateSet('get', 'set', 'export', 'test')]
+    [ValidateSet('get', 'set', 'test', 'export')]
     [string]$Operation,
     [Parameter(ValueFromPipeline)]
     $stdinput
@@ -16,28 +16,17 @@ param(
 function Write-Trace {
     param(
         [string]$message,
-        [string]$level = 'Error'
+
+        [ValidateSet('error', 'warn', 'info', 'debug', 'trace')]
+        [string]$level = 'trace'
     )
 
     $trace = [pscustomobject]@{
         $level.ToLower() = $message
     } | ConvertTo-Json -Compress
 
-    if ($level -eq 'Error') {
-        $host.ui.WriteErrorLine($trace)
-    }
-    elseif ($level -eq 'Warning') {
-        $host.ui.WriteWarningLine($trace)
-    }
-    elseif ($level -eq 'Verbose') {
-        $host.ui.WriteVerboseLine($trace)
-    }
-    elseif ($level -eq 'Debug') {
-        $host.ui.WriteDebugLine($trace)
-    }
-    else {
-        $host.ui.WriteInformation($trace)
-    }
+    $host.ui.WriteInformation($trace)
+
 }
 
 # catch any un-caught exception and write it to the error stream
@@ -194,14 +183,14 @@ function SetPSResources {
     }
 
     if ($resourcesToUninstall.Count -gt 0) {
-        Write-Trace -message "Uninstalling resources: $($resourcesToUninstall | ForEach-Object { "$($_.Name) - $($_.Version)" })" -Level Verbose
+        Write-Trace -message "Uninstalling resources: $($resourcesToUninstall | ForEach-Object { "$($_.Name) - $($_.Version)" })"
         $resourcesToUninstall | ForEach-Object {
             Uninstall-PSResource -Name $_.Name -Scope $scope -ErrorAction Stop
         }
     }
 
     if ($resourcesToInstall.Count -gt 0) {
-        Write-Trace -message "Installing resources: $($resourcesToInstall.Values | ForEach-Object { " $($_.Name) -- $($_.Version) " })" -Level Verbose
+        Write-Trace -message "Installing resources: $($resourcesToInstall.Values | ForEach-Object { " $($_.Name) -- $($_.Version) " })"
         $resourcesToInstall.Values | ForEach-Object {
             Install-PSResource -Name $_.Name -Version $_.Version -Scope $scope -Repository $repositoryName -ErrorAction Stop
         }
@@ -363,21 +352,17 @@ function PopulateRepositoryObject {
     )
 
     $repository = if (-not $RepositoryInfo) {
-        Write-Trace -message "RepositoryInfo is null or empty. Returning _exist = false" -Level Information
+        Write-Trace -message "RepositoryInfo is null or empty. Returning _exist = false"
 
         $inputJson = $stdinput | ConvertFrom-Json -ErrorAction Stop
 
         [pscustomobject]@{
             name           = $inputJson.Name
-            uri            = $inputJson.Uri
-            trusted        = $inputJson.Trusted
-            priority       = $inputJson.Priority
-            repositoryType = $inputJson.repositoryType
             _exist        = $false
         }
     }
     else {
-        Write-Trace -message "Populating repository object for: $($RepositoryInfo.Name)" -Level Verbose
+        Write-Trace -message "Populating repository object for: $($RepositoryInfo.Name)"
         [pscustomobject]@{
             name           = $RepositoryInfo.Name
             uri            = $RepositoryInfo.Uri
