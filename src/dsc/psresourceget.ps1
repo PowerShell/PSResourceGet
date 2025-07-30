@@ -4,7 +4,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('repository', 'psresource', 'repositories', 'psresources')]
+    [ValidateSet('repository', 'psresource', 'repositorylist', 'psresourcelist')]
     [string]$ResourceType,
     [Parameter(Mandatory = $true)]
     [ValidateSet('get', 'set', 'test', 'export')]
@@ -56,9 +56,9 @@ function GetOperation {
             return $ret
         }
 
-        'repositories' { throw [System.NotImplementedException]::new("Get operation is not implemented for Repositories resource.") }
+        'repositorylist' { throw [System.NotImplementedException]::new("Get operation is not implemented for RepositoryList resource.") }
         'psresource' { throw [System.NotImplementedException]::new("Get operation is not implemented for PSResource resource.") }
-        'psresources' {
+        'psresourcelist' {
             $allPSResources = if ($inputObj.scope) {
                 Get-PSResource -Scope $inputObj.Scope
             }
@@ -114,9 +114,9 @@ function ExportOperation {
             }
         }
 
-        'repositories' { throw [System.NotImplementedException]::new("Get operation is not implemented for Repositories resource.") }
+        'repositorylist' { throw [System.NotImplementedException]::new("Get operation is not implemented for RepositoryList resource.") }
         'psresource' { throw [System.NotImplementedException]::new("Get operation is not implemented for PSResource resource.") }
-        'psresources' {
+        'psresourcelist' {
             $allPSResources = Get-PSResource
             PopulatePSResourcesObject -allPSResources $allPSResources
         }
@@ -250,9 +250,9 @@ function SetOperation {
             return GetOperation -ResourceType $ResourceType
         }
 
-        'repositories' { throw [System.NotImplementedException]::new("Get operation is not implemented for Repositories resource.") }
+        'repositorylist' { throw [System.NotImplementedException]::new("Get operation is not implemented for RepositoryList resource.") }
         'psresource' { throw [System.NotImplementedException]::new("Get operation is not implemented for PSResource resource.") }
-        'psresources' { return SetPSResources -inputObj $inputObj }
+        'psresourcelist' { return SetPSResources -inputObj $inputObj }
         default { throw "Unknown ResourceType: $ResourceType" }
     }
 }
