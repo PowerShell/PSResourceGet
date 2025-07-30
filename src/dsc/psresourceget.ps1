@@ -50,6 +50,8 @@ function GetOperation {
         [string]$ResourceType
     )
 
+    ## TODO : ensure that version returned includes pre-release versions
+
     $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
 
     switch ($ResourceType) {
@@ -209,6 +211,16 @@ function SetOperation {
     param(
         [string]$ResourceType
     )
+
+    <# TODO
+    // for test and set everything
+              // 2 json lines
+                // state == current state of object
+                // diff == array of properties that are different
+
+            // for other operations, DONOT return _inDesiredState
+
+    #>
 
     $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
 

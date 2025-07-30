@@ -102,9 +102,8 @@
             "version": {
               "title": "Version",
               "description": "The version range of the resource.",
-              "type": "string"
-              // Look at nuget versioning for format
-              // returning back semantic version by adding prerelease
+              "type": "string",
+              "pattern": "^(\\[|\\()\\s*\\d+(\\.\\d+){0,2}(-[0-9A-Za-z-.]+)?\\s*(,\\s*(\\d+(\\.\\d+){0,2}(-[0-9A-Za-z-.]+)?)?\\s*(\\]|\\)))?$"
             },
             "scope": {
               "title": "Scope",
@@ -128,13 +127,6 @@
             "_inDesiredState": {
               "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json"
             }
-
-            // for test and set everything
-              // 2 json lines
-                // state == current state of object
-                // diff == array of properties that are different
-
-            // for other operations, DONOT return _inDesiredState
           }
         }
       }
