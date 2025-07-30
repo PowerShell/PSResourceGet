@@ -1,7 +1,7 @@
 {
   "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
   "description": "Manage PowerShell resources using PSResourceGet.",
-  "type": "Microsoft.PowerShell.PSResourceGet/PSResources",
+  "type": "Microsoft.PowerShell.PSResourceGet/PSResourceList",
   "version": "0.0.1",
   "get": {
     "executable": "pwsh",
@@ -10,7 +10,7 @@
       "-NonInteractive",
       "-NoProfile",
       "-Command",
-      "$Input | ./psresourceget.ps1 -resourcetype 'psresources' -operation 'get'"
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation 'get'"
     ],
     "input": "stdin"
   },
@@ -21,9 +21,10 @@
       "-NonInteractive",
       "-NoProfile",
       "-Command",
-      "$Input | ./psresourceget.ps1 -resourcetype 'psresources' -operation set"
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation set"
     ],
-    "input": "stdin"
+    "input": "stdin",
+    "return": "stateAndDiff"
   },
   "export": {
     "executable": "pwsh",
@@ -32,14 +33,26 @@
       "-NonInteractive",
       "-NoProfile",
       "-Command",
-      "./psresourceget.ps1 -resourcetype 'psresources' -operation export"
+      "./psresourceget.ps1 -resourcetype 'psresourcelist' -operation export"
     ],
     "input": "stdin"
+  },
+  "test": {
+    "executable": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NonInteractive",
+      "-NoProfile",
+      "-Command",
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation test"
+    ],
+    "input": "stdin",
+    "return": "stateAndDiff"
   },
   "schema": {
     "embedded": {
       "$schema": "http://json-schema.org/draft-2020-12/schema#",
-      "title": "PSResources",
+      "title": "PSResourceList",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -50,8 +63,9 @@
         },
         "scope": {
           "title": "Scope",
-          "description": "The scope of the resources. Can be 'CurrentUser' or 'AllUsers'.",
+          "description": "The scope of the resources. Can be 'CurrentUser' or 'AllUsers'. Defaults to 'CurrentUser'.",
           "$ref": "#/$defs/Scope",
+          "default": "CurrentUser",
           "writeOnly": true
         },
         "resources": {
@@ -65,7 +79,7 @@
       },
       "$defs": {
         "Scope": {
-          "type": "integer",
+          "type": "string",
           "title": "Scope",
           "description": "Scope of the resource installation.",
           "enum": [
@@ -76,6 +90,9 @@
         "PSResource": {
           "type": "object",
           "additionalProperties": false,
+          "required": [
+            "name"
+          ],
           "properties": {
             "name": {
               "title": "Name",
@@ -86,12 +103,13 @@
               "title": "Version",
               "description": "The version range of the resource.",
               "type": "string"
+              // Look at nuget versioning for format
+              // returning back semantic version by adding prerelease
             },
             "scope": {
               "title": "Scope",
               "description": "The scope of the resource. Can be 'CurrentUser' or 'AllUsers'.",
-              "$ref": "#/$defs/Scope",
-              "writeOnly": true
+              "$ref": "#/$defs/Scope"
             },
             "repositoryName": {
               "title": "Repository Name",
@@ -102,11 +120,21 @@
               "title": "Pre-Release version",
               "description": "Indicates whether to include pre-release versions of the resource.",
               "type": "boolean",
-              "writeOnly": true
+              "default": false
             },
-            "_exists": {
-              "type": "boolean"
+            "_exist": {
+              "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json"
+            },
+            "_inDesiredState": {
+              "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json"
             }
+
+            // for test and set everything
+              // 2 json lines
+                // state == current state of object
+                // diff == array of properties that are different
+
+            // for other operations, DONOT return _inDesiredState
           }
         }
       }
