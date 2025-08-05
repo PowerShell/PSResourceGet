@@ -16,7 +16,8 @@
             "-NoLogo",
             "-NonInteractive",
             "-NoProfile",
-            "-ExecutionPolicy Bypass",
+            "-ExecutionPolicy",
+            "Bypass",
             "-Command",
             "$Input | ./psresourceget.ps1 -resourcetype 'repository' -operation 'get'"
         ],
@@ -28,9 +29,23 @@
             "-NoLogo",
             "-NonInteractive",
             "-NoProfile",
-            "-ExecutionPolicy Bypass",
+            "-ExecutionPolicy",
+            "Bypass",
             "-Command",
             "$Input | ./psresourceget.ps1 -resourcetype 'repository' -operation set"
+        ],
+        "input": "stdin"
+    },
+    "delete": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$Input | ./psresourceget.ps1 -resourcetype 'repository' -operation delete"
         ],
         "input": "stdin"
     },
@@ -40,7 +55,8 @@
             "-NoLogo",
             "-NonInteractive",
             "-NoProfile",
-            "-ExecutionPolicy Bypass",
+            "-ExecutionPolicy",
+            "Bypass",
             "-Command",
             "./psresourceget.ps1 -resourcetype 'repository' -operation export"
         ],
@@ -48,7 +64,7 @@
     },
     "schema": {
         "embedded": {
-            "$schema": "http://json-schema.org/draft-2020-12/schema#",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "Repository",
             "description": "A PowerShell Resource repository from where to acquire the resources.",
             "type": "object",
@@ -120,6 +136,18 @@
                         "Local",
                         "NugetServer",
                         "ContainerRegistry"
+                    ]
+                },
+                "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "$id": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json",
+                    "title": "Instance should exist",
+                    "description": "Indicates whether the DSC resource instance should exist.",
+                    "type": "boolean",
+                    "default": true,
+                    "enum": [
+                        false,
+                        true
                     ]
                 }
             }
