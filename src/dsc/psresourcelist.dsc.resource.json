@@ -1,0 +1,146 @@
+{
+  "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+  "description": "Manage PowerShell resources using PSResourceGet.",
+  "tags": [
+    "linux",
+    "windows",
+    "macos",
+    "powershell",
+    "nuget"
+  ],
+  "type": "Microsoft.PowerShell.PSResourceGet/PSResourceList",
+  "version": "0.0.1",
+  "get": {
+    "executable": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NonInteractive",
+      "-NoProfile",
+      "-ExecutionPolicy Bypass",
+      "-Command",
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation 'get'"
+    ],
+    "input": "stdin"
+  },
+  "set": {
+    "executable": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NonInteractive",
+      "-NoProfile",
+      "-ExecutionPolicy Bypass",
+      "-Command",
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation set"
+    ],
+    "input": "stdin",
+    "return": "stateAndDiff"
+  },
+  "export": {
+    "executable": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NonInteractive",
+      "-NoProfile",
+      "-ExecutionPolicy Bypass",
+      "-Command",
+      "./psresourceget.ps1 -resourcetype 'psresourcelist' -operation export"
+    ],
+    "input": "stdin"
+  },
+  "test": {
+    "executable": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NonInteractive",
+      "-NoProfile",
+      "-ExecutionPolicy Bypass",
+      "-Command",
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation test"
+    ],
+    "input": "stdin",
+    "return": "stateAndDiff"
+  },
+  "schema": {
+    "embedded": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PSResourceList",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repositoryName": {
+          "title": "Repository Name",
+          "description": "The name of the repository from where the resources are acquired.",
+          "type": "string"
+        },
+        "scope": {
+          "title": "Scope",
+          "description": "The scope of the resources. Can be 'CurrentUser' or 'AllUsers'. Defaults to 'CurrentUser'.",
+          "$ref": "#/$defs/Scope",
+          "default": "CurrentUser",
+          "writeOnly": true
+        },
+        "resources": {
+          "title": "Resources",
+          "description": "The list of resources to manage.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PSResource"
+          }
+        }
+      },
+      "$defs": {
+        "Scope": {
+          "type": "string",
+          "title": "Scope",
+          "description": "Scope of the resource installation.",
+          "enum": [
+            "CurrentUser",
+            "AllUsers"
+          ]
+        },
+        "PSResource": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "description": "The name of the resource.",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "description": "The version range of the resource.",
+              "type": "string",
+              "pattern": "^(\\[|\\()\\s*\\d+(\\.\\d+){0,2}(-[0-9A-Za-z-.]+)?\\s*(,\\s*(\\d+(\\.\\d+){0,2}(-[0-9A-Za-z-.]+)?)?\\s*(\\]|\\)))?$"
+            },
+            "scope": {
+              "title": "Scope",
+              "description": "The scope of the resource. Can be 'CurrentUser' or 'AllUsers'.",
+              "$ref": "#/$defs/Scope"
+            },
+            "repositoryName": {
+              "title": "Repository Name",
+              "description": "The name of the repository from where the resource is acquired.",
+              "type": "string"
+            },
+            "preRelease": {
+              "title": "Pre-Release version",
+              "description": "Indicates whether to include pre-release versions of the resource.",
+              "type": "boolean",
+              "default": false
+            },
+            "_exist": {
+              "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json"
+            },
+            "_inDesiredState": {
+              "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json"
+            }
+          }
+        }
+      }
+    }
+  }
+}
