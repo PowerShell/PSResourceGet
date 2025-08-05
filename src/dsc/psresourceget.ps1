@@ -323,33 +323,27 @@ function SetOperation {
         'repository' {
             $rep = Get-PSResourceRepository -Name $inputObj.Name -ErrorAction SilentlyContinue
 
+            $properties = @('Name', 'Uri', 'Trusted', 'Priority', 'RepositoryType')
+
             $splatt = @{}
 
-            if ($inputObj.Name) {
-                $splatt['Name'] = $inputObj.Name
-            }
-
-            if ($inputObj.Uri) {
-                $splatt['Uri'] = $inputObj.Uri
-            }
-
-            if ($inputObj.Trusted) {
-                $splatt['Trusted'] = $inputObj.Trusted
-            }
-
-            if ($null -ne $inputObj.Priority ) {
-                $splatt['Priority'] = $inputObj.Priority
-            }
-
-            if ($inputObj.repositoryType) {
-                $splatt['ApiVersion'] = $inputObj.repositoryType
+            foreach($property in $properties) {
+                if ($null -ne $inputObj.PSObject.Properties[$property]) {
+                    $splatt[$property] = $inputObj.$property
+                }
             }
 
             if ($null -eq $rep) {
                 Register-PSResourceRepository @splatt
             }
             else {
-                Set-PSResourceRepository @splatt
+                if ($inputObj._exist -eq $false) {
+                    Write-Trace -message "Repository $($inputObj.Name) exists and _exist is false. Deleting it." -level info
+                    Unregister-PSResourceRepository -Name $inputObj.Name
+                }
+                else {
+                    Set-PSResourceRepository @splatt
+                }
             }
 
             return GetOperation -ResourceType $ResourceType
