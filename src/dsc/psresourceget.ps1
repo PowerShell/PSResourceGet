@@ -7,11 +7,84 @@ param(
     [ValidateSet('repository', 'psresource', 'repositorylist', 'psresourcelist')]
     [string]$ResourceType,
     [Parameter(Mandatory = $true)]
-    [ValidateSet('get', 'set', 'test', 'export')]
+    [ValidateSet('get', 'set', 'test', 'delete', 'export')]
     [string]$Operation,
     [Parameter(ValueFromPipeline)]
     $stdinput
 )
+
+enum Scope {
+    CurrentUser
+    AllUsers
+}
+
+class PSResource {
+    [string]$name
+    [string]$version
+    [Scope]$scope
+    [string]$repositoryName
+    [bool]$preRelease
+    [bool]$_exist
+    [bool]$_inDesiredState
+
+    PSResource([string]$name, [string]$version, [Scope]$scope, [string]$repositoryName, [bool]$preRelease) {
+        $this.name = $name
+        $this.version = $version
+        $this.scope = $scope
+        $this.repositoryName = $repositoryName
+        $this.preRelease = $preRelease
+        $this._exist = $true
+    }
+}
+
+class PSResourceList {
+    [string]$repositoryName
+    [Scope]$scope
+    [PSResource[]]$resources
+
+    PSResourceList([string]$repositoryName, [Scope]$scope, [PSResource[]]$resources) {
+        $this.repositoryName = $repositoryName
+        $this.scope = $scope
+        $this.resources = $resources
+    }
+}
+
+class Repository {
+    [string]$name
+    [string]$uri
+    [bool]$trusted
+    [int]$priority
+    [string]$repositoryType
+    [bool]$_exist
+
+    Repository([string]$name) {
+        $this.name = $name
+        $this._exist = $false
+    }
+
+    Repository([string]$name, [string]$uri, [bool]$trusted, [int]$priority, [string]$repositoryType) {
+        $this.name = $name
+        $this.uri = $uri
+        $this.trusted = $trusted
+        $this.priority = $priority
+        $this.repositoryType = $repositoryType
+        $this._exist = $true
+    }
+
+    Repository([PSCustomObject]$repositoryInfo) {
+        $this.name = $repositoryInfo.Name
+        $this.uri = $repositoryInfo.Uri
+        $this.trusted = $repositoryInfo.Trusted
+        $this.priority = $repositoryInfo.Priority
+        $this.repositoryType = $repositoryInfo.ApiVersion
+        $this._exist = $true
+    }
+
+    Repository([string]$name, [bool]$exist) {
+        $this.name = $name
+        $this._exist = $exist
+    }
+}
 
 function Write-Trace {
     param(
@@ -25,8 +98,12 @@ function Write-Trace {
         $level.ToLower() = $message
     } | ConvertTo-Json -Compress
 
-    $host.ui.WriteInformation($trace)
-
+    if($env:SKIP_TRACE) {
+        $host.ui.WriteVerboseLine($trace)
+    }
+    else {
+        $host.ui.WriteErrorLine($trace)
+    }
 }
 
 # catch any un-caught exception and write it to the error stream
@@ -46,14 +123,30 @@ function GetOperation {
 
     switch ($ResourceType) {
         'repository' {
-            $rep = Get-PSResourceRepository -Name $inputObj.Name -ErrorVariable err -ErrorAction SilentlyContinue
+            $inputRepository = [Repository]::new($inputObj)
 
-            if ($err.FullyQualifiedErrorId -eq 'ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSResourceRepository') {
-                return PopulateRepositoryObject -RepositoryInfo $null
+            $rep = Get-PSResourceRepository -Name $inputRepository.Name -ErrorVariable err -ErrorAction SilentlyContinue
+
+            $ret = if ($err.FullyQualifiedErrorId -eq 'ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSResourceRepository') {
+                Write-Trace -message "Repository not found: $($inputRepository.Name). Returning _exist = false"
+                [Repository]::new(
+                    $InputRepository.Name,
+                    $false
+                )
+            }
+            else {
+                [Repository]::new(
+                    $rep.Name,
+                    $rep.Uri,
+                    $rep.Trusted,
+                    $rep.Priority,
+                    $rep.ApiVersion
+                )
+
+                Write-Trace -message "Returning repository object for: $($ret.Name)"
             }
 
-            $ret = PopulateRepositoryObject -RepositoryInfo $rep
-            return $ret
+            return ( $ret | ConvertTo-Json -Compress )
         }
 
         'repositorylist' { throw [System.NotImplementedException]::new("Get operation is not implemented for RepositoryList resource.") }
@@ -107,11 +200,23 @@ function GetOperation {
 function ExportOperation {
     switch ($ResourceType) {
         'repository' {
-            $rep = Get-PSResourceRepository -ErrorAction Stop
+            $rep = Get-PSResourceRepository -ErrorAction SilentlyContinue
+
+            if (-not $rep) {
+                Write-Trace -message "No repositories found. Returning empty array." -level info
+                return @()
+            }
 
             $rep | ForEach-Object {
-                PopulateRepositoryObject -RepositoryInfo $_
+                [Repository]::new(
+                    $_.Name,
+                    $_.Uri,
+                    $_.Trusted,
+                    $_.Priority,
+                    $_.ApiVersion
+                ) | ConvertTo-Json -Compress
             }
+
         }
 
         'repositorylist' { throw [System.NotImplementedException]::new("Get operation is not implemented for RepositoryList resource.") }
@@ -256,6 +361,39 @@ function SetOperation {
         default { throw "Unknown ResourceType: $ResourceType" }
     }
 }
+
+function DeleteOperation {
+     param(
+        [string]$ResourceType
+    )
+
+    $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
+    switch ($ResourceType) {
+        'repository' {
+            if (-not $inputObj._exist -ne $false) {
+                throw "_exist property is not set to false for the repository. Cannot delete."
+            }
+
+            $rep = Get-PSResourceRepository -Name $inputObj.Name -ErrorAction SilentlyContinue
+
+            if ($null -ne $rep) {
+                Unregister-PSResourceRepository -Name $inputObj.Name
+            }
+            else {
+                Write-Trace -message "Repository not found: $($inputObj.Name). Nothing to delete." -level info
+            }
+
+            return GetOperation -ResourceType $ResourceType
+        }
+
+        'repositorylist' { throw [System.NotImplementedException]::new("Delete operation is not implemented for RepositoryList resource.") }
+        'psresource' { throw [System.NotImplementedException]::new("Delete operation is not implemented for PSResource resource.") }
+        'psresourcelist' { throw [System.NotImplementedException]::new("Delete operation is not implemented for PSResourceList resource.") }
+        default { throw "Unknown ResourceType: $ResourceType" }
+    }
+}
+
+
 function FilterPSResourcesByRepository {
     param (
         $allPSResources,
@@ -346,39 +484,12 @@ function PopulatePSResourcesObject {
     }
 }
 
-function PopulateRepositoryObject {
-    param(
-        $RepositoryInfo
-    )
 
-    $repository = if (-not $RepositoryInfo) {
-        Write-Trace -message "RepositoryInfo is null or empty. Returning _exist = false"
-
-        $inputJson = $stdinput | ConvertFrom-Json -ErrorAction Stop
-
-        [pscustomobject]@{
-            name           = $inputJson.Name
-            _exist        = $false
-        }
-    }
-    else {
-        Write-Trace -message "Populating repository object for: $($RepositoryInfo.Name)"
-        [pscustomobject]@{
-            name           = $RepositoryInfo.Name
-            uri            = $RepositoryInfo.Uri
-            trusted        = $RepositoryInfo.Trusted
-            priority       = $RepositoryInfo.Priority
-            repositoryType = $RepositoryInfo.ApiVersion
-            _exist        = $true
-        }
-    }
-
-    return ($repository | ConvertTo-Json -Compress)
-}
 
 switch ($Operation.ToLower()) {
     'get' { return (GetOperation -ResourceType $ResourceType) }
     'set' { return (SetOperation -ResourceType $ResourceType) }
     'export' { return (ExportOperation -ResourceType $ResourceType) }
+    'delete' { return (DeleteOperation -ResourceType $ResourceType) }
     default { throw "Unknown Operation: $Operation" }
 }
