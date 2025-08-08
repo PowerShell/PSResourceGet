@@ -1,20 +1,39 @@
+# Preview Changelog
+
+## [1.2.0-preview2](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview1..v1.2.0-preview2) - 2025-07-21
+
+### New Features
+- Ingetration of the Azure Artifacts Credential Provider for ADO feeds (#1765)
+
+### Bug Fix
+- Bug fixes for NuGet v3 dependencies (#1841 Thanks @o-l-a-v!)
+- Bug fix for temporary installation path failure when installing PSResources on Linux machines (#1842 Thanks @o-l-a-v!)
+
+## [1.2.0-preview1](https://github.com/PowerShell/PSResourceGet/compare/v1.1.1..v1.2.0-preview1) - 2025-06-26
+
+### New Features
+- Dependency support for PSResources in v3 repositories (#1778 Thanks @o-l-a-v!)
+
+### Bug Fix
+- Updated dependencies and added connection timeout to improve CI tests reliability (#1829)
+- Improvements in `ContainerRegistry` repositories in listing repository catalog  (#1831)
+- Wildcard attribute added to `-Repository` parameter of `Install-PSResource` (#1808)
+
 ## ## [1.1.0-rc3](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-RC2...v1.1.0-rc3) - 2024-11-15
 
 ### Bug Fix
-
 - Include missing commits
 
 ## [1.1.0-RC2](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-RC1...v1.1.0-RC2) - 2024-10-30
 
 ### New Features
-
 - Full Microsoft Artifact Registry integration (#1741)
 
 ### Bug Fixes
 
 - Update to use OCI v2 APIs for Container Registry (#1737)
 - Bug fixes for finding and installing from local repositories on Linux machines (#1738)
-- Bug fix for finding package name with 4 part version from local repositories (#1739)
+- Bug fix for finding package name with 4 part version from local repositories (#1739) 
 
 # Preview Changelog
 

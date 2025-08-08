@@ -46,7 +46,7 @@
         'udres')
     PrivateData            = @{
         PSData = @{
-            Prerelease   = 'preview1'
+            Prerelease   = 'preview2'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -56,6 +56,15 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.2.0-preview2
+
+### New Features
+- Ingetration of the Azure Artifacts Credential Provider for ADO feeds (#1765)
+
+### Bug Fix
+- Bug fixes for NuGet v3 dependencies (#1841 Thanks @o-l-a-v!)
+- Bug fix for temporary installation path failure when installing PSResources on Linux machines (#1842 Thanks @o-l-a-v!)
+
 ## 1.2.0-preview1
 
 ### New Features
