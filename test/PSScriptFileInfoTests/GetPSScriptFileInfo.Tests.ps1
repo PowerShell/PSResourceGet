@@ -91,22 +91,22 @@ Describe "Test Get-PSScriptFileInfo" -tags 'CI' {
         $foundExternalScriptDependencies = $res.ScriptMetadataComment.ExternalScriptDependencies
 
         $foundTags | Should -Be @("tag1", "tag2")
-        foreach($tag in $foundTags) {
+        foreach ($tag in $foundTags) {
             $tag | Should -Not -Contain ","
         }
 
         $foundExternalModuleDependencies | Should -Be @("Storage", "ActiveDirectory")
-        foreach($modDep in $foundExternalModuleDependencies) {
+        foreach ($modDep in $foundExternalModuleDependencies) {
             $modDep | Should -Not -Contain ","
         }
 
         $foundRequiredScripts | Should -Be @("Script1", "Script2")
-        foreach($reqScript in $foundRequiredScripts) {
+        foreach ($reqScript in $foundRequiredScripts) {
             $modDep | Should -Not -Contain ","
         }
 
         $foundExternalScriptDependencies | Should -Be @("ExtScript1", "ExtScript2")
-        foreach($scriptDep in $foundExternalScriptDependencies) {
+        foreach ($scriptDep in $foundExternalScriptDependencies) {
             $modDep | Should -Not -Contain ","
         }
     }

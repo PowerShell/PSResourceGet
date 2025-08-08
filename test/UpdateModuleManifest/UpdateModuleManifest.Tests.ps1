@@ -34,49 +34,48 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
     It "Update module manifest given Guid parameter" {
         $Guid = [guid]::NewGuid()
         New-ModuleManifest -Path $script:testManifestPath
-        Update-PSModuleManifest -Path $script:testManifestPath -Guid $Guid 
+        Update-PSModuleManifest -Path $script:testManifestPath -Guid $Guid
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.Guid | Should -Be $Guid 
+        $results.Guid | Should -Be $Guid
     }
 
     It "Update module manifest given Author parameter" {
-        $Author = "Test Author" 
+        $Author = "Test Author"
         New-ModuleManifest -Path $script:testManifestPath
-        Update-PSModuleManifest -Path $script:testManifestPath -Author $Author 
+        Update-PSModuleManifest -Path $script:testManifestPath -Author $Author
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.Author | Should -Be $Author 
+        $results.Author | Should -Be $Author
     }
 
     It "Update module manifest given Description parameter" {
         $Description = "PSResourceGet test description"
         New-ModuleManifest -Path $script:testManifestPath
-        Update-PSModuleManifest -Path $script:testManifestPath -Description $Description 
+        Update-PSModuleManifest -Path $script:testManifestPath -Description $Description
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.Description | Should -Be $Description 
+        $results.Description | Should -Be $Description
     }
 
     It "Update module manifest given ModuleVersion parameter" {
-        $ModuleVersion =  "7.0.0.0"
+        $ModuleVersion = "7.0.0.0"
         New-ModuleManifest -Path $script:testManifestPath
-        Update-PSModuleManifest -Path $script:testManifestPath -ModuleVersion $ModuleVersion 
+        Update-PSModuleManifest -Path $script:testManifestPath -ModuleVersion $ModuleVersion
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.Version.ToString() | Should -Be $ModuleVersion 
+        $results.Version.ToString() | Should -Be $ModuleVersion
     }
 
     It "Update module manifest given RequiredModules parameter" {
         $requiredModuleName = 'PackageManagement'
         $requiredModuleVersion = '1.0.0.0'
-        $RequiredModules =  @(@{ModuleName = $requiredModuleName; ModuleVersion = $requiredModuleVersion })
+        $RequiredModules = @(@{ModuleName = $requiredModuleName; ModuleVersion = $requiredModuleVersion })
         New-ModuleManifest -Path $script:testManifestPath
         Update-PSModuleManifest -Path $script:testManifestPath -RequiredModules $RequiredModules -Description "test"
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        foreach ($module in $results.RequiredModules)
-        {
+        foreach ($module in $results.RequiredModules) {
             $module | Should -Be $requiredModuleName
             $module.Version | Should -Be $requiredModuleVersion
         }
@@ -98,7 +97,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $ModuleVersion = "1.0.0"
         $Prerelease = "  "
         New-ModuleManifest -Path $script:testManifestPath -Description $Description -ModuleVersion $ModuleVersion
-        {Update-PSModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease} | Should -Throw -ErrorId "PrereleaseValueCannotBeWhiteSpace,Microsoft.PowerShell.PSResourceGet.Cmdlets.UpdateModuleManifest"
+        { Update-PSModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease } | Should -Throw -ErrorId "PrereleaseValueCannotBeWhiteSpace,Microsoft.PowerShell.PSResourceGet.Cmdlets.UpdateModuleManifest"
     }
 
     It "Update module manifest given ReleaseNotes parameter" {
@@ -121,7 +120,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         Update-PSModuleManifest -Path $script:testManifestPath -Tags $Tag1, $Tag2
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.PrivateData.PSData.Tags | Should -Be @($Tag1, $Tag2) 
+        $results.PrivateData.PSData.Tags | Should -Be @($Tag1, $Tag2)
     }
 
     It "Update module manifest given Tag parameter" {
@@ -132,7 +131,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         Update-ModuleManifest -Path $script:testManifestPath -Tag $Tag1, $Tag2
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.PrivateData.PSData.Tags | Should -Be @($Tag1, $Tag2) 
+        $results.PrivateData.PSData.Tags | Should -Be @($Tag1, $Tag2)
     }
 
     It "Update module manifest given ProjectUri parameter" {
@@ -225,7 +224,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         Update-PSModuleManifest -Path $script:testManifestPath -RootModule $RootModuleName
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.RootModule | Should -Be $RootModuleName 
+        $results.RootModule | Should -Be $RootModuleName
     }
 
     It "Update module manifest given RequiredAssemblies parameter" {
@@ -242,7 +241,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         Update-PSModuleManifest -Path $script:testManifestPath -RequiredAssemblies $RequiredAssembly1, $RequiredAssembly2
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.RequiredAssemblies | Should -Be @($RequiredAssembly1, $RequiredAssembly2) 
+        $results.RequiredAssemblies | Should -Be @($RequiredAssembly1, $RequiredAssembly2)
     }
 
     It "Update module manifest given NestedModules parameter" {
@@ -261,7 +260,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         Update-PSModuleManifest -Path $script:testManifestPath -NestedModules $NestedModule1, $NestedModule2
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.NestedModules | Should -Be @($NestedModule1, $NestedModule2) 
+        $results.NestedModules | Should -Be @($NestedModule1, $NestedModule2)
     }
 
     It "Update module manifest given FileList parameter" {
@@ -278,7 +277,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         Update-PSModuleManifest -Path $script:testManifestPath -FileList $FileList1, $FileList2
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.FileList | Should -Be @($FileListPath1, $FileListPath2) 
+        $results.FileList | Should -Be @($FileListPath1, $FileListPath2)
     }
 
     It "Update module manifest given TypesToProcess parameter" {
@@ -323,7 +322,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         Update-PSModuleManifest -Path $script:testManifestPath -ScriptsToProcess $Script1, $Script2
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.Scripts | Should -Be @($ScriptPath1, $ScriptPath2) 
+        $results.Scripts | Should -Be @($ScriptPath1, $ScriptPath2)
     }
 
     It "Update module manifest given ProcessorArchitecture parameter" {
@@ -333,7 +332,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         Update-PSModuleManifest -Path $script:testManifestPath -ProcessorArchitecture $ProcessorArchitecture
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.ProcessorArchitecture | Should -Be $ProcessorArchitecture 
+        $results.ProcessorArchitecture | Should -Be $ProcessorArchitecture
     }
 
     It "Update module manifest given ModuleList parameter" {
@@ -359,24 +358,24 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
 
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
         Update-PSModuleManifest -Path $script:testManifestPath `
-                              -CompanyName $CompanyName `
-                              -Copyright $Copyright `
-                              -PowerShellVersion $PowerShellVersion `
-                              -ClrVersion $ClrVersion `
-                              -DotNetFrameworkVersion $DotnetFrameworkVersion `
-                              -PowerShellHostVersion $PowerShellHostVersion `
-                              -HelpInfoUri $HelpInfoUri `
-                              -CompatiblePSEditions $CompatiblePSEditions
+            -CompanyName $CompanyName `
+            -Copyright $Copyright `
+            -PowerShellVersion $PowerShellVersion `
+            -ClrVersion $ClrVersion `
+            -DotNetFrameworkVersion $DotnetFrameworkVersion `
+            -PowerShellHostVersion $PowerShellHostVersion `
+            -HelpInfoUri $HelpInfoUri `
+            -CompatiblePSEditions $CompatiblePSEditions
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        $results.CompanyName | Should -Be $CompanyName 
-        $results.Copyright | Should -Be $Copyright 
-        $results.PowerShellVersion | Should -Be $PowerShellVersion 
-        $results.ClrVersion | Should -Be $ClrVersion 
-        $results.DotnetFrameworkVersion | Should -Be $DotnetFrameworkVersion 
-        $results.PowerShellHostVersion | Should -Be $PowerShellHostVersion 
-        $results.HelpInfoUri | Should -Be $HelpInfoUri 
-        $results.CompatiblePSEditions | Should -Be $CompatiblePSEditions 
+        $results.CompanyName | Should -Be $CompanyName
+        $results.Copyright | Should -Be $Copyright
+        $results.PowerShellVersion | Should -Be $PowerShellVersion
+        $results.ClrVersion | Should -Be $ClrVersion
+        $results.DotnetFrameworkVersion | Should -Be $DotnetFrameworkVersion
+        $results.PowerShellHostVersion | Should -Be $PowerShellHostVersion
+        $results.HelpInfoUri | Should -Be $HelpInfoUri
+        $results.CompatiblePSEditions | Should -Be $CompatiblePSEditions
     }
 
     It "Update module manifest given FunctionsToExport, AliasesToExport, and VariablesToExport parameters" -Skip:(Get-IsWindows) {
@@ -386,9 +385,9 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $ExportedVariables = "VariablesToExport1", "Variables2Export2"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
         Update-PSModuleManifest -Path $script:testManifestPath `
-                              -FunctionsToExport $ExportedFunctions `
-                              -AliasesToExport $ExportedAliases `
-                              -VariablesToExport $ExportedVariables 
+            -FunctionsToExport $ExportedFunctions `
+            -AliasesToExport $ExportedAliases `
+            -VariablesToExport $ExportedVariables
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.ExportedFunctions.Keys | Should -Be $ExportedFunctions

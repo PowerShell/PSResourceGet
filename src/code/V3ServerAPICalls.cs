@@ -28,7 +28,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool _isGHPkgsRepo { get; set; }
         private bool _isMyGetRepo { get; set; }
         public FindResponseType v3FindResponseType = FindResponseType.ResponseString;
-        private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
+        private static readonly Hashtable[] emptyHashResponses = new Hashtable[] { };
         private static readonly string nugetRepoUri = "https://api.nuget.org/v3/index.json";
         private static readonly string resourcesName = "resources";
         private static readonly string itemsName = "items";
@@ -55,10 +55,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             bool token = false;
 
-            if(networkCredential != null) 
+            if (networkCredential != null)
             {
                 token = String.Equals("token", networkCredential.UserName) ? true : false;
-            };
+            }
+            ;
 
             if (token)
             {
@@ -68,12 +69,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 _sessionClient = new HttpClient(handler);
                 _sessionClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
 
-            } else {
+            }
+            else
+            {
 
                 handler.Credentials = networkCredential;
-                
+
                 _sessionClient = new HttpClient(handler);
-            };
+            }
+            ;
 
             _sessionClient.Timeout = TimeSpan.FromMinutes(10);
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
@@ -1029,14 +1033,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetMetadataElementFromIdLinkElement()");
             upperVersion = String.Empty;
-            JsonElement[] innerItems = new JsonElement[]{};
+            JsonElement[] innerItems = new JsonElement[] { };
             List<JsonElement> innerItemsList = new List<JsonElement>();
 
             string metadataUri = idLinkElement.ToString();
             string response = HttpRequestCall(metadataUri, out errRecord);
             if (errRecord != null)
             {
-                if (errRecord.Exception is ResourceNotFoundException) {
+                if (errRecord.Exception is ResourceNotFoundException)
+                {
                     errRecord = new ErrorRecord(
                         new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'.", errRecord.Exception),
                         "PackageNotFound",
@@ -1072,7 +1077,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         _cmdletPassedIn.WriteDebug($"Package with name '{packageName}' did not have 'upper' property so package versions may not be in descending order.");
                     }
 
-                    foreach(JsonElement entry in innerItemsElement.EnumerateArray())
+                    foreach (JsonElement entry in innerItemsElement.EnumerateArray())
                     {
                         // add clone, otherwise this JsonElement will be out of scope to the caller once JsonDocument is disposed
                         innerItemsList.Add(entry.Clone());
@@ -1215,7 +1220,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             // This is when property is "packageContent"
                             versionedPkgResponses.Add(metadataElement.ToString());
                         }
-                        else if(metadataElement.ValueKind == JsonValueKind.Object)
+                        else if (metadataElement.ValueKind == JsonValueKind.Object)
                         {
                             // This is when property is "catalogEntry"
                             // If metadata has a "listed" property, but it's set to false, skip this package version
@@ -1503,7 +1508,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string response = HttpRequestCall(request, out errRecord);
                 if (errRecord != null)
                 {
-                    return new JsonElement[]{};
+                    return new JsonElement[] { };
                 }
 
                 using (JsonDocument pkgsDom = JsonDocument.Parse(response))
@@ -1652,7 +1657,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (HttpRequestException e)
             {
-                if (responseStatusCode.Equals(HttpStatusCode.NotFound)) {
+                if (responseStatusCode.Equals(HttpStatusCode.NotFound))
+                {
                     throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
                 }
                 // ADO feed will return a 401 if a package does not exist on the feed, with the following message:

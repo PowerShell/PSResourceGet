@@ -27,7 +27,7 @@ Describe "Create PSCredentialInfo with VaultName, SecretName, and Credential" -t
     It "Creates PSCredentialInfo successfully if Credential is null" {
         $randomSecret = [System.IO.Path]::GetRandomFileName()
         $credentialInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret)
-        
+
         $credentialInfo.VaultName | Should -Be "testvault"
         $credentialInfo.SecretName | Should -Be $randomSecret
     }
@@ -48,7 +48,7 @@ Describe "Create PSCredentialInfo with VaultName, SecretName, and Credential" -t
         $credential = New-Object System.Management.Automation.PSCredential ("username", (ConvertTo-SecureString $randomPassword -AsPlainText -Force))
         $hash = @{ "VaultName" = "testvault" ; "SecretName" = $randomSecret ; "Credential" = $credential }
         $credentialInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ($hash)
-        
+
         $credentialInfo.VaultName | Should -Be "testvault"
         $credentialInfo.SecretName | Should -Be $randomSecret
     }
@@ -70,7 +70,7 @@ Describe "Create PSCredentialInfo from a PSObject" -tags 'CI' {
     It "Creates PSCredentialInfo successfully from PSObject with VaultName and SecretName" {
         $randomSecret = [System.IO.Path]::GetRandomFileName()
         $properties = [PSCustomObject]@{
-            VaultName = "testvault"
+            VaultName  = "testvault"
             SecretName = $randomSecret
         }
 
@@ -86,7 +86,7 @@ Describe "Create PSCredentialInfo from a PSObject" -tags 'CI' {
 
         $credential = New-Object System.Management.Automation.PSCredential ("username", (ConvertTo-SecureString $randomPassword -AsPlainText -Force))
         $properties = [PSCustomObject]@{
-            VaultName = "testvault"
+            VaultName  = "testvault"
             SecretName = $randomSecret
             Credential = [PSCredential] $credential
         }
@@ -98,13 +98,13 @@ Describe "Create PSCredentialInfo from a PSObject" -tags 'CI' {
         $credentialInfo.Credential.UserName | Should -Be "username"
         $credentialInfo.Credential.GetNetworkCredential().Password | Should -Be $randomPassword
     }
- 
+
     It "Creates PSCredentialInfo successfully from PSObject with VaultName, SecretName and string Credential" {
         $randomSecret = [System.IO.Path]::GetRandomFileName()
         $randomPassword = [System.IO.Path]::GetRandomFileName()
 
         $properties = [PSCustomObject]@{
-            VaultName = "testvault"
+            VaultName  = "testvault"
             SecretName = $randomSecret
             Credential = $randomPassword
         }
@@ -122,7 +122,7 @@ Describe "Create PSCredentialInfo from a PSObject" -tags 'CI' {
 
         $secureString = ConvertTo-SecureString $randomPassword -AsPlainText -Force
         $properties = [PSCustomObject]@{
-            VaultName = "testvault"
+            VaultName  = "testvault"
             SecretName = $randomSecret
             Credential = $secureString
         }
