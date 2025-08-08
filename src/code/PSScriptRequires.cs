@@ -40,7 +40,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// This constructor is called by internal cmdlet methods and creates a PSScriptHelp with default values
         /// for the parameters. Calling a method like PSScriptRequires.ParseConentIntoObj() would then populate those properties.
         /// </summary>
-        internal PSScriptRequires() {}
+        internal PSScriptRequires() { }
 
         #endregion
 
@@ -72,15 +72,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     requiresComment,
                     out Token[] tokens,
                     out ParseError[] parserErrors);
-                
+
                 if (parserErrors.Length > 0)
                 {
                     foreach (ParseError err in parserErrors)
                     {
                         errorsList.Add(new ErrorRecord(
-                            new InvalidOperationException($"Could not requires comments as valid PowerShell input due to {err.Message}."), 
-                            err.ErrorId, 
-                            ErrorCategory.ParserError, 
+                            new InvalidOperationException($"Could not requires comments as valid PowerShell input due to {err.Message}."),
+                            err.ErrorId,
+                            ErrorCategory.ParserError,
                             null));
                     }
 
@@ -100,12 +100,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             catch (Exception e)
             {
                 errorsList.Add(new ErrorRecord(
-                    new ArgumentException($"Parsing RequiredModules failed due to {e.Message}"), 
-                    "requiredModulesAstParseThrewError", 
-                    ErrorCategory.ParserError, 
+                    new ArgumentException($"Parsing RequiredModules failed due to {e.Message}"),
+                    "requiredModulesAstParseThrewError",
+                    ErrorCategory.ParserError,
                     null));
                 errors = errorsList.ToArray();
-                
+
                 return false;
             }
 
@@ -125,7 +125,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     psRequiresLines.Add(String.Format("#Requires -Module {0}", moduleSpec.ToString()));
                 }
-                
+
                 psRequiresLines.Add(String.Empty);
             }
 
@@ -137,7 +137,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// </summary>
         internal void UpdateContent(ModuleSpecification[] requiredModules)
         {
-            if (requiredModules != null && requiredModules.Length != 0){
+            if (requiredModules != null && requiredModules.Length != 0)
+            {
                 RequiredModules = requiredModules;
             }
         }

@@ -28,6 +28,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public abstract IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults);
 
         #endregion
-    
+
     }
 }

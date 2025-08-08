@@ -28,7 +28,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
 
     AfterEach {
         Uninstall-PSResource 'test_module', 'test_module2', 'test_script', 'TestModule99', 'test_module_withlicense', 'TestFindModule', 'PackageManagement', `
-        'TestModuleWithDependencyE', 'TestModuleWithDependencyC', 'TestModuleWithDependencyB', 'TestModuleWithDependencyD' -SkipDependencyCheck -ErrorAction SilentlyContinue
+            'TestModuleWithDependencyE', 'TestModuleWithDependencyC', 'TestModuleWithDependencyB', 'TestModuleWithDependencyD' -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -36,9 +36,9 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
     }
 
     $testCases = [hashtable[]](
-        @{Name='*';                          ErrorId='NameContainsWildcard'},
-        @{Name='Test_Module*';               ErrorId='NameContainsWildcard'},
-        @{Name='Test?Module','Test[Module';  ErrorId='ErrorFilteringNamesForUnsupportedWildcards'}
+        @{Name = '*'; ErrorId = 'NameContainsWildcard' },
+        @{Name = 'Test_Module*'; ErrorId = 'NameContainsWildcard' },
+        @{Name = 'Test?Module', 'Test[Module'; ErrorId = 'ErrorFilteringNamesForUnsupportedWildcards' }
     )
 
     It 'Should not install resource with wildcard in name' -TestCases $testCases {
@@ -121,8 +121,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $Version = '(1.0.0.0)'
         try {
             Install-PSResource -Name $testModuleName -Version $Version -Repository $NuGetGalleryName -TrustRepository -ErrorAction SilentlyContinue
-        }
-        catch {
+        } catch {
         }
         $Error[0].FullyQualifiedErrorId | Should -Be 'IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource'
 
@@ -378,7 +377,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $res3.Name | Should -Be 'testModule99'
         $res3.Version | Should -Be '0.0.93'
     }
-    
+
     It "Install module and its dependencies" {
         $res = Install-PSResource 'TestModuleWithDependencyE' -Repository $NuGetGalleryName -TrustRepository -PassThru
         $res.Length | Should -Be 4
