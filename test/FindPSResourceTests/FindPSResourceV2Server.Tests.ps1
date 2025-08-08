@@ -419,9 +419,9 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidat
     AfterAll {
         Get-RevertPSResourceRepositoryFile
     }
-    It "find resource given CommandName" {
-        $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName -Type Module
 
+    It "find module by name" {
+        $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName -Type Module
         $res.Name | Should -Be $testModuleName
     }
 
@@ -436,8 +436,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidat
                 $duplicatePkgsFound = $true
                 break
             }
-
-            $foundPkgs.Add($item.Name)
+            $null = $foundPkgs.Add($item.Name)
         }
 
         $duplicatePkgsFound | Should -BeFalse
