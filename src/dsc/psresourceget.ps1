@@ -35,17 +35,103 @@ class PSResource {
         $this.preRelease = $preRelease
         $this._exist = $true
     }
+
+    PSResource([string]$name) {
+        $this.name = $name
+        $this._exist = $false
+        $this._inDesiredState = $true
+    }
+
+    [bool] IsInDesiredState([PSResource] $other) {
+        $retValue = $true
+
+        if ($this.name -ne $other.name) {
+            Write-Trace -message "Name mismatch: $($this.name) vs $($other.name)" -level warn
+            $retValue = $false
+        }
+        elseif ($null -ne $this.version -and $null -ne $other.version -and -not (SatisfiesVersion -version $this.version -versionRange $other.version)) {
+            Write-Trace -message "Version mismatch: $($this.version) vs $($other.version)" -level warn
+            $retValue = $false
+        }
+        elseif ($null -ne $this.scope -and $this.scope -ne $other.scope) {
+            Write-Trace -message "Scope mismatch: $($this.scope) vs $($other.scope)" -level warn
+            $retValue = $false
+        }
+        elseif ($null -ne $this.repositoryName -and $this.repositoryName -ne $other.repositoryName) {
+            Write-Trace -message "Repository mismatch: $($this.repositoryName) vs $($other.repositoryName)" -level warn
+            $retValue = $false
+        }
+        elseif ($null -ne $this.preRelease -and $this.preRelease -ne $other.preRelease) {
+            Write-Trace -message "PreRelease mismatch: $($this.preRelease) vs $($other.preRelease)" -level warn
+            $retValue = $false
+        }
+        elseif ($this._exist -ne $other._exist) {
+            Write-Trace -message "_exist mismatch: $($this._exist) vs $($other._exist)" -level warn
+            $retValue = $false
+        }
+
+        return $retValue
+    }
+
+    [string] ToJson() {
+        return ($this | Select-Object -ExcludeProperty _inDesiredState | ConvertTo-Json -Compress)
+    }
+
+    [string] ToJsonForTest() {
+        return ($this | Select-Object -ExcludeProperty version, preRelease, repositoryName, scope | ConvertTo-Json -Compress)
+    }
 }
 
 class PSResourceList {
     [string]$repositoryName
-    [Scope]$scope
     [PSResource[]]$resources
+    [bool]$_exist
+    [bool]$_inDesiredState
 
-    PSResourceList([string]$repositoryName, [Scope]$scope, [PSResource[]]$resources) {
+    PSResourceList([string]$repositoryName, [PSResource[]]$resources) {
         $this.repositoryName = $repositoryName
-        $this.scope = $scope
         $this.resources = $resources
+    }
+
+    [bool] IsInDesiredState([PSResourceList] $other) {
+        if ($this.repositoryName -ne $other.repositoryName) {
+            Write-Trace -message "RepositoryName mismatch: $($this.repositoryName) vs $($other.repositoryName)" -level warn
+            return $false
+        }
+
+        if ($null -ne $this.resources -and $this.resources.Count -ne $other.resources.Count) {
+            Write-Trace -message "Resources count mismatch: $($this.resources.Count) vs $($other.resources.Count)" -level warn
+            return $false
+        }
+
+        foreach ($otherResource in $other.resources) {
+            $found = $false
+            foreach ($resource in $this.resources) {
+                if ($resource.IsInDesiredState($otherResource)) {
+                    $found = $true
+                    break
+                }
+            }
+
+            if (-not $found) {
+                Write-Trace -message "Resource mismatch for: $($otherResource.name)" -level warn
+                return $false
+            }
+        }
+
+        return $true
+    }
+
+    [string] ToJson() {
+        $resourceJson = ($this.resources | ForEach-Object { $_.ToJson() }) -join ','
+        $resourceJson = "[$resourceJson]"
+        $jsonString = "{'repositoryName': '$($this.repositoryName)','resources': $resourceJson}"
+        $jsonString = $jsonString -replace "'", '"'
+        return $jsonString | ConvertFrom-Json | ConvertTo-Json -Compress
+    }
+
+    [string] ToJsonForTest() {
+        return ($this | Select-Object -ExcludeProperty resources | ConvertTo-Json -Compress)
     }
 }
 
@@ -84,6 +170,10 @@ class Repository {
         $this.name = $name
         $this._exist = $exist
     }
+
+    [string] ToJson() {
+        return ($this | ConvertTo-Json -Compress)
+    }
 }
 
 function Write-Trace {
@@ -106,18 +196,132 @@ function Write-Trace {
     }
 }
 
+function SatisfiesVersion {
+    param(
+        [string]$version,
+        [string]$versionRange
+    )
+
+    Add-Type -AssemblyName "$PSScriptRoot/dependencies/NuGet.Versioning.dll"
+
+    try {
+        $versionRangeObj = [NuGet.Versioning.VersionRange]::Parse($versionRange)
+        $resourceVersion = [NuGet.Versioning.NuGetVersion]::Parse($version)
+        return $versionRangeObj.Satisfies($resourceVersion)
+    }
+    catch {
+        Write-Trace -message "Error parsing version or version range: $($_.Exception.Message)" -level error
+        return $false
+    }
+}
+
+function ConvertInputToPSResource(
+    [PSCustomObject]$inputObj,
+    [string]$repositoryName = $null
+) {
+    $scope = if ($inputObj.Scope) { [Scope]$inputObj.Scope } else { [Scope]::CurrentUser }
+
+    return [PSResource]::new(
+        $inputObj.Name,
+        $inputObj.Version,
+        $scope,
+        $inputObj.repositoryName ? $inputObj.repositoryName : $repositoryName,
+        $inputObj.PreRelease
+    )
+}
+
 # catch any un-caught exception and write it to the error stream
 trap {
     Write-Trace -Level Error -message $_.Exception.Message
     exit 1
 }
 
+function GetPSResourceList {
+    param(
+        [PSCustomObject]$inputObj
+    )
+
+    $inputResources = @()
+    $inputResources += if ($inputObj.resources) {
+        $inputObj.resources | ForEach-Object {
+            ConvertInputToPSResource -inputObj $_ -repositoryName $inputObj.repositoryName
+        }
+    }
+
+    $inputPSResourceList = [PSResourceList]::new($inputObj.repositoryName, $inputResources)
+
+    $allPSResources = @()
+
+    if ($inputPSResourceList.repositoryName) {
+        $currentUserPSResources = Get-PSResource -Scope CurrentUser -ErrorAction SilentlyContinue | Where-Object { $_.Repository -eq $inputPSResourceList.RepositoryName }
+        $allUsersPSResources = Get-PSResource -Scope AllUsers -ErrorAction SilentlyContinue | Where-Object { $_.Repository -eq $inputPSResourceList.RepositoryName }
+    }
+
+    $allPSResources += $currentUserPSResources | ForEach-Object {
+        [PSResource]::new(
+            $_.Name,
+            $_.Prerelease ? $_.Version.ToString() + "-" + $_.Prerelease : $_.Version.ToString(),
+            [Scope]::CurrentUser,
+            $_.Repository,
+            $_.PreRelease
+        )
+    }
+
+    $allPSResources += $allUsersPSResources | ForEach-Object {
+        [PSResource]::new(
+            $_.Name,
+            $_.Prerelease ? $_.Version.ToString() + "-" + $_.Prerelease : $_.Version.ToString(),
+            [Scope]"AllUsers",
+            $_.Repository,
+            $_.PreRelease ? $true : $false
+        )
+    }
+
+    $resourcesExist = @()
+
+    ##Add-Type -AssemblyName "$PSScriptRoot/dependencies/NuGet.Versioning.dll"
+
+    foreach ($resource in $allPSResources) {
+        foreach ($inputResource in $inputResources) {
+            if ($resource.Name -eq $inputResource.Name) {
+                if ($inputResource.Version) {
+                    # Use the NuGet.Versioning package if available, otherwise do a simple comparison
+                    try {
+                        # $versionRange = [NuGet.Versioning.VersionRange]::Parse($inputResource.Version)
+
+                        # $resourceVersion = if ($resource.PreRelease) {
+                        #     [NuGet.Versioning.NuGetVersion]::Parse($resource.Version.ToString() + "-" + $resource.PreRelease)
+                        # }
+                        # else {
+                        #     [NuGet.Versioning.NuGetVersion]::Parse($resource.Version.ToString())
+                        # }
+
+                        # if ($versionRange.Satisfies($resourceVersion)) {
+                        #     $resourcesExist += $resource
+                        # }
+
+                        if (SatisfiesVersion -version $resource.Version -versionRange $inputResource.Version) {
+                            $resourcesExist += $resource
+                        }
+                    }
+                    catch {
+                        # Fallback: simple string comparison (not full NuGet range support)
+                        if ($resource.Version.ToString() -eq $inputResource.Version) {
+                            $resourcesExist += $resource
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    PopulatePSResourceListObjectByRepository -resourcesExist $resourcesExist -inputResources $inputResources -repositoryName $inputPSResourceList.RepositoryName
+}
+
 function GetOperation {
     param(
         [string]$ResourceType
     )
-
-    ## TODO : ensure that version returned includes pre-release versions
 
     $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
 
@@ -146,51 +350,67 @@ function GetOperation {
                 Write-Trace -message "Returning repository object for: $($ret.Name)"
             }
 
-            return ( $ret | ConvertTo-Json -Compress )
+            return ( $ret.ToJson() )
         }
 
         'repositorylist' { throw [System.NotImplementedException]::new("Get operation is not implemented for RepositoryList resource.") }
         'psresource' { throw [System.NotImplementedException]::new("Get operation is not implemented for PSResource resource.") }
         'psresourcelist' {
-            $allPSResources = if ($inputObj.scope) {
-                Get-PSResource -Scope $inputObj.Scope
-            }
-            else {
-                Get-PSResource
-            }
+            (GetPSResourceList -inputObj $inputObj).ToJson()
+        }
 
-            if ($inputObj.repositoryName) {
-                $allPSResources = FilterPSResourcesByRepository -allPSResources $allPSResources -repositoryName $inputObj.repositoryName
-            }
+        default { throw "Unknown ResourceType: $ResourceType" }
+    }
+}
 
-            $resourcesExist = @()
+function TestPSResourceList {
+    param(
+        [PSCustomObject]$inputObj
+    )
 
-            Add-Type -AssemblyName "$PSScriptRoot/dependencies/NuGet.Versioning.dll"
+    $inputResources = ConvertInputToPSResource -inputObj $inputObj.resources -repositoryName $inputObj.repositoryName
+    $inputPSResourceList = [PSResourceList]::new($inputObj.repositoryName, $inputResources)
 
-            foreach ($resource in $allPSResources) {
-                foreach ($inputResource in $inputObj.resources) {
-                    if ($resource.Name -eq $inputResource.Name) {
-                        if ($inputResource.Version) {
-                            # Use the NuGet.Versioning package if available, otherwise do a simple comparison
-                            try {
-                                $versionRange = [NuGet.Versioning.VersionRange]::Parse($inputResource.Version)
-                                $resourceVersion = [NuGet.Versioning.NuGetVersion]::Parse($resource.Version.ToString())
-                                if ($versionRange.Satisfies($resourceVersion)) {
-                                    $resourcesExist += $resource
-                                }
-                            }
-                            catch {
-                                # Fallback: simple string comparison (not full NuGet range support)
-                                if ($resource.Version.ToString() -eq $inputResource.Version) {
-                                    $resourcesExist += $resource
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+    $currentState = GetPSResourceList -inputObj $inputObj
+    $inDesiredState = $currentState.IsInDesiredState($inputPSResourceList)
 
-            PopulatePSResourcesObjectByRepository -resourcesExist $resourcesExist -inputResources $inputObj.resources -repositoryName $inputObj.repositoryName -scope $inputObj.Scope
+    if ($inDesiredState) {
+        Write-Trace -message "PSResourceList is in desired state." -level info
+    }
+    else {
+        Write-Trace -message "PSResourceList is NOT in desired state." -level warn
+    }
+
+    $currentState._inDesiredState = $inDesiredState
+
+    ## TODO confirm the output format
+    if ($inDesiredState)
+    {
+        $outputJson = [PSCustomObject]@{
+            desiredState = '$desiredstate$'
+            actualState = '$currentState$'
+            inDesiredState = $inDesiredState
+            differingProperties = @()
+        } | ConvertTo-Json -Compress
+
+        $outputJson = $outputJson -replace '\$desiredstate\$', $inputPSResourceList.ToJsonForTest()
+        $outputJson = $outputJson -replace '\$currentState\$', $currentState.ToJsonForTest()
+    }
+}
+
+function TestOperation {
+    param(
+        [string]$ResourceType
+    )
+
+    $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
+
+    switch ($ResourceType) {
+        'repository' { throw [System.NotImplementedException]::new("Test operation is not implemented for RepositoryList resource.") }
+        'repositorylist' { throw [System.NotImplementedException]::new("Test operation is not implemented for RepositoryList resource.") }
+        'psresource' { throw [System.NotImplementedException]::new("Test operation is not implemented for PSResource resource.") }
+        'psresourcelist' {
+            TestPSResourceList -inputObj $inputObj
         }
 
         default { throw "Unknown ResourceType: $ResourceType" }
@@ -214,7 +434,7 @@ function ExportOperation {
                     $_.Trusted,
                     $_.Priority,
                     $_.ApiVersion
-                ) | ConvertTo-Json -Compress
+                ).ToJson()
             }
 
         }
@@ -222,25 +442,23 @@ function ExportOperation {
         'repositorylist' { throw [System.NotImplementedException]::new("Get operation is not implemented for RepositoryList resource.") }
         'psresource' { throw [System.NotImplementedException]::new("Get operation is not implemented for PSResource resource.") }
         'psresourcelist' {
-            $allPSResources = Get-PSResource
-            PopulatePSResourcesObject -allPSResources $allPSResources
+            $currentUserPSResources = Get-PSResource
+            $allUsersPSResources = Get-PSResource -Scope AllUsers
+            PopulatePSResourceListObject -allUsersPSResources $allUsersPSResources -currentUserPSResources $currentUserPSResources
         }
         default { throw "Unknown ResourceType: $ResourceType" }
     }
 }
 
-function SetPSResources {
+function SetPSResourceList {
     param(
         $inputObj
     )
 
+    $inputResources = ConvertInputToPSResource -inputObj $inputObj
+    $inputPSResourceList = [PSResourceList]::new($inputObj.repositoryName, $inputResources)
+
     $repositoryName = $inputObj.repositoryName
-    $scope = $inputObj.scope
-
-    if (-not $scope) {
-        $scope = 'CurrentUser'
-    }
-
     $resourcesToUninstall = @()
     $resourcesToInstall = [System.Collections.Generic.Dictionary[string, psobject]]::new()
 
@@ -314,7 +532,6 @@ function SetOperation {
                 // diff == array of properties that are different
 
             // for other operations, DONOT return _inDesiredState
-
     #>
 
     $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
@@ -351,7 +568,7 @@ function SetOperation {
 
         'repositorylist' { throw [System.NotImplementedException]::new("Get operation is not implemented for RepositoryList resource.") }
         'psresource' { throw [System.NotImplementedException]::new("Get operation is not implemented for PSResource resource.") }
-        'psresourcelist' { return SetPSResources -inputObj $inputObj }
+        'psresourcelist' { return SetPSResourceList -inputObj $inputObj }
         default { throw "Unknown ResourceType: $ResourceType" }
     }
 }
@@ -360,6 +577,8 @@ function DeleteOperation {
      param(
         [string]$ResourceType
     )
+
+    ## todo: delete for PSresourceList
 
     $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
     switch ($ResourceType) {
@@ -387,102 +606,84 @@ function DeleteOperation {
     }
 }
 
-
-function FilterPSResourcesByRepository {
-    param (
-        $allPSResources,
-        $repositoryName
-    )
-
-    if (-not $repositoryName) {
-        return $allPSResources
-    }
-
-    $filteredResources = $allPSResources | Where-Object { $_.Repository -eq $repositoryName }
-
-    return $filteredResources
-}
-
-function PopulatePSResourcesObjectByRepository {
+function PopulatePSResourceListObjectByRepository {
     param (
         $resourcesExist,
         $inputResources,
-        $repositoryName,
-        $scope
+        $repositoryName
     )
 
     $resources = @()
-    $resourcesObj = @()
 
     if (-not $resourcesExist) {
-        $resourcesObj = $inputResources | ForEach-Object {
-            [pscustomobject]@{
-                name    = $_.Name
-                version = $_.Version.ToString()
-                _exist = $false
-            }
+        $resources = $inputResources | ForEach-Object {
+            [PSResource]::new(
+                $_.Name
+            )
         }
     }
     else {
         $resources += $resourcesExist | ForEach-Object {
-            [pscustomobject]@{
-                name    = $_.Name
-                version = $_.Version.ToString()
-                _exist = $true
-            }
-        }
-
-        $resourcesObj = if ($scope) {
-            [pscustomobject]@{
-                repositoryName = $repositoryName
-                scope          = $scope
-                resources      = $resources
-            }
-        }
-        else {
-            [pscustomobject]@{
-                repositoryName = $repositoryName
-                resources      = $resources
-            }
+            [PSResource]::new(
+                $_.Name,
+                $_.Version.PreRelease ? $_.Version.ToString() + "-" + $_.PreRelease : $_.Version.ToString(),
+                $_.Scope,
+                $_.RepositoryName,
+                $_.PreRelease ? $true : $false
+            )
         }
     }
 
-    return ($resourcesObj | ConvertTo-Json -Compress)
+     $psresourceListObj =
+            [PSResourceList]::new(
+                $repositoryName,
+                $resources
+            )
+
+    return $psresourceListObj
 }
 
-function PopulatePSResourcesObject {
+function PopulatePSResourceListObject {
     param (
-        $allPSResources
+        $allUsersPSResources,
+        $currentUserPSResources
     )
 
-    $repoGrps = $allPSResources | Group-Object -Property Repository
+    $allPSResources = @()
+
+    $allPSResources += $allUsersPSResources | ForEach-Object {
+        return [PSResource]::new(
+            $_.Name,
+            $_.Version,
+            [Scope]::AllUsers,
+            $_.Repository,
+            $_.PreRelease ? $true : $false
+        )
+    }
+
+    $allPSResources += $currentUserPSResources | ForEach-Object {
+        return [PSResource]::new(
+            $_.Name,
+            $_.Version,
+            [Scope]::CurrentUser,
+            $_.Repository,
+            $_.PreRelease ? $true : $false
+        )
+    }
+
+    $repoGrps = $allPSResources | Group-Object -Property repositoryName
 
     $repoGrps | ForEach-Object {
         $repoName = $_.Name
-
-
-        $resources = $_.Group | ForEach-Object {
-            [pscustomobject]@{
-                name    = $_.Name
-                version = $_.Version.ToString()
-                _exist = $true
-            }
-        }
-
-        $resourcesObj = [pscustomobject]@{
-            repositoryName = $repoName
-            resources      = $resources
-        }
-
-        $resourcesObj | ConvertTo-Json -Compress
+        $resources = $_.Group
+        [PSResourceList]::new($repoName, $resources).ToJson()
     }
 }
-
-
 
 switch ($Operation.ToLower()) {
     'get' { return (GetOperation -ResourceType $ResourceType) }
     'set' { return (SetOperation -ResourceType $ResourceType) }
+    'test' { return (TestOperation -ResourceType $ResourceType) }
     'export' { return (ExportOperation -ResourceType $ResourceType) }
     'delete' { return (DeleteOperation -ResourceType $ResourceType) }
     default { throw "Unknown Operation: $Operation" }

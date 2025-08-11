@@ -16,7 +16,8 @@
       "-NoLogo",
       "-NonInteractive",
       "-NoProfile",
-      "-ExecutionPolicy Bypass",
+      "-ExecutionPolicy",
+      "Bypass",
       "-Command",
       "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation 'get'"
     ],
@@ -28,7 +29,8 @@
       "-NoLogo",
       "-NonInteractive",
       "-NoProfile",
-      "-ExecutionPolicy Bypass",
+      "-ExecutionPolicy",
+      "Bypass",
       "-Command",
       "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation set"
     ],
@@ -41,7 +43,8 @@
       "-NoLogo",
       "-NonInteractive",
       "-NoProfile",
-      "-ExecutionPolicy Bypass",
+      "-ExecutionPolicy",
+      "Bypass",
       "-Command",
       "./psresourceget.ps1 -resourcetype 'psresourcelist' -operation export"
     ],
@@ -53,7 +56,8 @@
       "-NoLogo",
       "-NonInteractive",
       "-NoProfile",
-      "-ExecutionPolicy Bypass",
+      "-ExecutionPolicy",
+      "Bypass",
       "-Command",
       "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation test"
     ],
@@ -66,18 +70,14 @@
       "title": "PSResourceList",
       "type": "object",
       "additionalProperties": false,
+      "required": [
+        "repositoryName"
+      ],
       "properties": {
         "repositoryName": {
           "title": "Repository Name",
           "description": "The name of the repository from where the resources are acquired.",
           "type": "string"
-        },
-        "scope": {
-          "title": "Scope",
-          "description": "The scope of the resources. Can be 'CurrentUser' or 'AllUsers'. Defaults to 'CurrentUser'.",
-          "$ref": "#/$defs/Scope",
-          "default": "CurrentUser",
-          "writeOnly": true
         },
         "resources": {
           "title": "Resources",
@@ -85,7 +85,14 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/PSResource"
-          }
+          },
+          "minItems": 0
+        },
+        "_exist": {
+          "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json"
+        },
+        "_inDesiredState": {
+          "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json"
         }
       },
       "$defs": {
@@ -139,6 +146,30 @@
               "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json"
             }
           }
+        },
+        "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json",
+          "title": "Instance should exist",
+          "description": "Indicates whether the DSC resource instance should exist.",
+          "type": "boolean",
+          "default": true,
+          "enum": [
+            false,
+            true
+          ]
+        },
+        "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json",
+          "title": "Instance is in desired state",
+          "description": "Indicates whether the DSC resource instance is in the desired state.",
+          "type": "boolean",
+          "default": true,
+          "enum": [
+            false,
+            true
+          ]
         }
       }
     }
