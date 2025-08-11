@@ -981,7 +981,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     // Get module actual name with correct casing
-                    string moduleManifestActualFileName = Path.GetFileName(
+                    string moduleManifestActualFileName = Path.GetFileNameWithoutExtension(
                         Directory.GetFiles(
                             tempDirNameVersion,
                             $"{pkgName}.psd1"
