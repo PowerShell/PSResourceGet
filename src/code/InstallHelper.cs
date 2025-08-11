@@ -926,7 +926,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
-                using var fs = File.Create(pathToFile);
+                using FileStream fs = File.Create(pathToFile);
                 responseStream.Seek(0, System.IO.SeekOrigin.Begin);
                 responseStream.CopyTo(fs);
                 fs.Close();
