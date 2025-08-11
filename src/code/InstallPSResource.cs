@@ -290,13 +290,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    foreach (var inputObj in InputObject) {
+                    foreach (var inputObj in InputObject)
+                    {
                         string normalizedVersionString = Utils.GetNormalizedVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
                         ProcessInstallHelper(
                             pkgNames: new string[] { inputObj.Name },
                             pkgVersion: normalizedVersionString,
                             pkgPrerelease: inputObj.IsPrerelease,
-                            pkgRepository: new string[]{ inputObj.Repository },
+                            pkgRepository: new string[] { inputObj.Repository },
                             pkgCredential: Credential,
                             reqResourceParams: null);
                     }
@@ -430,8 +431,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WriteDebug("In InstallPSResource::RequiredResourceHelper()");
             foreach (DictionaryEntry entry in reqResourceHash)
             {
-                InstallPkgParams pkgParams = new InstallPkgParams();
+                InstallPkgParams pkgParams = new();
                 PSCredential pkgCredential = Credential;
+                string pkgVersion = String.Empty;
+                bool isPrerelease = false;
 
                 // The package name will be the key for the inner hashtable and is present for all scenarios,
                 // including the scenario where only package name is specified
@@ -450,8 +453,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
-                string pkgVersion = String.Empty;
-                if (!(entry.Value is Hashtable pkgInstallInfo))
+                if (entry.Value is not Hashtable pkgInstallInfo)
                 {
                     var requiredResourceHashtableInputFormatError = new ErrorRecord(
                         new ArgumentException($"The RequiredResource input with name '{pkgName}' does not have a valid value, the value must be a hashtable."),
@@ -467,7 +469,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Install-PSResource -RequiredResource @ { MyPackage = @{ version = '1.2.3', repository = 'PSGallery' } }
                 if (pkgInstallInfo.Count != 0)
                 {
-                    var pkgParamNames = pkgInstallInfo.Keys;
+                    ICollection pkgParamNames = pkgInstallInfo.Keys;
 
                     foreach (string paramName in pkgParamNames)
                     {
@@ -491,13 +493,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     pkgVersion = pkgInstallInfo["version"] == null ? String.Empty : pkgInstallInfo["version"].ToString();
+
+                    // Prerelease - Handle both string and boolean
+                    object prereleaseObj = pkgInstallInfo.ContainsKey("prerelease") ? pkgInstallInfo["prerelease"] : null;
+                    if (prereleaseObj != null)
+                    {
+                        if (prereleaseObj is bool b)
+                        {
+                            isPrerelease = b;
+                        }
+                        else if (prereleaseObj is string s)
+                        {
+                            isPrerelease = s.Equals("true", StringComparison.OrdinalIgnoreCase);
+                        }
+                    }
                 }
 
                 ProcessInstallHelper(
                     pkgNames: new string[] { pkgName },
                     pkgVersion: pkgVersion,
-                    pkgPrerelease: pkgParams.Prerelease,
-                    pkgRepository: pkgParams.Repository != null ? new string[] { pkgParams.Repository } : new string[]{},
+                    pkgPrerelease: isPrerelease,
+                    pkgRepository: pkgParams.Repository != null ? new string[] { pkgParams.Repository } : new string[] { },
                     pkgCredential: pkgCredential,
                     reqResourceParams: pkgParams);
             }
@@ -506,7 +522,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private void ProcessInstallHelper(string[] pkgNames, string pkgVersion, bool pkgPrerelease, string[] pkgRepository, PSCredential pkgCredential, InstallPkgParams reqResourceParams)
         {
             WriteDebug("In InstallPSResource::ProcessInstallHelper()");
-            var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
+            var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries: false, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {
                 WriteError(new ErrorRecord(
@@ -549,7 +565,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this));
             }
 
-            var installedPkgs = _installHelper.BeginInstallPackages(
+            IEnumerable<PSResourceInfo> installedPkgs = _installHelper.BeginInstallPackages(
                 names: pkgNames,
                 versionRange: versionRange,
                 nugetVersion: nugetVersion,

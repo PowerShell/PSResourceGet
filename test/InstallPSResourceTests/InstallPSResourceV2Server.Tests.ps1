@@ -31,7 +31,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
     AfterEach {
         Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", `
-            "TestFindModule","ClobberTestModule1", "ClobberTestModule2", "PackageManagement", "TestTestScript", `
+            "TestFindModule", "ClobberTestModule1", "ClobberTestModule2", "PackageManagement", "TestTestScript", `
             "TestModuleWithDependency", "TestModuleWithPrereleaseDep", "PrereleaseModule" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
@@ -40,9 +40,9 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     $testCases = [array](
-        @{Name="*";                          ErrorId="NameContainsWildcard"},
-        @{Name="Test_Module*";               ErrorId="NameContainsWildcard"},
-        @{Name="Test?Module","Test[Module";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
+        @{Name = "*"; ErrorId = "NameContainsWildcard" },
+        @{Name = "Test_Module*"; ErrorId = "NameContainsWildcard" },
+        @{Name = "Test?Module", "Test[Module"; ErrorId = "ErrorFilteringNamesForUnsupportedWildcards" }
     )
 
     It "Should not install resource with wildcard in name" -TestCases $testCases {
@@ -388,6 +388,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $res.Name | Should -Contain $testModuleName
     }
 
+    # -RequiredResource
     It "Install modules using -RequiredResource with hashtable" {
         $rrHash = @{
             test_module  = @{
@@ -416,6 +417,16 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $res3 = Get-InstalledPSResource $testModuleName2
         $res3.Name | Should -Be $testModuleName2
         $res3.Version | Should -Be "0.0.93"
+    }
+
+    It "Install module using -RequiredResource with hashtable, and prerelease is boolean true" {
+        Install-PSResource -TrustRepository -RequiredResource @{
+            'TestModule99' = @{
+                'repository' = 'PSGallery'
+                'prerelease' = $true
+            }
+        }
+        (Get-InstalledPSResource -Name 'TestModule99').'Prerelease' | Should -Be 'beta2'
     }
 
     It "Install modules using -RequiredResource with JSON string" {
