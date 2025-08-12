@@ -368,7 +368,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     System.IO.File.ReadAllText(
                         filePath));
 
-                var additionalMetadata = GetProperty<Dictionary<string, string>>(nameof(PSResourceInfo.AdditionalMetadata), psObjectInfo);
+                Dictionary<string, string> additionalMetadata = GetProperty<Dictionary<string, string>>(nameof(PSResourceInfo.AdditionalMetadata), psObjectInfo);
                 Version version = GetVersionInfo(psObjectInfo, additionalMetadata, out string prerelease);
 
                 psGetInfo = new PSResourceInfo(
@@ -492,7 +492,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 Hashtable metadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
 
-                var entryChildNodes = entry.ChildNodes;
+                XmlNodeList entryChildNodes = entry.ChildNodes;
                 foreach (XmlElement entryChild in entryChildNodes)
                 {
                     var entryKey = entryChild.LocalName;
@@ -507,7 +507,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
                     else if (entryKey.Equals("properties"))
                     {
-                        var propertyChildNodes = entryChild.ChildNodes;
+                        XmlNodeList propertyChildNodes = entryChild.ChildNodes;
                         foreach (XmlElement propertyChild in propertyChildNodes)
                         {
                             var propertyKey = propertyChild.LocalName;
@@ -568,7 +568,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
                 }
 
-                var typeInfo = ParseHttpMetadataType(metadata["Tags"] as string[], out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
+                ResourceType typeInfo = ParseHttpMetadataType(metadata["Tags"] as string[], out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
                 var resourceHashtable = new Hashtable {
                     { nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames) },
                     { nameof(PSResourceInfo.Includes.Cmdlet), new PSObject(cmdletNames) },
@@ -695,7 +695,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     {
                         var arrayLength = tagsElement.GetArrayLength();
                         List<string> tags = new List<string>(arrayLength);
-                        foreach (var tag in tagsElement.EnumerateArray())
+                        foreach (JsonElement tag in tagsElement.EnumerateArray())
                         {
                             tags.Add(tag.ToString());
                         }
@@ -947,7 +947,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     {
                         var arrayLength = tagsElement.GetArrayLength();
                         List<string> tags = new List<string>(arrayLength);
-                        foreach (var tag in tagsElement.EnumerateArray())
+                        foreach (JsonElement tag in tagsElement.EnumerateArray())
                         {
                             tags.Add(tag.ToString());
                         }
@@ -1060,7 +1060,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         {
                             var arrayLength = psDataTagsElement.GetArrayLength();
                             List<string> tags = new List<string>(arrayLength);
-                            foreach (var tag in psDataTagsElement.EnumerateArray())
+                            foreach (JsonElement tag in psDataTagsElement.EnumerateArray())
                             {
                                 tags.Add(tag.ToString());
                             }
@@ -1158,7 +1158,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 Hashtable[] requiredModulesHashArray = requiredModulesHashList.ToArray();
                 Dependency[] deps = GetDependenciesForPsd1(requiredModulesHashArray);
 
-                var typeInfo = ParseHttpMetadataTypeForLocalRepo(pkgMetadata, out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
+                ResourceType typeInfo = ParseHttpMetadataTypeForLocalRepo(pkgMetadata, out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
                 var resourceHashtable = new Hashtable {
                     { nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames) },
                     { nameof(PSResourceInfo.Includes.Cmdlet), new PSObject(cmdletNames) },
@@ -1232,7 +1232,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             try
             {
                 string[] tagsEntry = pkgMetadata["Tags"] as string[];
-                var typeInfo = ParseHttpMetadataTypeForLocalRepo(pkgMetadata, out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
+                ResourceType typeInfo = ParseHttpMetadataTypeForLocalRepo(pkgMetadata, out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
                 var resourceHashtable = new Hashtable {
                     { nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames) },
                     {  nameof(PSResourceInfo.Includes.Cmdlet), new PSObject(cmdletNames) },
@@ -1304,7 +1304,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 string tagsEntry = pkgMetadata["tags"] as string;
                 string[] tags = tagsEntry.Split(new char[] { ' ' });
-                var typeInfo = ParseHttpMetadataType(tags, out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
+                ResourceType typeInfo = ParseHttpMetadataType(tags, out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
                 var resourceHashtable = new Hashtable {
                     { nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames) },
                     { nameof(PSResourceInfo.Includes.Cmdlet), new PSObject(cmdletNames) },
@@ -1378,7 +1378,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             var dict = new Dictionary<string, string>();
-            foreach (var prop in psObject.Properties)
+            foreach (PSPropertyInfo prop in psObject.Properties)
             {
                 dict.Add(prop.Name, prop.Value.ToString());
             }
@@ -1633,7 +1633,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             List<Dependency> pkgDeps = new List<Dependency>();
             if (requiredModulesElement.ValueKind == JsonValueKind.Array)
             {
-                foreach (var dependency in requiredModulesElement.EnumerateArray())
+                foreach (JsonElement dependency in requiredModulesElement.EnumerateArray())
                 {
                     if (dependency.ValueKind == JsonValueKind.String)
                     {
@@ -1828,7 +1828,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 AdditionalMetadata[nameof(NormalizedVersion)] = NormalizedVersion;
             }
 
-            foreach (var item in AdditionalMetadata)
+            foreach (KeyValuePair<string, string> item in AdditionalMetadata)
             {
                 additionalMetadata.Properties.Add(new PSNoteProperty(item.Key, item.Value));
             }

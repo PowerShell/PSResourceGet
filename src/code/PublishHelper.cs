@@ -669,7 +669,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // to accommodate for the approprate publish location.
             string publishLocation = repoUri.EndsWith("/v2", StringComparison.OrdinalIgnoreCase) ? repoUri + "/package" : repoUri;
 
-            var settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, null);
+            ISettings settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, null);
             var success = false;
 
             var sourceProvider = new PackageSourceProvider(settings);
@@ -841,7 +841,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return;
             }
 
-            var packageSource = sourceProvider.LoadPackageSources().FirstOrDefault(s => s.Source == source);
+            PackageSource packageSource = sourceProvider.LoadPackageSources().FirstOrDefault(s => s.Source == source);
             if (packageSource != null)
             {
                 if (!packageSource.IsEnabled)
@@ -851,7 +851,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
 
-            var networkCred = Credential == null ? _networkCredential : Credential.GetNetworkCredential();
+            NetworkCredential networkCred = Credential == null ? _networkCredential : Credential.GetNetworkCredential();
             string key;
 
             if (packageSource == null)
@@ -1281,7 +1281,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var repository = new[] { repositoryName };
                 // Note: we set prerelease argument for FindByResourceName() to true because if no version is specified we want latest version (including prerelease).
                 // If version is specified it will get that one. There is also no way to specify a prerelease flag with RequiredModules hashtable of dependency so always try to get latest version.
-                var dependencyFound = findHelper.FindByResourceName(new string[] { depName }, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, prerelease: true, tag: null, repository, includeDependencies: false, suppressErrors: true);
+                IEnumerable<PSResourceInfo> dependencyFound = findHelper.FindByResourceName(new string[] { depName }, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, prerelease: true, tag: null, repository, includeDependencies: false, suppressErrors: true);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -1396,7 +1396,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-                var dir = Directory.CreateDirectory(extractPath);
+                DirectoryInfo dir = Directory.CreateDirectory(extractPath);
                 dir.Attributes &= ~FileAttributes.ReadOnly;
 
                 // change extension to .zip

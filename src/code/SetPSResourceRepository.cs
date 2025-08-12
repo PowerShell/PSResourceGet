@@ -94,7 +94,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Specifies vault and secret names as PSCredentialInfo for the repository.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        public PSCredentialInfo CredentialInfo { get; set; } 
+        public PSCredentialInfo CredentialInfo { get; set; }
 
         /// <summary>
         /// When specified, displays the successfully registered repository and its information.
@@ -111,7 +111,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSRepositoryInfo repository = RepositorySettings.Read(new[] { Name }, out string[] _).FirstOrDefault();
             // Dynamic parameter '-CredentialProvider' should not appear for PSGallery, or any container registry repository.
             // It should also not appear when using the 'Repositories' parameter set.
-            if (repository is not null && 
+            if (repository is not null &&
                 (repository.Name.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) ||
                 ParameterSetName.Equals(RepositoriesParameterSet) ||
                 repository.IsContainerRegistry()))
@@ -314,7 +314,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-                var updatedRepo = RepositorySettings.UpdateRepositoryStore(repo["Name"].ToString(),
+                PSRepositoryInfo updatedRepo = RepositorySettings.UpdateRepositoryStore(repo["Name"].ToString(),
                     repoUri,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
                     repoTrusted,

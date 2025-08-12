@@ -378,14 +378,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
-            var matchingPkgEntries = GetVersionedPackageEntriesFromSearchQueryResource(querySearchTerm, includePrerelease, out errRecord);
+            List<JsonElement> matchingPkgEntries = GetVersionedPackageEntriesFromSearchQueryResource(querySearchTerm, includePrerelease, out errRecord);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
 
             List<string> matchingResponses = new List<string>();
-            foreach (var pkgEntry in matchingPkgEntries)
+            foreach (JsonElement pkgEntry in matchingPkgEntries)
             {
                 string id = string.Empty;
                 string latestVersion = string.Empty;
@@ -458,7 +458,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string tagsQueryTerm = $"tags:{String.Join(" ", tags)}";
             // Get responses for all packages that contain the required tags
             // example query:
-            var tagPkgEntries = GetVersionedPackageEntriesFromSearchQueryResource(tagsQueryTerm, includePrerelease, out errRecord);
+            List<JsonElement> tagPkgEntries = GetVersionedPackageEntriesFromSearchQueryResource(tagsQueryTerm, includePrerelease, out errRecord);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -476,7 +476,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             List<string> matchingPkgResponses = new List<string>();
-            foreach (var pkgEntry in tagPkgEntries)
+            foreach (JsonElement pkgEntry in tagPkgEntries)
             {
                 matchingPkgResponses.Add(pkgEntry.ToString());
             }
@@ -784,7 +784,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            var content = HttpRequestCallForContent(pkgContentUrl, out errRecord);
+            HttpContent content = HttpRequestCallForContent(pkgContentUrl, out errRecord);
             if (errRecord != null)
             {
                 return null;
@@ -1202,7 +1202,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     // Loop through inner "items" entries we collected, and get the specific entry for each package version
-                    foreach (var item in innerItemsElements)
+                    foreach (JsonElement item in innerItemsElements)
                     {
                         if (!item.TryGetProperty(property, out JsonElement metadataElement))
                         {

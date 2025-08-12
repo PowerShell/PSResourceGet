@@ -128,7 +128,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (!UninstallPkgHelper(out List<ErrorRecord> errRecords))
                     {
-                        foreach (var err in errRecords)
+                        foreach (ErrorRecord err in errRecords)
                         {
                             WriteError(err);
                         }
@@ -136,7 +136,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    foreach (var inputObj in InputObject)
+                    foreach (PSResourceInfo inputObj in InputObject)
                     {
                         string inputObjectPrerelease = inputObj.Prerelease;
                         string inputObjectVersion = String.IsNullOrEmpty(inputObjectPrerelease) ? inputObj.Version.ToString() : Utils.GetNormalizedVersionString(versionString: inputObj.Version.ToString(), prerelease: inputObjectPrerelease);
@@ -154,7 +154,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         Name = new string[] { inputObj.Name };
                         if (!String.IsNullOrWhiteSpace(inputObj.Name) && !UninstallPkgHelper(out List<ErrorRecord> InputObjErrRecords))
                         {
-                            foreach (var err in InputObjErrRecords)
+                            foreach (ErrorRecord err in InputObjErrRecords)
                             {
                                 WriteError(err);
                             }
@@ -403,7 +403,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 for (int i = 0; i < _dependentModules.Count; i++)
                 {
-                    var reqModule = _dependentModules[i].RequiredModules;
+                    ReadOnlyCollection<PSModuleInfo> reqModule = _dependentModules[i].RequiredModules;
 
                     for (int j = 0; j < reqModule.Count; j++)
                     {
@@ -438,7 +438,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // then check verison
                         if (pkgToUninstall.Version == null)
                         {
-                            // Any version works as a dependency, so only one version needs to be available.  
+                            // Any version works as a dependency, so only one version needs to be available.
                             _pwsh ??= System.Management.Automation.PowerShell.Create();
                             _pwsh.Commands.Clear();
 

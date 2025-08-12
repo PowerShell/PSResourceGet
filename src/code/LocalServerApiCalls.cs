@@ -645,7 +645,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-                var dir = Directory.CreateDirectory(tempDiscoveryPath);
+                DirectoryInfo dir = Directory.CreateDirectory(tempDiscoveryPath);
                 dir.Attributes &= ~FileAttributes.ReadOnly;
 
                 // copy .nupkg

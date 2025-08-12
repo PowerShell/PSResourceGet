@@ -31,14 +31,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // in FindHelper:
             // serverApi.FindName() -> return responses, and out errRecord
             // check outErrorRecord
-            // 
+            //
             // v2Converter.ConvertToPSResourceInfo(responses) -> return PSResourceResult
             // check resourceResult for error, write if needed
             string[] responses = responseResults.StringResponse;
 
             foreach (string response in responses)
             {
-                var elemList = ConvertResponseToXML(response);
+                XmlNode[] elemList = ConvertResponseToXML(response);
                 if (elemList.Length == 0)
                 {
                     // this indicates we got a non-empty, XML response (as noticed for V2 server) but it's not a response that's meaningful (contains 'properties')
@@ -47,7 +47,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     yield return new PSResourceResult(returnedObject: null, exception: notFoundException, isTerminatingError: false);
                 }
 
-                foreach (var element in elemList)
+                foreach (XmlNode element in elemList)
                 {
                     if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
                     {

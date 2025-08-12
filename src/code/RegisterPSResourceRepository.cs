@@ -119,7 +119,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             // Dynamic parameter '-CredentialProvider' should not appear for PSGallery or any container registry repository.
             // It should also not appear when using the 'Repositories' parameter set.
-            if (ParameterSetName.Equals(PSGalleryParameterSet) || 
+            if (ParameterSetName.Equals(PSGalleryParameterSet) ||
                 ParameterSetName.Equals(RepositoriesParameterSet) ||
                 PSRepositoryInfo.IsValidContainerRegistryURL(Uri))
             {
@@ -235,15 +235,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WriteDebug("In RegisterPSResourceRepository::PSGalleryParameterSetHelper()");
             Uri psGalleryUri = new Uri(PSGalleryRepoUri);
             WriteDebug("Internal name and uri values for PSGallery are hardcoded and validated. Priority and trusted values, if passed in, also validated");
-            var addedRepo = RepositorySettings.AddToRepositoryStore(PSGalleryRepoName,
+            PSRepositoryInfo addedRepo = RepositorySettings.AddToRepositoryStore(PSGalleryRepoName,
                 psGalleryUri,
                 repoPriority,
                 repoTrusted,
                 apiVersion: null,
                 repoCredentialInfo: null,
                 credentialProvider: null,
-                Force, 
-                this, 
+                Force,
+                this,
                 out string errorMsg);
 
             if (!string.IsNullOrEmpty(errorMsg))
@@ -376,9 +376,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            if (repo.ContainsKey("CredentialProvider") && 
+            if (repo.ContainsKey("CredentialProvider") &&
                 (String.IsNullOrEmpty(repo["CredentialProvider"].ToString()) ||
-                !(repo["CredentialProvider"].ToString().Equals("None", StringComparison.OrdinalIgnoreCase) || 
+                !(repo["CredentialProvider"].ToString().Equals("None", StringComparison.OrdinalIgnoreCase) ||
                 repo["CredentialProvider"].ToString().Equals("AzArtifacts", StringComparison.OrdinalIgnoreCase))))
             {
                 WriteError(new ErrorRecord(
@@ -394,7 +394,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 WriteDebug($"Registering repository '{repo["Name"]}' with uri '{repoUri}'");
-                var addedRepo = RepositorySettings.AddRepository(repo["Name"].ToString(),
+                PSRepositoryInfo addedRepo = RepositorySettings.AddRepository(repo["Name"].ToString(),
                     repoUri,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
                     repo.ContainsKey("Trusted") ? Convert.ToBoolean(repo["Trusted"].ToString()) : DefaultTrusted,
@@ -448,16 +448,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Specifies which credential provider to use.
         /// </summary>
         [Parameter]
-        public PSRepositoryInfo.CredentialProviderType? CredentialProvider {
+        public PSRepositoryInfo.CredentialProviderType? CredentialProvider
+        {
             get
-            { 
-                return _credProvider; 
+            {
+                return _credProvider;
             }
 
             set
             {
                 _credProvider = value;
-            }      
+            }
         }
     }
 }

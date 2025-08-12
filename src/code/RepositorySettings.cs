@@ -148,7 +148,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return null;
             }
 
-            var repo = Add(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, resolvedCredentialProvider, resolvedAPIVersion, force);
+            PSRepositoryInfo repo = Add(repoName, repoUri, repoPriority, repoTrusted, repoCredentialInfo, resolvedCredentialProvider, resolvedAPIVersion, force);
 
             return repo;
         }
@@ -189,7 +189,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             // determine trusted value to pass in (true/false if set, null otherwise, hence the nullable bool variable)
             bool? _trustedNullable = isSet ? new bool?(repoTrusted) : new bool?();
-            
+
             if (repoCredentialInfo != null)
             {
                 bool isSecretManagementModuleAvailable = Utils.IsSecretManagementModuleAvailable(repoName, cmdletPassedIn);
@@ -259,7 +259,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 // Else, keep going
                 // Get root of XDocument (XElement)
-                var root = doc.Root;
+                XElement root = doc.Root;
 
                 // Create new element
                 XElement newElement = new XElement(
@@ -311,7 +311,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     bool repoIsTrusted = !(repoTrusted == null || repoTrusted == false);
                     repoPriority = repoPriority < 0 ? DefaultPriority : repoPriority;
 
-                    return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, apiVersion, repoCredentialInfo, credentialProvider, force:true, cmdletPassedIn, out errorMsg);
+                    return AddToRepositoryStore(repoName, repoUri, repoPriority, repoIsTrusted, apiVersion, repoCredentialInfo, credentialProvider, force: true, cmdletPassedIn, out errorMsg);
                 }
 
                 // Check that repository node we are attempting to update has all required attributes: Name, Url (or Uri), Priority, Trusted.
@@ -345,7 +345,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 // Else, keep going
                 // Get root of XDocument (XElement)
-                var root = doc.Root;
+                XElement root = doc.Root;
 
                 // A null Uri (or Url) value passed in signifies the Uri was not attempted to be set.
                 // So only set Uri attribute if non-null value passed in for repoUri
@@ -449,7 +449,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 if (GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled())
                 {
-                    var allowedList = GroupPolicyRepositoryEnforcement.GetAllowedRepositoryURIs();
+                    Uri[] allowedList = GroupPolicyRepositoryEnforcement.GetAllowedRepositoryURIs();
 
                 }
 
@@ -511,7 +511,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             // Get root of XDocument (XElement)
-            var root = doc.Root;
+            XElement root = doc.Root;
 
             foreach (string repo in repoNames)
             {
@@ -725,7 +725,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     bool repoMatch = false;
                     WildcardPattern nameWildCardPattern = new WildcardPattern(repo, WildcardOptions.IgnoreCase);
 
-                    foreach (var node in doc.Descendants("Repository").Where(e => e.Attribute("Name") != null && nameWildCardPattern.IsMatch(e.Attribute("Name").Value)))
+                    foreach (XElement node in doc.Descendants("Repository").Where(e => e.Attribute("Name") != null && nameWildCardPattern.IsMatch(e.Attribute("Name").Value)))
                     {
                         if (node.Attribute("Priority") == null)
                         {
@@ -840,7 +840,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             errorList = tempErrorList.ToArray();
             // Sort by priority, then by repo name
-            var reposToReturn = foundRepos.OrderBy(x => x.Priority).ThenBy(x => x.Name);
+            IOrderedEnumerable<PSRepositoryInfo> reposToReturn = foundRepos.OrderBy(x => x.Priority).ThenBy(x => x.Name);
 
             return reposToReturn.ToList();
         }

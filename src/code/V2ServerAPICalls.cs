@@ -351,7 +351,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$inlinecount", "allpages" },
                 { "id", $"'{packageName}'" },
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
             // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
@@ -422,7 +422,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$inlinecount", "allpages" },
                 { "id", $"'{packageName}'" },
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
             // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
@@ -650,7 +650,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$inlinecount", "allpages" },
                 { "id", $"'{packageName}'" },
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
             // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
@@ -718,7 +718,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$inlinecount", "allpages" },
                 { "id", $"'{packageName}'" },
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
 
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
@@ -918,7 +918,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$skip", skip.ToString()},
                 { "$top", "6000"}
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             if (_isPSGalleryRepo)
             {
@@ -979,7 +979,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$skip", skip.ToString()},
                 { "$top", "6000"}
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             if (_isPSGalleryRepo)
             {
@@ -1037,7 +1037,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$skip", skip.ToString()},
                 { "$top", "6000"}
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             if (_isPSGalleryRepo)
             {
@@ -1100,7 +1100,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$skip", skip.ToString()},
                 { "$top", "100"}
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             if (_isPSGalleryRepo)
             {
@@ -1217,7 +1217,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$skip", skip.ToString()},
                 { "$top", "100"}
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             if (_isPSGalleryRepo)
             {
@@ -1368,7 +1368,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {"id", $"'{packageName}'"}
             });
 
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             if (versionRange.MinVersion != null)
             {
@@ -1459,7 +1459,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
             }
 
-            var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
+            HttpContent response = HttpRequestCallForContent(requestUrlV2, out errRecord);
 
             if (errRecord != null)
             {

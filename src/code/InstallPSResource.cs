@@ -270,7 +270,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Only need to find packages installed if -Reinstall is not passed in
             _packagesOnMachine = Reinstall ? new HashSet<string>(StringComparer.CurrentCultureIgnoreCase) : Utils.GetInstalledPackages(pathsToSearch, this);
 
-            var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+            NetworkCredential networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
             _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }
@@ -290,7 +290,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    foreach (var inputObj in InputObject)
+                    foreach (PSResourceInfo inputObj in InputObject)
                     {
                         string normalizedVersionString = Utils.GetNormalizedVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
                         ProcessInstallHelper(
@@ -468,7 +468,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Install-PSResource -RequiredResource @ { MyPackage = @{ version = '1.2.3', repository = 'PSGallery' } }
                 if (pkgInstallInfo.Count != 0)
                 {
-                    var pkgParamNames = pkgInstallInfo.Keys;
+                    ICollection pkgParamNames = pkgInstallInfo.Keys;
 
                     foreach (string paramName in pkgParamNames)
                     {
@@ -550,7 +550,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this));
             }
 
-            var installedPkgs = _installHelper.BeginInstallPackages(
+            IEnumerable<PSResourceInfo> installedPkgs = _installHelper.BeginInstallPackages(
                 names: pkgNames,
                 versionRange: versionRange,
                 nugetVersion: nugetVersion,

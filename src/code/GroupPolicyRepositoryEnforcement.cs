@@ -42,7 +42,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return InternalHooks.GPEnabledStatus;
             }
 
-            var values = ReadGPFromRegistry();
+            List<KeyValuePair<string, Uri>>? values = ReadGPFromRegistry();
 
             if (values is not null && values.Count > 0)
             {
@@ -78,11 +78,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 List<Uri> allowedUris = new List<Uri>();
 
-                var allowedRepositories = ReadGPFromRegistry();
+                List<KeyValuePair<string, Uri>>? allowedRepositories = ReadGPFromRegistry();
 
                 if (allowedRepositories is not null && allowedRepositories.Count > 0)
                 {
-                    foreach (var allowedRepository in allowedRepositories)
+                    foreach (KeyValuePair<string, Uri> allowedRepository in allowedRepositories)
                     {
                         allowedUris.Add(allowedRepository.Value);
                     }
@@ -98,7 +98,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (GroupPolicyRepositoryEnforcement.IsGroupPolicyEnabled())
             {
-                var allowedList = GroupPolicyRepositoryEnforcement.GetAllowedRepositoryURIs();
+                Uri[]? allowedList = GroupPolicyRepositoryEnforcement.GetAllowedRepositoryURIs();
 
                 if (allowedList != null && allowedList.Length > 0)
                 {
@@ -117,7 +117,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             List<KeyValuePair<string, Uri>> allowedRepositories = new List<KeyValuePair<string, Uri>>();
 
-            using (var key = Registry.CurrentUser.OpenSubKey(gpRootPath))
+            using (RegistryKey? key = Registry.CurrentUser.OpenSubKey(gpRootPath))
             {
                 if (key is null)
                 {
@@ -138,7 +138,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         continue;
                     }
 
-                    using (var psrgKey = key.OpenSubKey(subKey + "\\" + psresourcegetGPPath))
+                    using (RegistryKey? psrgKey = key.OpenSubKey(subKey + "\\" + psresourcegetGPPath))
                     {
                         if (psrgKey is null)
                         {
@@ -170,7 +170,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 }
 
                                 string valueString = value.ToString();
-                                var kvRegValue = ConvertRegValue(valueString);
+                                KeyValuePair<string, Uri> kvRegValue = ConvertRegValue(valueString);
                                 allowedRepositories.Add(kvRegValue);
                             }
                         }

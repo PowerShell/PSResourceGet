@@ -171,7 +171,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
                 { "id", $"'{packageName}'" },
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
 
@@ -199,7 +199,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
                 { "id", $"'{packageName}'" },
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             filterBuilder.AddCriterion($"Id eq '{packageName}'");
@@ -376,7 +376,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
                 { "id", $"'{packageName}'" },
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             filterBuilder.AddCriterion($"Id eq '{packageName}'");
@@ -401,7 +401,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
                 { "id", $"'{packageName}'" },
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             filterBuilder.AddCriterion($"Id eq '{packageName}'");
@@ -562,7 +562,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$orderBy", "Id desc" },
             });
 
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             if (includePrerelease)
             {
@@ -593,7 +593,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$orderBy", "Id desc" },
             });
 
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             if (includePrerelease)
             {
@@ -631,7 +631,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$orderBy", "NormalizedVersion desc" },
             });
 
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             if (includePrerelease)
             {
@@ -714,7 +714,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$orderBy", "Id desc" },
             });
 
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             if (includePrerelease)
             {
@@ -807,7 +807,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$orderBy", "NormalizedVersion desc" },
             });
 
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             //and IsPrerelease eq false
             // ex:
@@ -876,7 +876,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallName()");
             var requestUrl = $"{Repository.Uri}/Packages/(Id='{packageName}')/Download";
-            var response = HttpRequestCallForContent(requestUrl, out errRecord);
+            HttpContent response = HttpRequestCallForContent(requestUrl, out errRecord);
 
             if (response is null)
             {
@@ -904,7 +904,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallVersion()");
             var requestUrl = $"{Repository.Uri}/Packages(Id='{packageName}',Version='{version}')/Download";
-            var response = HttpRequestCallForContent(requestUrl, out errRecord);
+            HttpContent response = HttpRequestCallForContent(requestUrl, out errRecord);
 
             if (response is null)
             {

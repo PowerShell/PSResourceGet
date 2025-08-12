@@ -641,10 +641,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 try
                 {
-                    var results = pwsh.AddCommand("Microsoft.PowerShell.Core\\New-ModuleManifest").AddParameters(parsedMetadata).Invoke<Object>();
+                    System.Collections.ObjectModel.Collection<object> results = pwsh.AddCommand("Microsoft.PowerShell.Core\\New-ModuleManifest").AddParameters(parsedMetadata).Invoke<Object>();
                     if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
                     {
-                        foreach (var err in pwsh.Streams.Error)
+                        foreach (ErrorRecord err in pwsh.Streams.Error)
                         {
                             WriteError(err);
                         }
@@ -991,10 +991,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 try
                 {
-                    var results = pwsh.AddCommand("Microsoft.PowerShell.Core\\New-ModuleManifest").AddParameters(parsedMetadata).Invoke<Object>();
+                    System.Collections.ObjectModel.Collection<object> results = pwsh.AddCommand("Microsoft.PowerShell.Core\\New-ModuleManifest").AddParameters(parsedMetadata).Invoke<Object>();
                     if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
                     {
-                        foreach (var err in pwsh.Streams.Error)
+                        foreach (ErrorRecord err in pwsh.Streams.Error)
                         {
                             WriteError(err);
                         }

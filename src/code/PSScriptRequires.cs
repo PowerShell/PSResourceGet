@@ -68,7 +68,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             try
             {
-                var ast = Parser.ParseInput(
+                ScriptBlockAst ast = Parser.ParseInput(
                     requiresComment,
                     out Token[] tokens,
                     out ParseError[] parserErrors);

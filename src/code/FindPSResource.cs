@@ -117,7 +117,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cancellationTokenSource = new CancellationTokenSource();
 
-            var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+            NetworkCredential networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
             _findHelper = new FindHelper(
                 cancellationToken: _cancellationTokenSource.Token,

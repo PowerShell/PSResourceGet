@@ -158,7 +158,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
             _cancellationTokenSource = new CancellationTokenSource();
-            var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+            NetworkCredential networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
             _findHelper = new FindHelper(
                 cancellationToken: _cancellationTokenSource.Token,
@@ -194,7 +194,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return;
             }
 
-            var installedPkgs = _installHelper.BeginInstallPackages(
+            IEnumerable<PSResourceInfo> installedPkgs = _installHelper.BeginInstallPackages(
                 names: namesToUpdate,
                 versionRange: versionRange,
                 nugetVersion: nugetVersion,
@@ -292,7 +292,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var installedPackages = new Dictionary<string, PSResourceInfo>(StringComparer.InvariantCultureIgnoreCase);
 
             // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, not select prerelease only.
-            foreach (var installedPackage in getHelper.GetPackagesFromPath(
+            foreach (PSResourceInfo installedPackage in getHelper.GetPackagesFromPath(
                 name: namesToProcess,
                 versionRange: VersionRange.All,
                 pathsToSearch: Utils.GetAllResourcePaths(this, Scope),
@@ -332,7 +332,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // Find all packages selected for updating in provided repositories.
             var repositoryPackages = new Dictionary<string, PSResourceInfo>(StringComparer.InvariantCultureIgnoreCase);
-            foreach (var foundResource in _findHelper.FindByResourceName(
+            foreach (PSResourceInfo foundResource in _findHelper.FindByResourceName(
                 name: installedPackages.Keys.ToArray(),
                 type: ResourceType.None,
                 versionRange: versionRange,
@@ -395,7 +395,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 // cases in which to update:
                 // versionRange: null/*,        , repoVersion : 2.0.0-beta, installedVersion: 1.5.0
-                // versionRange: [1.8.0, 2.1.0] , repoVersion: 2.0.0, installedVersion: 1.6.0 
+                // versionRange: [1.8.0, 2.1.0] , repoVersion: 2.0.0, installedVersion: 1.6.0
                 // versionRange: [, 2.1.0]      , repoVersion: 2.0.0, installedVersion: 1.5.0 (installedVersion satisfies requirement, but there's later version)
                 if (((versionRange == null || versionRange == VersionRange.All) && repoVersion > installedVersion) ||
                     versionRange != null && repoVersion > installedVersion && versionRange.Satisfies(repoVersion))

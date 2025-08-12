@@ -44,7 +44,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> pathsToSearch)
         {
             _cmdletPassedIn.WriteDebug("In GetHelper::GetInstalledPackages()");
-            foreach (var pkg in pkgs)
+            foreach (PSResourceInfo pkg in pkgs)
             {
                 // Parse Normalized version if present, if not use Version property of the package
                 NuGetVersion nugetVersion = null;
@@ -69,7 +69,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     includeMaxVersion: true);
 
                 // Search by package name.
-                var foundPkgPaths = FilterPkgPathsByName(
+                List<string> foundPkgPaths = FilterPkgPathsByName(
                     names: new string[] { pkg.Name },
                     pathsToSearch);
 
