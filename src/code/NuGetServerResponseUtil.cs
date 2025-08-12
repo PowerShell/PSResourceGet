@@ -31,14 +31,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // in FindHelper:
             // serverApi.FindName() -> return responses, and out errRecord
             // check outErrorRecord
-            // 
+            //
             // v2Converter.ConvertToPSResourceInfo(responses) -> return PSResourceResult
             // check resourceResult for error, write if needed
             string[] responses = responseResults.StringResponse;
 
             foreach (string response in responses)
             {
-                var elemList = ConvertResponseToXML(response);
+                XmlNode[] elemList = ConvertResponseToXML(response);
                 if (elemList.Length == 0)
                 {
                     // this indicates we got a non-empty, XML response (as noticed for V2 server) but it's not a response that's meaningful (contains 'properties')
@@ -47,7 +47,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     yield return new PSResourceResult(returnedObject: null, exception: notFoundException, isTerminatingError: false);
                 }
 
-                foreach (var element in elemList)
+                foreach (XmlNode element in elemList)
                 {
                     if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
                     {
@@ -69,18 +69,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region NuGet.Server Specific Methods
 
-        public XmlNode[] ConvertResponseToXML(string httpResponse) {
+        public XmlNode[] ConvertResponseToXML(string httpResponse)
+        {
 
             //Create the XmlDocument.
             XmlDocument doc = new XmlDocument();
             doc.LoadXml(httpResponse);
 
             XmlNodeList elemList = doc.GetElementsByTagName("m:properties");
-            
-            XmlNode[] nodes = new XmlNode[elemList.Count]; 
-            for (int i = 0; i < elemList.Count; i++) 
+
+            XmlNode[] nodes = new XmlNode[elemList.Count];
+            for (int i = 0; i < elemList.Count; i++)
             {
-                nodes[i] = elemList[i]; 
+                nodes[i] = elemList[i];
             }
 
             return nodes;

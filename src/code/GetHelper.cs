@@ -44,7 +44,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> pathsToSearch)
         {
             _cmdletPassedIn.WriteDebug("In GetHelper::GetInstalledPackages()");
-            foreach (var pkg in pkgs)
+            foreach (PSResourceInfo pkg in pkgs)
             {
                 // Parse Normalized version if present, if not use Version property of the package
                 NuGetVersion nugetVersion = null;
@@ -69,7 +69,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     includeMaxVersion: true);
 
                 // Search by package name.
-                var foundPkgPaths = FilterPkgPathsByName(
+                List<string> foundPkgPaths = FilterPkgPathsByName(
                     names: new string[] { pkg.Name },
                     pathsToSearch);
 
@@ -163,7 +163,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     foreach (string versionPath in versionsDirs)
                     {
                         _cmdletPassedIn.WriteDebug($"Searching through package version path: '{versionPath}'");
-                        if(!Utils.GetVersionForInstallPath(installedPkgPath: versionPath,
+                        if (!Utils.GetVersionForInstallPath(installedPkgPath: versionPath,
                             isModule: true,
                             cmdletPassedIn: _cmdletPassedIn,
                             out NuGetVersion pkgNugetVersion))
@@ -204,7 +204,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // check to make sure it's within the version range.
                         // script versions will be parsed from the script xml file
                         PSResourceInfo scriptInfo = OutputPackageObject(pkgPath, _scriptDictionary);
-                        if(!Utils.GetVersionForInstallPath(installedPkgPath: pkgPath,
+                        if (!Utils.GetVersionForInstallPath(installedPkgPath: pkgPath,
                             isModule: false,
                             cmdletPassedIn: _cmdletPassedIn,
                             out NuGetVersion pkgNugetVersion))
@@ -226,7 +226,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         // Create package object for each found resource directory
-        public PSResourceInfo OutputPackageObject(string pkgPath, Dictionary<string,PSResourceInfo> scriptDictionary)
+        public PSResourceInfo OutputPackageObject(string pkgPath, Dictionary<string, PSResourceInfo> scriptDictionary)
         {
             // If the package path is in the deserialized script dictionary, just return that
             if (scriptDictionary.ContainsKey(pkgPath))

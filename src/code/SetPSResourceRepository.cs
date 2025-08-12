@@ -94,7 +94,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Specifies vault and secret names as PSCredentialInfo for the repository.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        public PSCredentialInfo CredentialInfo { get; set; } 
+        public PSCredentialInfo CredentialInfo { get; set; }
 
         /// <summary>
         /// When specified, displays the successfully registered repository and its information.
@@ -111,7 +111,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSRepositoryInfo repository = RepositorySettings.Read(new[] { Name }, out string[] _).FirstOrDefault();
             // Dynamic parameter '-CredentialProvider' should not appear for PSGallery, or any container registry repository.
             // It should also not appear when using the 'Repositories' parameter set.
-            if (repository is not null && 
+            if (repository is not null &&
                 (repository.Name.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) ||
                 ParameterSetName.Equals(RepositoriesParameterSet) ||
                 repository.IsContainerRegistry()))
@@ -169,13 +169,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             List<PSRepositoryInfo> items = new List<PSRepositoryInfo>();
 
-            switch(ParameterSetName)
+            switch (ParameterSetName)
             {
                 case NameParameterSet:
                     try
                     {
-                        items.Add(RepositorySettings.UpdateRepositoryStore(Name, 
-                            _uri, 
+                        items.Add(RepositorySettings.UpdateRepositoryStore(Name,
+                            _uri,
                             Priority,
                             Trusted,
                             isSet,
@@ -186,7 +186,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             this,
                             out string errorMsg));
 
-                        if (!string.IsNullOrEmpty(errorMsg))  
+                        if (!string.IsNullOrEmpty(errorMsg))
                         {
                             ThrowTerminatingError(new ErrorRecord(
                                 new PSInvalidOperationException(errorMsg),
@@ -227,7 +227,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (PassThru)
             {
-                foreach(PSRepositoryInfo item in items)
+                foreach (PSRepositoryInfo item in items)
                 {
                     WriteObject(item);
                 }
@@ -294,19 +294,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             isSet = false;
             if (repo.ContainsKey("Trusted"))
             {
-                repoTrusted = (bool) repo["Trusted"];
+                repoTrusted = (bool)repo["Trusted"];
                 isSet = true;
             }
 
             PSCredentialInfo repoCredentialInfo = null;
             if (repo.ContainsKey("CredentialInfo") &&
-                !Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject) repo["CredentialInfo"],
+                !Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject)repo["CredentialInfo"],
                     cmdletPassedIn: this,
                     repoCredentialInfo: out repoCredentialInfo,
                     errorRecord: out ErrorRecord errorRecord1))
             {
                 WriteError(errorRecord1);
-                
+
                 return null;
             }
 
@@ -314,7 +314,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-                var updatedRepo = RepositorySettings.UpdateRepositoryStore(repo["Name"].ToString(),
+                PSRepositoryInfo updatedRepo = RepositorySettings.UpdateRepositoryStore(repo["Name"].ToString(),
                     repoUri,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
                     repoTrusted,

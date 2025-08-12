@@ -1093,7 +1093,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             if (currentPkg.Dependencies.Length > 0)
             {
-                foreach (var dep in currentPkg.Dependencies)
+                foreach (Dependency dep in currentPkg.Dependencies)
                 {
                     PSResourceInfo depPkg = null;
 

@@ -84,7 +84,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (Path != null)
             {
                 WriteDebug($"Provided path is: '{Path}'");
-                var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
+                System.Collections.ObjectModel.Collection<string> resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
                 if (resolvedPaths.Count != 1)
                 {
                     ThrowTerminatingError(new ErrorRecord(
@@ -119,7 +119,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var namesToSearch = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] errorMsgs, out bool _);
+            var namesToSearch = Utils.ProcessNameWildcards(Name, removeWildcardEntries: false, out string[] errorMsgs, out bool _);
             foreach (string error in errorMsgs)
             {
                 WriteError(new ErrorRecord(
@@ -153,7 +153,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> pkgsNotFound = new List<string>();
             foreach (string name in namesToSearch)
             {
-                if (!pkgsFound.Contains(name, StringComparer.OrdinalIgnoreCase)) 
+                if (!pkgsFound.Contains(name, StringComparer.OrdinalIgnoreCase))
                 {
                     if (name.Contains('*'))
                     {
