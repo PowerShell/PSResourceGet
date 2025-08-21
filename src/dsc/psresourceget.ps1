@@ -315,6 +315,7 @@ function GetPSResourceList {
         }
     }
 
+    ## For get operation we only need the first resource that exists, which is always the latest for currentUser
     PopulatePSResourceListObjectByRepository -resourcesExist $resourcesExist -inputResources $inputResources -repositoryName $inputPSResourceList.RepositoryName
 }
 
@@ -384,6 +385,7 @@ function TestPSResourceList {
     $currentState._inDesiredState = $inDesiredState
 
     ## TODO confirm the output format
+
     if ($inDesiredState)
     {
         $outputJson = [PSCustomObject]@{
