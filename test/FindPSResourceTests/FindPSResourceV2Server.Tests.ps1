@@ -457,4 +457,18 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidat
 
         $duplicatePkgsFound | Should -BeFalse
     }
+
+    It "find should return an unlisted module when it was requested explicitly by full name and version (i.e no wildcards)" {
+        # 'test_unlisted' is an unlisted package
+        $res = Find-PSResource -Name "test_unlisted" -Version "0.0.1" -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "0.0.1"
+    }
+
+    It "find should not return an unlisted module with it was requested with wildcards in the name" {
+        # 'test_unlisted' is an unlisted package whereas 'test_notunlisted' is listed
+        $res = Find-PSResource -Name "test_*unlisted" -Repository $PSGalleryName
+        $res.Count | Should -Be 1
+        $res[0].Name | Should -Be "test_notunlisted"
+    }
 }
