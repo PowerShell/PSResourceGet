@@ -458,17 +458,39 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidat
         $duplicatePkgsFound | Should -BeFalse
     }
 
-    It "find should return an unlisted module when it was requested explicitly by full name and version (i.e no wildcards)" {
-        # 'test_unlisted' is an unlisted package
-        $res = Find-PSResource -Name "test_unlisted" -Version "0.0.1" -Repository $PSGalleryName
+    It "find should not return a module that has all unlisted versions, given full name and no version (i.e non wildcard name)" {
+        # FindName() scenario
+        # 'test_completelyunlisted' only has version 0.0.1, which is unlisted
+        $res = Find-PSResource -Name "test_completelyunlisted" -Repository $PSGalleryName
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -BeGreaterThan 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+        $res | Should -BeNullOrEmpty
+    }
+
+    It "find should return a module version even if all versions are unlisted, given full name and version (i.e non wildcard name)" {
+        # FindVersion() scenario
+        # test_completelyunlisted has 1 version, 0.0.1, which is unlisted
+        $res = Find-PSResource -Name "test_completelyunlisted" -Version "0.0.1" -Repository $PSGalleryName
         $res | Should -Not -BeNullOrEmpty
         $res.Version | Should -Be "0.0.1"
     }
 
+    It "find should return an unlisted module, where the module has a mix of listed and unlisted versions, given full name and version (i.e non wildcard name)" {
+        # FindVersion scenario
+        # 'test_unlisted' version 0.0.3 is unlisted
+        $res = Find-PSResource -Name "test_unlisted" -Version "0.0.3" -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "0.0.3"
+    }
+
     It "find should not return an unlisted module with it was requested with wildcards in the name" {
-        # 'test_unlisted' is an unlisted package whereas 'test_notunlisted' is listed
+        # FindNameGlobbing() scenario
+        # 'test_completelyunlisted' has all unlisted versions -> should not be returned
+        # whereas 'test_unlisted' has a listed verison and 'test_notunlisted' has all listed versions -> should be returned
         $res = Find-PSResource -Name "test_*unlisted" -Repository $PSGalleryName
-        $res.Count | Should -Be 1
-        $res[0].Name | Should -Be "test_notunlisted"
+        $res.Count | Should -Be 2
+        $res.Name | Should -Contain 'test_unlisted'
+        $res.Name | Should -Contain 'test_notunlisted'
     }
 }
