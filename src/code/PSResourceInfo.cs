@@ -1082,6 +1082,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     { "NormalizedVersion", metadata["NormalizedVersion"].ToString() }
                 };
 
+                var typeInfo = ParseHttpMetadataType(metadata["Tags"] as string[], out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable {
+                    { nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames) },
+                    { nameof(PSResourceInfo.Includes.Cmdlet), new PSObject(cmdletNames) },
+                    { nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames) }
+                };
+
+                var includes = new ResourceIncludes(resourceHashtable);
+
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: additionalMetadataHashtable,
                     author: metadata["Authors"] as String,
@@ -1090,7 +1099,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     dependencies: metadata["Dependencies"] as Dependency[],
                     description: metadata["Description"] as String,
                     iconUri: null,
-                    includes: null,
+                    includes: includes,
                     installedDate: null,
                     installedLocation: null,
                     isPrerelease: (bool)metadata["IsPrerelease"],
