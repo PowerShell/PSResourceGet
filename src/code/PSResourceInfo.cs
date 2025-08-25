@@ -1708,10 +1708,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             out ArrayList dscResourceNames)
         {
             // possible type combinations:
-                // M, C
-                // M, D
-                // M
-                // S
+            // M, C
+            // M, D
+            // M
+            // S
 
             commandNames = new ArrayList();
             cmdletNames = new ArrayList();
