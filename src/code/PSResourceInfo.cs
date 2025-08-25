@@ -1082,7 +1082,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     { "NormalizedVersion", metadata["NormalizedVersion"].ToString() }
                 };
 
-                var typeInfo = ParseHttpMetadataType(metadata["Tags"] as string[], out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
+                ParseHttpMetadataType(metadata["Tags"] as string[], out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
                 var resourceHashtable = new Hashtable {
                     { nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames) },
                     { nameof(PSResourceInfo.Includes.Cmdlet), new PSObject(cmdletNames) },
@@ -1708,16 +1708,22 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             out ArrayList dscResourceNames)
         {
             // possible type combinations:
-            // M, C
-            // M, D
-            // M
-            // S
+                // M, C
+                // M, D
+                // M
+                // S
 
             commandNames = new ArrayList();
             cmdletNames = new ArrayList();
             dscResourceNames = new ArrayList();
 
             ResourceType pkgType = ResourceType.Module;
+
+            if (tags == null)
+            {
+                return pkgType;
+            }
+
             foreach (string tag in tags)
             {
                 if (String.Equals(tag, "PSScript", StringComparison.InvariantCultureIgnoreCase))
