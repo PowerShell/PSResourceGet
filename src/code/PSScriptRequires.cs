@@ -8,7 +8,6 @@ using System.Management.Automation.Language;
 using System.Linq;
 using System.Collections.ObjectModel;
 using Microsoft.PowerShell.Commands;
-using Newtonsoft.Json;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
