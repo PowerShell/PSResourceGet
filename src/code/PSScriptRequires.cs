@@ -38,12 +38,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// <summary>
         /// The assemblies this script requires, specified like: #requires -Assembly path\to\foo.dll#requires -Assembly "System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" 
         /// </summary>
-        public string[] RequiredAssemblies { get; private set; }
+        public string[] RequiredAssemblies { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// The PowerShell Edition this script requires, specified like: #requires -PSEdition Desktop
         /// </summary>
-        public string[] RequiredPSEditions { get; private set; }
+        public string[] RequiredPSEditions { get; private set; } = Utils.EmptyStrArray;
 
         /// <summary>
         /// The PowerShell version this script requires, specified like: #requires -Version 3
@@ -179,14 +179,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 psRequiresLines.Add(String.Empty);
                 psRequiresLines.Add("#Requires -RunAsAdministrator");
-                psRequiresLines.Add(String.Empty);
             }
 
             if (!String.IsNullOrEmpty(RequiredApplicationId))
             {
                 psRequiresLines.Add(String.Empty);
                 psRequiresLines.Add(String.Format("#Requires -ShellId {0}", RequiredApplicationId));
-                psRequiresLines.Add(String.Empty);
             }
 
             if (RequiredAssemblies.Length > 0)
@@ -196,8 +194,21 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     psRequiresLines.Add(String.Format("#Requires -Assembly {0}", assembly));
                 }
+            }
 
+            if (RequiredPSEditions.Length > 0)
+            {
                 psRequiresLines.Add(String.Empty);
+                foreach (string psEdition in RequiredPSEditions)
+                {
+                    psRequiresLines.Add(String.Format("#Requires -PSEdition {0}", psEdition));
+                }
+            }
+
+            if (RequiredPSVersion != null)
+            {
+                psRequiresLines.Add(String.Empty);
+                psRequiresLines.Add(String.Format("#Requires -Version {0}", RequiredPSVersion.ToString()));
             }
 
             if (RequiredModules.Length > 0)
@@ -208,24 +219,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     psRequiresLines.Add(String.Format("#Requires -Module {0}", moduleSpec.ToString()));
                 }
 
-                psRequiresLines.Add(String.Empty);
-            }
-
-            if (RequiredPSEditions.Length > 0)
-            {
-                psRequiresLines.Add(String.Empty);
-                foreach (string psEdition in RequiredPSEditions)
-                {
-                    psRequiresLines.Add(String.Format("#Requires -PSEdition {0}", psEdition));
-                }
-
-                psRequiresLines.Add(String.Empty);
-            }
-
-            if (RequiredPSVersion != null)
-            {
-                psRequiresLines.Add(String.Empty);
-                psRequiresLines.Add(String.Format("#Requires -Version {0}", RequiredPSVersion.ToString()));
                 psRequiresLines.Add(String.Empty);
             }
 
