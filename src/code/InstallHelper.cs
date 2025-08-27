@@ -1270,10 +1270,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 catch (Exception e)
                 {
+                    var psException = e.InnerException == null ?
+                        new PSInvalidOperationException(message: $"Unable to successfully install package '{pkgName}': '{e.Message}'") :
+                        new PSInvalidOperationException(message: $"Unable to successfully install package '{pkgName}': '{e.Message}'", innerException: e);
+
                     _cmdletPassedIn.WriteError(new ErrorRecord(
-                        new PSInvalidOperationException(
-                            message: $"Unable to successfully install package '{pkgName}': '{e.Message}'",
-                            innerException: e),
+                        psException,
                         "InstallPackageFailed",
                         ErrorCategory.InvalidOperation,
                         _cmdletPassedIn));
