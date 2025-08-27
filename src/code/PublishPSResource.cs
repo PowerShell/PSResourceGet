@@ -122,6 +122,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         #region DynamicParameters
         public object GetDynamicParameters()
         {
+            // Create a respository story (the PSResourceRepository.xml file) if it does not already exist (i.e on a new machine without PSGet)
+            RepositorySettings.CheckRepositoryStore();
+
             PSRepositoryInfo repository = RepositorySettings.Read(new[] { Repository }, out string[] _).FirstOrDefault();
             if (repository is not null && repository.ApiVersion == PSRepositoryInfo.APIVersion.ContainerRegistry)
             {
