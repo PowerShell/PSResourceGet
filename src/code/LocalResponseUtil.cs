@@ -27,7 +27,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         #endregion
 
         #region Overriden Methods
-        public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults)
+        public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults, bool isResourceRequestedWithWildcard = false)
         {
             foreach (Hashtable response in responseResults.HashtableResponse)
             {

@@ -689,6 +689,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ErrorRecord errRecord = null;
             List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
             string tagsAsString = String.Empty;
+            bool isV2Resource = currentResponseUtil is V2ResponseUtil;
 
             _cmdletPassedIn.WriteDebug("In FindHelper::SearchByNames()");
             foreach (string pkgName in _pkgsLeftToFind.ToArray())
@@ -699,6 +700,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         _cmdletPassedIn.WriteDebug("No version specified, package name is '*'");
                         // Example: Find-PSResource -Name "*"
+
+                        // Note: Just for resources from V2 servers, specifically PSGallery, if the resource is unlisted and was requested non-explicitly 
+                        // (i.e requested name has wildcard) the resource should not be returned and ResponseUtil.ConvertToPSResourceResult() call needs to be informed of this.
+                        // In all other cases, return the resource regardless of whether it was requested explicitly or not.
+                        bool isResourceRequestedWithWildcard = isV2Resource;
+
                         FindResults responses = currentServer.FindAll(_prerelease, _type, out errRecord);
                         if (errRecord != null)
                         {
@@ -714,7 +721,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses))
+                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responseResults: responses, isResourceRequestedWithWildcard))
                         {
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
@@ -745,6 +752,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az*" -Tag "Storage"
                         _cmdletPassedIn.WriteDebug("No version specified, package name contains a wildcard.");
 
+                        // Note: Just for resources from V2 servers, specifically PSGallery, if the resource is unlisted and was requested non-explicitly 
+                        // (i.e requested name has wildcard) the resource should not be returned and ResponseUtil.ConvertToPSResourceResult() call needs to be informed of this.
+                        // In all other cases, return the resource regardless of whether it was requested explicitly or not.
+                        bool isResourceRequestedWithWildcard = isV2Resource;
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
@@ -770,7 +781,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             continue;
                         }
 
-                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
+                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses, isResourceRequestedWithWildcard))
                         {
                             if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                             {
