@@ -12,6 +12,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $testModuleParentName = "test_parent_mod"
         $testModuleDependencyName = "test_dependency_mod"
         $testScriptName = "test-script"
+        $testModuleWithIncludes = "test-resourcewithincludes"
         $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io"
         Get-NewPSResourceRepositoryFile
@@ -261,6 +262,14 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.ProjectUri | Should -Be "https://github.com/Azure/azure-powershell"
         $res.ReleaseNotes.Length | Should -Not -Be 0
         $res.Tags.Length | Should -Be 5
+    }
+
+    It "Should find resource and its associated Includes property" {
+        $res = Find-PSResource $testModuleWithIncludes -Repository $ACRRepoName
+        $res.Includes | Should -Not -BeNullOrEmpty
+        $res.Includes.Cmdlet | Should -Be "cmdlet1"
+        $res.Includes.Command | Should -Be "cmd1"
+        $res.Includes.DscResource | Should -Be "dsc1"
     }
 }
 
