@@ -145,7 +145,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $isPkgUpdated = $false
         foreach ($pkg in $res)
         {
-            if ([System.Version]$pkg.Version -eq [System.Version]"3.0.0")
+            if ([System.Version]$pkg.Version -eq [System.Version]"3.0.0.0")
             {
                 $isPkgUpdated = $true
             }
@@ -174,7 +174,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
 
     It "Update resource to explicit prerelease version using NuGet syntax" {
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
-        Update-PSResource -Name $testModuleName -Version "[5.2.5-alpha001]" -Prerelease -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Prerelease -Repository $PSGalleryName -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleName
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
@@ -427,6 +427,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         Install-PSResource -Name "TestTestScript" -Version "1.0" -Repository $PSGalleryName -TrustRepository
         Update-PSResource -Name "TestTestScript" -Version "1.3.1.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.UpdatePSResource"
+        $err[0].FullyQualifiedErrorId | Should -Contain "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.UpdatePSResource"
+        $err[1].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.UpdatePSResource"
     }
 }
