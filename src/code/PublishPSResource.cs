@@ -142,7 +142,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             _networkCredential = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
-            // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
+            // Create the repository store file (PSResourceRepository.xml) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
