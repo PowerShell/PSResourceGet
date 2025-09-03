@@ -19,7 +19,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $tag2 = "Tag-Required-Script1-2.5"
 
         $cmdName = "Get-TargetResource"
-        $dscName = "SystemLocale"
+        $dscName = "SystemLocaleDsc"
         $tagsEscaped = @("'$tag1'", "'PSCommand_$cmdName'", "'PSDscResource_$dscName'")
 
         $cmdName2 = "Get-MyCommand"

@@ -174,7 +174,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
     }
 
     It "Save script without using -IncludeXML" {
-        Save-PSResource -Name $testScriptName -Repository $PSGalleryName -Path $SaveDir -TrustRepository | Should -Not -Throw
+        { Save-PSResource -Name $testScriptName -Repository $PSGalleryName -Path $SaveDir -TrustRepository } | Should -Not -Throw
 
         $SavedScriptFile = Join-Path -Path $SaveDir -ChildPath "$testScriptName.ps1"
         Test-Path -Path $SavedScriptFile -PathType 'Leaf' | Should -BeTrue
@@ -197,12 +197,13 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
     It "Save module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
         Save-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
+        $err[0].FullyQualifiedErrorId | Should -Contain "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
+        $err[1].FullyQualifiedErrorId | Should -Contain "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
 
     # Save resource that requires license
     It "Save resource that requires accept license with -AcceptLicense flag" {
-        Save-PSResource -Repository $TestGalleryName -TrustRepository -Path $SaveDir `
+        Save-PSResource -Repository $PSGalleryName -TrustRepository -Path $SaveDir `
             -Name $testModuleName2 -AcceptLicense
         $pkg = Get-InstalledPSResource -Path $SaveDir -Name $testModuleName2
         $pkg.Name | Should -Be $testModuleName2
