@@ -155,7 +155,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (repository is null || repository.ApiVersion != PSRepositoryInfo.APIVersion.ContainerRegistry)
                     {
                         ThrowTerminatingError(new ErrorRecord(
-                            new PSInvalidOperationException("ModulePrefix parameter can only be provided with the Repository parameter for a registered repository of type 'ContainerRegistry'"),
+                            new PSInvalidOperationException("ModulePrefix parameter can only be provided for a registered repository of type 'ContainerRegistry'"),
                             "ModulePrefixParameterIncorrectlyProvided",
                             ErrorCategory.InvalidOperation,
                             this));
