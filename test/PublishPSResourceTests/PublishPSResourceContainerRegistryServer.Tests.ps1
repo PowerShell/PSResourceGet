@@ -100,6 +100,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         # Path to specifically to that invalid test nupkgs folder
         $script:testNupkgsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testNupkgs"
+
+        $script:PSGalleryName = "PSGallery"
     }
     AfterEach {
         if(!(Test-Path $script:PublishModuleBase))
@@ -513,6 +515,27 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
+    }
+
+    It "not Publish a resource when ModulePrefix is given for a Repository that is not of type ContainerRegistry" 
+    {
+        $version = "1.0.0"
+        $modulePrefix = "unlisted"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $script:PSGalleryName -ModulePrefix $modulePrefix -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ModulePrefixParameterIncorrectlyProvided,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+    }
+
+    It "not Publish a resource when ModulePrefix is provided without Repository parameter" {
+        $version = "1.0.0"
+        $modulePrefix = "unlisted"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $script:PublishModuleBase -ModulePrefix $modulePrefix -ErrorVariable err -ErrorAction SilentlyContinue
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "ModulePrefixParameterProvidedWithoutRepositoryParameter,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
     It "Publish a package given NupkgPath to a package with .psd1" {
