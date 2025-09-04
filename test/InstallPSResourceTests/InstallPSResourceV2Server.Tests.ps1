@@ -573,6 +573,17 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $res | Should -Not -BeNullOrEmpty
         $res.Version | Should -Be $version
     }
+
+    It "Install resource that is unlisted" {
+        # InstallVersion scenario
+        # 'test_unlisted' version 0.0.3 is unlisted
+        $moduleName = 'test_unlisted'
+        $version = '0.0.3'
+        Install-PSResource -Name $moduleName -Version $version -Repository $PSGalleryName -TrustRepository
+        $res = Get-InstalledPSResource $moduleName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be $version
+    }
 }
 
 Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'ManualValidationOnly' {
