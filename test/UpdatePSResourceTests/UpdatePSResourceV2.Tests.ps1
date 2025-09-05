@@ -74,9 +74,11 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
     }
 
     It "Update resource installed given Name and Version (specific) parameters" {
-        Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
+        $v1000 = Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository -Reinstall -PassThru
+        $v1000.Version | Should -Be "1.0.0.0"
 
-        Update-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository
+        $v5000 = Update-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository -PassThru -Force
+        $v5000.Version | Should -Be "5.0.0.0"
         $res = Get-InstalledPSResource -Name $testModuleName
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
