@@ -149,10 +149,8 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
     }
 
     # Save resource that requires license
-    It 'Install resource that requires accept license with -AcceptLicense flag' {
-        Save-PSResource -Repository $NuGetGalleryName -TrustRepository -Path $SaveDir `
-            -Name 'test_module_withlicense' -AcceptLicense
-        $pkg = Get-InstalledPSResource -Path $SaveDir 'test_module_withlicense'
+    It 'Save resource that requires accept license with -AcceptLicense flag' {
+        $pkg = Save-PSResource -Repository $NuGetGalleryName -TrustRepository -Path $SaveDir -Name 'test_module_withlicense' -AcceptLicense -PassThru
         $pkg.Name | Should -Be 'test_module_withlicense'
         $pkg.Version | Should -Be '1.0.0'
     }
