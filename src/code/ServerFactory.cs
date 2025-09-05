@@ -12,11 +12,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     {
         static UserAgentInfo()
         {
-            using (System.Management.Automation.PowerShell ps = System.Management.Automation.PowerShell.Create(RunspaceMode.CurrentRunspace))
-            {
-                _psVersion = ps.AddScript("$PSVersionTable").Invoke<Hashtable>()[0]["PSVersion"].ToString();
-            }
-
+            _psVersion = System.Management.Automation.Runspaces.Runspace.DefaultRunspace.Version.ToString();
             _psResourceGetVersion = typeof(UserAgentInfo).Assembly.GetName().Version.ToString();
             _distributionChannel = System.Environment.GetEnvironmentVariable("POWERSHELL_DISTRIBUTION_CHANNEL") ?? "unknown";
         }
