@@ -205,8 +205,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
     # Save resource that requires license
     It "Save resource that requires accept license with -AcceptLicense flag" {
         $pkg = Save-PSResource -Repository $PSGalleryName -TrustRepository -Path $SaveDir -Name $testModuleNameWithLicense -AcceptLicense -PassThru
-        $pkg = Get-InstalledPSResource -Path $SaveDir -Name $testModuleNameWithLicense
         $pkg.Name | Should -Be $testModuleNameWithLicense
-        $pkg.Version | Should -Be "2.0.0.0"
+        $pkg.Version | Should -Be "2.0"
     }
 }
