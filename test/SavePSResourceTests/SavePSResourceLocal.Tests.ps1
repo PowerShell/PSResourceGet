@@ -96,7 +96,7 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         $pkgDirVersion = Get-ChildItem $pkgDir.FullName
         $pkgDirVersion.Name | Should -Be "1.0.0"
     }
-    
+
     It "Should save resource given name and version '3.*'" {
         Save-PSResource -Name $moduleName -Version "3.*" -Repository $localRepo -Path $SaveDir -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
@@ -147,7 +147,7 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         Find-PSResource -Name $moduleName -Version "5.0.0" -Repository $localRepo | Save-PSResource -Path $SaveDir -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
         $pkgDir | Should -Not -BeNullOrEmpty
-        (Get-ChildItem -Path $pkgDir.FullName) | Should -HaveCount 1   
+        (Get-ChildItem -Path $pkgDir.FullName) | Should -HaveCount 1
     }
 
     It "Save module as a nupkg" {
@@ -157,7 +157,7 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Save module, should search through all repositories and only install from the first repo containing the package" {
-        Save-PSResource -Name $moduleName3 -Version "0.0.93" -Path $SaveDir -TrustRepository -ErrorVariable ev 
+        Save-PSResource -Name $moduleName3 -Version "0.0.93" -Path $SaveDir -TrustRepository -ErrorVariable ev
         $ev | Should -BeNullOrEmpty
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "$moduleName3"
         $pkgDir | Should -Not -BeNullOrEmpty
@@ -180,11 +180,11 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Save module via InputObject by piping from Find-PSResource" {
-        $modules = Find-PSResource -Name "*" -Repository $localRepo 
+        $modules = Find-PSResource -Name "*" -Repository $localRepo
         $modules.Count | Should -BeGreaterThan 1
 
         Save-PSResource -Path $SaveDir -TrustRepository -InputObject $modules
-        
+
         $pkgDir = Get-ChildItem -Path $SaveDir
         $pkgDir | Should -Not -BeNullOrEmpty
         $pkgDir.Count | Should -BeGreaterThan 1
@@ -196,7 +196,8 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         $res = Save-PSResource -Name $moduleName -Version "5.0.0" -AuthenticodeCheck -Repository $localRepo -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue -ErrorVariable err -PassThru
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -BeNullOrEmpty
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
+        $err[0].FullyQualifiedErrorId | Should -Contain "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
+        $err[1].FullyQualifiedErrorId | Should -Contain "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
 
     It "Save module using -Quiet" {
