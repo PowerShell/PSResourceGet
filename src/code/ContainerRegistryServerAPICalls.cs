@@ -1,25 +1,26 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
-using NuGet.Versioning;
-using System.Threading.Tasks;
-using System.Net;
-using System.Management.Automation;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
 using System.Collections.ObjectModel;
-using System.Net.Http.Headers;
+using System.IO;
 using System.Linq;
-using Microsoft.PowerShell.PSResourceGet.Cmdlets;
-using System.Text;
+using System.Management.Automation;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Microsoft.PowerShell.PSResourceGet.Cmdlets;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
@@ -688,7 +689,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindAllRepositories()");
             string repositoryListUrl = string.Format(containerRegistryRepositoryListTemplate, Registry);
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-            return GetHttpResponseJObjectUsingDefaultHeaders(repositoryListUrl, HttpMethod.Get, defaultHeaders, out errRecord);
+            return GetHttpResponseJObjectUsingDefaultHeaders(repositoryListUrl, HttpMethod.Get, defaultHeaders, out errRecord, usePagination: true);
         }
 
         /// <summary>
@@ -937,7 +938,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Get response object when using default headers in the request.
         /// </summary>
-        internal JObject GetHttpResponseJObjectUsingDefaultHeaders(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders, out ErrorRecord errRecord)
+        internal JObject GetHttpResponseJObjectUsingDefaultHeaders(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders, out ErrorRecord errRecord, bool usePagination = false)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetHttpResponseJObjectUsingDefaultHeaders()");
             try
@@ -946,7 +947,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                 HttpRequestMessage request = new HttpRequestMessage(method, url);
                 SetDefaultHeaders(defaultHeaders);
 
-                return SendRequestAsync(request).GetAwaiter().GetResult();
+                var response = usePagination ? SendRequestAsyncWithPagination(request) : SendRequestAsync(request);
+                return response.GetAwaiter().GetResult();
             }
             catch (ResourceNotFoundException e)
             {
@@ -1150,6 +1152,63 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             return JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
+        }
+
+        private async Task<JObject> SendRequestAsyncWithPagination(HttpRequestMessage initialMessage)
+        {
+            HttpResponseMessage response;
+            string nextUrl = initialMessage.RequestUri.ToString();
+            JObject finalResult = new JObject();
+            JArray allRepositories = new JArray();
+
+            do
+            {
+                var message = new HttpRequestMessage(HttpMethod.Get, nextUrl);
+                try
+                {
+                    response = await _sessionClient.SendAsync(message);
+                }
+                catch (Exception e)
+                {
+                    throw new SendRequestException($"Error occurred while sending request to Container Registry server with: {e.GetType()} '{e.Message}'", e);
+                }
+
+                switch (response.StatusCode)
+                {
+                    case HttpStatusCode.OK:
+                        break;
+                    case HttpStatusCode.Unauthorized:
+                        throw new UnauthorizedException($"Response returned status code: {response.ReasonPhrase}.");
+                    case HttpStatusCode.NotFound:
+                        throw new ResourceNotFoundException($"Response returned status code package: {response.ReasonPhrase}.");
+                    default:
+                        throw new Exception($"Response returned error with status code {response.StatusCode}: {response.ReasonPhrase}.");
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var json = JObject.Parse(content);
+                var repositories = json["repositories"] as JArray;
+                if (repositories != null)
+                {
+                    allRepositories.Merge(repositories);
+                }
+
+                // Check for Link header to continue pagination
+                if (response.Headers.TryGetValues("Link", out var linkHeaders))
+                {
+                    var linkHeader = string.Join(",", linkHeaders);
+                    var match = Regex.Match(linkHeader, @"<([^>]+)>;\s*rel=""next""");
+                    nextUrl = match.Success ? match.Groups[1].Value : null;
+                }
+                else
+                {
+                    nextUrl = null;
+                }
+
+            } while (!string.IsNullOrEmpty(nextUrl));
+
+            finalResult["repositories"] = allRepositories;
+            return finalResult;
         }
 
         /// <summary>
