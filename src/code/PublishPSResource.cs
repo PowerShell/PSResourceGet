@@ -148,7 +148,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (MyInvocation.BoundParameters.ContainsKey(nameof(ModulePrefix)))
             {
-                if (MyInvocation.BoundParameters.ContainsKey(nameof(Repository))) // can remove if Repository is 'Mandatory' parameter
+                if (MyInvocation.BoundParameters.ContainsKey(nameof(Repository)))
                 {
                     // at this point it is ensured PSResourceRepository.xml file is created
                     PSRepositoryInfo repository = RepositorySettings.Read(new[] { Repository }, out string[] _).FirstOrDefault();
@@ -163,7 +163,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    // can remove if Repository is 'Mandatory' parameter
                     ThrowTerminatingError(new ErrorRecord(
                         new PSInvalidOperationException("ModulePrefix parameter can only be provided with the Repository parameter."),
                         "ModulePrefixParameterProvidedWithoutRepositoryParameter",
