@@ -99,6 +99,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         # Create test module with missing required module
         CreateTestModule -Path $TestDrive -ModuleName 'ModuleWithMissingRequiredModule'
+
+        $script:PSGalleryName = 'PSGallery'
     }
     AfterAll {
        Get-RevertPSResourceRepositoryFile
@@ -147,6 +149,44 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$script:PublishModuleName.$version.nupkg"
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
+    }
+
+    It "Publish should create PSResourceRepository.xml file if its not there" {
+        # Remove the PSResourceRepository.xml file
+        $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PSResourceGet"
+        $originalXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml" #this is the temporary PSResourceRepository.xml file created in the 'BeforeAll' section of this test file
+
+        $tempXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "tempfortest.xml"
+
+        if (Test-Path -Path $originalXmlFilePath) {
+            Copy-Item -Path $originalXmlFilePath -Destination $tempXmlFilePath
+            Remove-Item -Path $originalXmlFilePath -Force -ErrorAction Ignore
+        }
+
+        # Attempt to publish.
+        # Publish-PSResource should create PSResourceRepository.xml file if not present. It will register the 'PSGallery' repository as a default, so this test will still fail
+        # But we can ensure the PSResourceRepository.xml file is created.
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2 -ErrorVariable err -ErrorAction SilentlyContinue
+        $err[0].FullyQualifiedErrorId | Should -Be "RepositoryNotRegistered,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+
+        $registeredRepos = Get-PSResourceRepository
+        $registeredRepos.Count | Should -Be 1
+        $registeredRepos[0].Name | Should -Be $script:PSGalleryName
+
+        # Cleanup
+        # Remove the new PSResourceRepository.xml file created by the Publish-PSResource command and put back the original created in the 'BeforeAll' section of this test file
+        if (Test-Path -Path $tempXmlFilePath) {
+            Copy-Item -Path $tempXmlFilePath -Destination $originalXmlFilePath -Force -Verbose
+            Remove-Item -Path $tempXmlFilePath -Force -ErrorAction Ignore
+        }
+
+        # Verify old repositories are restored
+        $originalRegisteredRepo = Get-PSResourceRepository -Name $testRepository2 -ErrorVariable err2 -ErrorAction SilentlyContinue
+        $err2.Count | Should -Be 0
+        $originalRegisteredRepo.Name | Should -Be $testRepository2
     }
 
 	#region Local Source Path
