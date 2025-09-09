@@ -1158,6 +1158,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             HttpResponseMessage response;
             string nextUrl = initialMessage.RequestUri.ToString();
+            string urlBase = initialMessage.RequestUri.Scheme + "://" + initialMessage.RequestUri.Host;
             JObject finalResult = new JObject();
             JArray allRepositories = new JArray();
 
@@ -1198,7 +1199,15 @@ namespace Microsoft.PowerShell.PSResourceGet
                 {
                     var linkHeader = string.Join(",", linkHeaders);
                     var match = Regex.Match(linkHeader, @"<([^>]+)>;\s*rel=""next""");
-                    nextUrl = match.Success ? match.Groups[1].Value : null;
+                    var nextUrlPart = match.Success ? match.Groups[1].Value : null;
+                    if (!string.IsNullOrEmpty(nextUrlPart))
+                    {
+                        nextUrl = urlBase + nextUrlPart;
+                    }
+                    else
+                    {
+                        nextUrl = null;
+                    }
                 }
                 else
                 {
