@@ -517,8 +517,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Version | Should -Be $version
     }
 
-    It "not Publish a resource when ModulePrefix is given for a Repository that is not of type ContainerRegistry" 
-    {
+    It "not Publish a resource when ModulePrefix is given for a Repository that is not of type ContainerRegistry" {
         $version = "1.0.0"
         $modulePrefix = "unlisted"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
