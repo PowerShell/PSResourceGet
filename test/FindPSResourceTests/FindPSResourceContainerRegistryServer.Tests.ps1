@@ -175,6 +175,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
     It "Should find all resources given Name '*'" {
         # FindAll()
         $res = Find-PSResource -Name "*" -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -BeNullOrEmpty
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterThan 0
     }
