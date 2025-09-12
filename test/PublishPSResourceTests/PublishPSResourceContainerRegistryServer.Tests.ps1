@@ -522,7 +522,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $modulePrefix = "unlisted"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        { Publish-PSResource -Path $script:PublishModuleBase -Repository $script:PSGalleryName -ModulePrefix $modulePrefix -ErrorAction Stop } | Should -Throw "ModulePrefixParameterIncorrectlyProvided,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        { Publish-PSResource -Path $script:PublishModuleBase -Repository $script:PSGalleryName -ModulePrefix $modulePrefix -ErrorAction Stop } | Should -Throw "ModulePrefix parameter can only be provided for a registered repository of type 'ContainerRegistry'"
     }
 
     It "not Publish a resource when ModulePrefix is provided without Repository parameter" {
@@ -530,7 +530,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $modulePrefix = "unlisted"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        { Publish-PSResource -Path $script:PublishModuleBase -ModulePrefix $modulePrefix -ErrorAction Stop } | Should -Throw "ModulePrefixParameterProvidedWithoutRepositoryParameter,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        { Publish-PSResource -Path $script:PublishModuleBase -ModulePrefix $modulePrefix -ErrorAction Stop } | Should -Throw "ModulePrefix parameter can only be provided with the Repository parameter."
     }
 
     It "Publish a package given NupkgPath to a package with .psd1" {
