@@ -522,9 +522,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $modulePrefix = "unlisted"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        Publish-PSResource -Path $script:PublishModuleBase -Repository $script:PSGalleryName -ModulePrefix $modulePrefix -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ModulePrefixParameterIncorrectlyProvided,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        { Publish-PSResource -Path $script:PublishModuleBase -Repository $script:PSGalleryName -ModulePrefix $modulePrefix -ErrorVariable err -ErrorAction SilentlyContinue  -ErrorAction Stop } | Should -Throw "ModulePrefixParameterIncorrectlyProvided,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
     It "not Publish a resource when ModulePrefix is provided without Repository parameter" {
@@ -532,9 +530,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $modulePrefix = "unlisted"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        Publish-PSResource -Path $script:PublishModuleBase -ModulePrefix $modulePrefix -ErrorVariable err -ErrorAction SilentlyContinue
-        $err.Count | Should -Not -Be 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "ModulePrefixParameterProvidedWithoutRepositoryParameter,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        { Publish-PSResource -Path $script:PublishModuleBase -ModulePrefix $modulePrefix -ErrorVariable err -ErrorAction SilentlyContinue  -ErrorAction Stop } | Should -Throw "ModulePrefixParameterProvidedWithoutRepositoryParameter,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
     It "Publish a package given NupkgPath to a package with .psd1" {
