@@ -46,7 +46,7 @@
         'udres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'preview2'
+            Prerelease   = 'preview3'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -56,6 +56,18 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.2.0-preview3
+
+### New Features
+- Pagination for MCR catalog items (#1870)
+
+### Bug Fix
+- Bug fix for CLM issues (#1869)
+- Update `-ModulePrefix` to be a static parameter (#1868)
+- Bug fix for populating all `#Requires` fields in `Update-PSScriptFileInfo` (#1863)
+- Bug fix for populating `Includes` metadata for packages from container registry repositories (#1861)
+- Bug fix for `Find-PSRessource` and `Install-PSResource` not retrieving unlisted package versions (#1859)
+
 ## 1.2.0-preview2
 
 ### New Features

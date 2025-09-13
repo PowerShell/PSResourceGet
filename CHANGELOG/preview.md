@@ -1,5 +1,18 @@
 # Preview Changelog
 
+## [1.2.0-preview3](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview2..v1.2.0-preview3) - 2025-09-12
+
+### New Features
+- Pagination for MCR catalog items (#1870)
+
+### Bug Fix
+- Bug fix for CLM issues (#1869)
+- Update `-ModulePrefix` to be a static parameter (#1868)
+- Bug fix for populating all `#Requires` fields in `Update-PSScriptFileInfo` (#1863)
+- Bug fix for populating `Includes` metadata for packages from container registry repositories (#1861)
+- Bug fix for `Find-PSRessource` and `Install-PSResource` not retrieving unlisted package versions (#1859)
+
+
 ## [1.2.0-preview2](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview1..v1.2.0-preview2) - 2025-07-21
 
 ### New Features
