@@ -1,12 +1,16 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.PSResourceGet.UtilClasses;
-using NuGet.Versioning;
 using System;
 using System.Management.Automation;
 using System.Net;
 using System.Threading;
+using GraphQL;
+using GraphQL.Client.Http;
+using GraphQL.Client.Serializer.Newtonsoft;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using NuGet.Versioning;
+using static System.Net.WebRequestMethods;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -28,6 +32,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private const string NameParameterSet = "NameParameterSet";
         private const string CommandNameParameterSet = "CommandNameParameterSet";
         private const string DscResourceNameParameterSet = "DscResourceNameParameterSet";
+        private const string HackathonParameterSet = "HackathonParameterSet";
+
         private CancellationTokenSource _cancellationTokenSource;
         private FindHelper _findHelper;
 
@@ -45,6 +51,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                    ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string[] Name { get; set; }
+
+        /// <summary>
+        /// Temporarily adding parameter to bypass all other code flows.
+        /// </summary>
+        [Parameter(ParameterSetName = HackathonParameterSet)]
+        public SwitchParameter Hackathon { get; set; }
 
         /// <summary>
         /// Specifies one or more resource types to find.
@@ -155,6 +167,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 case DscResourceNameParameterSet:
                     ProcessCommandOrDscParameterSet(isSearchingForCommands: false);
                     break;
+
+                case HackathonParameterSet:
+                    ProcessHackathonParameterSet();
+                    break; 
 
                 default:
                     break;
@@ -296,6 +312,87 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repository: Repository))
             {
                 WriteObject(cmdPkg);
+            }
+        }
+
+        private async void ProcessHackathonParameterSet()
+        {
+            var schema = @"
+                        type Query {
+                            continents: [Continent]
+                            continent(code: String): Continent
+                            countries: [Country]
+                            country(code: String): Country
+                            languages: [Language]
+                            language(code: String): Language
+                        }
+
+
+                        type Continent {
+                            code: String
+                            name: String
+                            countries: [Country]
+                        }
+
+
+                        type Country {
+                            code: String
+                            name: String
+                            native: String
+                            phone: String
+                            continent: Continent
+                            currency: String
+                            languages: [Language]
+                            emoji: String
+                            emojiU: String
+                            states: [State]
+                        }
+
+                        type Language {
+                            code: String
+                            name: String
+                            native: String
+                            rtl: Int
+                        }
+
+
+                        type State {
+                            code: String
+                            name: String
+                            country: Country
+                        }
+
+                        enum CacheControlScope {
+                            PUBLIC
+                            PRIVATE
+                        }
+                        ";
+
+            // want to query https://countries.trevorblades.com/graphql
+
+            var GraphQLUri = "https://localhost:7250/graphql/";
+
+            try
+            {
+                var graphQLClient = new GraphQLHttpClient(GraphQLUri, new NewtonsoftJsonSerializer());
+                    
+                    var query = new GraphQLHttpRequest
+                      {
+                          Query = @"query {
+                                      packageByName(packageName: ""PowerShellGet"") {    
+                                        description
+                                        version
+                                      }
+                                    }"
+                    };
+
+                var graphQLResponse = await graphQLClient.SendQueryAsync<dynamic>(query);
+
+                Console.WriteLine(graphQLResponse.Data.ToString());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
             }
         }
 

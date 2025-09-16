@@ -88,6 +88,11 @@ function DoBuild
             $depAssemblyNames = @(
                 'Azure.Core'
                 'Azure.Identity'
+                'GraphQL.Client'
+                'GraphQL.Client.Abstractions.Websocket'
+                'GraphQL.Client.Abstractions'
+                'GraphQL.Primitives'
+                'GraphQL.Client.Serializer.Newtonsoft'
                 'Microsoft.Bcl.AsyncInterfaces'
                 'Microsoft.Extensions.FileProviders.Abstractions'
                 'Microsoft.Extensions.FileSystemGlobbing'
