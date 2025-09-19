@@ -60,8 +60,8 @@ Describe 'Test Install-PSResource for ADO V3Server scenarios' -tags 'CI' {
     }
 
     It "Should not install resource given nonexistant name" {
-        Install-PSResource -Name "NonExistantModule" -Repository $ADORepoName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource "NonExistantModule"
+        Install-PSResource -Name "NonExistentModule" -Repository $ADORepoName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
+        $pkg = Get-InstalledPSResource "NonExistentModule"
         $pkg | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"

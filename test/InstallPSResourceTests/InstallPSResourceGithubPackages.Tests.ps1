@@ -59,17 +59,17 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
 
     It "Install multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
-        Install-PSResource -Name $pkgNames -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository  
+        Install-PSResource -Name $pkgNames -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $pkgNames
         $pkg.Name | Should -Be $pkgNames
     }
 
     It "Should not install resource given nonexistant name" {
-        Install-PSResource -Name "NonExistantModule" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource "NonExistantModule" -ErrorAction SilentlyContinue
+        Install-PSResource -Name "NonExistentModule" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
+        $pkg = Get-InstalledPSResource "NonExistentModule" -ErrorAction SilentlyContinue
         $pkg | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" 
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
     }
 
     # Do some version testing, but Find-PSResource should be doing thorough testing
@@ -81,21 +81,21 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
     }
 
     It "Should install resource given name and exact version with bracket syntax" {
-        Install-PSResource -Name $testModuleName -Version "[1.0.0]" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository  
+        Install-PSResource -Name $testModuleName -Version "[1.0.0]" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "1.0.0"
     }
 
     It "Should install resource given name and exact range inclusive [1.0.0, 5.0.0]" {
-        Install-PSResource -Name $testModuleName -Version "[1.0.0, 5.0.0]" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository  
+        Install-PSResource -Name $testModuleName -Version "[1.0.0, 5.0.0]" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Should install resource given name and exact range exclusive (1.0.0, 5.0.0)" {
-        Install-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository  
+        Install-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "3.0.0"
@@ -123,7 +123,7 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
     }
 
     It "Install resource with latest (including prerelease) version given Prerelease parameter" {
-        Install-PSResource -Name $testModuleName -Prerelease -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository 
+        Install-PSResource -Name $testModuleName -Prerelease -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.2.5"
@@ -244,15 +244,15 @@ Describe 'Test Install-PSResource for GitHub Packages scenarios - Manual Validat
     It "Install resource under AllUsers scope - Unix only" -Skip:(Get-IsWindows) {
         Install-PSResource -Name $testModuleName -Repository $TestGalleryName -Scope AllUsers
         $pkg = Get-Module $testModuleName -ListAvailable
-        $pkg.Name | Should -Be $testModuleName 
+        $pkg.Name | Should -Be $testModuleName
         $pkg.Path.Contains("/usr/") | Should -Be $true
     }
 
     # This needs to be manually tested due to prompt
     It "Install resource that requires accept license without -AcceptLicense flag" {
         Install-PSResource -Name $testModuleName2  -Repository $TestGalleryName
-        $pkg = Get-InstalledPSResource $testModuleName2 
-        $pkg.Name | Should -Be $testModuleName2 
+        $pkg = Get-InstalledPSResource $testModuleName2
+        $pkg.Name | Should -Be $testModuleName2
         $pkg.Version | Should -Be "0.0.1.0"
     }
 
@@ -261,7 +261,7 @@ Describe 'Test Install-PSResource for GitHub Packages scenarios - Manual Validat
         Set-PSResourceRepository PoshTestGallery -Trusted:$false
 
         Install-PSResource -Name $testModuleName -Repository $TestGalleryName -confirm:$false
-    
+
         $pkg = Get-Module $testModuleName -ListAvailable
         $pkg.Name | Should -Be $testModuleName
 

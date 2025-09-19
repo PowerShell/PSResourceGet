@@ -32,7 +32,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
 
     It "should not find resource given nonexistant Name" {
         # FindName()
-        $res = Find-PSResource -Name NonExistantModule -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name NonExistentModule -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
