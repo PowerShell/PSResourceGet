@@ -271,7 +271,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
-    It "should not find resource from repositories where it does not exist and not write error since package Name contains wilcard" -Pending {
+    It "should not find resource from repositories where it does not exist and not write error since package Name contains wildcard" -Pending {
         $res = Find-PSResource -Name "NonExistentPkg*" -Repository $PSGalleryName,$NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -HaveCount 0
         $err | Should -HaveCount 0
@@ -439,7 +439,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
     }
 
     It "find resource from all repositories where it exists and write errors for those it does not exist from (-Repository with multiple non-wildcard values)" {
-        # Package eith Tag "Tag-TestMyLocalScript-1.0.0.0" exists in the following repositories: PSGallery
+        # Package with Tag "Tag-TestMyLocalScript-1.0.0.0" exists in the following repositories: PSGallery
         $tagForPkgOnPSGallery = "Tag-TestMyLocalScript-1.0.0.0"
         $res = Find-PSResource -Tag $tagForPkgOnPSGallery -Repository $PSGalleryName,$NuGetGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res.Count | Should -BeGreaterOrEqual 2
