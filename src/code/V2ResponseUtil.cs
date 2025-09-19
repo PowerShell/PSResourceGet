@@ -27,13 +27,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region Overriden Methods
+        #region Overridden Methods
         public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults, bool isResourceRequestedWithWildcard = false)
         {
             // in FindHelper:
             // serverApi.FindName() -> return responses, and out errRecord
             // check outErrorRecord
-            // 
+            //
             // v2Converter.ConvertToPSResourceInfo(responses) -> return PSResourceResult
             // check resourceResult for error, write if needed
             string[] responses = responseResults.StringResponse;
@@ -85,7 +85,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             XmlNodeList entryNode = doc.GetElementsByTagName("entry");
 
             XmlNode[] nodes = new XmlNode[entryNode.Count];
-            for (int i = 0; i < entryNode.Count; i++) 
+            for (int i = 0; i < entryNode.Count; i++)
             {
                 XmlNode node = entryNode[i];
                 nodes[i] = node;
