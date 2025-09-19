@@ -102,9 +102,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
                     {
                         ThrowTerminatingError(new ErrorRecord(
-                            new ArgumentException("Argument for -Version parameter is not in the proper format."), 
-                            "IncorrectVersionFormat", 
-                            ErrorCategory.InvalidArgument, 
+                            new ArgumentException("Argument for -Version parameter is not in the proper format."),
+                            "IncorrectVersionFormat",
+                            ErrorCategory.InvalidArgument,
                             this));
                     }
 
@@ -144,9 +144,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             versionRange: out _versionRange))
                         {
                             WriteError(new ErrorRecord(
-                                new ArgumentException($"Error parsing version '{inputObj.Version}' for resource '{inputObj.Name}'."), 
-                                "ErrorParsingVersion", 
-                                ErrorCategory.ParserError, 
+                                new ArgumentException($"Error parsing version '{inputObj.Version}' for resource '{inputObj.Name}'."),
+                                "ErrorParsingVersion",
+                                ErrorCategory.ParserError,
                                 this));
                         }
 
@@ -154,8 +154,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         if (!String.IsNullOrWhiteSpace(inputObj.Name) && !UninstallPkgHelper(out List<ErrorRecord> InputObjErrRecords))
                         {
                             foreach (var err in InputObjErrRecords)
-                            { 
-                                WriteError(err); 
+                            {
+                                WriteError(err);
                             }
                         }
                     }
@@ -188,7 +188,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (totalDirs == 0) {
                 string message = Version == null || Version.Trim().Equals("*") ?
                     $"Cannot uninstall resource '{String.Join(", ", Name)}' because it does not exist" :
-                    $"Cannot uninstall verison '{Version}' of resource '{String.Join(", ", Name)}' because it does not exist";
+                    $"Cannot uninstall version '{Version}' of resource '{String.Join(", ", Name)}' because it does not exist";
 
                 errRecords.Add(new ErrorRecord(
                     new ResourceNotFoundException(message),
@@ -304,18 +304,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 catch (Exception e)
                 {
                     errRecord = new ErrorRecord(
-                        new ArgumentException($"Parent directory '{dir.Parent.FullName}' could not be deleted: {e.Message}"), 
-                        "ErrorDeletingParentDirectory", 
-                        ErrorCategory.InvalidArgument, 
+                        new ArgumentException($"Parent directory '{dir.Parent.FullName}' could not be deleted: {e.Message}"),
+                        "ErrorDeletingParentDirectory",
+                        ErrorCategory.InvalidArgument,
                         this);
                 }
             }
             catch (Exception err)
             {
                 errRecord = new ErrorRecord(
-                    new ArgumentException($"Parent directory '{dir.FullName}' could not be deleted: {err.Message}"), 
-                    "ErrorDeletingDirectory", 
-                    ErrorCategory.PermissionDenied, 
+                    new ArgumentException($"Parent directory '{dir.FullName}' could not be deleted: {err.Message}"),
+                    "ErrorDeletingDirectory",
+                    ErrorCategory.PermissionDenied,
                     this);
             }
 
@@ -356,17 +356,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 catch (Exception e)
                 {
                     errRecord = new ErrorRecord(
-                        new ArgumentException($"Script metadata file '{scriptXML}' could not be deleted: {e.Message}"), 
-                        "ErrorDeletingScriptMetadataFile", 
-                        ErrorCategory.PermissionDenied, 
+                        new ArgumentException($"Script metadata file '{scriptXML}' could not be deleted: {e.Message}"),
+                        "ErrorDeletingScriptMetadataFile",
+                        ErrorCategory.PermissionDenied,
                         this);
                 }
             }
             catch (Exception err)
             {
                 errRecord = new ErrorRecord(
-                    new ArgumentException($"Script '{pkgPath}' could not be deleted: {err.Message}"), 
-                    "ErrorDeletingScript", 
+                    new ArgumentException($"Script '{pkgPath}' could not be deleted: {err.Message}"),
+                    "ErrorDeletingScript",
                     ErrorCategory.PermissionDenied,
                     this);
             }
@@ -429,13 +429,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var parentPkg = parentPackages[i] as PSModuleInfo;
 
                 for (int j = 0; j < parentPkg.RequiredModules.Count; j++)
-                { 
+                {
                     var pkgToUninstall = parentPkg.RequiredModules[j] as PSModuleInfo;
                     if (string.Equals(pkgToUninstall.Name, pkgName, StringComparison.InvariantCultureIgnoreCase)) {
-                        // then check verison
+                        // then check version
                         if (pkgToUninstall.Version == null)
                         {
-                            // Any version works as a dependency, so only one version needs to be available.  
+                            // Any version works as a dependency, so only one version needs to be available.
                             _pwsh ??= System.Management.Automation.PowerShell.Create();
                             _pwsh.Commands.Clear();
 
