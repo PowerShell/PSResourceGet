@@ -132,8 +132,8 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $pkgs.Version | Should -Not -Contain $Version
     }
 
-    $testCases2 =  @{Version='[1.*.0]';         Description="version with wilcard in middle"},
-                @{Version='[*.0.0.0]';       Description="version with wilcard at start"},
+    $testCases2 =  @{Version='[1.*.0]';         Description="version with wildcard in middle"},
+                @{Version='[*.0.0.0]';       Description="version with wildcard at start"},
                 @{Version='[1.*.0.0]';       Description="version with wildcard at second digit"},
                 @{Version='[1.0.*.0]';       Description="version with wildcard at third digit"}
                 @{Version='[1.0.0.*]';       Description="version with wildcard at end"},

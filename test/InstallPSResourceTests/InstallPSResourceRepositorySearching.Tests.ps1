@@ -34,7 +34,7 @@ Describe 'Test Install-PSResource for searching and looping through repositories
         Get-RevertPSResourceRepositoryFile
     }
 
-    It "install resources from higest priority repository where it exists (without -Repository specified)" {
+    It "install resources from highest priority repository where it exists (without -Repository specified)" {
         # Package "test_module" exists in the following repositories (in this order): localRepo, PSGallery, NuGetGallery
         $res = Install-PSResource -Name $testModuleName -TrustRepository -SkipDependencyCheck -ErrorVariable err -ErrorAction SilentlyContinue -PassThru
         $err | Should -HaveCount 0

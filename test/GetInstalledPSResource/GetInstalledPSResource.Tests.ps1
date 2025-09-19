@@ -54,7 +54,7 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
         $pkgs.Name | Should -Contain $testModuleName
     }
 
-$testCases =  
+$testCases =
     @{Version="[1.0.0.0]";          ExpectedVersion="1.0.0.0";                           Reason="validate version, exact match"},
     @{Version="1.0.0.0";            ExpectedVersion="1.0.0.0";                           Reason="validate version, exact match without bracket syntax"},
     @{Version="[1.0.0.0, 5.0.0.0]"; ExpectedVersion=@("5.0.0.0", "3.0.0.0", "1.0.0.0");  Reason="validate version, exact range inclusive"},
@@ -73,10 +73,10 @@ $testCases =
     }
 
     It "Throw invalid version error when passing incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version='[1.*.0]';         Description="version with wilcard in middle"},
-        @{Version='[*.0.0.0]';       Description="version with wilcard at start"},
+        @{Version='[1.*.0]';         Description="version with wildcard in middle"},
+        @{Version='[*.0.0.0]';       Description="version with wildcard at start"},
         @{Version='[1.*.0.0]';       Description="version with wildcard at second digit"},
-        @{Version='[1.0.*.0]';       Description="version with wildcard at third digit"}
+        @{Version='[1.0.*.0]';       Description="version with wildcard at third digit"},
         @{Version='[1.0.0.*';        Description="version with wildcard at end"},
         @{Version='[1..0.0]';        Description="version with missing digit in middle"},
         @{Version='[1.0.0.]';        Description="version with missing digit at end"},
@@ -89,13 +89,13 @@ $testCases =
             $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -ErrorAction Ignore
         }
         catch {}
-        
+
         $res | Should -BeNullOrEmpty
     }
 
     # These versions technically parse into proper NuGet versions, but will not return the version expected
     It "Does not return resource when passing incorrectly formatted version such as <Description>, does not throw error" -TestCases @(
-        @{Version='(1.0.0.0)';       Description="exlcusive version (8.1.0.0)"},
+        @{Version='(1.0.0.0)';       Description="exclusive version (8.1.0.0)"},
         @{Version='[1-0-0-0]';       Description="version formatted with invalid delimiter"}
 
     ) {
@@ -106,7 +106,7 @@ $testCases =
             $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -ErrorAction Ignore
         }
         catch {}
-        
+
         $res | Should -BeNullOrEmpty
     }
 
