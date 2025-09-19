@@ -130,7 +130,7 @@ Describe 'Test HTTP Find-PSResource for ADO Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 
-    It "should not find resources when given Name with wildcard and Tag proprties" {
+    It "should not find resources when given Name with wildcard and Tag properties" {
         # FindNameGlobbingWithTag()
         $requiredTag = "test"
         $nameWithWildcard = "test_local_m*"
