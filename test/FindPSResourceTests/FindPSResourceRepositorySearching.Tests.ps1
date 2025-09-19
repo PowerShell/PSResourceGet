@@ -92,7 +92,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkg2.Repository | Should -Be $NuGetGalleryName
     }
 
-    It "should not find resource given nonexistant Name (without -Repository specified)" {
+    It "should not find resource given nonexistent Name (without -Repository specified)" {
         $res = Find-PSResource -Name "NonExistentModule" -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err | Should -HaveCount 1

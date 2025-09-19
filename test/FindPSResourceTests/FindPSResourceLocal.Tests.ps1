@@ -94,7 +94,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # $res.Tags | Should -Contain $requiredTag
     }
 
-    It "should not find resource given nonexistant Name" {
+    It "should not find resource given nonexistent Name" {
         # FindName()
         $res = Find-PSResource -Name NonExistentModule -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty

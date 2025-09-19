@@ -30,7 +30,7 @@ Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
     }
 
-    It "should not find resource given nonexistant Name" {
+    It "should not find resource given nonexistent Name" {
         # FindName()
         $res = Find-PSResource -Name NonExistentModule -Repository $GithubPackagesRepoName -Credential $credential -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty

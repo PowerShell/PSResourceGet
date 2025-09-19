@@ -25,7 +25,7 @@ Describe 'Test HTTP Find-PSResource for ADO Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
     }
 
-    It "should not find resource given nonexistant Name" {
+    It "should not find resource given nonexistent Name" {
         # FindName()
         $res = Find-PSResource -Name NonExistentModule -Repository $ADORepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty

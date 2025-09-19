@@ -62,7 +62,7 @@ Describe 'Test Install-PSResource for searching and looping through repositories
         $res.Repository | Should -Be $PSGalleryName
     }
 
-    It "should not install resource given nonexistant Name (without -Repository specified)" {
+    It "should not install resource given nonexistent Name (without -Repository specified)" {
         Install-PSResource -Name "NonExistentModule" -TrustRepository -SkipDependencyCheck -ErrorVariable err -ErrorAction SilentlyContinue
         $err | Should -HaveCount 1
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"

@@ -76,7 +76,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $pkg.Name | Should -Be $pkgNames
     }
 
-    It "Should not install resource given nonexistant name" {
+    It "Should not install resource given nonexistent name" {
         $res = Install-PSResource -Name "NonExistentModule" -Repository $localRepo -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0

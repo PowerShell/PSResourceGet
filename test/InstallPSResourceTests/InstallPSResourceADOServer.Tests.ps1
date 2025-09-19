@@ -59,7 +59,7 @@ Describe 'Test Install-PSResource for ADO V3Server scenarios' -tags 'CI' {
         $pkg.Name | Should -Be $pkgNames
     }
 
-    It "Should not install resource given nonexistant name" {
+    It "Should not install resource given nonexistent name" {
         Install-PSResource -Name "NonExistentModule" -Repository $ADORepoName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
         $pkg = Get-InstalledPSResource "NonExistentModule"
         $pkg | Should -BeNullOrEmpty

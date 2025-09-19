@@ -71,7 +71,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $pkg.Name | Should -Be $pkgNames
     }
 
-    It 'Should not install resource given nonexistant name' {
+    It 'Should not install resource given nonexistent name' {
         Install-PSResource -Name 'NonExistentModule' -Repository $NuGetGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
         $pkg = Get-InstalledPSResource 'NonExistentModule' -ErrorAction SilentlyContinue
         $pkg.Name | Should -BeNullOrEmpty
