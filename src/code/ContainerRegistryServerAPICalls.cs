@@ -698,9 +698,9 @@ namespace Microsoft.PowerShell.PSResourceGet
         internal Hashtable GetContainerRegistryMetadata(string packageName, string exactTagVersion, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryMetadata()");
-            Hashtable requiredVersionResponse = new Hashtable();
+            Hashtable requiredVersionResponse = new();
 
-            var foundTags = FindContainerRegistryManifest(packageName, exactTagVersion, containerRegistryAccessToken, out errRecord);
+            JObject foundTags = FindContainerRegistryManifest(packageName, exactTagVersion, containerRegistryAccessToken, out errRecord);
             if (errRecord != null)
             {
                 return requiredVersionResponse;
@@ -728,7 +728,7 @@ namespace Microsoft.PowerShell.PSResourceGet
              *   }
              */
 
-            var serverPkgInfo = GetMetadataProperty(foundTags, packageName, out errRecord);
+            ContainerRegistryInfo serverPkgInfo = GetMetadataProperty(foundTags, packageName, out errRecord);
             if (errRecord != null)
             {
                 return requiredVersionResponse;
