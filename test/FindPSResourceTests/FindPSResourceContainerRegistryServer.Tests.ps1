@@ -322,7 +322,7 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
     }
 }
 
-# Skip this test fo
+# Skip this test for Windows PowerShell
 Describe 'Test Find-PSResource for unauthenticated ACR repository' -tags 'CI' {
     BeforeAll {
         $skipOnWinPS = $PSVersionTable.PSVersion.Major -eq 5
