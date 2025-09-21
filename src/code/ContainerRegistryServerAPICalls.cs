@@ -894,7 +894,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return serverPkgInfo;
             }
 
-            var metadata = pkgMetadataJToken.ToString();
+            string metadata = pkgMetadataJToken.ToString();
 
             // Check for package artifact type
             JToken resourceTypeJToken = annotations["resourceType"];
