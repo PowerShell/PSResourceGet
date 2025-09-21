@@ -6,7 +6,7 @@ Import-Module $modPath -Force -Verbose
 
 Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 
-    BeforeAll{
+    BeforeAll {
         $testModuleName = "test-module"
         $testModuleWith2DigitVersion = "test-2DigitPkg"
         $testModuleParentName = "test_parent_mod"
@@ -19,13 +19,11 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 
         $usingAzAuth = $env:USINGAZAUTH -eq 'true'
 
-        if ($usingAzAuth)
-        {
+        if ($usingAzAuth) {
             Write-Verbose -Verbose "Using Az module for authentication"
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -Verbose
         }
-        else
-        {
+        else {
             $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
         }
@@ -51,18 +49,18 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res | Should -BeNullOrEmpty
     }
 
-    $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0");                              Reason="validate version, exact match"},
-                  @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0");                              Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, exact range inclusive"},
-                  @{Version="(1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("3.0.0");                              Reason="validate version, exact range exclusive"},
-                  @{Version="(1.0.0.0,)";          ExpectedVersions=@("3.0.0", "5.0.0");                     Reason="validate version, minimum version exclusive"},
-                  @{Version="[1.0.0.0,)";          ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, minimum version inclusive"},
-                  @{Version="(,3.0.0.0)";          ExpectedVersions=@("1.0.0");                              Reason="validate version, maximum version exclusive"},
-                  @{Version="(,3.0.0.0]";          ExpectedVersions=@("1.0.0", "3.0.0");                     Reason="validate version, maximum version inclusive"},
-                  @{Version="[1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("1.0.0", "3.0.0");                     Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("3.0.0", "5.0.0");                     Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version = "[5.0.0.0]"; ExpectedVersions = @("5.0.0"); Reason = "validate version, exact match" },
+    @{Version = "5.0.0.0"; ExpectedVersions = @("5.0.0"); Reason = "validate version, exact match without bracket syntax" },
+    @{Version = "[1.0.0.0, 5.0.0.0]"; ExpectedVersions = @("1.0.0", "3.0.0", "5.0.0"); Reason = "validate version, exact range inclusive" },
+    @{Version = "(1.0.0.0, 5.0.0.0)"; ExpectedVersions = @("3.0.0"); Reason = "validate version, exact range exclusive" },
+    @{Version = "(1.0.0.0,)"; ExpectedVersions = @("3.0.0", "5.0.0"); Reason = "validate version, minimum version exclusive" },
+    @{Version = "[1.0.0.0,)"; ExpectedVersions = @("1.0.0", "3.0.0", "5.0.0"); Reason = "validate version, minimum version inclusive" },
+    @{Version = "(,3.0.0.0)"; ExpectedVersions = @("1.0.0"); Reason = "validate version, maximum version exclusive" },
+    @{Version = "(,3.0.0.0]"; ExpectedVersions = @("1.0.0", "3.0.0"); Reason = "validate version, maximum version inclusive" },
+    @{Version = "[1.0.0.0, 5.0.0.0)"; ExpectedVersions = @("1.0.0", "3.0.0"); Reason = "validate version, mixed inclusive minimum and exclusive maximum version" }
+    @{Version = "(1.0.0.0, 5.0.0.0]"; ExpectedVersions = @("3.0.0", "5.0.0"); Reason = "validate version, mixed exclusive minimum and inclusive maximum version" }
 
-    It "Find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
+    It "Find resource when given Name to <Reason> <Version>" -TestCases $testCases2 {
         # FindVersionGlobbing()
         param($Version, $ExpectedVersions)
         $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $ACRRepoName
@@ -311,12 +309,23 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterThan 1
     }
+
+    It "Should find version range for Az dependencies" {
+        # Target known version to know the output from the API won't change
+        $res = Find-PSResource -Repository 'MAR' -Name 'Az' -Version '14.4.0'
+        
+        # Version defined by "ModuleVersion"
+        $res.Dependencies.Where{$_.'Name' -eq 'Az.Accounts'}.'VersionRange'.ToString() | Should -Not -Be '(, )'
+        
+        # Version defined by "RequiredVersion"
+        $res.Dependencies.Where{$_.'Name' -eq 'Az.Resources'}.'VersionRange'.ToString() | Should -Not -Be '(, )'
+    }
 }
 
 # Skip this test fo
 Describe 'Test Find-PSResource for unauthenticated ACR repository' -tags 'CI' {
     BeforeAll {
-        $skipOnWinPS =  $PSVersionTable.PSVersion.Major -eq 5
+        $skipOnWinPS = $PSVersionTable.PSVersion.Major -eq 5
 
         if (-not $skipOnWinPS) {
             Register-PSResourceRepository -Name "Unauthenticated" -Uri "https://psresourcegetnoauth.azurecr.io/" -ApiVersion "ContainerRegistry"
