@@ -1669,8 +1669,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             }
 
                             depVersionRange = new VersionRange(
-                                            minVersion: depNuGetVersion,
-                                            includeMinVersion: true);
+                                minVersion: depNuGetVersion,
+                                includeMinVersion: true
+                            );
                         }
                         else if (dependency.TryGetProperty("RequiredVersion", out JsonElement depRequiredVersionElement))
                         {
@@ -1686,10 +1687,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                                 }
 
                                 depVersionRange = new VersionRange(
-                                                minVersion: depNuGetVersion,
-                                                includeMinVersion: true,
-                                                maxVersion: depNuGetVersion,
-                                                includeMaxVersion: true);
+                                    minVersion: depNuGetVersion,
+                                    includeMinVersion: true,
+                                    maxVersion: depNuGetVersion,
+                                    includeMaxVersion: true
+                                );
                             }
                         }
 
