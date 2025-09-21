@@ -738,8 +738,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 using (JsonDocument metadataJSONDoc = JsonDocument.Parse(serverPkgInfo.Metadata))
                 {
-                    string pkgVersionString = String.Empty;
+                    string pkgVersionString = String.Empty; 
                     JsonElement rootDom = metadataJSONDoc.RootElement;
+
                     if (rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement))
                     {
                         // module metadata will have "ModuleVersion" property
@@ -831,7 +832,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             errRecord = null;
             ContainerRegistryInfo serverPkgInfo = null;
 
-            var layers = foundTags["layers"];
+            JToken layers = foundTags["layers"];
             if (layers == null || layers[0] == null)
             {
                 errRecord = new ErrorRecord(
@@ -843,7 +844,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return serverPkgInfo;
             }
 
-            var annotations = layers[0]["annotations"];
+            JToken annotations = layers[0]["annotations"];
             if (annotations == null)
             {
                 errRecord = new ErrorRecord(
@@ -856,7 +857,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             // Check for package name
-            var pkgTitleJToken = annotations["org.opencontainers.image.title"];
+            JToken pkgTitleJToken = annotations["org.opencontainers.image.title"];
             if (pkgTitleJToken == null)
             {
                 errRecord = new ErrorRecord(
@@ -881,7 +882,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             // Check for package metadata
-            var pkgMetadataJToken = annotations["metadata"];
+            JToken pkgMetadataJToken = annotations["metadata"];
             if (pkgMetadataJToken == null)
             {
                 errRecord = new ErrorRecord(
@@ -896,7 +897,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var metadata = pkgMetadataJToken.ToString();
 
             // Check for package artifact type
-            var resourceTypeJToken = annotations["resourceType"];
+            JToken resourceTypeJToken = annotations["resourceType"];
             var resourceType = resourceTypeJToken != null ? resourceTypeJToken.ToString() : "None";
 
             return new ContainerRegistryInfo(metadataPkgName, metadata, resourceType);
