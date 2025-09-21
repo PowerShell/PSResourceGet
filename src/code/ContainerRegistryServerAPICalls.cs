@@ -706,27 +706,28 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return requiredVersionResponse;
             }
 
-            /*   Response returned looks something like:
-             *    {
-             *     "schemaVersion": 2,
-             *     "config": {
-             *       "mediaType": "application/vnd.unknown.config.v1+json",
-             *       "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-             *       "size": 0
-             *     },
-             *     "layers": [
-             *       {
-             *         "mediaType": "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip'",
-             *         "digest": "sha256:7c55c7b66cb075628660d8249cc4866f16e34741c246a42ed97fb23ccd4ea956",
-             *         "size": 3533,
-             *         "annotations": {
-             *           "org.opencontainers.image.title": "test_module.1.0.0.nupkg",
-             *           "metadata": "{\"GUID\":\"45219bf4-10a4-4242-92d6-9bfcf79878fd\",\"FunctionsToExport\":[],\"CompanyName\":\"Anam\",\"CmdletsToExport\":[],\"VariablesToExport\":\"*\",\"Author\":\"Anam Navied\",\"ModuleVersion\":\"1.0.0\",\"Copyright\":\"(c) Anam Navied. All rights reserved.\",\"PrivateData\":{\"PSData\":{\"Tags\":[\"Test\",\"CommandsAndResource\",\"Tag2\"]}},\"RequiredModules\":[],\"Description\":\"This is a test module, for PSGallery team internal testing. Do not take a dependency on this package. This version contains tags for the package.\",\"AliasesToExport\":[]}"
-             *         }
-             *       }
-             *     ]
-             *   }
-             */
+            /*
+                Response returned looks something like:
+                {
+                    "schemaVersion": 2,
+                    "config": {
+                        "mediaType": "application/vnd.unknown.config.v1+json",
+                        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                        "size": 0
+                    },
+                    "layers": [
+                        {
+                            "mediaType": "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip'",
+                            "digest": "sha256:7c55c7b66cb075628660d8249cc4866f16e34741c246a42ed97fb23ccd4ea956",
+                            "size": 3533,
+                            "annotations": {
+                                "org.opencontainers.image.title": "test_module.1.0.0.nupkg",
+                                "metadata": "{\"GUID\":\"45219bf4-10a4-4242-92d6-9bfcf79878fd\",\"FunctionsToExport\":[],\"CompanyName\":\"Anam\",\"CmdletsToExport\":[],\"VariablesToExport\":\"*\",\"Author\":\"Anam Navied\",\"ModuleVersion\":\"1.0.0\",\"Copyright\":\"(c) Anam Navied. All rights reserved.\",\"PrivateData\":{\"PSData\":{\"Tags\":[\"Test\",\"CommandsAndResource\",\"Tag2\"]}},\"RequiredModules\":[],\"Description\":\"This is a test module, for PSGallery team internal testing. Do not take a dependency on this package. This version contains tags for the package.\",\"AliasesToExport\":[]}"
+                            }
+                        }
+                    ]
+                }
+            */
 
             ContainerRegistryInfo serverPkgInfo = GetMetadataProperty(foundTags, packageName, out errRecord);
             if (errRecord != null)
