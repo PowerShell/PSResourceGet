@@ -35,7 +35,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Specifies the name of the repository to be set.
-        /// </sumamry>
+        /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet, HelpMessage = "Name of the repository to set properties for.")]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
@@ -43,7 +43,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Specifies the location of the repository to be set.
-        /// </sumamry>
+        /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Uri { get; set; }
@@ -86,7 +86,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Specifies the Api version of the repository to be set.
-        /// </sumamry>
+        /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         public PSRepositoryInfo.APIVersion ApiVersion { get; set; }
 
@@ -94,7 +94,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Specifies vault and secret names as PSCredentialInfo for the repository.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
-        public PSCredentialInfo CredentialInfo { get; set; } 
+        public PSCredentialInfo CredentialInfo { get; set; }
 
         /// <summary>
         /// When specified, displays the successfully registered repository and its information.
@@ -111,7 +111,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSRepositoryInfo repository = RepositorySettings.Read(new[] { Name }, out string[] _).FirstOrDefault();
             // Dynamic parameter '-CredentialProvider' should not appear for PSGallery, or any container registry repository.
             // It should also not appear when using the 'Repositories' parameter set.
-            if (repository is not null && 
+            if (repository is not null &&
                 (repository.Name.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) ||
                 ParameterSetName.Equals(RepositoriesParameterSet) ||
                 repository.IsContainerRegistry()))
@@ -134,7 +134,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            // determine if either 1 of 5 values are attempting to be set: Uri, Priority, Trusted, APIVerison, CredentialInfo.
+            // determine if either 1 of 5 values are attempting to be set: Uri, Priority, Trusted, APIVersion, CredentialInfo.
             // if none are (i.e only Name parameter was provided, write error)
             if (ParameterSetName.Equals(NameParameterSet) &&
                 !MyInvocation.BoundParameters.ContainsKey(nameof(Uri)) &&
@@ -174,8 +174,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 case NameParameterSet:
                     try
                     {
-                        items.Add(RepositorySettings.UpdateRepositoryStore(Name, 
-                            _uri, 
+                        items.Add(RepositorySettings.UpdateRepositoryStore(Name,
+                            _uri,
                             Priority,
                             Trusted,
                             isSet,
@@ -186,7 +186,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             this,
                             out string errorMsg));
 
-                        if (!string.IsNullOrEmpty(errorMsg))  
+                        if (!string.IsNullOrEmpty(errorMsg))
                         {
                             ThrowTerminatingError(new ErrorRecord(
                                 new PSInvalidOperationException(errorMsg),
@@ -306,7 +306,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     errorRecord: out ErrorRecord errorRecord1))
             {
                 WriteError(errorRecord1);
-                
+
                 return null;
             }
 

@@ -94,9 +94,9 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # $res.Tags | Should -Contain $requiredTag
     }
 
-    It "should not find resource given nonexistant Name" {
+    It "should not find resource given nonexistent Name" {
         # FindName()
-        $res = Find-PSResource -Name NonExistantModule -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name NonExistentModule -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -285,7 +285,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res.Count | Should -Be 2
         $res.Type | Should -Be @("Script", "Script")
     }
-    
+
     It "find modules given -Type parameter" {
         Get-ScriptResourcePublishedToLocalRepoTestDrive "testScriptName" $localRepo "1.0.0"
 
@@ -310,7 +310,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res = Find-PSResource -DscResourceName $dscResourceName -Repository $localRepo
         $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
-            $item.Names | Should -Be $dscResourceName    
+            $item.Names | Should -Be $dscResourceName
             $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
         }
     }

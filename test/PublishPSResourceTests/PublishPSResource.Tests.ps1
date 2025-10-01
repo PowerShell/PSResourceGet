@@ -107,7 +107,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
     AfterEach {
         # Delete all contents of the repository without deleting the repository directory itself
-        $pkgsToDelete = Join-Path -Path "$script:repositoryPath" -ChildPath "*"  
+        $pkgsToDelete = Join-Path -Path "$script:repositoryPath" -ChildPath "*"
         Remove-Item $pkgsToDelete -Recurse
 
         $pkgsToDelete = Join-Path -Path "$script:repositoryPath2" -ChildPath "*"
@@ -318,7 +318,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         # Must change .nupkg to .zip so that Expand-Archive can work on Windows PowerShell
         $nupkgPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
         $zipPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.zip"
-        Rename-Item -Path $nupkgPath -NewName $zipPath 
+        Rename-Item -Path $nupkgPath -NewName $zipPath
         $unzippedPath = Join-Path -Path $TestDrive -ChildPath "$script:PublishModuleName"
         New-Item $unzippedPath -Itemtype directory -Force
         Expand-Archive -Path $zipPath -DestinationPath $unzippedPath
@@ -333,7 +333,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:destinationPath
         $expectedPath = Join-Path -Path $script:destinationPath -ChildPath "$script:PublishModuleName.$version.nupkg"
         (Get-ChildItem $script:destinationPath).FullName | Should -Be $expectedPath
-        
+
         # Pass the nupkg via -NupkgPath
         Publish-PSResource -NupkgPath $expectedPath -Repository $testRepository2
         $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
@@ -477,7 +477,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $moduleName = "Pester"
         $moduleVersion = "5.5.0"
         Save-PSResource -Name $moduleName -Path $tmpRepoPath -Version $moduleVersion -Repository PSGallery -TrustRepository
-        $modulePath = Join-Path -Path $tmpRepoPath -ChildPath $moduleName 
+        $modulePath = Join-Path -Path $tmpRepoPath -ChildPath $moduleName
         $moduleVersionPath = Join-Path -Path $modulePath -ChildPath $moduleVersion
         $moduleManifestPath = Join-path -Path $moduleVersionPath -ChildPath "$moduleName.psd1"
         Publish-PSResource -Path $moduleManifestPath -Repository $testRepository2
@@ -569,7 +569,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $scriptPath = Join-Path -Path $script:testScriptsFolderPath -ChildPath "$scriptName.ps1"
         New-PSScriptFileInfo -Description 'test' -Version $scriptVersion -RequiredModules @{ModuleName='testModule'} -ExternalModuleDependencies 'testModule' -Path $scriptPath -Force
 
-        Publish-PSResource -Path $scriptPath 
+        Publish-PSResource -Path $scriptPath
 
         $expectedPath = Join-Path -Path $script:repositoryPath  -ChildPath "$scriptName.$scriptVersion.nupkg"
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
@@ -627,7 +627,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
 
     It "should write error and not publish script when Description block altogether is missing" {
-        # we expect .ps1 files to have a separate comment block for .DESCRIPTION property, not to be included in the PSScriptInfo commment block
+        # we expect .ps1 files to have a separate comment block for .DESCRIPTION property, not to be included in the PSScriptInfo comment block
         $scriptName = "InvalidScriptMissingDescriptionCommentBlock.ps1"
         $scriptVersion = "1.0.0"
 
@@ -673,7 +673,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $DepPrereleaseLabel = "beta"
         $DepModuleRoot = Join-Path -Path $script:PublishModuleBase -ChildPath $DepModuleName
 
-        New-TestModule -Path $DepModuleRoot -ModuleName $DepModuleName -RepoName $testRepository2 -PackageVersion $DepVersion -prereleaseLabel $DepPrereleaseLabel  
+        New-TestModule -Path $DepModuleRoot -ModuleName $DepModuleName -RepoName $testRepository2 -PackageVersion $DepVersion -prereleaseLabel $DepPrereleaseLabel
         Install-PSResource -Name $DepModuleName -Repository $testRepository2 -TrustRepository -Prerelease
 
         $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$DepModuleName.$DepVersion-$DepPrereleaseLabel.nupkg"
@@ -714,7 +714,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         New-ModuleManifest -Path $ModuleManifestPath -ModuleVersion $ModuleVersion -Description "$ModuleName module" -RequiredModules @( @{ "ModuleName" = $ReqModule1Name; "ModuleVersion" = $ReqModule1Version },  $ReqModule2Name )
         New-ModuleManifest -Path $ReqModule1ManifestPath -ModuleVersion $ReqModule1Version -Description "$ReqModule1Name module"
         New-ModuleManifest -Path $ReqModule2ManifestPath -Description "$ReqModule1Name module"
-        
+
         Publish-PSResource -Path $ReqModule1ManifestPath -Repository $testRepository2
         Publish-PSResource -Path $ReqModule2ManifestPath -Repository $testRepository2
 
@@ -734,7 +734,7 @@ Describe "Test Publish-PSResource with Module Prefix" -tags 'CI' {
 
     BeforeAll {
         Get-NewPSResourceRepositoryFile
-        
+
         $tmpRepoPath2 = Join-Path -Path $TestDrive -ChildPath "tmpRepoPath2"
         New-Item $tmpRepoPath2 -Itemtype directory -Force
         $testRepository2 = "testRepository2"

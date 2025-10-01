@@ -66,12 +66,12 @@
 - Update `-ModulePrefix` to be a static parameter (#1868)
 - Bug fix for populating all `#Requires` fields in `Update-PSScriptFileInfo` (#1863)
 - Bug fix for populating `Includes` metadata for packages from container registry repositories (#1861)
-- Bug fix for `Find-PSRessource` and `Install-PSResource` not retrieving unlisted package versions (#1859)
+- Bug fix for `Find-PSResource` and `Install-PSResource` not retrieving unlisted package versions (#1859)
 
 ## 1.2.0-preview2
 
 ### New Features
-- Ingetration of the Azure Artifacts Credential Provider for ADO feeds (#1765)
+- Integration of the Azure Artifacts Credential Provider for ADO feeds (#1765)
 
 ### Bug Fix
 - Bug fixes for NuGet v3 dependencies (#1841 Thanks @o-l-a-v!)
@@ -124,7 +124,7 @@
 
 - Update to use OCI v2 APIs for Container Registry (#1737)
 - Bug fixes for finding and installing from local repositories on Linux machines (#1738)
-- Bug fix for finding package name with 4 part version from local repositories (#1739) 
+- Bug fix for finding package name with 4 part version from local repositories (#1739)
 
 ## 1.1.0-RC1
 
@@ -136,7 +136,7 @@
 
 - Fix packaging name matching when searching in local repositories (#1731)
 - `Compress-PSResource` `-PassThru` now passes `FileInfo` instead of string (#1720)
-- Fix for `Compress-PSResource` not properly compressing scripts  (#1719) 
+- Fix for `Compress-PSResource` not properly compressing scripts  (#1719)
 - Add `AcceptLicense` to Save-PSResource (#1718 Thanks @o-l-a-v!)
 - Better support for NuGet v2 feeds (#1713 Thanks @o-l-a-v!)
 - Better handling of `-WhatIf` support in `Install-PSResource` (#1531 Thanks @o-l-a-v!)
@@ -153,7 +153,7 @@
 
 ### Bug Fixes
 
-- Add prerelease string when NormalizedVersion doesn't exist, but prelease string does (#1681 Thanks @sean-r-williams)
+- Add prerelease string when NormalizedVersion doesn't exist, but prerelease string does (#1681 Thanks @sean-r-williams)
 - Add retry logic when deleting files (#1667 Thanks @o-l-a-v!)
 - Fix broken PAT token use (#1672)
 - Updated error messaging for authenticode signature failures (#1701)
@@ -162,14 +162,14 @@
 
 ### New Features
 
-- Support for Azure Container Registries (#1495, #1497-#1499, #1501, #1502, #1505, #1522, #1545, #1548, #1550, #1554, #1560, #1567, 
+- Support for Azure Container Registries (#1495, #1497-#1499, #1501, #1502, #1505, #1522, #1545, #1548, #1550, #1554, #1560, #1567,
 #1573, #1576, #1587, #1588, #1589, #1594, #1598, #1600, #1602, #1604, #1615)
 
 ### Bug Fixes
 
 - Fix incorrect request URL when installing resources from ADO (#1597 Thanks @anytonyoni!)
 - Fix for swallowed exceptions (#1569)
-- Fix for PSResourceGet not working in Constrained Languange Mode (#1564)
+- Fix for PSResourceGet not working in Constrained Language Mode (#1564)
 
 ## 1.0.6
 
@@ -243,7 +243,7 @@
 - Bug fix Artifactory v2 endpoint failures (#1428)
 - Bug fix Artifactory v3 endpoint failures (#1427)
 - Bug fix `-RequiredResource` silent failures (#1426)
-- Bug fix for v2 repository returning extra packages for `-Tag` based search with `-Prerelease` (#1405) 
+- Bug fix for v2 repository returning extra packages for `-Tag` based search with `-Prerelease` (#1405)
 
 See change log (CHANGELOG) at https://github.com/PowerShell/PSResourceGet
 '@

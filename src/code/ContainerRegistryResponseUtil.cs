@@ -26,7 +26,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region Overriden Methods
+        #region Overridden Methods
 
         public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults, bool isResourceRequestedWithWildcard = false)
         {

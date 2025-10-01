@@ -25,14 +25,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region Overriden Methods
+        #region Overridden Methods
 
         public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults, bool isResourceRequestedWithWildcard = false)
         {
             // in FindHelper:
             // serverApi.FindName() -> return responses, and out errRecord
             // check outErrorRecord
-            // 
+            //
             // v3Converter.ConvertToPSResourceInfo(responses) -> return PSResourceResult
             // check resourceResult for error, write if needed
             string[] responses = responseResults.StringResponse;
