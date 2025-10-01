@@ -154,7 +154,7 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
     }
 
     It "Should not throw on ErrorAction ignore when no subdirectories are found" {
-        Get-InstalledPSResource -Path $TestEmptyDirectoryPath -ErrorAction 'Ignore' | Should -Not -Throw
+        { Get-InstalledPSResource -Path $TestEmptyDirectoryPath -ErrorAction 'Ignore' } | Should -Not -Throw
     }
 
     # Windows only
