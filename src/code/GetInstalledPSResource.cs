@@ -66,7 +66,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // an exact version will be formatted into a version range.
             if (Version == null)
             {
-                WriteDebug("Searcing for all versions");
+                WriteDebug("Searching for all versions");
                 _versionRange = VersionRange.All;
             }
             else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
@@ -155,7 +155,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> pkgsNotFound = new List<string>();
             foreach (string name in namesToSearch)
             {
-                if (!pkgsFound.Contains(name, StringComparer.OrdinalIgnoreCase)) 
+                if (!pkgsFound.Contains(name, StringComparer.OrdinalIgnoreCase))
                 {
                     if (name.Contains('*'))
                     {

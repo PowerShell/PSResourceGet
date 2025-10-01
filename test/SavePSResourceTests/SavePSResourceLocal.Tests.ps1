@@ -83,7 +83,7 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         (Get-ChildItem $pkgDirs[1].FullName) | Should -HaveCount 1
     }
 
-    It "Should not save resource given nonexistant name" {
+    It "Should not save resource given nonexistent name" {
         Save-PSResource -Name NonExistentModule -Repository $localRepo -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "NonExistentModule"
         $pkgDir.Name | Should -BeNullOrEmpty

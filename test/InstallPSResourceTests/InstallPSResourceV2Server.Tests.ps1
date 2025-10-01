@@ -73,9 +73,9 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $pkg.Name | Should -Be $pkgNames
     }
 
-    It "Should not install resource given nonexistant name" {
-        Install-PSResource -Name "NonExistantModule" -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource "NonExistantModule"
+    It "Should not install resource given nonexistent name" {
+        Install-PSResource -Name "NonExistentModule" -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
+        $pkg = Get-InstalledPSResource "NonExistentModule"
         $pkg.Name | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"

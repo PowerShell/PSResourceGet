@@ -75,7 +75,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         #endregion
 
-        #region Overriden Methods
+        #region Overridden Methods
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
@@ -126,7 +126,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// Find method which allows for searching for single name and returns latest version.
         /// Name: no wildcard support
         /// Examples: Search "PowerShellGet"
-        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
+        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease depending on user preference)
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
@@ -451,12 +451,12 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Checks if container registry repository is unauthenticated.
         /// </summary>
-        internal bool IsContainerRegistryUnauthenticated(string containerRegistyUrl, bool needCatalogAccess, out ErrorRecord errRecord, out string anonymousAccessToken)
+        internal bool IsContainerRegistryUnauthenticated(string containerRegistryUrl, bool needCatalogAccess, out ErrorRecord errRecord, out string anonymousAccessToken)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::IsContainerRegistryUnauthenticated()");
             errRecord = null;
             anonymousAccessToken = string.Empty;
-            string endpoint = $"{containerRegistyUrl}/v2/";
+            string endpoint = $"{containerRegistryUrl}/v2/";
             HttpResponseMessage response;
             try
             {
@@ -497,7 +497,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                                 _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
 
-                                // we dont check the errorrecord here because we want to return false if we get a 401 and not throw an error
+                                // we don't check the error record here because we want to return false if we get a 401 and not throw an error
                                 _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
                                 ErrorRecord errRecordTemp = null;
 
@@ -644,7 +644,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         }
 
         /// <summary>
-        /// Get the blob for the package (ie repository in container registry terms) from the repositroy (ie registry in container registry terms)
+        /// Get the blob for the package (ie repository in container registry terms) from the repository (ie registry in container registry terms)
         /// Used when installing the package
         /// </summary>
         internal async Task<HttpContent> GetContainerRegistryBlobAsync(string packageName, string digest, string containerRegistryAccessToken)
@@ -918,7 +918,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException("Error occured while trying to create manifest: " + e.Message);
+                throw new HttpRequestException("Error occurred while trying to create manifest: " + e.Message);
             }
         }
 
@@ -933,7 +933,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+                throw new HttpRequestException("Error occurred while trying to retrieve response: " + e.Message);
             }
         }
 
@@ -1076,7 +1076,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException("Error occured while trying to retrieve response header: " + e.Message);
+                throw new HttpRequestException("Error occurred while trying to retrieve response header: " + e.Message);
             }
         }
 
@@ -1119,7 +1119,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception e)
             {
-                throw new SendRequestException($"Error occured while sending request to Container Registry server for content with: {e.GetType()} '{e.Message}'", e);
+                throw new SendRequestException($"Error occurred while sending request to Container Registry server for content with: {e.GetType()} '{e.Message}'", e);
             }
         }
 
@@ -1135,7 +1135,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception e)
             {
-                throw new SendRequestException($"Error occured while sending request to Container Registry server with: {e.GetType()} '{e.Message}'", e);
+                throw new SendRequestException($"Error occurred while sending request to Container Registry server with: {e.GetType()} '{e.Message}'", e);
             }
 
             switch (response.StatusCode)
@@ -1235,7 +1235,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+                throw new HttpRequestException("Error occurred while trying to retrieve response: " + e.Message);
             }
         }
 
@@ -1266,7 +1266,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception e)
             {
-                throw new SendRequestException($"Error occured while uploading module to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
+                throw new SendRequestException($"Error occurred while uploading module to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
             }
         }
 
@@ -1554,7 +1554,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(
-                    new UploadBlobException($"Error occured while uploading package manifest to ContainerRegistry: {e.GetType()} '{e.Message}'", e),
+                    new UploadBlobException($"Error occurred while uploading package manifest to ContainerRegistry: {e.GetType()} '{e.Message}'", e),
                     "PackageManifestUploadError",
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
@@ -1743,7 +1743,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception e)
             {
-                throw new UploadBlobException($"Error occured while starting to upload the blob location used for publishing to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
+                throw new UploadBlobException($"Error occurred while starting to upload the blob location used for publishing to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
             }
         }
 
@@ -1761,7 +1761,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception e)
             {
-                throw new UploadBlobException($"Error occured while uploading module to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
+                throw new UploadBlobException($"Error occurred while uploading module to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
             }
         }
 

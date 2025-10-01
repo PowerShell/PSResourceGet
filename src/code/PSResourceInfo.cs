@@ -297,7 +297,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         #region Private fields
 
-        private static readonly char[] Delimeter = { ' ', ',' };
+        private static readonly char[] Delimiter = { ' ', ',' };
 
         #endregion
 
@@ -756,7 +756,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // IsPrerelease
-                // NuGet.org repository's response does contain 'isPrerelease' element so it can be accquired and set here.
+                // NuGet.org repository's response does contain 'isPrerelease' element so it can be acquired and set here.
                 if (rootDom.TryGetProperty("isPrerelease", out JsonElement isPrereleaseElement))
                 {
                     metadata["IsPrerelease"] = isPrereleaseElement.GetBoolean();
@@ -780,9 +780,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // Description
-                if (rootDom.TryGetProperty("description", out JsonElement descriptiontElement))
+                if (rootDom.TryGetProperty("description", out JsonElement descriptionElement))
                 {
-                    metadata["Description"] = descriptiontElement.ToString();
+                    metadata["Description"] = descriptionElement.ToString();
                 }
 
                 // Id
@@ -982,7 +982,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 if (rootDom.TryGetProperty("CompanyName", out JsonElement companyNameElement))
-                {                
+                {
                     metadata["CompanyName"] = companyNameElement.ToString();
                 }
                 else
@@ -998,9 +998,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // Description
-                if (rootDom.TryGetProperty("Description", out JsonElement descriptiontElement) || rootDom.TryGetProperty("description", out descriptiontElement))
+                if (rootDom.TryGetProperty("Description", out JsonElement descriptionElement) || rootDom.TryGetProperty("description", out descriptionElement))
                 {
-                    metadata["Description"] = descriptiontElement.ToString();
+                    metadata["Description"] = descriptionElement.ToString();
                 }
 
                 // ReleaseNotes
@@ -1769,7 +1769,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     cmdletNames.Add(cmdlet as string);
                 }
             }
-            // Because there is no "CommandsToExport" propertly in a module manifest, we use CmdletsToExport to find command names
+            // Because there is no "CommandsToExport" property in a module manifest, we use CmdletsToExport to find command names
             commandNames = cmdletNames;
 
             dscResourceNames = new ArrayList();
