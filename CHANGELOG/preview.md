@@ -10,13 +10,13 @@
 - Update `-ModulePrefix` to be a static parameter (#1868)
 - Bug fix for populating all `#Requires` fields in `Update-PSScriptFileInfo` (#1863)
 - Bug fix for populating `Includes` metadata for packages from container registry repositories (#1861)
-- Bug fix for `Find-PSRessource` and `Install-PSResource` not retrieving unlisted package versions (#1859)
+- Bug fix for `Find-PSResource` and `Install-PSResource` not retrieving unlisted package versions (#1859)
 
 
 ## [1.2.0-preview2](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview1..v1.2.0-preview2) - 2025-07-21
 
 ### New Features
-- Ingetration of the Azure Artifacts Credential Provider for ADO feeds (#1765)
+- Integration of the Azure Artifacts Credential Provider for ADO feeds (#1765)
 
 ### Bug Fix
 - Bug fixes for NuGet v3 dependencies (#1841 Thanks @o-l-a-v!)
@@ -46,7 +46,7 @@
 
 - Update to use OCI v2 APIs for Container Registry (#1737)
 - Bug fixes for finding and installing from local repositories on Linux machines (#1738)
-- Bug fix for finding package name with 4 part version from local repositories (#1739) 
+- Bug fix for finding package name with 4 part version from local repositories (#1739)
 
 # Preview Changelog
 
@@ -77,7 +77,7 @@
 
 ### Bug Fixes
 
-- Add prerelease string when NormalizedVersion doesn't exist, but prelease string does (#1681 Thanks @sean-r-williams)
+- Add prerelease string when NormalizedVersion doesn't exist, but prerelease string does (#1681 Thanks @sean-r-williams)
 - Add retry logic when deleting files (#1667 Thanks @o-l-a-v!)
 - Fix broken PAT token use (#1672)
 - Updated error messaging for authenticode signature failures (#1701)
@@ -92,4 +92,4 @@
 
 - Fix incorrect request URL when installing resources from ADO (#1597 Thanks @anytonyoni!)
 - Fix for swallowed exceptions (#1569)
-- Fix for PSResourceGet not working in Constrained Languange Mode (#1564)
+- Fix for PSResourceGet not working in Constrained Language Mode (#1564)

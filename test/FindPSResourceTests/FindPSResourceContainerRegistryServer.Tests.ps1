@@ -42,9 +42,9 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
     }
 
-    It "Should not find resource given nonexistant Name" {
+    It "Should not find resource given nonexistent Name" {
         # FindName()
-        $res = Find-PSResource -Name NonExistantModule -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name NonExistentModule -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"

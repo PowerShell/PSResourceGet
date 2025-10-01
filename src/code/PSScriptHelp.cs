@@ -39,14 +39,14 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         /// <summary>
         /// This constructor is called by internal cmdlet methods and creates a PSScriptHelp with default values
-        /// for the parameters. Calling a method like PSScriptHelp.ParseConentIntoObj() would then populate those properties.
+        /// for the parameters. Calling a method like PSScriptHelp.ParseContentIntoObj() would then populate those properties.
         /// </summary>
         internal PSScriptHelp() {}
 
         #endregion
 
         #region Internal Methods
-        
+
         /// <summary>
         /// Parses HelpInfo metadata out of the HelpInfo comment lines found while reading the file
         /// and populates PSScriptHelp properties from that metadata.
@@ -54,7 +54,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         internal bool ParseContentIntoObj(string[] commentLines, out ErrorRecord error)
         {
             error = null;
-            
+
             // Parse content into a hashtable.
             Hashtable parsedHelpMetadata = ParseHelpContentHelper(commentLines);
 
@@ -63,7 +63,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 error = validationError;
                 return false;
             }
-            
+
             // Populate object.
             List<string> descriptionValue = (List<string>) parsedHelpMetadata["DESCRIPTION"];
             Description = String.Join(Environment.NewLine, descriptionValue);
@@ -137,9 +137,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             return parsedHelpMetadata;
         }
-        
+
         /// <summary>
-        /// Valides parsed help info content from the hashtable to ensure required help metadata (Description) is present
+        /// Validates parsed help info content from the hashtable to ensure required help metadata (Description) is present
         /// and does not contain empty values.
         /// </summary>
         internal bool ValidateParsedContent(Hashtable parsedHelpMetadata, out ErrorRecord error)
@@ -148,9 +148,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (!parsedHelpMetadata.ContainsKey("DESCRIPTION"))
             {
                 error =  new ErrorRecord(
-                    new ArgumentException( "PSScript file must contain value for Description. Ensure value for Description is passed in and try again."), 
-                    "PSScriptInfoMissingDescription", 
-                    ErrorCategory.InvalidArgument, 
+                    new ArgumentException( "PSScript file must contain value for Description. Ensure value for Description is passed in and try again."),
+                    "PSScriptInfoMissingDescription",
+                    ErrorCategory.InvalidArgument,
                     null);
 
                 return false;
@@ -161,9 +161,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (descriptionValue.Count == 0 || (String.IsNullOrEmpty(descriptionString)) || String.IsNullOrWhiteSpace(descriptionString))
             {
                 error = new ErrorRecord(
-                    new ArgumentException("PSScript file value for Description cannot be null, empty or whitespace. Ensure value for Description meets these conditions and try again."), 
-                    "PSScriptInfoMissingDescription", 
-                    ErrorCategory.InvalidArgument, 
+                    new ArgumentException("PSScript file value for Description cannot be null, empty or whitespace. Ensure value for Description meets these conditions and try again."),
+                    "PSScriptInfoMissingDescription",
+                    ErrorCategory.InvalidArgument,
                     null);
 
                 return false;
@@ -172,12 +172,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (StringContainsComment(descriptionString))
             {
                 error = new ErrorRecord(
-                    new ArgumentException("PSScript file's value for Description cannot contain '<#' or '#>'. Pass in a valid value for Description and try again."), 
-                    "DescriptionContainsComment", 
-                    ErrorCategory.InvalidArgument, 
+                    new ArgumentException("PSScript file's value for Description cannot contain '<#' or '#>'. Pass in a valid value for Description and try again."),
+                    "DescriptionContainsComment",
+                    ErrorCategory.InvalidArgument,
                     null);
 
-                return false; 
+                return false;
             }
 
             return true;
@@ -193,9 +193,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (String.IsNullOrEmpty(Description))
             {
                 error = new ErrorRecord(
-                    new ArgumentException("PSScript file must contain value for Description. Ensure value for Description is passed in and try again."), 
-                    "PSScriptInfoMissingDescription", 
-                    ErrorCategory.InvalidArgument, 
+                    new ArgumentException("PSScript file must contain value for Description. Ensure value for Description is passed in and try again."),
+                    "PSScriptInfoMissingDescription",
+                    ErrorCategory.InvalidArgument,
                     null);
 
                 return false;
@@ -204,12 +204,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (StringContainsComment(Description))
             {
                 error =  new ErrorRecord(
-                    new ArgumentException("PSScript file's value for Description cannot contain '<#' or '#>'. Pass in a valid value for Description and try again."), 
-                    "DescriptionContainsComment", 
-                    ErrorCategory.InvalidArgument, 
+                    new ArgumentException("PSScript file's value for Description cannot contain '<#' or '#>'. Pass in a valid value for Description and try again."),
+                    "DescriptionContainsComment",
+                    ErrorCategory.InvalidArgument,
                     null);
 
-                return false; 
+                return false;
             }
 
             return true;
@@ -231,7 +231,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 psHelpInfoLines.AddRange(HelpContent);
             }
-            
+
             psHelpInfoLines.Add("#>");
 
             return psHelpInfoLines.ToArray();
@@ -249,9 +249,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 if (String.Equals(description.Trim(), String.Empty))
                 {
                     error = new ErrorRecord(
-                        new ArgumentException("Description value can't be updated to whitespace as this would invalidate the script."), 
-                        "descriptionUpdateValueIsWhitespaceError", 
-                        ErrorCategory.InvalidArgument, 
+                        new ArgumentException("Description value can't be updated to whitespace as this would invalidate the script."),
+                        "descriptionUpdateValueIsWhitespaceError",
+                        ErrorCategory.InvalidArgument,
                         null);
 
                     return false;
@@ -260,9 +260,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 if (StringContainsComment(description))
                 {
                     error = new ErrorRecord(
-                        new ArgumentException("Description value can't be updated to value containing comment '<#' or '#>' as this would invalidate the script."), 
-                        "descriptionUpdateValueContainsCommentError", 
-                        ErrorCategory.InvalidArgument, 
+                        new ArgumentException("Description value can't be updated to value containing comment '<#' or '#>' as this would invalidate the script."),
+                        "descriptionUpdateValueContainsCommentError",
+                        ErrorCategory.InvalidArgument,
                         null);
 
                     return false;

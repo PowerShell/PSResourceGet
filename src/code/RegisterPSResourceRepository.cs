@@ -89,7 +89,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Specifies the Api version of the repository to be set.
-        /// </sumamry>
+        /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         public PSRepositoryInfo.APIVersion ApiVersion { get; set; }
 
@@ -100,7 +100,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public PSCredentialInfo CredentialInfo { get; set; }
 
         /// <summary>
-        /// When specified, displays the succcessfully registered repository and its information.
+        /// When specified, displays the successfully registered repository and its information.
         /// </summary>
         [Parameter]
         public SwitchParameter PassThru { get; set; }
@@ -119,7 +119,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             // Dynamic parameter '-CredentialProvider' should not appear for PSGallery or any container registry repository.
             // It should also not appear when using the 'Repositories' parameter set.
-            if (ParameterSetName.Equals(PSGalleryParameterSet) || 
+            if (ParameterSetName.Equals(PSGalleryParameterSet) ||
                 ParameterSetName.Equals(RepositoriesParameterSet) ||
                 PSRepositoryInfo.IsValidContainerRegistryURL(Uri))
             {
@@ -242,8 +242,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 apiVersion: null,
                 repoCredentialInfo: null,
                 credentialProvider: null,
-                Force, 
-                this, 
+                Force,
+                this,
                 out string errorMsg);
 
             if (!string.IsNullOrEmpty(errorMsg))
@@ -376,9 +376,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            if (repo.ContainsKey("CredentialProvider") && 
+            if (repo.ContainsKey("CredentialProvider") &&
                 (String.IsNullOrEmpty(repo["CredentialProvider"].ToString()) ||
-                !(repo["CredentialProvider"].ToString().Equals("None", StringComparison.OrdinalIgnoreCase) || 
+                !(repo["CredentialProvider"].ToString().Equals("None", StringComparison.OrdinalIgnoreCase) ||
                 repo["CredentialProvider"].ToString().Equals("AzArtifacts", StringComparison.OrdinalIgnoreCase))))
             {
                 WriteError(new ErrorRecord(
@@ -450,14 +450,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         [Parameter]
         public PSRepositoryInfo.CredentialProviderType? CredentialProvider {
             get
-            { 
-                return _credProvider; 
+            {
+                return _credProvider;
             }
 
             set
             {
                 _credProvider = value;
-            }      
+            }
         }
     }
 }

@@ -40,7 +40,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private static readonly string catalogEntryProperty = "catalogEntry";
         private static readonly string packageContentProperty = "packageContent";
         // MyGet.org repository responses from SearchQueryService have a peculiarity where the totalHits property int returned is 10,000 + actual number of hits.
-        // This is intentional on their end and "is to preserve the uninterupted pagination of NuGet within Visual Studio 2015".
+        // This is intentional on their end and "is to preserve the uninterrupted pagination of NuGet within Visual Studio 2015".
         private readonly int myGetTotalHitsBuffer = 10000;
 
         #endregion
@@ -55,7 +55,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             bool token = false;
 
-            if(networkCredential != null) 
+            if(networkCredential != null)
             {
                 token = String.Equals("token", networkCredential.UserName) ? true : false;
             };
@@ -71,7 +71,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             } else {
 
                 handler.Credentials = networkCredential;
-                
+
                 _sessionClient = new HttpClient(handler);
             };
 
@@ -86,7 +86,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region Overriden Methods
+        #region Overridden Methods
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
@@ -920,7 +920,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 catch (Exception e)
                 {
                     errRecord = new ErrorRecord(
-                        new Exception($"Exception parsing service index JSON for respository '{Repository.Name}' with error: {e.Message}"),
+                        new Exception($"Exception parsing service index JSON for repository '{Repository.Name}' with error: {e.Message}"),
                         "GetResourcesFromServiceIndexFailure",
                         ErrorCategory.InvalidResult,
                         this);
@@ -1314,7 +1314,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Returns true if the metadata entries are arranged in descending order with respect to the package's version.
         /// ADO feeds usually return version entries in descending order, but Nuget.org repository returns them in ascending order.
-        /// Package versions will reflect prerelease preference, but upper version and lower version would not so we don't use them for comparision.
+        /// Package versions will reflect prerelease preference, but upper version and lower version would not so we don't use them for comparison.
         /// </summary>
         private bool IsLatestVersionFirstForSearch(string[] versionedResponses, out ErrorRecord errRecord)
         {
@@ -1413,7 +1413,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Returns true if the nupkg URI entries for each package version are arranged in descending order with respect to the package's version.
         /// ADO feeds usually return version entries in descending order, but Nuget.org repository returns them in ascending order.
-        /// Entries do not reflect prerelease preference so all versions (including prerelease) are being considered here, so upper version (including prerelease) can be used for comparision.
+        /// Entries do not reflect prerelease preference so all versions (including prerelease) are being considered here, so upper version (including prerelease) can be used for comparison.
         /// </summary>
         private bool IsLatestVersionFirstForInstall(string[] versionedResponses, string upperVersion, out ErrorRecord errRecord)
         {

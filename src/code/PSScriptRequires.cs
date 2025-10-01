@@ -35,7 +35,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public string RequiredApplicationId { get; private set; }
 
         /// <summary>
-        /// The assemblies this script requires, specified like: #requires -Assembly path\to\foo.dll#requires -Assembly "System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" 
+        /// The assemblies this script requires, specified like: #requires -Assembly path\to\foo.dll#requires -Assembly "System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35"
         /// </summary>
         public string[] RequiredAssemblies { get; private set; } = Utils.EmptyStrArray;
 
@@ -63,7 +63,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         /// <summary>
         /// This constructor is called by internal cmdlet methods and creates a PSScriptHelp with default values
-        /// for the parameters. Calling a method like PSScriptRequires.ParseConentIntoObj() would then populate those properties.
+        /// for the parameters. Calling a method like PSScriptRequires.ParseContentIntoObj() would then populate those properties.
         /// </summary>
         internal PSScriptRequires() {}
 

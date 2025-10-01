@@ -46,7 +46,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region Overriden Methods
+        #region Overridden Methods
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
@@ -69,13 +69,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             responses.Add(initialResponse);
-            int initalCount = GetCountFromResponse(initialResponse, out errRecord);
+            int initialCount = GetCountFromResponse(initialResponse, out errRecord);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             }
 
-            int count = initalCount / 6000;
+            int count = initialCount / 6000;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -113,13 +113,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             responses.Add(initialResponse);
-            int initalCount = GetCountFromResponse(initialResponse, out errRecord);
+            int initialCount = GetCountFromResponse(initialResponse, out errRecord);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             }
 
-            int count = initalCount / 100;
+            int count = initialCount / 100;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -159,7 +159,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// API call:
         /// - No prerelease: {repoUri}/api/v2/FindPackagesById()?id='PowerShellGet'
         /// - Include prerelease: {repoUri}/api/v2/FindPackagesById()?id='PowerShellGet'
-        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
+        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease depending on user preference)
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
@@ -187,7 +187,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Find method which allows for searching for single name and tag and returns latest version.
         /// Name: no wildcard support
         /// Examples: Search "PowerShellGet" -Tag "Provider"
-        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
+        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease depending on user preference)
         /// </summary>
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
@@ -195,12 +195,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // This should return the latest stable version or the latest prerelease version (respectively)
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
-            
+
             var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
                 { "id", $"'{packageName}'" },
             });
             var filterBuilder = queryBuilder.FilterBuilder;
-            
+
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             filterBuilder.AddCriterion($"Id eq '{packageName}'");
 
@@ -240,13 +240,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             responses.Add(initialResponse);
 
             // check count (regex)  425 ==> count/100  ~~>  4 calls
-            int initalCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
+            int initialCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             }
 
-            int count = initalCount / 100;
+            int count = initialCount / 100;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -285,13 +285,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             responses.Add(initialResponse);
 
             // check count (regex)  425 ==> count/100  ~~>  4 calls
-            int initalCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
+            int initialCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             }
 
-            int count = initalCount / 100;
+            int count = initialCount / 100;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -334,13 +334,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!getOnlyLatest)
             {
-                int initalCount = GetCountFromResponse(initialResponse, out errRecord);
+                int initialCount = GetCountFromResponse(initialResponse, out errRecord);
                 if (errRecord != null)
                 {
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
                 }
 
-                int count = initalCount / 100;
+                int count = initialCount / 100;
 
                 while (count > 0)
                 {
@@ -570,7 +570,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             } else {
                 filterBuilder.AddCriterion("IsLatestVersion");
             }
-            
+
             var requestUrl = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
 
             return HttpRequestCall(requestUrl, out errRecord);
@@ -951,7 +951,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public static async Task<string> SendRequestAsync(HttpRequestMessage message, HttpClient s_client)
         {
-            string errMsg = "Error occured while trying to retrieve response: ";
+            string errMsg = "Error occurred while trying to retrieve response: ";
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
@@ -978,7 +978,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public static async Task<HttpContent> SendRequestForContentAsync(HttpRequestMessage message, HttpClient s_client)
         {
-            string errMsg = "Error occured while trying to retrieve response for content: ";
+            string errMsg = "Error occurred while trying to retrieve response for content: ";
             try
             {
                 HttpResponseMessage response = await s_client.SendAsync(message);
