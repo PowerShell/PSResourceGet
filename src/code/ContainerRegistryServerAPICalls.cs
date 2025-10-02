@@ -698,37 +698,38 @@ namespace Microsoft.PowerShell.PSResourceGet
         internal Hashtable GetContainerRegistryMetadata(string packageName, string exactTagVersion, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryMetadata()");
-            Hashtable requiredVersionResponse = new Hashtable();
+            Hashtable requiredVersionResponse = new();
 
-            var foundTags = FindContainerRegistryManifest(packageName, exactTagVersion, containerRegistryAccessToken, out errRecord);
+            JObject foundTags = FindContainerRegistryManifest(packageName, exactTagVersion, containerRegistryAccessToken, out errRecord);
             if (errRecord != null)
             {
                 return requiredVersionResponse;
             }
 
-            /*   Response returned looks something like:
-             *    {
-             *     "schemaVersion": 2,
-             *     "config": {
-             *       "mediaType": "application/vnd.unknown.config.v1+json",
-             *       "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-             *       "size": 0
-             *     },
-             *     "layers": [
-             *       {
-             *         "mediaType": "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip'",
-             *         "digest": "sha256:7c55c7b66cb075628660d8249cc4866f16e34741c246a42ed97fb23ccd4ea956",
-             *         "size": 3533,
-             *         "annotations": {
-             *           "org.opencontainers.image.title": "test_module.1.0.0.nupkg",
-             *           "metadata": "{\"GUID\":\"45219bf4-10a4-4242-92d6-9bfcf79878fd\",\"FunctionsToExport\":[],\"CompanyName\":\"Anam\",\"CmdletsToExport\":[],\"VariablesToExport\":\"*\",\"Author\":\"Anam Navied\",\"ModuleVersion\":\"1.0.0\",\"Copyright\":\"(c) Anam Navied. All rights reserved.\",\"PrivateData\":{\"PSData\":{\"Tags\":[\"Test\",\"CommandsAndResource\",\"Tag2\"]}},\"RequiredModules\":[],\"Description\":\"This is a test module, for PSGallery team internal testing. Do not take a dependency on this package. This version contains tags for the package.\",\"AliasesToExport\":[]}"
-             *         }
-             *       }
-             *     ]
-             *   }
-             */
+            /*
+                Response returned looks something like:
+                {
+                    "schemaVersion": 2,
+                    "config": {
+                        "mediaType": "application/vnd.unknown.config.v1+json",
+                        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                        "size": 0
+                    },
+                    "layers": [
+                        {
+                            "mediaType": "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip'",
+                            "digest": "sha256:7c55c7b66cb075628660d8249cc4866f16e34741c246a42ed97fb23ccd4ea956",
+                            "size": 3533,
+                            "annotations": {
+                                "org.opencontainers.image.title": "test_module.1.0.0.nupkg",
+                                "metadata": "{\"GUID\":\"45219bf4-10a4-4242-92d6-9bfcf79878fd\",\"FunctionsToExport\":[],\"CompanyName\":\"Anam\",\"CmdletsToExport\":[],\"VariablesToExport\":\"*\",\"Author\":\"Anam Navied\",\"ModuleVersion\":\"1.0.0\",\"Copyright\":\"(c) Anam Navied. All rights reserved.\",\"PrivateData\":{\"PSData\":{\"Tags\":[\"Test\",\"CommandsAndResource\",\"Tag2\"]}},\"RequiredModules\":[],\"Description\":\"This is a test module, for PSGallery team internal testing. Do not take a dependency on this package. This version contains tags for the package.\",\"AliasesToExport\":[]}"
+                            }
+                        }
+                    ]
+                }
+            */
 
-            var serverPkgInfo = GetMetadataProperty(foundTags, packageName, out errRecord);
+            ContainerRegistryInfo serverPkgInfo = GetMetadataProperty(foundTags, packageName, out errRecord);
             if (errRecord != null)
             {
                 return requiredVersionResponse;
@@ -738,8 +739,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 using (JsonDocument metadataJSONDoc = JsonDocument.Parse(serverPkgInfo.Metadata))
                 {
-                    string pkgVersionString = String.Empty;
+                    string pkgVersionString = String.Empty; 
                     JsonElement rootDom = metadataJSONDoc.RootElement;
+
                     if (rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement))
                     {
                         // module metadata will have "ModuleVersion" property
@@ -831,7 +833,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             errRecord = null;
             ContainerRegistryInfo serverPkgInfo = null;
 
-            var layers = foundTags["layers"];
+            JToken layers = foundTags["layers"];
             if (layers == null || layers[0] == null)
             {
                 errRecord = new ErrorRecord(
@@ -843,7 +845,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return serverPkgInfo;
             }
 
-            var annotations = layers[0]["annotations"];
+            JToken annotations = layers[0]["annotations"];
             if (annotations == null)
             {
                 errRecord = new ErrorRecord(
@@ -856,7 +858,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             // Check for package name
-            var pkgTitleJToken = annotations["org.opencontainers.image.title"];
+            JToken pkgTitleJToken = annotations["org.opencontainers.image.title"];
             if (pkgTitleJToken == null)
             {
                 errRecord = new ErrorRecord(
@@ -881,7 +883,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             // Check for package metadata
-            var pkgMetadataJToken = annotations["metadata"];
+            JToken pkgMetadataJToken = annotations["metadata"];
             if (pkgMetadataJToken == null)
             {
                 errRecord = new ErrorRecord(
@@ -893,10 +895,10 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return serverPkgInfo;
             }
 
-            var metadata = pkgMetadataJToken.ToString();
+            string metadata = pkgMetadataJToken.ToString();
 
             // Check for package artifact type
-            var resourceTypeJToken = annotations["resourceType"];
+            JToken resourceTypeJToken = annotations["resourceType"];
             var resourceType = resourceTypeJToken != null ? resourceTypeJToken.ToString() : "None";
 
             return new ContainerRegistryInfo(metadataPkgName, metadata, resourceType);

@@ -1639,10 +1639,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         internal static List<Dependency> ParseContainerRegistryDependencies(JsonElement requiredModulesElement, out string errorMsg)
         {
             errorMsg = string.Empty;
-            List<Dependency> pkgDeps = new List<Dependency>();
+            List<Dependency> pkgDeps = new();
             if (requiredModulesElement.ValueKind == JsonValueKind.Array)
             {
-                foreach (var dependency in requiredModulesElement.EnumerateArray())
+                foreach (JsonElement dependency in requiredModulesElement.EnumerateArray())
                 {
                     if (dependency.ValueKind == JsonValueKind.String)
                     {
@@ -1669,15 +1669,16 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             }
 
                             depVersionRange = new VersionRange(
-                                            minVersion: depNuGetVersion,
-                                            includeMinVersion: true);
+                                minVersion: depNuGetVersion,
+                                includeMinVersion: true
+                            );
                         }
                         else if (dependency.TryGetProperty("RequiredVersion", out JsonElement depRequiredVersionElement))
                         {
                             // New-ScriptFileInfo will add "RequiredVersion" value as "null" if nothing is explicitly passed in,
                             // Which gets translated to an empty string.
                             // In this case, we just want the VersionRange to be VersionRange.All
-                            if (!string.Equals(depModuleVersionElement.ToString(), string.Empty))
+                            if (!string.Equals(depRequiredVersionElement.ToString(), string.Empty))
                             {
                                 if (!NuGetVersion.TryParse(depRequiredVersionElement.ToString(), out NuGetVersion depNuGetVersion))
                                 {
@@ -1686,10 +1687,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                                 }
 
                                 depVersionRange = new VersionRange(
-                                                minVersion: depNuGetVersion,
-                                                includeMinVersion: true,
-                                                maxVersion: depNuGetVersion,
-                                                includeMaxVersion: true);
+                                    minVersion: depNuGetVersion,
+                                    includeMinVersion: true,
+                                    maxVersion: depNuGetVersion,
+                                    includeMaxVersion: true
+                                );
                             }
                         }
 
