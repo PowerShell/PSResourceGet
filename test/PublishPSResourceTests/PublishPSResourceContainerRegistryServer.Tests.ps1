@@ -469,7 +469,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
 
     It "Should write error and not publish script when Description block altogether is missing" {
-        # we expect .ps1 files to have a separate comment block for .DESCRIPTION property, not to be included in the PSScriptInfo commment block
+        # we expect .ps1 files to have a separate comment block for .DESCRIPTION property, not to be included in the PSScriptInfo comment block
         $scriptName = "InvalidScriptMissingDescriptionCommentBlock.ps1"
 
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName

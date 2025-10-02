@@ -290,7 +290,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     catch (Exception e)
                     {
                         _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                            new ArgumentException("Error occured while creating directory to publish: " + e.Message),
+                            new ArgumentException("Error occurred while creating directory to publish: " + e.Message),
                             "ErrorCreatingDirectoryToPublish",
                             ErrorCategory.InvalidOperation,
                             this));
@@ -328,7 +328,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
         }
 
-        internal void PushResource(string Repository, string modulePrefix, bool SkipDependenciesCheck, NetworkCredential _networkCrendential)
+        internal void PushResource(string Repository, string modulePrefix, bool SkipDependenciesCheck, NetworkCredential _networkCredential)
         {
             try
             {
@@ -666,7 +666,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // The PSGallery uses the v2 protocol still and publishes to a slightly different endpoint:
             // "https://www.powershellgallery.com/api/v2/package"
             // Until the PSGallery is moved onto the NuGet v3 server protocol, we'll modify the repository uri
-            // to accommodate for the approprate publish location.
+            // to accommodate for the appropriate publish location.
             string publishLocation = repoUri.EndsWith("/v2", StringComparison.OrdinalIgnoreCase) ? repoUri + "/package" : repoUri;
 
             var settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, null);
@@ -1127,7 +1127,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     XmlElement element = doc.CreateElement("dependency", nameSpaceUri);
                     element.SetAttribute("id", dependencyName);
-                    
+
                     string dependencyVersion = requiredModules[dependencyName].ToString();
                     if (!string.IsNullOrEmpty(dependencyVersion))
                     {
@@ -1202,13 +1202,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     string moduleName = moduleHash["ModuleName"] as string;
                     var versionInfo = new Hashtable();
-            
+
                     // RequiredVersion cannot be used with ModuleVersion or MaximumVersion
                     if (moduleHash.ContainsKey("RequiredVersion"))
                     {
                         versionInfo["RequiredVersion"] = moduleHash["RequiredVersion"].ToString();
                     }
-                    else 
+                    else
                     {
                         // ModuleVersion and MaximumVersion can be used together
                         if (moduleHash.ContainsKey("ModuleVersion"))
@@ -1299,7 +1299,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// This method is called by Publish-PSResource when the -NupkgPath parameter is specified
-        /// The method copies the .nupkg file to a temp path (populated at outputNupkgDir field) as we dont' want to extract and read original .nupkg file
+        /// The method copies the .nupkg file to a temp path (populated at outputNupkgDir field) as we don't want to extract and read original .nupkg file
         /// </summary>
         private string CopyNupkgFileToTempPath(string nupkgFilePath, out ErrorRecord errRecord)
         {
@@ -1336,7 +1336,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
-        /// Get package info from the .nupkg file provided, inluding package name (_pkgName), package version (_pkgVersion), and metadata parsed into a hashtable (parsedMetadata)
+        /// Get package info from the .nupkg file provided, including package name (_pkgName), package version (_pkgVersion), and metadata parsed into a hashtable (parsedMetadata)
         /// </summary>
         private void GetPackageInfoFromNupkg(string nupkgFilePath, out ErrorRecord errRecord)
         {
@@ -1419,11 +1419,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (!Utils.TryReadManifestFile(psd1FilePath, out pkgMetadata, out Exception readManifestError))
                     {
                         errRecord = new ErrorRecord(
-                            readManifestError, 
-                            "GetMetadataFromNupkgFailure", 
-                            ErrorCategory.ParserError, 
+                            readManifestError,
+                            "GetMetadataFromNupkgFailure",
+                            ErrorCategory.ParserError,
                             this);
-                        
+
                         return pkgMetadata;
                     }
                 }
@@ -1433,9 +1433,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (!PSScriptFileInfo.TryTestPSScriptFileInfo(ps1FilePath, out PSScriptFileInfo parsedScript, out ErrorRecord[] errors, out string[] verboseMsgs))
                     {
                         errRecord = new ErrorRecord(
-                            new InvalidDataException($"PSScriptFile could not be read properly"), 
-                            "GetMetadataFromNupkgFailure", 
-                            ErrorCategory.ParserError, 
+                            new InvalidDataException($"PSScriptFile could not be read properly"),
+                            "GetMetadataFromNupkgFailure",
+                            ErrorCategory.ParserError,
                             this);
 
                         return pkgMetadata;
@@ -1456,19 +1456,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     errRecord = new ErrorRecord(
                         new InvalidDataException($".nupkg package must contain either .psd1, .ps1, or .nuspec file and none were found"),
-                        "GetMetadataFromNupkgFailure", 
-                        ErrorCategory.InvalidData, 
+                        "GetMetadataFromNupkgFailure",
+                        ErrorCategory.InvalidData,
                         this);
-                        
+
                     return pkgMetadata;
                 }
             }
             catch (Exception e)
             {
                errRecord = new ErrorRecord(
-                   new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"), 
-                   "GetMetadataFromNupkgFailure", 
-                   ErrorCategory.InvalidOperation, 
+                   new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"),
+                   "GetMetadataFromNupkgFailure",
+                   ErrorCategory.InvalidOperation,
                    this);
             }
             finally

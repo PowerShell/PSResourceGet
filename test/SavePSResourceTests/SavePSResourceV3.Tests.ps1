@@ -42,7 +42,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
         (Get-ChildItem $pkgDirs[1].FullName) | Should -HaveCount 1
     }
 
-    It 'Should not save resource given nonexistant name' {
+    It 'Should not save resource given nonexistent name' {
         Save-PSResource -Name NonExistentModule -Repository $NuGetGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ 'NonExistentModule'
         $pkgDir.Name | Should -BeNullOrEmpty
