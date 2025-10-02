@@ -352,7 +352,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 break;
 
                             case ResourceFileType.UnknownFile:
-                                throw new PSInvalidOperationException("Unkown file type. Required resource file must be either a json or psd1 data file.");
+                                throw new PSInvalidOperationException("Unknown file type. Required resource file must be either a json or psd1 data file.");
                         }
                     }
                     catch (Exception)

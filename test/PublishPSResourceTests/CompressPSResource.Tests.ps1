@@ -151,9 +151,9 @@ Describe "Test Compress-PSResource" -tags 'CI' {
     It "Compress-PSResource compresses a module into a nupkg and saves it to the DestinationPath" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
-        
+
         Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath
-        
+
         $expectedPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
@@ -179,7 +179,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         # Must change .nupkg to .zip so that Expand-Archive can work on Windows PowerShell
         $nupkgPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
         $zipPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.zip"
-        Rename-Item -Path $nupkgPath -NewName $zipPath 
+        Rename-Item -Path $nupkgPath -NewName $zipPath
         $unzippedPath = Join-Path -Path $TestDrive -ChildPath "$script:PublishModuleName"
         New-Item $unzippedPath -Itemtype directory -Force
         Expand-Archive -Path $zipPath -DestinationPath $unzippedPath
@@ -238,7 +238,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         Remove-Item -Path $relativePath -Recurse -Force
         Remove-Item -Path $relativeDestination -Recurse -Force
     }
-    
+
     It "Compress-PSResource -PassThru returns a FileInfo object with the correct path" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
@@ -252,7 +252,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $fileInfoObject.Name | Should -Be "$script:PublishModuleName.$version.nupkg"
     }
 
-    It "Compress-PSResource creates nuspec dependecy version range when RequiredVersion is in RequiredModules section" {
+    It "Compress-PSResource creates nuspec dependency version range when RequiredVersion is in RequiredModules section" {
         $version = "1.0.0"
         $requiredModules = @(
             @{
@@ -276,7 +276,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $nuspecxml.package.metadata.dependencies.dependency.version.replace(' ', '') | Should -BeExactly '[2.0.0]'
     }
 
-    It "Compress-PSResource creates nuspec dependecy version range when ModuleVersion is in RequiredModules section" {
+    It "Compress-PSResource creates nuspec dependency version range when ModuleVersion is in RequiredModules section" {
         $version = "1.0.0"
         $requiredModules = @(
             @{
@@ -298,7 +298,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $nuspecxml.package.metadata.dependencies.dependency.version.replace(' ', '') | Should -BeExactly '2.0.0'
     }
 
-    It "Compress-PSResource creates nuspec dependecy version range when MaximumVersion is in RequiredModules section" {
+    It "Compress-PSResource creates nuspec dependency version range when MaximumVersion is in RequiredModules section" {
         $version = "1.0.0"
         $requiredModules = @(
             @{
@@ -320,7 +320,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $nuspecxml.package.metadata.dependencies.dependency.version.replace(' ', '') | Should -BeExactly '(,2.0.0]'
     }
 
-    It "Compress-PSResource creates nuspec dependecy version range when ModuleVersion and MaximumVersion are in RequiredModules section" {
+    It "Compress-PSResource creates nuspec dependency version range when ModuleVersion and MaximumVersion are in RequiredModules section" {
         $version = "1.0.0"
         $requiredModules = @(
             @{
@@ -343,7 +343,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $nuspecxml.package.metadata.dependencies.dependency.version.replace(' ', '') | Should -BeExactly '[1.0.0,2.0.0]'
     }
 
-    It "Compress-PSResource creates nuspec dependecy version range when there are multiple modules in RequiredModules section" {
+    It "Compress-PSResource creates nuspec dependency version range when there are multiple modules in RequiredModules section" {
         $version = "1.0.0"
         $requiredModules = @(
             @{
@@ -402,14 +402,14 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
 		Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath2
-		
+
 		$expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
 		(Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
 
         # create test cert
         # Create a self-signed certificate for code signing
         $testCert = New-SelfSignedCertificate -Subject "CN=NuGet Test Developer, OU=Use for testing purposes ONLY" -FriendlyName "NuGetTestDeveloper" -Type CodeSigning -KeyUsage DigitalSignature -KeyLength 2048 -KeyAlgorithm RSA -HashAlgorithm SHA256 -Provider "Microsoft Enhanced RSA and AES Cryptographic Provider" -CertStoreLocation "Cert:\CurrentUser\My"
-        
+
         # sign the nupkg
         $nupkgPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
         Set-AuthenticodeSignature -FilePath $nupkgPath -Certificate $testCert

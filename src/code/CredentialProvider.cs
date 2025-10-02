@@ -113,9 +113,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         internal static PSCredential GetCredentialsFromProvider(Uri uri, PSCmdlet cmdletPassedIn)
         {
-            cmdletPassedIn.WriteVerbose("Enterting CredentialProvider::GetCredentialsFromProvider");
+            cmdletPassedIn.WriteVerbose("Entering CredentialProvider::GetCredentialsFromProvider");
             string credProviderPath = string.Empty;
-            
+
             //  Find credential provider
             //  Option 1. Use env var 'NUGET_PLUGIN_PATHS' to find credential provider.
             //   See: https://docs.microsoft.com/en-us/nuget/reference/extensibility/nuget-cross-platform-plugins#plugin-installation-and-discovery
@@ -161,7 +161,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     FileInfo fileInfo = new FileInfo(credProviderPath);
                     if (!Utils.TryGetCaseInsensitiveFilePath(fileInfo.Directory.FullName, _credProviderDll, out credProviderPath))
-                    { 
+                    {
                         cmdletPassedIn.WriteError(new ErrorRecord(
                             new FileNotFoundException($"Path found '{credProviderPath}' is not a valid Azure Artifact Credential Provider executable. See https://github.com/NuGet/Home/wiki/NuGet-cross-plat-authentication-plugin#plugin-installation-and-discovery to set up the Credential Provider."),
                             "CredentialProviderFileNotFound",
