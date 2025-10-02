@@ -101,14 +101,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var versionPaths = Utils.GetSubDirectories(resolvedPath);
                 if (versionPaths.Length == 0)
                 {
-                    ThrowTerminatingError(new ErrorRecord(
+                    WriteError(new ErrorRecord(
                         new PSInvalidOperationException($"Error cannot find expected subdirectories in provided path: {Path}"),
                         "PathMissingExpectedSubdirectories",
                         ErrorCategory.InvalidOperation,
                         this));
                 }
-
-                _pathsToSearch.AddRange(versionPaths);
+                else
+                {
+                    _pathsToSearch.AddRange(versionPaths);
+                }
             }
             else
             {
