@@ -19,7 +19,7 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
     }
 
     AfterEach {
-       Uninstall-PSResource "test_module", "TestModule99", "TestModuleWithLicense", "test_module2", "test_script" -Version "*" -ErrorAction SilentlyContinue
+        Uninstall-PSResource "test_module", "TestModule99", "TestModuleWithLicense", "test_module2", "test_script" -Version "*" -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -33,10 +33,8 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $testModuleName
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $isPkgUpdated = $true
             }
         }
@@ -51,19 +49,14 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         Update-PSResource -Name "test_mod*" -Repository $PSGalleryName -TrustRepository
         $res = Get-InstalledPSResource -Name "test_mod*" -Version "5.0.0.0"
         $res | Should -Not -BeNullOrEmpty
-        $inputHashtable = @{test_module = "1.0.0.0"; test_module2 = "1.0.0.0"}
+        $inputHashtable = @{test_module = "1.0.0.0"; test_module2 = "1.0.0.0" }
         $isTest_ModuleUpdated = $false
         $isTest_Module2Updated = $false
-        foreach ($item in $res)
-        {
-            if ([System.Version]$item.Version -gt [System.Version]$inputHashtable[$item.Name])
-            {
-                if ($item.Name -like $testModuleName)
-                {
+        foreach ($item in $res) {
+            if ([System.Version]$item.Version -gt [System.Version]$inputHashtable[$item.Name]) {
+                if ($item.Name -like $testModuleName) {
                     $isTest_ModuleUpdated = $true
-                }
-                elseif ($item.Name -like $testModuleName2)
-                {
+                } elseif ($item.Name -like $testModuleName2) {
                     $isTest_Module2Updated = $true
                 }
             }
@@ -82,10 +75,8 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $testModuleName
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -eq [System.Version]"5.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -eq [System.Version]"5.0.0.0") {
                 $isPkgUpdated = $true
             }
         }
@@ -93,18 +84,18 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $isPkgUpdated | Should -BeTrue
     }
 
-    $testCases2 = @{Version="[3.0.0.0]";           UpdatedVersion="3.0.0.0"; Reason="validate version, exact match"},
-                  @{Version="3.0.0.0";             UpdatedVersion="3.0.0.0"; Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[3.0.0.0, 5.0.0.0]";  UpdatedVersion="5.0.0.0"; Reason="validate version, exact range inclusive"},
-                  @{Version="(3.0.0.0, 6.0.0.0)";  UpdatedVersion="5.0.0.0"; Reason="validate version, exact range exclusive"},
-                  @{Version="(3.0.0.0,)";          UpdatedVersion="5.0.0.0"; Reason="validate version, minimum version exclusive"},
-                  @{Version="[3.0.0.0,)";          UpdatedVersion="5.0.0.0"; Reason="validate version, minimum version inclusive"},
-                  @{Version="(,5.0.0.0)";          UpdatedVersion="3.0.0.0"; Reason="validate version, maximum version exclusive"},
-                  @{Version="(,5.0.0.0]";          UpdatedVersion="5.0.0.0"; Reason="validate version, maximum version inclusive"},
-                  @{Version="[1.0.0.0, 5.0.0.0)";  UpdatedVersion="3.0.0.0"; Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(1.0.0.0, 3.0.0.0]";  UpdatedVersion="3.0.0.0"; Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version = "[3.0.0.0]"; UpdatedVersion = "3.0.0.0"; Reason = "validate version, exact match" },
+    @{Version = "3.0.0.0"; UpdatedVersion = "3.0.0.0"; Reason = "validate version, exact match without bracket syntax" },
+    @{Version = "[3.0.0.0, 5.0.0.0]"; UpdatedVersion = "5.0.0.0"; Reason = "validate version, exact range inclusive" },
+    @{Version = "(3.0.0.0, 6.0.0.0)"; UpdatedVersion = "5.0.0.0"; Reason = "validate version, exact range exclusive" },
+    @{Version = "(3.0.0.0,)"; UpdatedVersion = "5.0.0.0"; Reason = "validate version, minimum version exclusive" },
+    @{Version = "[3.0.0.0,)"; UpdatedVersion = "5.0.0.0"; Reason = "validate version, minimum version inclusive" },
+    @{Version = "(,5.0.0.0)"; UpdatedVersion = "3.0.0.0"; Reason = "validate version, maximum version exclusive" },
+    @{Version = "(,5.0.0.0]"; UpdatedVersion = "5.0.0.0"; Reason = "validate version, maximum version inclusive" },
+    @{Version = "[1.0.0.0, 5.0.0.0)"; UpdatedVersion = "3.0.0.0"; Reason = "validate version, mixed inclusive minimum and exclusive maximum version" }
+    @{Version = "(1.0.0.0, 3.0.0.0]"; UpdatedVersion = "3.0.0.0"; Reason = "validate version, mixed exclusive minimum and inclusive maximum version" }
 
-    It "Update resource when given Name to <Reason> <Version>" -TestCases $testCases2{
+    It "Update resource when given Name to <Reason> <Version>" -TestCases $testCases2 {
         param($Version, $UpdatedVersion)
 
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
@@ -115,10 +106,10 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
     }
 
     $testCases = @(
-        @{Version='(3.0.0.0)';       Description="exclusive version (3.0.0.0)"},
-        @{Version='[3-0-0-0]';       Description="version formatted with invalid delimiter [3-0-0-0]"}
+        @{Version = '(3.0.0.0)'; Description = "exclusive version (3.0.0.0)" },
+        @{Version = '[3-0-0-0]'; Description = "version formatted with invalid delimiter [3-0-0-0]" }
     )
-    It "Should not update resource with incorrectly formatted version such as <Description>" -TestCases $testCases{
+    It "Should not update resource with incorrectly formatted version such as <Description>" -TestCases $testCases {
         param($Version, $Description)
 
         Install-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName -TrustRepository
@@ -127,10 +118,8 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $testModuleName
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $isPkgUpdated = $true
             }
         }
@@ -162,10 +151,8 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $testModuleName
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -ge [System.Version]"5.2.5")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -ge [System.Version]"5.2.5") {
                 $pkg.Prerelease | Should -Be "alpha001"
                 $isPkgUpdated = $true
             }
@@ -180,10 +167,8 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $testModuleName
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -eq [System.Version]"5.2.5")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -eq [System.Version]"5.2.5") {
                 $pkg.Prerelease | Should -Be "alpha001"
                 $isPkgUpdated = $true
             }
@@ -198,10 +183,8 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $testModuleName3
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -ge [System.Version]"1.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -ge [System.Version]"1.0.0") {
                 $pkg.Prerelease | Should -Be "beta2"
                 $isPkgUpdated = $true
             }
@@ -221,10 +204,8 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $testModuleName
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $pkg.InstalledLocation.Contains("Documents") | Should -Be $true
                 $isPkgUpdated = $true
             }
@@ -253,10 +234,8 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $testModuleName
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $pkg.InstalledLocation.Contains("Documents") | Should -Be $true
                 $isPkgUpdated = $true
             }
@@ -277,10 +256,8 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $testModuleName
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $pkg.InstalledLocation.Contains("$env:HOME/.local") | Should -Be $true
                 $isPkgUpdated = $true
             }
@@ -301,10 +278,8 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $testModuleName
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $pkg.InstalledLocation.Contains("usr") | Should -Be $true
                 $isPkgUpdated = $true
             }
@@ -325,10 +300,8 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $testModuleName
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $pkg.InstalledLocation.Contains("$env:HOME/.local") | Should -Be $true
                 $isPkgUpdated = $true
             }
@@ -361,10 +334,8 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $testModuleName
         $res | Should -Not -BeNullOrEmpty
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $isPkgUpdated = $true
             }
         }

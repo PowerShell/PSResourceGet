@@ -32,7 +32,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// <summary>
         /// This constructor takes a value for description and creates a new PSScriptHelp instance.
         /// </summary>
-        public PSScriptHelp (string description)
+        public PSScriptHelp(string description)
         {
             Description = description;
         }
@@ -41,7 +41,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// This constructor is called by internal cmdlet methods and creates a PSScriptHelp with default values
         /// for the parameters. Calling a method like PSScriptHelp.ParseContentIntoObj() would then populate those properties.
         /// </summary>
-        internal PSScriptHelp() {}
+        internal PSScriptHelp() { }
 
         #endregion
 
@@ -65,11 +65,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             // Populate object.
-            List<string> descriptionValue = (List<string>) parsedHelpMetadata["DESCRIPTION"];
+            List<string> descriptionValue = (List<string>)parsedHelpMetadata["DESCRIPTION"];
             Description = String.Join(Environment.NewLine, descriptionValue);
             if (parsedHelpMetadata.ContainsKey("HELPCONTENT"))
             {
-                HelpContent = (List<string>) parsedHelpMetadata["HELPCONTENT"];
+                HelpContent = (List<string>)parsedHelpMetadata["HELPCONTENT"];
             }
 
             return true;
@@ -103,7 +103,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             List<string> descriptionValue = new List<string>();
             bool parsingDescription = false;
 
-            for(int i = 0; i < commentLines.Length; i++)
+            for (int i = 0; i < commentLines.Length; i++)
             {
                 string line = commentLines[i];
                 if (line.Trim().StartsWith(".DESCRIPTION", StringComparison.OrdinalIgnoreCase))
@@ -156,7 +156,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return false;
             }
 
-            List<string> descriptionValue = (List<string>) parsedHelpMetadata["DESCRIPTION"];
+            List<string> descriptionValue = (List<string>)parsedHelpMetadata["DESCRIPTION"];
             string descriptionString = String.Join("", descriptionValue);
             if (descriptionValue.Count == 0 || (String.IsNullOrEmpty(descriptionString)) || String.IsNullOrWhiteSpace(descriptionString))
             {

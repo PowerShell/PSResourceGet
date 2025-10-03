@@ -40,7 +40,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             foreach (string response in responses)
             {
-                var elemList = ConvertResponseToXML(response);
+                XmlNode[] elemList = ConvertResponseToXML(response);
                 if (elemList.Length == 0)
                 {
                     // this indicates we got a non-empty, XML response (as noticed for V2 server) but it's not a response that's meaningful (contains 'properties')
@@ -49,7 +49,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     yield return new PSResourceResult(returnedObject: null, exception: notFoundException, isTerminatingError: false);
                 }
 
-                foreach (var element in elemList)
+                foreach (XmlNode element in elemList)
                 {
                     if (!PSResourceInfo.TryConvertFromXml(element, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
                     {
@@ -72,7 +72,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region V2 Specific Methods
 
-        public XmlNode[] ConvertResponseToXML(string httpResponse) {
+        public XmlNode[] ConvertResponseToXML(string httpResponse)
+        {
             NuGetVersion emptyVersion = new NuGetVersion("0.0.0.0");
             NuGetVersion firstVersion = emptyVersion;
             NuGetVersion lastVersion = emptyVersion;
@@ -89,13 +90,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 XmlNode node = entryNode[i];
                 nodes[i] = node;
-                var entryChildNodes = node.ChildNodes;
+                XmlNodeList entryChildNodes = node.ChildNodes;
                 foreach (XmlElement childNode in entryChildNodes)
                 {
                     var entryKey = childNode.LocalName;
                     if (entryKey.Equals("properties"))
                     {
-                        var propertyChildNodes = childNode.ChildNodes;
+                        XmlNodeList propertyChildNodes = childNode.ChildNodes;
                         foreach (XmlElement propertyChild in propertyChildNodes)
                         {
                             var propertyKey = propertyChild.LocalName;

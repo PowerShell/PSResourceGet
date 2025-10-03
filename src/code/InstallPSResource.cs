@@ -270,7 +270,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Only need to find packages installed if -Reinstall is not passed in
             _packagesOnMachine = Reinstall ? new HashSet<string>(StringComparer.CurrentCultureIgnoreCase) : Utils.GetInstalledPackages(pathsToSearch, this);
 
-            var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+            NetworkCredential networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
             _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }

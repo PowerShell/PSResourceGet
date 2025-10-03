@@ -104,10 +104,10 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
     }
 
     It "register repositories with -Repository parameter, all name parameter style repositories (RepositoriesParameterSet)" {
-        $hashtable1 = @{Name = $TestRepoName1; Uri = $tmpDir1Path}
-        $hashtable2 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
-        $hashtable3 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $hashtable4 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret))}
+        $hashtable1 = @{Name = $TestRepoName1; Uri = $tmpDir1Path }
+        $hashtable2 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True }
+        $hashtable3 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20 }
+        $hashtable4 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret)) }
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
         Register-PSResourceRepository -Repository $arrayOfHashtables
@@ -137,7 +137,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
 
     It "register repositories with -Repository parameter, psgallery style repository (RepositoriesParameterSet)" {
         Unregister-PSResourceRepository -Name $PSGalleryName
-        $hashtable1 = @{PSGallery = $True}
+        $hashtable1 = @{PSGallery = $True }
         Register-PSResourceRepository -Repository $hashtable1
         $res = Get-PSResourceRepository -Name $PSGalleryName
         $res.Uri | Should -Be $PSGalleryUri
@@ -147,11 +147,11 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
 
     It "register repositories with -Repository parameter, name and psgallery parameter styles (RepositoriesParameterSet)" {
         Unregister-PSResourceRepository -Name $PSGalleryName
-        $hashtable1 = @{PSGallery = $True}
-        $hashtable2 = @{Name = $TestRepoName1; Uri = $tmpDir1Path}
-        $hashtable3 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
-        $hashtable4 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $hashtable5 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret))}
+        $hashtable1 = @{PSGallery = $True }
+        $hashtable2 = @{Name = $TestRepoName1; Uri = $tmpDir1Path }
+        $hashtable3 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True }
+        $hashtable4 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20 }
+        $hashtable5 = @{Name = $TestRepoName4; Uri = $tmpDir4Path; Trusted = $True; Priority = 30; CredentialInfo = (New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret)) }
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4, $hashtable5
 
         Register-PSResourceRepository -Repository $arrayOfHashtables
@@ -186,42 +186,42 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
     }
 
     It "not register repository when Name is provided but Uri is not" {
-        {Register-PSResourceRepository -Name $TestRepoName1 -Uri "" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+        { Register-PSResourceRepository -Name $TestRepoName1 -Uri "" -ErrorAction Stop } | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register repository when Name is empty but Uri is provided" {
-        {Register-PSResourceRepository -Name "" -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+        { Register-PSResourceRepository -Name "" -Uri $tmpDir1Path -ErrorAction Stop } | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register repository when Name is null but Uri is provided" {
-        {Register-PSResourceRepository -Name $null -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+        { Register-PSResourceRepository -Name $null -Uri $tmpDir1Path -ErrorAction Stop } | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register repository when Name is just whitespace but Uri is provided" {
-        {Register-PSResourceRepository -Name " " -Uri $tmpDir1Path -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+        { Register-PSResourceRepository -Name " " -Uri $tmpDir1Path -ErrorAction Stop } | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     It "not register PSGallery with NameParameterSet" {
-        {Register-PSResourceRepository -Name $PSGalleryName -Uri $PSGalleryUri -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+        { Register-PSResourceRepository -Name $PSGalleryName -Uri $PSGalleryUri -ErrorAction Stop } | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
     }
 
     # this error message comes from the parameter cmdlet tags (earliest point of detection)
     It "not register PSGallery when PSGallery parameter provided with Name, Uri or CredentialInfo" {
-        {Register-PSResourceRepository -PSGallery -Name $PSGalleryName -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
-        {Register-PSResourceRepository -PSGallery -Uri $PSGalleryUri -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
-        {Register-PSResourceRepository -PSGallery -CredentialInfo $credentialInfo1 -ErrorAction Stop} | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+        { Register-PSResourceRepository -PSGallery -Name $PSGalleryName -ErrorAction Stop } | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+        { Register-PSResourceRepository -PSGallery -Uri $PSGalleryUri -ErrorAction Stop } | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+        { Register-PSResourceRepository -PSGallery -CredentialInfo $credentialInfo1 -ErrorAction Stop } | Should -Throw -ErrorId "AmbiguousParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
     }
 
-    $testCases = @{Type = "Name key specified with PSGallery key"; IncorrectHashTable = @{PSGallery = $True; Name=$PSGalleryName}},
-                 @{Type = "Uri key specified with PSGallery key";  IncorrectHashTable = @{PSGallery = $True; Uri=$PSGalleryUri}},
-                 @{Type = "CredentialInfo key specified with PSGallery key";  IncorrectHashTable = @{PSGallery = $True; CredentialInfo = $credentialInfo1}}
+    $testCases = @{Type = "Name key specified with PSGallery key"; IncorrectHashTable = @{PSGallery = $True; Name = $PSGalleryName } },
+    @{Type = "Uri key specified with PSGallery key"; IncorrectHashTable = @{PSGallery = $True; Uri = $PSGalleryUri } },
+    @{Type = "CredentialInfo key specified with PSGallery key"; IncorrectHashTable = @{PSGallery = $True; CredentialInfo = $credentialInfo1 } }
 
     It "not register incorrectly formatted PSGallery type repo among correct ones when incorrect type is <Type>" -TestCases $testCases {
         param($Type, $IncorrectHashTable)
 
-        $correctHashtable1 = @{Name = $TestRepoName1; Uri = $tmpDir1Path}
-        $correctHashtable2 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
-        $correctHashtable3 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
+        $correctHashtable1 = @{Name = $TestRepoName1; Uri = $tmpDir1Path }
+        $correctHashtable2 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True }
+        $correctHashtable3 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20 }
         $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
 
         Unregister-PSResourceRepository -Name $PSGalleryName
@@ -240,10 +240,10 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
     }
 
     It "not register incorrectly formatted -Name type repo among correct ones, where incorrect one is missing -Name" {
-        $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
-        $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $correctHashtable3 = @{PSGallery = $True; Priority = 30};
-        $IncorrectHashTable = @{Uri = $tmpDir1Path};
+        $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True }
+        $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20 }
+        $correctHashtable3 = @{PSGallery = $True; Priority = 30 };
+        $IncorrectHashTable = @{Uri = $tmpDir1Path };
 
         $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
         Unregister-PSResourceRepository -Name $PSGalleryName
@@ -290,10 +290,10 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
     }
 
     It "not register incorrectly formatted Name type repo among correct ones when incorrect type is -Uri not specified" {
-        $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
-        $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $correctHashtable3 = @{PSGallery = $True; Priority = 30};
-        $IncorrectHashTable = @{Name = $TestRepoName1};
+        $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True }
+        $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20 }
+        $correctHashtable3 = @{PSGallery = $True; Priority = 30 };
+        $IncorrectHashTable = @{Name = $TestRepoName1 };
 
         $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
         Unregister-PSResourceRepository -Name $PSGalleryName
@@ -315,10 +315,10 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
     }
 
     It "not register incorrectly formatted Name type repo among correct ones when incorrect type is -Uri is not valid scheme" {
-        $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
-        $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
-        $correctHashtable3 = @{PSGallery = $True; Priority = 30};
-        $IncorrectHashTable = @{Name = $TestRepoName1; Uri="www.google.com"};
+        $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True }
+        $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20 }
+        $correctHashtable3 = @{PSGallery = $True; Priority = 30 };
+        $IncorrectHashTable = @{Name = $TestRepoName1; Uri = "www.google.com" };
 
         $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
         Unregister-PSResourceRepository -Name $PSGalleryName
@@ -376,7 +376,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
     }
 
     It "should register a repository with a hashtable passed in as CredentialInfo" {
-        $hashtable = @{VaultName = "testvault"; SecretName = $randomSecret}
+        $hashtable = @{VaultName = "testvault"; SecretName = $randomSecret }
 
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $hashtable
 
@@ -386,7 +386,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $res.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
 
-    It "should register temp drive as a repository" -skip:(!$IsWindows)  {
+    It "should register temp drive as a repository" -skip:(!$IsWindows) {
         Register-PSResourceRepository -Name "tempDriveRepo" -Uri "Temp:\"
         $res = Get-PSResourceRepository -Name "tempDriveRepo"
 

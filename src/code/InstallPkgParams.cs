@@ -11,7 +11,7 @@ public class InstallPkgParams
     public string Name { get; set; }
     public VersionRange Version { get; set; }
     public string Repository { get; set; }
-    public bool AcceptLicense { get; set; } 
+    public bool AcceptLicense { get; set; }
     public bool Prerelease { get; set; }
     public ScopeType Scope { get; set; }
     public bool Quiet { get; set; }
@@ -32,7 +32,7 @@ public class InstallPkgParams
         {
             ParameterParsingError = new ErrorRecord(
                 new ArgumentException("Argument for parameter cannot be null or whitespace."),
-                "EmptyOrWhitespaceParameterKey", 
+                "EmptyOrWhitespaceParameterKey",
                 ErrorCategory.InvalidArgument,
                 this);
         }
@@ -55,7 +55,7 @@ public class InstallPkgParams
                 {
                     ParameterParsingError = new ErrorRecord(
                         new ArgumentException("Argument for Version parameter is not in the proper format."),
-                        "IncorrectVersionFormat", 
+                        "IncorrectVersionFormat",
                         ErrorCategory.InvalidArgument,
                         this);
                 }
@@ -109,7 +109,7 @@ public class InstallPkgParams
             default:
                 ParameterParsingError = new ErrorRecord(
                     new ArgumentException($"The parameter '{propertyName}' provided is not a recognized or valid parameter. Allowed values include: Name, Version, Repository, AcceptLicense, Prerelease, Scope, Quiet, Reinstall, TrustRepository, NoClobber, and SkipDependencyCheck."),
-                    "IncorrectParameterError", 
+                    "IncorrectParameterError",
                     ErrorCategory.InvalidArgument,
                     this);
                 break;

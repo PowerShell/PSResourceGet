@@ -9,7 +9,7 @@ Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
 
 Describe 'Test Install-PSResource for searching and looping through repositories' -tags 'CI' {
 
-    BeforeAll{
+    BeforeAll {
         $testModuleName = "test_module"
         $testModule2Name = "test_module2"
         $testLocalModuleName = "test_local_mod"
@@ -69,7 +69,7 @@ Describe 'Test Install-PSResource for searching and looping through repositories
     }
 
     It "install multiple resources from highest priority repository where it exists (without -Repository specified)" {
-        $res = Install-PSResource -Name "test_module","test_module2" -TrustRepository -SkipDependencyCheck -ErrorVariable err -ErrorAction SilentlyContinue -PassThru
+        $res = Install-PSResource -Name "test_module", "test_module2" -TrustRepository -SkipDependencyCheck -ErrorVariable err -ErrorAction SilentlyContinue -PassThru
         $err | Should -HaveCount 0
         $res | Should -Not -BeNullOrEmpty
 
@@ -93,7 +93,7 @@ Describe 'Test Install-PSResource for searching and looping through repositories
     }
 
     It "should not allow for repository name with wildcard and non-wildcard name specified in same command run" {
-        { Install-PSResource -Name $testModuleName -Repository "*Gallery",$localRepoName } | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+        { Install-PSResource -Name $testModuleName -Repository "*Gallery", $localRepoName } | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
     }
 
     It "not install resource and write error if resource does not exist in any pattern matching repositories (-Repository with wildcard)" {
@@ -116,7 +116,7 @@ Describe 'Test Install-PSResource for searching and looping through repositories
     }
 
     It "install resource from highest priority repository where it exists (-Repository with multiple non-wildcard values)" {
-        $res = Install-PSResource -Name $testModuleName -Repository $PSGalleryName,$NuGetGalleryName -SkipDependencyCheck -TrustRepository -PassThru
+        $res = Install-PSResource -Name $testModuleName -Repository $PSGalleryName, $NuGetGalleryName -SkipDependencyCheck -TrustRepository -PassThru
         $res | Should -HaveCount 1
 
         $res.Name | Should -Be $testModuleName
@@ -124,7 +124,7 @@ Describe 'Test Install-PSResource for searching and looping through repositories
     }
 
     It "should not allow for repository name with wildcard and non-wildcard name specified in same command run" {
-        {Install-PSResource -Name $testModuleName -Repository "*Gallery",$localRepoName} | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+        { Install-PSResource -Name $testModuleName -Repository "*Gallery", $localRepoName } | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
     }
 
     It "should not write error when package to install is already installed and -reinstall is not provided" {

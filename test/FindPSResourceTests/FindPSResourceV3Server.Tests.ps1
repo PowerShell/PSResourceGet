@@ -9,7 +9,7 @@ Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
 
 Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
 
-    BeforeAll{
+    BeforeAll {
         $NuGetGalleryName = Get-NuGetGalleryName
         $testModuleName = 'test_module'
         Get-NewPSResourceRepositoryFile
@@ -45,19 +45,19 @@ Describe 'Test HTTP Find-PSResource for V3 Server Protocol' -tags 'CI' {
     }
 
     $testCases2 = [hashtable[]](
-        @{Version='[5.0.0.0]';           ExpectedVersions=@('5.0.0');                              Reason='validate version, exact match'},
-        @{Version='5.0.0.0';             ExpectedVersions=@('5.0.0');                              Reason='validate version, exact match without bracket syntax'},
-        @{Version='[1.0.0.0, 5.0.0.0]';  ExpectedVersions=@('1.0.0', '3.0.0', '5.0.0');            Reason='validate version, exact range inclusive'},
-        @{Version='(1.0.0.0, 5.0.0.0)';  ExpectedVersions=@('3.0.0');                              Reason='validate version, exact range exclusive'},
-        @{Version='(1.0.0.0,)';          ExpectedVersions=@('3.0.0', '5.0.0');                     Reason='validate version, minimum version exclusive'},
-        @{Version='[1.0.0.0,)';          ExpectedVersions=@('1.0.0', '3.0.0', '5.0.0');            Reason='validate version, minimum version inclusive'},
-        @{Version='(,3.0.0.0)';          ExpectedVersions=@('1.0.0');                              Reason='validate version, maximum version exclusive'},
-        @{Version='(,3.0.0.0]';          ExpectedVersions=@('1.0.0', '3.0.0');                     Reason='validate version, maximum version inclusive'},
-        @{Version='[1.0.0.0, 5.0.0.0)';  ExpectedVersions=@('1.0.0', '3.0.0');                     Reason='validate version, mixed inclusive minimum and exclusive maximum version'},
-        @{Version='(1.0.0.0, 5.0.0.0]';  ExpectedVersions=@('3.0.0', '5.0.0');                     Reason='validate version, mixed exclusive minimum and inclusive maximum version'}
+        @{Version = '[5.0.0.0]'; ExpectedVersions = @('5.0.0'); Reason = 'validate version, exact match' },
+        @{Version = '5.0.0.0'; ExpectedVersions = @('5.0.0'); Reason = 'validate version, exact match without bracket syntax' },
+        @{Version = '[1.0.0.0, 5.0.0.0]'; ExpectedVersions = @('1.0.0', '3.0.0', '5.0.0'); Reason = 'validate version, exact range inclusive' },
+        @{Version = '(1.0.0.0, 5.0.0.0)'; ExpectedVersions = @('3.0.0'); Reason = 'validate version, exact range exclusive' },
+        @{Version = '(1.0.0.0,)'; ExpectedVersions = @('3.0.0', '5.0.0'); Reason = 'validate version, minimum version exclusive' },
+        @{Version = '[1.0.0.0,)'; ExpectedVersions = @('1.0.0', '3.0.0', '5.0.0'); Reason = 'validate version, minimum version inclusive' },
+        @{Version = '(,3.0.0.0)'; ExpectedVersions = @('1.0.0'); Reason = 'validate version, maximum version exclusive' },
+        @{Version = '(,3.0.0.0]'; ExpectedVersions = @('1.0.0', '3.0.0'); Reason = 'validate version, maximum version inclusive' },
+        @{Version = '[1.0.0.0, 5.0.0.0)'; ExpectedVersions = @('1.0.0', '3.0.0'); Reason = 'validate version, mixed inclusive minimum and exclusive maximum version' },
+        @{Version = '(1.0.0.0, 5.0.0.0]'; ExpectedVersions = @('3.0.0', '5.0.0'); Reason = 'validate version, mixed exclusive minimum and inclusive maximum version' }
     )
 
-    It 'find resource when given Name to <Reason> <Version>' -TestCases $testCases2{
+    It 'find resource when given Name to <Reason> <Version>' -TestCases $testCases2 {
         # FindVersionGlobbing()
         param($Version, $ExpectedVersions)
         $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $NuGetGalleryName

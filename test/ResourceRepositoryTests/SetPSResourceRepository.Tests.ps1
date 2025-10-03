@@ -100,32 +100,41 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
 
     It "not set repository and write error given just Name parameter" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
-        {Set-PSResourceRepository -Name $TestRepoName1 -ErrorAction Stop} | Should -Throw -ErrorId "SetRepositoryParameterBindingFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
+        { Set-PSResourceRepository -Name $TestRepoName1 -ErrorAction Stop } | Should -Throw -ErrorId "SetRepositoryParameterBindingFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
     }
 
-    $testCases = @{Type = "contains *";     Name = "test*Repository"; ErrorId = "ErrorInNameParameterSet"},
-                 @{Type = "is whitespace";  Name = " ";               ErrorId = "ErrorInNameParameterSet"},
-                 @{Type = "is null";        Name = $null;             ErrorId = "ParameterArgumentValidationError"}
+    $testCases = @{Type = "contains *"; Name = "test*Repository"; ErrorId = "ErrorInNameParameterSet" },
+    @{Type = "is whitespace"; Name = " "; ErrorId = "ErrorInNameParameterSet" },
+    @{Type = "is null"; Name = $null; ErrorId = "ParameterArgumentValidationError" }
 
     It "not set repository and throw error given Name <Type> (NameParameterSet)" -TestCases $testCases {
         param($Type, $Name)
 
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
-        {Set-PSResourceRepository -Name $Name -Priority 25 -ErrorAction Stop} | Should -Throw -ErrorId "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
+        { Set-PSResourceRepository -Name $Name -Priority 25 -ErrorAction Stop } | Should -Throw -ErrorId "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
     }
 
-    $testCases2 = @{Type = "contains *";     Name = "test*Repository2";  ErrorId = "ErrorSettingRepository"},
-                  @{Type = "is whitespace";  Name = " ";                 ErrorId = "ErrorSettingRepository"},
-                  @{Type = "is null";        Name = $null;               ErrorId = "NullNameForRepositoriesParameterSetRepo"}
+    $testCases2 = @{Type = "contains *"; Name = "test*Repository2"; ErrorId = "ErrorSettingRepository" },
+    @{Type = "is whitespace"; Name = " "; ErrorId = "ErrorSettingRepository" },
+    @{Type = "is null"; Name = $null; ErrorId = "NullNameForRepositoriesParameterSetRepo" }
     It "not set repository and write error given Name <Type> (RepositoriesParameterSet)" -TestCases $testCases2 {
         param($Type, $Name, $ErrorId)
 
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         Register-PSResourceRepository -Name $TestRepoName2 -Uri $tmpDir2Path
 
-        $hashtable1 = @{Name = $TestRepoName1; Uri = $tmpDir3Path}
-        $hashtable2 = @{Name = $TestRepoName2; Priority = 25}
-        $incorrectHashTable = @{Name = $Name; Trusted = $True}
+        $hashtable1 = @{
+            Name = $TestRepoName1
+            Uri  = $tmpDir3Path
+        }
+        $hashtable2 = @{
+            Name     = $TestRepoName2
+            Priority = 25
+        }
+        $incorrectHashTable = @{
+            Name    = $Name
+            Trusted = $True
+        }
         $arrayOfHashtables = $hashtable1, $incorrectHashTable, $hashtable2
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
@@ -148,10 +157,25 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         Register-PSResourceRepository -Name $TestRepoName3 -Uri $tmpDir3Path
         Register-PSResourceRepository -PSGallery
 
-        $hashtable1 = @{Name = $TestRepoName1; Uri = $tmpDir2Path};
-        $hashtable2 = @{Name = $TestRepoName2; Priority = 25};
-        $hashtable3 = @{Name = $TestRepoName3; CredentialInfo = [PSCustomObject] @{ VaultName = "testvault"; SecretName = $randomSecret }};
-        $hashtable4 = @{Name = $PSGalleryName; Trusted = $True};
+        $hashtable1 = @{
+            Name = $TestRepoName1
+            Uri  = $tmpDir2Path
+        }
+        $hashtable2 = @{
+            Name     = $TestRepoName2
+            Priority = 25
+        }
+        $hashtable3 = @{
+            Name          = $TestRepoName3
+            CredentialInfo = [PSCustomObject] @{
+                VaultName  = "testvault"
+                SecretName = $randomSecret
+            }
+        }
+        $hashtable4 = @{
+            Name    = $PSGalleryName
+            Trusted = $True
+        }
         $arrayOfHashtables = $hashtable1, $hashtable2, $hashtable3, $hashtable4
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -Verbose
@@ -189,13 +213,13 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
     It "not set and throw error for trying to set PSGallery Uri (NameParameterSet)" {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -PSGallery
-        {Set-PSResourceRepository -Name $PSGalleryName -Uri $tmpDir1Path -Verbose -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
+        { Set-PSResourceRepository -Name $PSGalleryName -Uri $tmpDir1Path -ErrorAction Stop } | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
     }
 
     It "not set and throw error for trying to set PSGallery CredentialInfo (NameParameterSet)" {
         Unregister-PSResourceRepository -Name $PSGalleryName
         Register-PSResourceRepository -PSGallery
-        {Set-PSResourceRepository -Name $PSGalleryName -CredentialInfo $credentialInfo1 -ErrorAction Stop} | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
+        { Set-PSResourceRepository -Name $PSGalleryName -CredentialInfo $credentialInfo1 -ErrorAction Stop } | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
     }
 
     It "not set repository and throw error for trying to set PSGallery Uri (RepositoriesParameterSet)" {
@@ -204,8 +228,14 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
 
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
 
-        $hashtable1 = @{Name = $PSGalleryName; Uri = $tmpDir1Path}
-        $hashtable2 = @{Name = $TestRepoName1; Priority = 25}
+        $hashtable1 = @{
+            Name = $PSGalleryName
+            Uri  = $tmpDir1Path
+        }
+        $hashtable2 = @{
+            Name     = $TestRepoName1
+            Priority = 25
+        }
         $arrayOfHashtables = $hashtable1, $hashtable2
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
@@ -234,8 +264,14 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
 
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
 
-        $hashtable1 = @{Name = $PSGalleryName; CredentialInfo = $credentialInfo1}
-        $hashtable2 = @{Name = $TestRepoName1; Priority = 25}
+        $hashtable1 = @{
+            Name          = $PSGalleryName
+            CredentialInfo = $credentialInfo1
+        }
+        $hashtable2 = @{
+            Name     = $TestRepoName1
+            Priority = 25
+        }
         $arrayOfHashtables = $hashtable1, $hashtable2
 
         Set-PSResourceRepository -Repository $arrayOfHashtables -ErrorVariable err -ErrorAction SilentlyContinue
@@ -309,13 +345,13 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
     }
 
     It "set repository with a hashtable passed in as CredentialInfo" {
-        $hashtable = @{VaultName = "testvault"; SecretName = $randomSecret}
+        $hashtable = @{VaultName = "testvault"; SecretName = $randomSecret }
 
         $newRandomSecret = [System.IO.Path]::GetRandomFileName()
-        $newHashtable = @{VaultName = "testvault"; SecretName = $newRandomSecret}
+        $newHashtable = @{VaultName = "testvault"; SecretName = $newRandomSecret }
 
-        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $hashtable 
-        Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $newHashtable 
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $hashtable
+        Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $newHashtable
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $res.CredentialInfo.VaultName | Should -Be "testvault"
@@ -323,7 +359,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         $res.CredentialInfo.Credential | Should -BeNullOrEmpty
     }
 
-    It "should set temp drive repository" -skip:(!$IsWindows)  {
+    It "should set temp drive repository" -skip:(!$IsWindows) {
         Register-PSResourceRepository -Name "tempDriveRepo" -Uri $tmpDir1Path
         $res = Get-PSResourceRepository -Name "tempDriveRepo"
         $res.Uri.LocalPath | Should -Be $tmpDir1Path

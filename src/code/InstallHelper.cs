@@ -257,7 +257,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return allPkgsInstalled;
             }
 
-            var listOfRepositories = RepositorySettings.Read(repository, out string[] _);
+            List<PSRepositoryInfo> listOfRepositories = RepositorySettings.Read(repository, out string[] _);
             var yesToAll = false;
             var noToAll = false;
 
@@ -866,12 +866,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-                var dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
-                                                                       // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
-                                                                       // with a mask (bitwise complement of desired attributes combination).
-                                                                       // TODO: check the attributes and if it's read only then set it
-                                                                       // attribute may be inherited from the parent
-                                                                       // TODO:  are there Linux accommodations we need to consider here?
+                DirectoryInfo dir = Directory.CreateDirectory(tempInstallPath);  // should check it gets created properly
+                                                                                 // To delete file attributes from the existing ones get the current file attributes first and use AND (&) operator
+                                                                                 // with a mask (bitwise complement of desired attributes combination).
+                                                                                 // TODO: check the attributes and if it's read only then set it
+                                                                                 // attribute may be inherited from the parent
+                                                                                 // TODO:  are there Linux accommodations we need to consider here?
                 dir.Attributes &= ~FileAttributes.ReadOnly;
             }
             catch (Exception e)
@@ -926,7 +926,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
-                using var fs = File.Create(pathToFile);
+                using FileStream fs = File.Create(pathToFile);
                 responseStream.Seek(0, System.IO.SeekOrigin.Begin);
                 responseStream.CopyTo(fs);
                 fs.Close();
@@ -1105,7 +1105,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
-                using var fs = File.Create(pathToFile);
+                using FileStream fs = File.Create(pathToFile);
                 responseStream.Seek(0, System.IO.SeekOrigin.Begin);
                 responseStream.CopyTo(fs);
                 fs.Close();
@@ -1419,7 +1419,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            foreach (var pkg in pkgsAlreadyInstalled)
+            foreach (PSResourceInfo pkg in pkgsAlreadyInstalled)
             {
                 List<string> duplicateCmdlets = new();
                 List<string> duplicateCmds = new();

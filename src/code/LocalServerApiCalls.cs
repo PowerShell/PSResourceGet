@@ -29,7 +29,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Constructor
 
-        public LocalServerAPICalls (PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential) : base (repository, networkCredential)
+        public LocalServerAPICalls(PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential) : base(repository, networkCredential)
         {
             this.Repository = repository;
             _cmdletPassedIn = cmdletPassedIn;
@@ -173,7 +173,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Versions are present in pkgVersionsList in asc order, whereas we need it in desc so we traverse it in reverse.
                 NuGetVersion satisfyingVersion = pkgVersionsList[i];
 
-                string packagePath = (string) pkgVersionsFound[satisfyingVersion];
+                string packagePath = (string)pkgVersionsFound[satisfyingVersion];
 
                 Hashtable pkgMetadata = GetMetadataFromNupkg(packageName: actualPkgName, packagePath: packagePath, requiredTags: Utils.EmptyStrArray, errRecord: out errRecord);
                 if (errRecord != null || pkgMetadata.Count == 0)
@@ -318,7 +318,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this);
             }
 
-            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[] { pkgMetadata }, responseType: _localServerFindResponseType);
 
             return findResponse;
         }
@@ -336,7 +336,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: packageName, includePrerelease: includePrerelease);
 
             List<string> pkgNamesList = pkgVersionsFound.Keys.Cast<string>().ToList();
-            foreach(string pkgFound in pkgNamesList)
+            foreach (string pkgFound in pkgNamesList)
             {
                 Hashtable pkgInfo = pkgVersionsFound[pkgFound] as Hashtable;
                 string pkgPath = pkgInfo["path"] as string;
@@ -436,7 +436,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this);
             }
 
-            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[]{pkgMetadata}, responseType: _localServerFindResponseType);
+            findResponse = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: new Hashtable[] { pkgMetadata }, responseType: _localServerFindResponseType);
             return findResponse;
         }
 
@@ -453,7 +453,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: String.Empty, includePrerelease: includePrerelease);
 
             List<string> pkgNamesList = pkgVersionsFound.Keys.Cast<string>().ToList();
-            foreach(string pkgFound in pkgNamesList)
+            foreach (string pkgFound in pkgNamesList)
             {
                 Hashtable pkgInfo = pkgVersionsFound[pkgFound] as Hashtable;
                 NuGetVersion pkgVersion = pkgInfo["version"] as NuGetVersion;
@@ -645,7 +645,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-                var dir = Directory.CreateDirectory(tempDiscoveryPath);
+                DirectoryInfo dir = Directory.CreateDirectory(tempDiscoveryPath);
                 dir.Attributes &= ~FileAttributes.ReadOnly;
 
                 // copy .nupkg
@@ -724,7 +724,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     pkgMetadata.Add(_fileTypeKey, Utils.MetadataFileType.Nuspec);
                     string nuspecTags = pkgMetadata["tags"] as string;
-                    string[] nuspecTagsArray = nuspecTags.Split(new char[]{' '});
+                    string[] nuspecTagsArray = nuspecTags.Split(new char[] { ' ' });
                     pkgTags.AddRange(nuspecTagsArray);
                 }
                 else
@@ -892,9 +892,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // packageFullName will look like package.1.0.0.nupkg
             errRecord = null;
 
-            string[] packageWithoutName = packageFullName.ToLower().Split(new string[]{ $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
+            string[] packageWithoutName = packageFullName.ToLower().Split(new string[] { $"{packageName.ToLower()}." }, StringSplitOptions.RemoveEmptyEntries);
             string packageVersionAndExtension = packageWithoutName[0];
-            string[] originalFileNameParts = packageFullName.ToLower().Split(new string[]{ $".{packageVersionAndExtension.ToLower()}" }, StringSplitOptions.RemoveEmptyEntries);
+            string[] originalFileNameParts = packageFullName.ToLower().Split(new string[] { $".{packageVersionAndExtension.ToLower()}" }, StringSplitOptions.RemoveEmptyEntries);
             actualName = String.IsNullOrEmpty(originalFileNameParts[0]) ? packageName : originalFileNameParts[0];
             int extensionDot = packageVersionAndExtension.LastIndexOf('.');
             string version = packageVersionAndExtension.Substring(0, extensionDot);
@@ -920,7 +920,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             errRecord = null;
             XmlDocument doc = new XmlDocument();
             doc.PreserveWhitespace = true;
-            try { doc.Load(filePath); }
+            try
+            { doc.Load(filePath); }
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(
@@ -968,11 +969,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             try
             {
                 XmlNodeList elemList = nuspecXmlDocument.GetElementsByTagName("metadata");
-                for(int i = 0; i < elemList.Count; i++)
+                for (int i = 0; i < elemList.Count; i++)
                 {
                     XmlNode metadataInnerXml = elemList[i];
 
-                    for(int j= 0; j<metadataInnerXml.ChildNodes.Count; j++)
+                    for (int j = 0; j < metadataInnerXml.ChildNodes.Count; j++)
                     {
                         string key = metadataInnerXml.ChildNodes[j].LocalName;
                         string value = metadataInnerXml.ChildNodes[j].InnerText;
@@ -1087,7 +1088,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             string tagPrefix = isSearchingForCommands ? "PSCommand_" : "PSDscResource_";
             List<string> cmdDSCTags = new List<string>();
-            for (int i=0; i<tags.Length;i++)
+            for (int i = 0; i < tags.Length; i++)
             {
                 cmdDSCTags.Add($"{tagPrefix}{tags[i]}");
             }
