@@ -23,7 +23,6 @@
     <PackageReference Include="NuGet.ProjectModel" Version="6.14.0" />
     <PackageReference Include="NuGet.Protocol" Version="6.14.0" />
     <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" />
-    <PackageReference Include="System.IO.Pipelines" Version="9.0.9" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.9" />
     <PackageReference Include="System.Text.Json" Version="8.0.6" />
