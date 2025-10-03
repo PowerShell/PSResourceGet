@@ -1,33 +1,33 @@
-## Micro Benchmarks
+# Micro Benchmarks
 
 This folder contains micro benchmarks that test the performance of PSResourceGet.
 
-### Quick Start
+## Quick Start
 
 You can run the benchmarks directly using `dotnet run` in this directory:
 
 1. To run the benchmarks in Interactive Mode, where you will be asked which benchmark(s) to run:
 
-   ```
-   dotnet run -c Release -f net6.0
-   ```
-
-2. To list all available benchmarks ([read more](https://github.com/dotnet/performance/blob/main/docs/benchmarkdotnet.md#Listing-the-Benchmarks)):
-
-   ```
-   dotnet run -c Release -f net6.0 --list [flat/tree]
+   ```bash
+   dotnet run -c Release -f net8.0
    ```
 
-3. To filter the benchmarks using a glob pattern applied to `namespace.typeName.methodName` ([read more](https://github.com/dotnet/performance/blob/main/docs/benchmarkdotnet.md#Filtering-the-Benchmarks)]):
+1. To list all available benchmarks ([read more](https://github.com/dotnet/performance/blob/main/docs/benchmarkdotnet.md#Listing-the-Benchmarks)):
 
-   ```
-   dotnet run -c Release -f net6.0 --filter *script* --list flat
+   ```bash
+   dotnet run -c Release -f net8.0 --list [flat/tree]
    ```
 
-4. To profile the benchmarked code and produce an ETW Trace file ([read more](https://github.com/dotnet/performance/blob/main/docs/benchmarkdotnet.md#Profiling))
+1. To filter the benchmarks using a glob pattern applied to `namespace.typeName.methodName` ([read more](https://github.com/dotnet/performance/blob/main/docs/benchmarkdotnet.md#Filtering-the-Benchmarks)]):
 
+   ```bash
+   dotnet run -c Release -f net8.0 --filter *script* --list flat
    ```
-   dotnet run -c Release -f net6.0 --filter *script* --profiler ETW
+
+1. To profile the benchmarked code and produce an ETW Trace file ([read more](https://github.com/dotnet/performance/blob/main/docs/benchmarkdotnet.md#Profiling))
+
+   ```bash
+   dotnet run -c Release -f net8.0 --filter *script* --profiler ETW
    ```
 
 ## References
