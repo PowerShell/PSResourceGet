@@ -17,13 +17,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         "PSResource",
         SupportsShouldProcess = true)]
     [Alias("pbres")]
-    public sealed class PublishPSResource : PSCmdlet, IDynamicParameters
+    public sealed class PublishPSResource : PSCmdlet
     {
         #region Parameters
 
         private const string PathParameterSet = "PathParameterSet";
         private const string NupkgPathParameterSet = "NupkgPathParameterSet";
-        private ContainerRegistryDynamicParameters _pkgPrefix;
 
         /// <summary>
         /// Specifies the API key that you want to use to publish a module to the online gallery.
@@ -119,20 +118,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         [ValidateNotNullOrEmpty]
         public string NupkgPath { get; set; }
 
-        #endregion
-
-        #region DynamicParameters
-        public object GetDynamicParameters()
-        {
-            PSRepositoryInfo repository = RepositorySettings.Read(new[] { Repository }, out string[] _).FirstOrDefault();
-            if (repository is not null && repository.ApiVersion == PSRepositoryInfo.APIVersion.ContainerRegistry)
-            {
-                _pkgPrefix = new ContainerRegistryDynamicParameters();
-                return _pkgPrefix;
-            }
-
-            return null;
-        }
+        /// <summary>
+        /// Prefix for module name which only applies to repositories of type 'ContainerRegistry'
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty]
+        public string ModulePrefix { get; set; }
 
         #endregion
 
@@ -153,15 +144,40 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             _networkCredential = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
+            // Create the repository store file (PSResourceRepository.xml) if it does not already exist
+            // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
+            RepositorySettings.CheckRepositoryStore();
+
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(ModulePrefix)))
+            {
+                if (MyInvocation.BoundParameters.ContainsKey(nameof(Repository)))
+                {
+                    // at this point it is ensured PSResourceRepository.xml file is created
+                    PSRepositoryInfo repository = RepositorySettings.Read(new[] { Repository }, out string[] _).FirstOrDefault();
+                    if (repository is null || repository.ApiVersion != PSRepositoryInfo.APIVersion.ContainerRegistry)
+                    {
+                        ThrowTerminatingError(new ErrorRecord(
+                            new PSInvalidOperationException("ModulePrefix parameter can only be provided for a registered repository of type 'ContainerRegistry'"),
+                            "ModulePrefixParameterIncorrectlyProvided",
+                            ErrorCategory.InvalidOperation,
+                            this));
+                    }
+                }
+                else
+                {
+                    ThrowTerminatingError(new ErrorRecord(
+                        new PSInvalidOperationException("ModulePrefix parameter can only be provided with the Repository parameter."),
+                        "ModulePrefixParameterProvidedWithoutRepositoryParameter",
+                        ErrorCategory.InvalidOperation,
+                        this));
+                }
+            }
+
             if (!string.IsNullOrEmpty(NupkgPath))
             {
                 _isNupkgPathSpecified = true;
                 Path = NupkgPath;
             }
-
-            // Create a respository story (the PSResourceRepository.xml file) if it does not already exist
-            // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
-            RepositorySettings.CheckRepositoryStore();
 
             _publishHelper = new PublishHelper(
                 this,
@@ -188,18 +204,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return;
             }
 
-            string modulePrefix = _pkgPrefix?.ModulePrefix;
-
-            _publishHelper.PushResource(Repository, modulePrefix, SkipDependenciesCheck, _networkCredential);
+            _publishHelper.PushResource(Repository, ModulePrefix, SkipDependenciesCheck, _networkCredential);
         }
 
         #endregion
 
-    }
-
-    public class ContainerRegistryDynamicParameters
-    {
-        [Parameter]
-        public string ModulePrefix { get; set; }
     }
 }

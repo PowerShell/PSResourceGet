@@ -385,9 +385,9 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $ExportedVariables = "VariablesToExport1", "Variables2Export2"
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
         Update-PSModuleManifest -Path $script:testManifestPath `
-            -FunctionsToExport $ExportedFunctions `
-            -AliasesToExport $ExportedAliases `
-            -VariablesToExport $ExportedVariables
+                              -FunctionsToExport $ExportedFunctions `
+                              -AliasesToExport $ExportedAliases `
+                              -VariablesToExport $ExportedVariables
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.ExportedFunctions.Keys | Should -Be $ExportedFunctions
@@ -408,7 +408,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $results.Contains($CmdletToExport2) | Should -Be $true
     }
 
-    It "Update module manifest should not overwrite over old data unless explcitly specified" {
+    It "Update module manifest should not overwrite over old data unless explicitly specified" {
         $Description = "Test Description"
         $ModuleVersion = "2.0.0"
         $Author = "Leto Atriedes"

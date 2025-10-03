@@ -4,9 +4,10 @@
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
-$testDir = (get-item $psscriptroot).parent.FullName
+$script:testDir = (get-item $psscriptroot).parent.FullName
 
-function CreateTestModule {
+function script:CreateTestModule
+{
     param (
         [string] $Path = "$TestDrive",
         [string] $ModuleName = 'TestModule'
@@ -55,7 +56,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $tmpRepoPath2 = Join-Path -Path $TestDrive -ChildPath "tmpRepoPath2"
         New-Item $tmpRepoPath2 -Itemtype directory -Force
         $testRepository2 = "testRepository2"
-        Register-PSResourceRepository -Name $testRepository2 -Uri $tmpRepoPath2 -ErrorAction SilentlyContinue
+        Register-PSResourceRepository -Name $testRepository2 -Uri $tmpRepoPath2
         $script:repositoryPath2 = [IO.Path]::GetFullPath((get-psresourcerepository "testRepository2").Uri.AbsolutePath)
 
         # Create module
@@ -95,6 +96,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         # Create test module with missing required module
         CreateTestModule -Path $TestDrive -ModuleName 'ModuleWithMissingRequiredModule'
+
+        $script:PSGalleryName = 'PSGallery'
     }
     AfterAll {
         Get-RevertPSResourceRepositoryFile
@@ -621,7 +624,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
 
     It "should write error and not publish script when Description block altogether is missing" {
-        # we expect .ps1 files to have a separate comment block for .DESCRIPTION property, not to be included in the PSScriptInfo commment block
+        # we expect .ps1 files to have a separate comment block for .DESCRIPTION property, not to be included in the PSScriptInfo comment block
         $scriptName = "InvalidScriptMissingDescriptionCommentBlock.ps1"
         $scriptVersion = "1.0.0"
 
@@ -721,4 +724,81 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Contain $expectedPath
     }
 #>
+}
+
+
+Describe "Test Publish-PSResource with Module Prefix" -tags 'CI' {
+
+    BeforeAll {
+        Get-NewPSResourceRepositoryFile
+
+        $tmpRepoPath2 = Join-Path -Path $TestDrive -ChildPath "tmpRepoPath2"
+        New-Item $tmpRepoPath2 -Itemtype directory -Force
+        $testRepository2 = "testRepository2"
+        Register-PSResourceRepository -Name $testRepository2 -Uri $tmpRepoPath2
+        $script:repositoryPath2 = [IO.Path]::GetFullPath((get-psresourcerepository "testRepository2").Uri.AbsolutePath)
+
+        # Create module
+        $script:tmpModulesPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
+        $script:PublishModuleName = "PSGetTestModule"
+        $script:PublishModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:PublishModuleName
+        if(!(Test-Path $script:PublishModuleBase))
+        {
+            New-Item -Path $script:PublishModuleBase -ItemType Directory -Force
+        }
+
+        $script:PSGalleryName = 'PSGallery'
+    }
+    AfterAll {
+       Get-RevertPSResourceRepositoryFile
+    }
+    AfterEach {
+        # Delete all contents of the repository without deleting the repository directory itself
+        $pkgsToDelete = Join-Path -Path "$script:repositoryPath2" -ChildPath "*"
+        Remove-Item $pkgsToDelete -Recurse
+
+        $pkgsToDelete = Join-Path -Path $script:PublishModuleBase  -ChildPath "*"
+        Remove-Item $pkgsToDelete -Recurse -ErrorAction SilentlyContinue
+    }
+
+    It "Publish should create PSResourceRepository.xml file if its not there" {
+        # Remove the PSResourceRepository.xml file
+        $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PSResourceGet"
+        $originalXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml" #this is the temporary PSResourceRepository.xml file created in the 'BeforeAll' section of this test file
+
+        $tempXmlFilePath = Join-Path -Path $powerShellGetPath -ChildPath "tempfortest.xml"
+
+        try {
+            if (Test-Path -Path $originalXmlFilePath) {
+                Copy-Item -Path $originalXmlFilePath -Destination $tempXmlFilePath
+                Remove-Item -Path $originalXmlFilePath -Force -ErrorAction Ignore
+            }
+
+            # Attempt to publish.
+            # Publish-PSResource should create PSResourceRepository.xml file if not present. It will register the 'PSGallery' repository as a default, so this test will still fail
+            # But we can ensure the PSResourceRepository.xml file is created.
+            $version = "1.0.0"
+            New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+            Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2 -ErrorVariable err -ErrorAction SilentlyContinue
+            $err[0].FullyQualifiedErrorId | Should -Be "RepositoryNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+
+            $registeredRepos = Get-PSResourceRepository
+            $registeredRepos.Count | Should -Be 1
+            $registeredRepos[0].Name | Should -Be $script:PSGalleryName
+        }
+        finally {
+            # Cleanup
+            # Remove the new PSResourceRepository.xml file created by the Publish-PSResource command and put back the original created in the 'BeforeAll' section of this test file
+            if (Test-Path -Path $tempXmlFilePath) {
+                Copy-Item -Path $tempXmlFilePath -Destination $originalXmlFilePath -Force -Verbose
+                Remove-Item -Path $tempXmlFilePath -Force -ErrorAction Ignore
+            }
+        }
+
+        # Verify old repositories are restored
+        $originalRegisteredRepo = Get-PSResourceRepository -Name $testRepository2 -ErrorVariable err2 -ErrorAction SilentlyContinue
+        $err2.Count | Should -Be 0
+        $originalRegisteredRepo.Name | Should -Be $testRepository2
+    }
 }

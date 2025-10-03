@@ -132,14 +132,14 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $pkgs.Version | Should -Not -Contain $Version
     }
 
-    $testCases2 = @{Version = '[1.*.0]'; Description = "version with wilcard in middle" },
-    @{Version = '[*.0.0.0]'; Description = "version with wilcard at start" },
-    @{Version = '[1.*.0.0]'; Description = "version with wildcard at second digit" },
-    @{Version = '[1.0.*.0]'; Description = "version with wildcard at third digit" }
-    @{Version = '[1.0.0.*]'; Description = "version with wildcard at end" },
-    @{Version = '[1..0.0]'; Description = "version with missing digit in middle" },
-    @{Version = '[1.0.0.]'; Description = "version with missing digit at end" },
-    @{Version = '[1.0.0.0.0]'; Description = "version with more than 4 digits" }
+    $testCases2 =  @{Version='[1.*.0]';         Description="version with wildcard in middle"},
+                @{Version='[*.0.0.0]';       Description="version with wildcard at start"},
+                @{Version='[1.*.0.0]';       Description="version with wildcard at second digit"},
+                @{Version='[1.0.*.0]';       Description="version with wildcard at third digit"}
+                @{Version='[1.0.0.*]';       Description="version with wildcard at end"},
+                @{Version='[1..0.0]';        Description="version with missing digit in middle"},
+                @{Version='[1.0.0.]';        Description="version with missing digit at end"},
+                @{Version='[1.0.0.0.0]';     Description="version with more than 4 digits"}
 
     It "Do not uninstall module with incorrectly formatted version such as <Description>" -TestCases $testCases2 {
         param($Version, $Description)
@@ -172,7 +172,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
 
     It "Not uninstall non-prerelease version module when similar prerelease version is specified" {
         # test_module has a version 5.0.0.0, but no version 5.0.0-preview.
-        # despite the core version part being the same this uninstall on a nonexistant prerelease version should not be successful
+        # despite the core version part being the same this uninstall on a nonexistent prerelease version should not be successful
         Install-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository
         Uninstall-PSResource -Name $testModuleName -Version "5.0.0-preview" -ErrorAction SilentlyContinue -SkipDependencyCheck
         $res = Get-InstalledPSResource -Name $testModuleName -Version "5.0.0.0"
@@ -243,7 +243,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0.0"
 
         $match = Get-Content .\testUninstallWhatIf.txt |
-        select-string -pattern "What if: Performing the operation ""Uninstall-PSResource"" on target ""Uninstall resource 'test_module2', version '5.0.0.0', from path '" -SimpleMatch
+            select-string -pattern "What if: Performing the operation ""Uninstall-PSResource"" on target ""Uninstall resource 'test_module2', version '5.0.0.0', from path '" -SimpleMatch
 
         $match -ne $null
 

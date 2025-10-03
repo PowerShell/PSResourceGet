@@ -247,7 +247,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $fileInfoObject.Name | Should -Be "$script:PublishModuleName.$version.nupkg"
     }
 
-    It "Compress-PSResource creates nuspec dependecy version range when RequiredVersion is in RequiredModules section" {
+    It "Compress-PSResource creates nuspec dependency version range when RequiredVersion is in RequiredModules section" {
         $version = "1.0.0"
         $requiredModules = @(
             @{
@@ -271,7 +271,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $nuspecxml.package.metadata.dependencies.dependency.version.replace(' ', '') | Should -BeExactly '[2.0.0]'
     }
 
-    It "Compress-PSResource creates nuspec dependecy version range when ModuleVersion is in RequiredModules section" {
+    It "Compress-PSResource creates nuspec dependency version range when ModuleVersion is in RequiredModules section" {
         $version = "1.0.0"
         $requiredModules = @(
             @{
@@ -293,7 +293,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $nuspecxml.package.metadata.dependencies.dependency.version.replace(' ', '') | Should -BeExactly '2.0.0'
     }
 
-    It "Compress-PSResource creates nuspec dependecy version range when MaximumVersion is in RequiredModules section" {
+    It "Compress-PSResource creates nuspec dependency version range when MaximumVersion is in RequiredModules section" {
         $version = "1.0.0"
         $requiredModules = @(
             @{
@@ -315,7 +315,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $nuspecxml.package.metadata.dependencies.dependency.version.replace(' ', '') | Should -BeExactly '(,2.0.0]'
     }
 
-    It "Compress-PSResource creates nuspec dependecy version range when ModuleVersion and MaximumVersion are in RequiredModules section" {
+    It "Compress-PSResource creates nuspec dependency version range when ModuleVersion and MaximumVersion are in RequiredModules section" {
         $version = "1.0.0"
         $requiredModules = @(
             @{
@@ -338,7 +338,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $nuspecxml.package.metadata.dependencies.dependency.version.replace(' ', '') | Should -BeExactly '[1.0.0,2.0.0]'
     }
 
-    It "Compress-PSResource creates nuspec dependecy version range when there are multiple modules in RequiredModules section" {
+    It "Compress-PSResource creates nuspec dependency version range when there are multiple modules in RequiredModules section" {
         $version = "1.0.0"
         $requiredModules = @(
             @{

@@ -42,7 +42,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         Get-RemoveTestDirs($tmpDirPaths)
     }
 
-    It "register repository given Name, Uri (bare minimum for NameParmaterSet)" {
+    It "register repository given Name, Uri (bare minimum for NameParameterSet)" {
         $res = Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -PassThru
         $res.Name | Should -Be $TestRepoName1
         $Res.Uri.LocalPath | Should -Contain $tmpDir1Path
@@ -265,10 +265,10 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
     }
 
     It "not register incorrectly formatted -Name type repo among correct ones, where incorrect type has -Name of PSGallery" {
-        $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True }
-        $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20 }
-        $correctHashtable3 = @{PSGallery = $True; Priority = 30 };
-        $IncorrectHashTable = @{Name = $PSGalleryName; Uri = $tmpDir1Path };
+        $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
+        $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
+        $correctHashtable3 = @{PSGallery = $True; Priority = 30};
+        $IncorrectHashTable = @{Name = $PSGalleryName; Uri = $tmpDir1Path};
 
         $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
         Unregister-PSResourceRepository -Name $PSGalleryName

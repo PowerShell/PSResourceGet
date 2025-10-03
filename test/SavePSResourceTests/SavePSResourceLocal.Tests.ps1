@@ -83,7 +83,7 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         (Get-ChildItem $pkgDirs[1].FullName) | Should -HaveCount 1
     }
 
-    It "Should not save resource given nonexistant name" {
+    It "Should not save resource given nonexistent name" {
         Save-PSResource -Name NonExistentModule -Repository $localRepo -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "NonExistentModule"
         $pkgDir.Name | Should -BeNullOrEmpty
@@ -195,7 +195,8 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         $res = Save-PSResource -Name $moduleName -Version "5.0.0" -AuthenticodeCheck -Repository $localRepo -TrustRepository -Path $SaveDir -ErrorAction SilentlyContinue -ErrorVariable err -PassThru
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -BeNullOrEmpty
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
+        $err[0].FullyQualifiedErrorId | Should -Contain "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
+        $err[1].FullyQualifiedErrorId | Should -Contain "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
 
     It "Save module using -Quiet" {

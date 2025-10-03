@@ -94,6 +94,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         # Path to specifically to that invalid test nupkgs folder
         $script:testNupkgsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testNupkgs"
+
+        $script:PSGalleryName = "PSGallery"
     }
     AfterEach {
         if (!(Test-Path $script:PublishModuleBase)) {
@@ -460,7 +462,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
 
     It "Should write error and not publish script when Description block altogether is missing" {
-        # we expect .ps1 files to have a separate comment block for .DESCRIPTION property, not to be included in the PSScriptInfo commment block
+        # we expect .ps1 files to have a separate comment block for .DESCRIPTION property, not to be included in the PSScriptInfo comment block
         $scriptName = "InvalidScriptMissingDescriptionCommentBlock.ps1"
 
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
@@ -506,6 +508,22 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
+    }
+
+    It "not Publish a resource when ModulePrefix is given for a Repository that is not of type ContainerRegistry" {
+        $version = "1.0.0"
+        $modulePrefix = "unlisted"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        { Publish-PSResource -Path $script:PublishModuleBase -Repository $script:PSGalleryName -ModulePrefix $modulePrefix -ErrorAction Stop } | Should -Throw "ModulePrefix parameter can only be provided for a registered repository of type 'ContainerRegistry'"
+    }
+
+    It "not Publish a resource when ModulePrefix is provided without Repository parameter" {
+        $version = "1.0.0"
+        $modulePrefix = "unlisted"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        { Publish-PSResource -Path $script:PublishModuleBase -ModulePrefix $modulePrefix -ErrorAction Stop } | Should -Throw "ModulePrefix parameter can only be provided with the Repository parameter."
     }
 
     It "Publish a package given NupkgPath to a package with .psd1" {

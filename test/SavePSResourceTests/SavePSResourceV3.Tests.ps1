@@ -42,7 +42,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
         (Get-ChildItem $pkgDirs[1].FullName) | Should -HaveCount 1
     }
 
-    It 'Should not save resource given nonexistant name' {
+    It 'Should not save resource given nonexistent name' {
         Save-PSResource -Name NonExistentModule -Repository $NuGetGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ 'NonExistentModule'
         $pkgDir.Name | Should -BeNullOrEmpty
@@ -143,14 +143,13 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
     It 'Save module that is not authenticode signed' -Skip:(!(Get-IsWindows)) {
         Save-PSResource -Name $testModuleName -Version '5.0.0' -AuthenticodeCheck -Repository $NuGetGalleryName -TrustRepository -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly 'GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource'
+        $err[0].FullyQualifiedErrorId | Should -Contain "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
+        $err[1].FullyQualifiedErrorId | Should -Contain "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
 
     # Save resource that requires license
-    It 'Install resource that requires accept license with -AcceptLicense flag' {
-        Save-PSResource -Repository $NuGetGalleryName -TrustRepository -Path $SaveDir `
-            -Name 'test_module_withlicense' -AcceptLicense
-        $pkg = Get-InstalledPSResource -Path $SaveDir 'test_module_withlicense'
+    It 'Save resource that requires accept license with -AcceptLicense flag' {
+        $pkg = Save-PSResource -Repository $NuGetGalleryName -TrustRepository -Path $SaveDir -Name 'test_module_withlicense' -AcceptLicense -PassThru
         $pkg.Name | Should -Be 'test_module_withlicense'
         $pkg.Version | Should -Be '1.0.0'
     }

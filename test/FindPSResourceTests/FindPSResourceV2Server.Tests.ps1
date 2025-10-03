@@ -12,7 +12,6 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
     BeforeAll {
         $PSGalleryName = Get-PSGalleryName
         $testModuleName = "test_module"
-        $testModuleNameWithUnlistedVersion = "test_module10"
         $testScriptName = "test_script"
         $commandName = "Get-TargetResource"
         $dscResourceName = "SystemLocale"
@@ -31,8 +30,8 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "5.0.0.0"
     }
 
-    It "should not find resource given nonexistant Name" {
-        $res = Find-PSResource -Name NonExistantModule -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+    It "should not find resource given nonexistent Name" {
+        $res = Find-PSResource -Name NonExistentModule -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -400,11 +399,39 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $err.Count | Should -Be 0
     }
 
-    It "should not find and write error when finding package version that is unlisted" {
-        $res = Find-PSResource -Name $testModuleNameWithUnlistedVersion -Version "1.0.0.0" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
-        $res | Should -HaveCount 0
-        $err | Should -HaveCount 1
+    It "find should not return a module that has all unlisted versions, given full name and no version (i.e non wildcard name)" {
+        # FindName() scenario
+        # 'test_completelyunlisted' only has version 0.0.1, which is unlisted
+        $res = Find-PSResource -Name "test_completelyunlisted" -Repository $PSGalleryName -ErrorVariable err
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+
+    It "find should return a module version even if all versions are unlisted, given full name and version (i.e non wildcard name)" {
+        # FindVersion() scenario
+        # test_completelyunlisted has 1 version, 0.0.1, which is unlisted
+        $res = Find-PSResource -Name "test_completelyunlisted" -Version "0.0.1" -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "0.0.1"
+    }
+
+    It "find should return an unlisted module, where the module has a mix of listed and unlisted versions, given full name and version (i.e non wildcard name)" {
+        # FindVersion scenario
+        # 'test_unlisted' version 0.0.3 is unlisted
+        $res = Find-PSResource -Name "test_unlisted" -Version "0.0.3" -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "0.0.3"
+    }
+
+    It "find should not return an unlisted module with it was requested with wildcards in the name" {
+        # FindNameGlobbing() scenario
+        # 'test_completelyunlisted' has all unlisted versions -> should not be returned
+        # whereas 'test_unlisted' has a listed version and 'test_notunlisted' has all listed versions -> should be returned
+        $res = Find-PSResource -Name "test_*unlisted" -Repository $PSGalleryName
+        $res.Count | Should -Be 2
+        $res.Name | Should -Contain 'test_unlisted'
+        $res.Name | Should -Contain 'test_notunlisted'
     }
 }
 

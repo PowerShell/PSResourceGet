@@ -39,7 +39,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         /// <summary>
         /// This constructor is called by internal cmdlet methods and creates a PSScriptHelp with default values
-        /// for the parameters. Calling a method like PSScriptHelp.ParseConentIntoObj() would then populate those properties.
+        /// for the parameters. Calling a method like PSScriptHelp.ParseContentIntoObj() would then populate those properties.
         /// </summary>
         internal PSScriptHelp() { }
 
@@ -139,7 +139,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         }
 
         /// <summary>
-        /// Valides parsed help info content from the hashtable to ensure required help metadata (Description) is present
+        /// Validates parsed help info content from the hashtable to ensure required help metadata (Description) is present
         /// and does not contain empty values.
         /// </summary>
         internal bool ValidateParsedContent(Hashtable parsedHelpMetadata, out ErrorRecord error)
@@ -147,8 +147,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             error = null;
             if (!parsedHelpMetadata.ContainsKey("DESCRIPTION"))
             {
-                error = new ErrorRecord(
-                    new ArgumentException("PSScript file must contain value for Description. Ensure value for Description is passed in and try again."),
+                error =  new ErrorRecord(
+                    new ArgumentException( "PSScript file must contain value for Description. Ensure value for Description is passed in and try again."),
                     "PSScriptInfoMissingDescription",
                     ErrorCategory.InvalidArgument,
                     null);
@@ -203,7 +203,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             if (StringContainsComment(Description))
             {
-                error = new ErrorRecord(
+                error =  new ErrorRecord(
                     new ArgumentException("PSScript file's value for Description cannot contain '<#' or '#>'. Pass in a valid value for Description and try again."),
                     "DescriptionContainsComment",
                     ErrorCategory.InvalidArgument,

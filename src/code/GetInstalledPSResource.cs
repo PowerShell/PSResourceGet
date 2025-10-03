@@ -66,7 +66,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // an exact version will be formatted into a version range.
             if (Version == null)
             {
-                WriteDebug("Searcing for all versions");
+                WriteDebug("Searching for all versions");
                 _versionRange = VersionRange.All;
             }
             else if (!Utils.TryParseVersionOrVersionRange(Version, out _versionRange))
@@ -101,14 +101,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var versionPaths = Utils.GetSubDirectories(resolvedPath);
                 if (versionPaths.Length == 0)
                 {
-                    ThrowTerminatingError(new ErrorRecord(
+                    WriteError(new ErrorRecord(
                         new PSInvalidOperationException($"Error cannot find expected subdirectories in provided path: {Path}"),
                         "PathMissingExpectedSubdirectories",
                         ErrorCategory.InvalidOperation,
                         this));
                 }
-
-                _pathsToSearch.AddRange(versionPaths);
+                else
+                {
+                    _pathsToSearch.AddRange(versionPaths);
+                }
             }
             else
             {

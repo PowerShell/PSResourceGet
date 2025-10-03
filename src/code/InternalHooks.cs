@@ -22,5 +22,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             FieldInfo fieldInfo = typeof(InternalHooks).GetField(property, BindingFlags.Static | BindingFlags.NonPublic);
             fieldInfo?.SetValue(null, value);
         }
+
+        public static string GetUserString()
+        {
+            return Microsoft.PowerShell.PSResourceGet.Cmdlets.UserAgentInfo.UserAgentString();
+        }
     }
 }

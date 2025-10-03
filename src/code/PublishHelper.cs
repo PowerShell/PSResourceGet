@@ -290,7 +290,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     catch (Exception e)
                     {
                         _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
-                            new ArgumentException("Error occured while creating directory to publish: " + e.Message),
+                            new ArgumentException("Error occurred while creating directory to publish: " + e.Message),
                             "ErrorCreatingDirectoryToPublish",
                             ErrorCategory.InvalidOperation,
                             this));
@@ -328,7 +328,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
         }
 
-        internal void PushResource(string Repository, string modulePrefix, bool SkipDependenciesCheck, NetworkCredential _networkCrendential)
+        internal void PushResource(string Repository, string modulePrefix, bool SkipDependenciesCheck, NetworkCredential _networkCredential)
         {
             try
             {
@@ -666,7 +666,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // The PSGallery uses the v2 protocol still and publishes to a slightly different endpoint:
             // "https://www.powershellgallery.com/api/v2/package"
             // Until the PSGallery is moved onto the NuGet v3 server protocol, we'll modify the repository uri
-            // to accommodate for the approprate publish location.
+            // to accommodate for the appropriate publish location.
             string publishLocation = repoUri.EndsWith("/v2", StringComparison.OrdinalIgnoreCase) ? repoUri + "/package" : repoUri;
 
             ISettings settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, null);
@@ -1300,7 +1300,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// This method is called by Publish-PSResource when the -NupkgPath parameter is specified
-        /// The method copies the .nupkg file to a temp path (populated at outputNupkgDir field) as we dont' want to extract and read original .nupkg file
+        /// The method copies the .nupkg file to a temp path (populated at outputNupkgDir field) as we don't want to extract and read original .nupkg file
         /// </summary>
         private string CopyNupkgFileToTempPath(string nupkgFilePath, out ErrorRecord errRecord)
         {
@@ -1337,7 +1337,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
-        /// Get package info from the .nupkg file provided, inluding package name (_pkgName), package version (_pkgVersion), and metadata parsed into a hashtable (parsedMetadata)
+        /// Get package info from the .nupkg file provided, including package name (_pkgName), package version (_pkgVersion), and metadata parsed into a hashtable (parsedMetadata)
         /// </summary>
         private void GetPackageInfoFromNupkg(string nupkgFilePath, out ErrorRecord errRecord)
         {
@@ -1466,11 +1466,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                errRecord = new ErrorRecord(
-                    new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"),
-                    "GetMetadataFromNupkgFailure",
-                    ErrorCategory.InvalidOperation,
-                    this);
+               errRecord = new ErrorRecord(
+                   new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"),
+                   "GetMetadataFromNupkgFailure",
+                   ErrorCategory.InvalidOperation,
+                   this);
             }
             finally
             {

@@ -125,7 +125,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return "'" + CodeGeneration.EscapeSingleQuotedStringContent(name) + "'";
         }
 
-        public static string[] GetStringArrayFromString(string[] delimeter, string stringToConvertToArray)
+        public static string[] GetStringArrayFromString(string[] delimiter, string stringToConvertToArray)
         {
             // This will be a string where entries are separated by space.
             if (String.IsNullOrEmpty(stringToConvertToArray))
@@ -133,7 +133,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return Utils.EmptyStrArray;
             }
 
-            return stringToConvertToArray.Split(delimeter, StringSplitOptions.RemoveEmptyEntries);
+            return stringToConvertToArray.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
         }
 
         /// <summary>
@@ -1242,24 +1242,24 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         if (string.Compare($"{packageName}.psd1", fileName, StringComparison.OrdinalIgnoreCase) == 0)
                         {
                             properCasingPkgName = Path.GetFileNameWithoutExtension(file);
+                            psd1FilePath = file;
                         }
-                        psd1FilePath = file;
                     }
                     else if (file.EndsWith("nuspec"))
                     {
                         if (string.Compare($"{packageName}.nuspec", fileName, StringComparison.OrdinalIgnoreCase) == 0)
                         {
                             properCasingPkgName = Path.GetFileNameWithoutExtension(file);
+                            nuspecFilePath = file;
                         }
-                        nuspecFilePath = file;
                     }
                     else if (file.EndsWith("ps1"))
                     {
                         if (string.Compare($"{packageName}.ps1", fileName, StringComparison.OrdinalIgnoreCase) == 0)
                         {
                             properCasingPkgName = Path.GetFileNameWithoutExtension(file);
+                            ps1FilePath = file;
                         }
-                        ps1FilePath = file;
                     }
                 }
             }
@@ -1291,7 +1291,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// <summary>
         /// Read psd1 manifest file contents and return as Hashtable object.
         /// </summary>
-        /// <param name="manifestFilePath">File path to manfiest psd1 file.</param>
+        /// <param name="manifestFilePath">File path to manifest psd1 file.</param>
         /// <param name="manifestInfo">Hashtable of manifest file contents.</param>
         /// <param name="error">Error exception on failure.</param>
         /// <returns>True on success.</returns>
@@ -1397,7 +1397,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
                     else
                     {
-                        errorMsg = $"Error occured while running 'Test-ModuleManifest': {e.Message}";
+                        errorMsg = $"Error occurred while running 'Test-ModuleManifest': {e.Message}";
                         return false;
                     }
                 }
@@ -1771,7 +1771,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             var relsDirToDelete = Path.Combine(dirNameVersion, "_rels");
             var packageDirToDelete = Path.Combine(dirNameVersion, "package");
 
-            // Unforunately have to check if each file exists because it may or may not be there
+            // Unfortunately have to check if each file exists because it may or may not be there
             if (File.Exists(nuspecToDelete))
             {
                 callingCmdlet.WriteVerbose(string.Format("Deleting '{0}'", nuspecToDelete));

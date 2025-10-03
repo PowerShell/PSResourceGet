@@ -37,7 +37,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region Overriden Methods
+        #region Overridden Methods
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
@@ -101,7 +101,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// API call:
         /// - No prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
-        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
+        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease depending on user preference)
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
@@ -113,7 +113,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Find method which allows for searching for single name and tag and returns latest version.
         /// Name: no wildcard support
         /// Examples: Search "PowerShellGet" -Tag "Provider"
-        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
+        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease depending on user preference)
         /// </summary>
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
@@ -170,7 +170,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<Hashtable> foundPkgs = new List<Hashtable>();
             for (int i = pkgVersionsList.Count - 1; i >= 0; i--)
             {
-                // Versions are present in pkgVersionsList in asc order, wherease we need it in desc so we traverse it in reverse.
+                // Versions are present in pkgVersionsList in asc order, whereas we need it in desc so we traverse it in reverse.
                 NuGetVersion satisfyingVersion = pkgVersionsList[i];
 
                 string packagePath = (string)pkgVersionsFound[satisfyingVersion];
@@ -747,11 +747,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                errRecord = new ErrorRecord(
-                    new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"),
-                    "GetMetadataFromNupkgFailure",
-                    ErrorCategory.InvalidOperation,
-                    this);
+               errRecord = new ErrorRecord(
+                   new InvalidOperationException($"Temporary folder for installation could not be created or set due to: {e.Message}"),
+                   "GetMetadataFromNupkgFailure",
+                   ErrorCategory.InvalidOperation,
+                   this);
             }
             finally
             {
@@ -902,7 +902,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 errRecord = new ErrorRecord(
                     new ArgumentException($"Could not parse version {version} from file {packageFullName}"),
-                    "GetInfoFromFileNameFilaure",
+                    "GetInfoFromFileNameFailure",
                     ErrorCategory.ParserError,
                     this);
 

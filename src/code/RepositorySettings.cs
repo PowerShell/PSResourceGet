@@ -244,7 +244,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         throw new PSInvalidOperationException(String.Format("The PSResource Repository '{0}' already exists.", repoName));
                     }
 
-                    // Delete the existing repository before overwriting it (otherwire multiple repos with the same name will be added)
+                    // Delete the existing repository before overwriting it (otherwise multiple repos with the same name will be added)
                     List<PSRepositoryInfo> removedRepositories = Remove(new string[] { repoName }, out string[] errorList);
 
                     // Need to load the document again because of changes after removing
@@ -319,19 +319,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 if (node.Attribute("Priority") == null)
                 {
-                    errorMsg = $"Repository element does not contain neccessary 'Priority' attribute, in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
+                    errorMsg = $"Repository element does not contain necessary 'Priority' attribute, in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
                     return null;
                 }
 
                 if (node.Attribute("Trusted") == null)
                 {
-                    errorMsg = $"Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
+                    errorMsg = $"Repository element does not contain necessary 'Trusted' attribute, in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
                     return null;
                 }
 
                 if (node.Attribute("APIVersion") == null)
                 {
-                    errorMsg = $"Repository element does not contain neccessary 'APIVersion' attribute, in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
+                    errorMsg = $"Repository element does not contain necessary 'APIVersion' attribute, in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
                     return null;
                 }
 
@@ -339,7 +339,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 bool uriAttributeExists = node.Attribute("Uri") != null;
                 if (!urlAttributeExists && !uriAttributeExists)
                 {
-                    errorMsg = $"Repository element does not contain neccessary 'Url' attribute (or alternatively 'Uri' attribute), in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
+                    errorMsg = $"Repository element does not contain necessary 'Url' attribute (or alternatively 'Uri' attribute), in file located at path: {FullRepositoryPath}. Fix this in your file and run again.";
                     return null;
                 }
 
@@ -530,19 +530,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 if (node.Attribute("Priority") == null)
                 {
-                    tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                    tempErrorList.Add(String.Format("Repository element does not contain necessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                     continue;
                 }
 
                 if (node.Attribute("Trusted") == null)
                 {
-                    tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                    tempErrorList.Add(String.Format("Repository element does not contain necessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                     continue;
                 }
 
                 if (node.Attribute("APIVersion") == null)
                 {
-                    tempErrorList.Add(String.Format("Repository element does not contain neccessary 'APIVersion' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                    tempErrorList.Add(String.Format("Repository element does not contain necessary 'APIVersion' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                     continue;
                 }
 
@@ -557,7 +557,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 bool uriAttributeExists = node.Attribute("Uri") != null;
                 if (!urlAttributeExists && !uriAttributeExists)
                 {
-                    tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Url' or equivalent 'Uri' attribute (it must contain one per Repository), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                    tempErrorList.Add(String.Format("Repository element does not contain necessary 'Url' or equivalent 'Uri' attribute (it must contain one per Repository), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                     continue;
                 }
 
@@ -611,19 +611,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     if (repo.Attribute("Name") == null)
                     {
-                        tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Name' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                        tempErrorList.Add(String.Format("Repository element does not contain necessary 'Name' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                         continue;
                     }
 
                     if (repo.Attribute("Priority") == null)
                     {
-                        tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                        tempErrorList.Add(String.Format("Repository element does not contain necessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                         continue;
                     }
 
                     if (repo.Attribute("Trusted") == null)
                     {
-                        tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                        tempErrorList.Add(String.Format("Repository element does not contain necessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                         continue;
                     }
 
@@ -632,7 +632,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     // case: neither Url nor Uri attributes exist
                     if (!urlAttributeExists && !uriAttributeExists)
                     {
-                        tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Url' or equivalent 'Uri' attribute (it must contain one), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                        tempErrorList.Add(String.Format("Repository element does not contain necessary 'Url' or equivalent 'Uri' attribute (it must contain one), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                         continue;
                     }
 
@@ -729,13 +729,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     {
                         if (node.Attribute("Priority") == null)
                         {
-                            tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                            tempErrorList.Add(String.Format("Repository element does not contain necessary 'Priority' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                             continue;
                         }
 
                         if (node.Attribute("Trusted") == null)
                         {
-                            tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                            tempErrorList.Add(String.Format("Repository element does not contain necessary 'Trusted' attribute, in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                             continue;
                         }
 
@@ -746,7 +746,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         // case: neither Url nor Uri attributes exist
                         if (!urlAttributeExists && !uriAttributeExists)
                         {
-                            tempErrorList.Add(String.Format("Repository element does not contain neccessary 'Url' or equivalent 'Uri' attribute (it must contain one), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
+                            tempErrorList.Add(String.Format("Repository element does not contain necessary 'Url' or equivalent 'Uri' attribute (it must contain one), in file located at path: {0}. Fix this in your file and run again.", FullRepositoryPath));
                             continue;
                         }
 

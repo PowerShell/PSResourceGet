@@ -90,7 +90,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region Overriden Methods
+        #region Overridden Methods
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
@@ -336,7 +336,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// API call:
         /// - No prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
-        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
+        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease depending on user preference)
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
@@ -407,7 +407,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Find method which allows for searching for single name and tag and returns latest version.
         /// Name: no wildcard support
         /// Examples: Search "PowerShellGet" -Tag "Provider"
-        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
+        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease depending on user preference)
         /// </summary>
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {

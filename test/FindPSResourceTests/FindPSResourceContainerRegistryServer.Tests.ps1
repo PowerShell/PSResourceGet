@@ -12,6 +12,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $testModuleParentName = "test_parent_mod"
         $testModuleDependencyName = "test_dependency_mod"
         $testScriptName = "test-script"
+        $testModuleWithIncludes = "test-resourcewithincludes"
         $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io"
         Get-NewPSResourceRepositoryFile
@@ -21,7 +22,8 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         if ($usingAzAuth) {
             Write-Verbose -Verbose "Using Az module for authentication"
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -Verbose
-        } else {
+        }
+        else {
             $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
         }
@@ -38,9 +40,9 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
     }
 
-    It "Should not find resource given nonexistant Name" {
+    It "Should not find resource given nonexistent Name" {
         # FindName()
-        $res = Find-PSResource -Name NonExistantModule -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name NonExistentModule -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -171,6 +173,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
     It "Should find all resources given Name '*'" {
         # FindAll()
         $res = Find-PSResource -Name "*" -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -BeNullOrEmpty
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterThan 0
     }
@@ -259,6 +262,14 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.ReleaseNotes.Length | Should -Not -Be 0
         $res.Tags.Length | Should -Be 5
     }
+
+    It "Should find resource and its associated Includes property" {
+        $res = Find-PSResource $testModuleWithIncludes -Repository $ACRRepoName
+        $res.Includes | Should -Not -BeNullOrEmpty
+        $res.Includes.Cmdlet | Should -Be "cmdlet1"
+        $res.Includes.Command | Should -Be "cmd1"
+        $res.Includes.DscResource | Should -Be "dsc1"
+    }
 }
 
 Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
@@ -298,9 +309,20 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterThan 1
     }
+
+    It "Should find version range for Az dependencies" {
+        # Target known version to know the output from the API won't change
+        $res = Find-PSResource -Repository 'MAR' -Name 'Az' -Version '14.4.0'
+
+        # Version defined by "ModuleVersion"
+        $res.Dependencies.Where{$_.'Name' -eq 'Az.Accounts'}.'VersionRange'.ToString() | Should -Be '[5.3.0, )'
+
+        # Version defined by "RequiredVersion"
+        $res.Dependencies.Where{$_.'Name' -eq 'Az.Resources'}.'VersionRange'.ToString() | Should -Be '[8.1.0, 8.1.0]'
+    }
 }
 
-# Skip this test fo
+# Skip this test for Windows PowerShell
 Describe 'Test Find-PSResource for unauthenticated ACR repository' -tags 'CI' {
     BeforeAll {
         $skipOnWinPS = $PSVersionTable.PSVersion.Major -eq 5

@@ -290,7 +290,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    foreach (PSResourceInfo inputObj in InputObject)
+                    foreach (var inputObj in InputObject)
                     {
                         string normalizedVersionString = Utils.GetNormalizedVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
                         ProcessInstallHelper(
@@ -353,7 +353,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 break;
 
                             case ResourceFileType.UnknownFile:
-                                throw new PSInvalidOperationException("Unkown file type. Required resource file must be either a json or psd1 data file.");
+                                throw new PSInvalidOperationException("Unknown file type. Required resource file must be either a json or psd1 data file.");
                         }
                     }
                     catch (Exception)
@@ -431,8 +431,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WriteDebug("In InstallPSResource::RequiredResourceHelper()");
             foreach (DictionaryEntry entry in reqResourceHash)
             {
-                InstallPkgParams pkgParams = new InstallPkgParams();
+                InstallPkgParams pkgParams = new();
                 PSCredential pkgCredential = Credential;
+                string pkgVersion = String.Empty;
+                bool isPrerelease = false;
 
                 // The package name will be the key for the inner hashtable and is present for all scenarios,
                 // including the scenario where only package name is specified
@@ -451,8 +453,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
-                string pkgVersion = String.Empty;
-                if (!(entry.Value is Hashtable pkgInstallInfo))
+                if (entry.Value is not Hashtable pkgInstallInfo)
                 {
                     var requiredResourceHashtableInputFormatError = new ErrorRecord(
                         new ArgumentException($"The RequiredResource input with name '{pkgName}' does not have a valid value, the value must be a hashtable."),
@@ -492,12 +493,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     pkgVersion = pkgInstallInfo["version"] == null ? String.Empty : pkgInstallInfo["version"].ToString();
+
+                    // Prerelease - Handle both string and boolean
+                    object prereleaseObj = pkgInstallInfo.ContainsKey("prerelease") ? pkgInstallInfo["prerelease"] : null;
+                    if (prereleaseObj != null)
+                    {
+                        if (prereleaseObj is bool b)
+                        {
+                            isPrerelease = b;
+                        }
+                        else if (prereleaseObj is string s)
+                        {
+                            isPrerelease = s.Equals("true", StringComparison.OrdinalIgnoreCase);
+                        }
+                    }
                 }
 
                 ProcessInstallHelper(
                     pkgNames: new string[] { pkgName },
                     pkgVersion: pkgVersion,
-                    pkgPrerelease: pkgParams.Prerelease,
+                    pkgPrerelease: isPrerelease,
                     pkgRepository: pkgParams.Repository != null ? new string[] { pkgParams.Repository } : new string[] { },
                     pkgCredential: pkgCredential,
                     reqResourceParams: pkgParams);

@@ -35,7 +35,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Specifies the name of the repository to be set.
-        /// </sumamry>
+        /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet, HelpMessage = "Name of the repository to set properties for.")]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
@@ -43,7 +43,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Specifies the location of the repository to be set.
-        /// </sumamry>
+        /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Uri { get; set; }
@@ -86,7 +86,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Specifies the Api version of the repository to be set.
-        /// </sumamry>
+        /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         public PSRepositoryInfo.APIVersion ApiVersion { get; set; }
 
@@ -134,7 +134,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            // determine if either 1 of 5 values are attempting to be set: Uri, Priority, Trusted, APIVerison, CredentialInfo.
+            // determine if either 1 of 5 values are attempting to be set: Uri, Priority, Trusted, APIVersion, CredentialInfo.
             // if none are (i.e only Name parameter was provided, write error)
             if (ParameterSetName.Equals(NameParameterSet) &&
                 !MyInvocation.BoundParameters.ContainsKey(nameof(Uri)) &&

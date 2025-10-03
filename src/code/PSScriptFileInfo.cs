@@ -241,7 +241,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         }
 
         /// <summary>
-        /// Populates script info classes (PSScriptMetadata, PSScriptHelp, PSScriptRequires, PSScriptContents) with previosuly
+        /// Populates script info classes (PSScriptMetadata, PSScriptHelp, PSScriptRequires, PSScriptContents) with previously
         /// parsed metadata from the ps1 file.
         /// </summary>
         internal static bool TryPopulateScriptClassesWithParsedContent(

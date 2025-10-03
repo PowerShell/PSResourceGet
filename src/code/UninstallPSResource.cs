@@ -154,7 +154,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         Name = new string[] { inputObj.Name };
                         if (!String.IsNullOrWhiteSpace(inputObj.Name) && !UninstallPkgHelper(out List<ErrorRecord> InputObjErrRecords))
                         {
-                            foreach (ErrorRecord err in InputObjErrRecords)
+                            foreach (var err in InputObjErrRecords)
                             {
                                 WriteError(err);
                             }
@@ -190,7 +190,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 string message = Version == null || Version.Trim().Equals("*") ?
                     $"Cannot uninstall resource '{String.Join(", ", Name)}' because it does not exist" :
-                    $"Cannot uninstall verison '{Version}' of resource '{String.Join(", ", Name)}' because it does not exist";
+                    $"Cannot uninstall version '{Version}' of resource '{String.Join(", ", Name)}' because it does not exist";
 
                 errRecords.Add(new ErrorRecord(
                     new ResourceNotFoundException(message),
@@ -433,9 +433,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 for (int j = 0; j < parentPkg.RequiredModules.Count; j++)
                 {
                     var pkgToUninstall = parentPkg.RequiredModules[j] as PSModuleInfo;
-                    if (string.Equals(pkgToUninstall.Name, pkgName, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        // then check verison
+                    if (string.Equals(pkgToUninstall.Name, pkgName, StringComparison.InvariantCultureIgnoreCase)) {
+                        // then check version
                         if (pkgToUninstall.Version == null)
                         {
                             // Any version works as a dependency, so only one version needs to be available.

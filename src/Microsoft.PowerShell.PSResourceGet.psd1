@@ -46,7 +46,7 @@
         'udres')
     PrivateData            = @{
         PSData = @{
-            Prerelease   = 'preview2'
+            Prerelease   = 'preview3'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -56,10 +56,22 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.2.0-preview3
+
+### New Features
+- Pagination for MCR catalog items (#1870)
+
+### Bug Fix
+- Bug fix for CLM issues (#1869)
+- Update `-ModulePrefix` to be a static parameter (#1868)
+- Bug fix for populating all `#Requires` fields in `Update-PSScriptFileInfo` (#1863)
+- Bug fix for populating `Includes` metadata for packages from container registry repositories (#1861)
+- Bug fix for `Find-PSResource` and `Install-PSResource` not retrieving unlisted package versions (#1859)
+
 ## 1.2.0-preview2
 
 ### New Features
-- Ingetration of the Azure Artifacts Credential Provider for ADO feeds (#1765)
+- Integration of the Azure Artifacts Credential Provider for ADO feeds (#1765)
 
 ### Bug Fix
 - Bug fixes for NuGet v3 dependencies (#1841 Thanks @o-l-a-v!)
@@ -141,7 +153,7 @@
 
 ### Bug Fixes
 
-- Add prerelease string when NormalizedVersion doesn't exist, but prelease string does (#1681 Thanks @sean-r-williams)
+- Add prerelease string when NormalizedVersion doesn't exist, but prerelease string does (#1681 Thanks @sean-r-williams)
 - Add retry logic when deleting files (#1667 Thanks @o-l-a-v!)
 - Fix broken PAT token use (#1672)
 - Updated error messaging for authenticode signature failures (#1701)
@@ -157,7 +169,7 @@
 
 - Fix incorrect request URL when installing resources from ADO (#1597 Thanks @anytonyoni!)
 - Fix for swallowed exceptions (#1569)
-- Fix for PSResourceGet not working in Constrained Languange Mode (#1564)
+- Fix for PSResourceGet not working in Constrained Language Mode (#1564)
 
 ## 1.0.6
 

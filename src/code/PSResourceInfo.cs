@@ -297,7 +297,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         #region Private fields
 
-        private static readonly char[] Delimeter = { ' ', ',' };
+        private static readonly char[] Delimiter = { ' ', ',' };
 
         #endregion
 
@@ -756,7 +756,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // IsPrerelease
-                // NuGet.org repository's response does contain 'isPrerelease' element so it can be accquired and set here.
+                // NuGet.org repository's response does contain 'isPrerelease' element so it can be acquired and set here.
                 if (rootDom.TryGetProperty("isPrerelease", out JsonElement isPrereleaseElement))
                 {
                     metadata["IsPrerelease"] = isPrereleaseElement.GetBoolean();
@@ -780,9 +780,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // Description
-                if (rootDom.TryGetProperty("description", out JsonElement descriptiontElement))
+                if (rootDom.TryGetProperty("description", out JsonElement descriptionElement))
                 {
-                    metadata["Description"] = descriptiontElement.ToString();
+                    metadata["Description"] = descriptionElement.ToString();
                 }
 
                 // Id
@@ -998,9 +998,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 // Description
-                if (rootDom.TryGetProperty("Description", out JsonElement descriptiontElement) || rootDom.TryGetProperty("description", out descriptiontElement))
+                if (rootDom.TryGetProperty("Description", out JsonElement descriptionElement) || rootDom.TryGetProperty("description", out descriptionElement))
                 {
-                    metadata["Description"] = descriptiontElement.ToString();
+                    metadata["Description"] = descriptionElement.ToString();
                 }
 
                 // ReleaseNotes
@@ -1082,6 +1082,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     { "NormalizedVersion", metadata["NormalizedVersion"].ToString() }
                 };
 
+                ParseHttpMetadataType(metadata["Tags"] as string[], out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
+                var resourceHashtable = new Hashtable {
+                    { nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames) },
+                    { nameof(PSResourceInfo.Includes.Cmdlet), new PSObject(cmdletNames) },
+                    { nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames) }
+                };
+
+                var includes = new ResourceIncludes(resourceHashtable);
+
                 psGetInfo = new PSResourceInfo(
                     additionalMetadata: additionalMetadataHashtable,
                     author: metadata["Authors"] as String,
@@ -1090,7 +1099,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     dependencies: metadata["Dependencies"] as Dependency[],
                     description: metadata["Description"] as String,
                     iconUri: null,
-                    includes: null,
+                    includes: includes,
                     installedDate: null,
                     installedLocation: null,
                     isPrerelease: (bool)metadata["IsPrerelease"],
@@ -1630,7 +1639,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         internal static List<Dependency> ParseContainerRegistryDependencies(JsonElement requiredModulesElement, out string errorMsg)
         {
             errorMsg = string.Empty;
-            List<Dependency> pkgDeps = new List<Dependency>();
+            List<Dependency> pkgDeps = new();
             if (requiredModulesElement.ValueKind == JsonValueKind.Array)
             {
                 foreach (JsonElement dependency in requiredModulesElement.EnumerateArray())
@@ -1660,15 +1669,16 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                             }
 
                             depVersionRange = new VersionRange(
-                                            minVersion: depNuGetVersion,
-                                            includeMinVersion: true);
+                                minVersion: depNuGetVersion,
+                                includeMinVersion: true
+                            );
                         }
                         else if (dependency.TryGetProperty("RequiredVersion", out JsonElement depRequiredVersionElement))
                         {
                             // New-ScriptFileInfo will add "RequiredVersion" value as "null" if nothing is explicitly passed in,
                             // Which gets translated to an empty string.
                             // In this case, we just want the VersionRange to be VersionRange.All
-                            if (!string.Equals(depModuleVersionElement.ToString(), string.Empty))
+                            if (!string.Equals(depRequiredVersionElement.ToString(), string.Empty))
                             {
                                 if (!NuGetVersion.TryParse(depRequiredVersionElement.ToString(), out NuGetVersion depNuGetVersion))
                                 {
@@ -1677,10 +1687,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                                 }
 
                                 depVersionRange = new VersionRange(
-                                                minVersion: depNuGetVersion,
-                                                includeMinVersion: true,
-                                                maxVersion: depNuGetVersion,
-                                                includeMaxVersion: true);
+                                    minVersion: depNuGetVersion,
+                                    includeMinVersion: true,
+                                    maxVersion: depNuGetVersion,
+                                    includeMaxVersion: true
+                                );
                             }
                         }
 
@@ -1709,6 +1720,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             dscResourceNames = new ArrayList();
 
             ResourceType pkgType = ResourceType.Module;
+
+            if (tags == null)
+            {
+                return pkgType;
+            }
+
             foreach (string tag in tags)
             {
                 if (String.Equals(tag, "PSScript", StringComparison.InvariantCultureIgnoreCase))
@@ -1752,7 +1769,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     cmdletNames.Add(cmdlet as string);
                 }
             }
-            // Because there is no "CommandsToExport" propertly in a module manifest, we use CmdletsToExport to find command names
+            // Because there is no "CommandsToExport" property in a module manifest, we use CmdletsToExport to find command names
             commandNames = cmdletNames;
 
             dscResourceNames = new ArrayList();

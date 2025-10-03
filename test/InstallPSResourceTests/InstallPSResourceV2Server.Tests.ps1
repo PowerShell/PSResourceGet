@@ -73,9 +73,9 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $pkg.Name | Should -Be $pkgNames
     }
 
-    It "Should not install resource given nonexistant name" {
-        Install-PSResource -Name "NonExistantModule" -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource "NonExistantModule"
+    It "Should not install resource given nonexistent name" {
+        Install-PSResource -Name "NonExistentModule" -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
+        $pkg = Get-InstalledPSResource "NonExistentModule"
         $pkg.Name | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
@@ -387,6 +387,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $res.Name | Should -Contain $testModuleName
     }
 
+    # -RequiredResource
     It "Install modules using -RequiredResource with hashtable" {
         $rrHash = @{
             test_module  = @{
@@ -415,6 +416,16 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $res3 = Get-InstalledPSResource $testModuleName2
         $res3.Name | Should -Be $testModuleName2
         $res3.Version | Should -Be "0.0.93"
+    }
+
+    It "Install module using -RequiredResource with hashtable, and prerelease is boolean true" {
+        Install-PSResource -TrustRepository -RequiredResource @{
+            'TestModule99' = @{
+                'repository' = 'PSGallery'
+                'prerelease' = $true
+            }
+        }
+        (Get-InstalledPSResource -Name 'TestModule99').'Prerelease' | Should -Be 'beta2'
     }
 
     It "Install modules using -RequiredResource with JSON string" {
@@ -568,6 +579,17 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $moduleName = "TestModuleVersionWithNine"
         $version = "1.9.9"
         Install-PSResource -Name $moduleName -Repository $PSGalleryName -TrustRepository -Version "[$version, $version]" -Prerelease
+        $res = Get-InstalledPSResource $moduleName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be $version
+    }
+
+    It "Install resource that is unlisted" {
+        # InstallVersion scenario
+        # 'test_unlisted' version 0.0.3 is unlisted
+        $moduleName = 'test_unlisted'
+        $version = '0.0.3'
+        Install-PSResource -Name $moduleName -Version $version -Repository $PSGalleryName -TrustRepository
         $res = Get-InstalledPSResource $moduleName
         $res | Should -Not -BeNullOrEmpty
         $res.Version | Should -Be $version

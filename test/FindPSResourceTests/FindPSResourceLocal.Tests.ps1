@@ -74,15 +74,14 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
     }
 
-    #  TODO:  bug with Save-PSResource
-    # It "find resource given Name, Version null (package containing nuspec only)" {
-    #     # FindName()
-    #     $pkgName = "PowerShell"
-    #     Save-PSResource -Name $pkgName -Repository "NuGetGallery" -Path $localRepoUriAddress -AsNupkg -TrustRepository
-    #     $res = Find-PSResource -Name $pkgName -Repository $localRepo
-    #     $res.Name | Should -Be $pkgName
-    #     $res.Repository | Should -Be $localRepo
-    # }
+    It "find resource given Name, Version null (package containing nuspec only)" {
+        # FindName()
+        $pkgName = "PowerShell"
+        Save-PSResource -Name $pkgName -Repository "NuGetGallery" -Path $localRepoUriAddress -AsNupkg -TrustRepository
+        $res = Find-PSResource -Name $pkgName -Repository $localRepo
+        $res.Name | Should -Be $pkgName
+        $res.Repository | Should -Be $localRepo
+    }
 
     It "find script without RequiredModules" {
         # FindName()
@@ -95,9 +94,9 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # $res.Tags | Should -Contain $requiredTag
     }
 
-    It "should not find resource given nonexistant Name" {
+    It "should not find resource given nonexistent Name" {
         # FindName()
-        $res = Find-PSResource -Name NonExistantModule -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name NonExistentModule -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -334,5 +333,16 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res.Name | Should -Be $nupkgName
         $res.Version | Should -Be $nupkgVersion
         $res.Prerelease | Should -Be $prereleaseLabel
+    }
+
+    It "find module that has multiple manifests and use exact name match one" {
+        # Az.KeyVault has 2 manifest files - Az.KeyVault.psd1 and Az.KeyVault.Extension.psd1
+        # this test was added because PSResourceGet would previously pick the .psd1 file by pattern matching the module name, not exact matching it
+        # this meant Az.KeyVault.Extension.psd1 and its metadata was being returned.
+        # The package is present on PSGallery but issue reproduces when looking at the package's file paths in local repo
+        $PSGalleryName = Get-PSGalleryName
+        Save-PSResource -Name 'Az.KeyVault' -Version '6.3.1' -Repository $PSGalleryName -AsNupkg -Path $localRepoUriAddress -TrustRepository
+        $res = Find-PSResource -Name 'Az.KeyVault' -Repository $localRepo
+        $res.Version | Should -Be "6.3.1"
     }
 }

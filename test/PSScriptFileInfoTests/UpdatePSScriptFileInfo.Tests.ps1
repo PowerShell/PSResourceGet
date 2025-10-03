@@ -263,6 +263,34 @@ Describe "Test Update-PSScriptFileInfo" -tags 'CI' {
         $results -like "*#Requires*ModuleName*Version*" | Should -BeTrue
     }
 
+    It "update script file with varying Required properties (IsElevationRequired, RequiredApplicationId, RequiredAssembliesRequiredPSEditions, RequiredPSVersion) should retain those Require statements" {
+        $testScriptWithRequiredProperties = Join-Path -Path $script:testScriptsFolderPath -ChildPath "ScriptWithAllRequiresProperties.ps1"
+        Update-PSScriptFileInfo -Path $testScriptWithRequiredProperties -Version "2.0.0.0"
+        Test-PSScriptFileInfo $testScriptWithRequiredProperties | Should -Be $true
+
+        $requiredApplicationId = "Shell"
+        $requiredAssemblies = @("path\to\foo.dll")
+        $requiredPSEditions = @("Desktop")
+        $requiredPSVersion = "5.1"
+
+        Test-Path -Path $testScriptWithRequiredProperties | Should -BeTrue
+        $results = Get-Content -Path $testScriptWithRequiredProperties -Raw
+        $results.Contains("#Requires -RunAsAdministrator") | Should -BeTrue
+        $results -like "*#Requires -ShellId*" | Should -BeTrue
+        $results -like "*#Requires*Assembly*" | Should -BeTrue
+        $results -like "*#Requires*PSEdition*" | Should -BeTrue
+        $results -like "*#Requires*Version*" | Should -BeTrue
+
+        $scriptFileObj = Get-PSScriptFileInfo -Path $testScriptWithRequiredProperties
+        $scriptFileObj.ScriptRequiresComment.RequiredModules[0] | Should -Be "Microsoft.PowerShell.PSResourceGet"
+        $scriptFileObj.ScriptRequiresComment.IsElevationRequired | Should -Be $true
+        $scriptFileObj.ScriptRequiresComment.RequiredApplicationId | Should -Be $requiredApplicationId
+        $scriptFileObj.ScriptRequiresComment.RequiredAssemblies | Should -Be $requiredAssemblies
+        $scriptFileObj.ScriptRequiresComment.RequiredPSEditions | Should -Be $requiredPSEditions
+        $scriptFileObj.ScriptRequiresComment.RequiredPSVersion | Should -Be $requiredPSVersion
+        $scriptFileObj.ScriptMetadataComment.Version | Should -Be "2.0.0.0"
+    }
+
     It "update script file RequiredScripts property" {
         $requiredScript1 = "RequiredScript1"
         $requiredScript2 = "RequiredScript2"

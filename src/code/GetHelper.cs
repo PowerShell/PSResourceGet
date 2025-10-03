@@ -175,8 +175,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         _cmdletPassedIn.WriteDebug($"Package version parsed as NuGet version: '{pkgNugetVersion}'");
 
                         // For Uninstall-PSResource Prerelease parameter equates to selecting prerelease versions only to uninstall.
-                        // For other cmdlets (Find-PSResource, Install-PSResource) Prerelease parmater equates to selecting stable and prerelease versions.
-                        // We will not just select prerelase versions. For Get-InstalledPSResource, there is no Prerelease parameter.
+                        // For other cmdlets (Find-PSResource, Install-PSResource) Prerelease parameter equates to selecting stable and prerelease versions.
+                        // We will not just select prerelease versions. For Get-InstalledPSResource, there is no Prerelease parameter.
                         if (versionRange.Satisfies(pkgNugetVersion))
                         {
                             if (!selectPrereleaseOnly || pkgNugetVersion.IsPrerelease)

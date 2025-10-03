@@ -182,7 +182,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException("File path needs to end with a .ps1 extension. Example: C:/Users/john/x/MyScript.ps1"),
-                    "InvalidOrNonExistantPath",
+                    "InvalidOrNonExistentPath",
                     ErrorCategory.InvalidArgument,
                     this));
             }

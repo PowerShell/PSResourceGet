@@ -89,7 +89,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Specifies the Api version of the repository to be set.
-        /// </sumamry>
+        /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         public PSRepositoryInfo.APIVersion ApiVersion { get; set; }
 
@@ -100,7 +100,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public PSCredentialInfo CredentialInfo { get; set; }
 
         /// <summary>
-        /// When specified, displays the succcessfully registered repository and its information.
+        /// When specified, displays the successfully registered repository and its information.
         /// </summary>
         [Parameter]
         public SwitchParameter PassThru { get; set; }

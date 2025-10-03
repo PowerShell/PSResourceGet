@@ -11,6 +11,8 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
         $PSGalleryName = Get-PSGalleryName
         $testModuleName = "test_module"
         $testScriptName = "test_script"
+        $TestEmptyDirectoryPath = [System.IO.Path]::Combine($env:TEMP,'EmptyDir')
+
         Get-NewPSResourceRepositoryFile
 
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
@@ -18,12 +20,18 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Version "3.0"
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Version "5.0"
         Install-PSResource -Name $testScriptName -Repository $PSGalleryName -TrustRepository
+
+        $null = New-Item -Path $TestEmptyDirectoryPath -ItemType 'Directory'
     }
 
     AfterAll {
         Uninstall-PSResource -Name $testModuleName -Version "*" -ErrorAction SilentlyContinue
         Uninstall-PSResource -Name $testScriptName -Version "*" -ErrorAction SilentlyContinue
         Get-RevertPSResourceRepositoryFile
+
+        if (Test-Path -Path $TestEmptyDirectoryPath -PathType 'Container') {
+            Remove-Item -Path $TestEmptyDirectoryPath -Recurse -Force
+        }
     }
 
     It "Get resources without any parameter values" {
@@ -54,16 +62,17 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
         $pkgs.Name | Should -Contain $testModuleName
     }
 
-    $testCases =
-    @{Version = "[1.0.0.0]"; ExpectedVersion = "1.0.0.0"; Reason = "validate version, exact match" },
-    @{Version = "1.0.0.0"; ExpectedVersion = "1.0.0.0"; Reason = "validate version, exact match without bracket syntax" },
-    @{Version = "[1.0.0.0, 5.0.0.0]"; ExpectedVersion = @("5.0.0.0", "3.0.0.0", "1.0.0.0"); Reason = "validate version, exact range inclusive" },
-    @{Version = "(1.0.0.0, 5.0.0.0)"; ExpectedVersion = @("3.0.0.0"); Reason = "validate version, exact range exclusive" },
-    @{Version = "(1.0.0.0,)"; ExpectedVersion = @("5.0.0.0", "3.0.0.0"); Reason = "validate version, minimum version exclusive" },
-    @{Version = "[1.0.0.0,)"; ExpectedVersion = @("5.0.0.0", "3.0.0.0", "1.0.0.0"); Reason = "validate version, minimum version inclusive" },
-    @{Version = "(,5.0.0.0)"; ExpectedVersion = @("3.0.0.0", "1.0.0.0"); Reason = "validate version, maximum version exclusive" },
-    @{Version = "(,5.0.0.0]"; ExpectedVersion = @("5.0.0.0", "3.0.0.0", "1.0.0.0"); Reason = "validate version, maximum version inclusive" },
-    @{Version = "[1.0.0.0, 5.0.0.0)"; ExpectedVersion = @("3.0.0.0", "1.0.0.0"); Reason = "validate version, mixed inclusive minimum and exclusive maximum version" }
+    $testCases = [array](
+        @{Version="[1.0.0.0]";          ExpectedVersion="1.0.0.0";                           Reason="validate version, exact match"},
+        @{Version="1.0.0.0";            ExpectedVersion="1.0.0.0";                           Reason="validate version, exact match without bracket syntax"},
+        @{Version="[1.0.0.0, 5.0.0.0]"; ExpectedVersion=@("5.0.0.0", "3.0.0.0", "1.0.0.0");  Reason="validate version, exact range inclusive"},
+        @{Version="(1.0.0.0, 5.0.0.0)"; ExpectedVersion=@("3.0.0.0");                        Reason="validate version, exact range exclusive"},
+        @{Version="(1.0.0.0,)";         ExpectedVersion=@("5.0.0.0", "3.0.0.0");             Reason="validate version, minimum version exclusive"},
+        @{Version="[1.0.0.0,)";         ExpectedVersion=@("5.0.0.0", "3.0.0.0", "1.0.0.0");  Reason="validate version, minimum version inclusive"},
+        @{Version="(,5.0.0.0)";         ExpectedVersion=@("3.0.0.0", "1.0.0.0");             Reason="validate version, maximum version exclusive"},
+        @{Version="(,5.0.0.0]";         ExpectedVersion=@("5.0.0.0", "3.0.0.0", "1.0.0.0");  Reason="validate version, maximum version inclusive"},
+        @{Version="[1.0.0.0, 5.0.0.0)"; ExpectedVersion=@("3.0.0.0", "1.0.0.0");             Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
+    )
 
     It "Get resource when given Name to <Reason> <Version>" -TestCases $testCases {
         param($Version, $ExpectedVersion)
@@ -73,29 +82,30 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
     }
 
     It "Throw invalid version error when passing incorrectly formatted version such as <Description>" -TestCases @(
-        @{Version = '[1.*.0]'; Description = "version with wilcard in middle" },
-        @{Version = '[*.0.0.0]'; Description = "version with wilcard at start" },
-        @{Version = '[1.*.0.0]'; Description = "version with wildcard at second digit" },
-        @{Version = '[1.0.*.0]'; Description = "version with wildcard at third digit" }
-        @{Version = '[1.0.0.*'; Description = "version with wildcard at end" },
-        @{Version = '[1..0.0]'; Description = "version with missing digit in middle" },
-        @{Version = '[1.0.0.]'; Description = "version with missing digit at end" },
-        @{Version = '[1.0.0.0.0]'; Description = "version with more than 4 digits" }
+        @{Version='[1.*.0]';         Description="version with wildcard in middle"},
+        @{Version='[*.0.0.0]';       Description="version with wildcard at start"},
+        @{Version='[1.*.0.0]';       Description="version with wildcard at second digit"},
+        @{Version='[1.0.*.0]';       Description="version with wildcard at third digit"},
+        @{Version='[1.0.0.*';        Description="version with wildcard at end"},
+        @{Version='[1..0.0]';        Description="version with missing digit in middle"},
+        @{Version='[1.0.0.]';        Description="version with missing digit at end"},
+        @{Version='[1.0.0.0.0]';     Description="version with more than 4 digits"}
     ) {
         param($Version, $Description)
 
         $res = $null
         try {
             $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -ErrorAction Ignore
-        } catch {}
+        }
+        catch {}
 
         $res | Should -BeNullOrEmpty
     }
 
     # These versions technically parse into proper NuGet versions, but will not return the version expected
     It "Does not return resource when passing incorrectly formatted version such as <Description>, does not throw error" -TestCases @(
-        @{Version = '(1.0.0.0)'; Description = "exlcusive version (8.1.0.0)" },
-        @{Version = '[1-0-0-0]'; Description = "version formatted with invalid delimiter" }
+        @{Version='(1.0.0.0)';       Description="exclusive version (8.1.0.0)"},
+        @{Version='[1-0-0-0]';       Description="version formatted with invalid delimiter"}
 
     ) {
         param($Version, $Description)
@@ -103,7 +113,8 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
         $res = $null
         try {
             $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -ErrorAction Ignore
-        } catch {}
+        }
+        catch {}
 
         $res | Should -BeNullOrEmpty
     }
@@ -140,6 +151,10 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
 
     It "Get definition for alias 'Get-PSResource'" {
         (Get-Alias Get-PSResource).Definition | Should -BeExactly 'Get-InstalledPSResource'
+    }
+
+    It "Should not throw on ErrorAction ignore when no subdirectories are found" {
+        { Get-InstalledPSResource -Path $TestEmptyDirectoryPath -ErrorAction 'Ignore' } | Should -Not -Throw
     }
 
     # Windows only

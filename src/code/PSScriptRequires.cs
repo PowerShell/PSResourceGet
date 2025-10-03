@@ -19,10 +19,35 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         #region Properties
 
         /// <summary>
-        /// The list of modules required by the script.
+        /// The modules this script requires, specified like: #requires -Module NetAdapter#requires -Module @{Name="NetAdapter"; Version="1.0.0.0"}
         /// Hashtable keys: GUID, MaxVersion, ModuleName (Required), RequiredVersion, Version.
         /// </summary>
         public ModuleSpecification[] RequiredModules { get; private set; } = Array.Empty<ModuleSpecification>();
+
+        /// <summary>
+        ///  Specifies if this script requires elevated privileges, specified like: #requires -RunAsAdministrator
+        /// </summary>
+        public bool IsElevationRequired { get; private set; }
+
+        /// <summary>
+        /// The application id this script requires, specified like: #requires -Shellid Shell
+        /// </summary>
+        public string RequiredApplicationId { get; private set; }
+
+        /// <summary>
+        /// The assemblies this script requires, specified like: #requires -Assembly path\to\foo.dll#requires -Assembly "System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35"
+        /// </summary>
+        public string[] RequiredAssemblies { get; private set; } = Utils.EmptyStrArray;
+
+        /// <summary>
+        /// The PowerShell Edition this script requires, specified like: #requires -PSEdition Desktop
+        /// </summary>
+        public string[] RequiredPSEditions { get; private set; } = Utils.EmptyStrArray;
+
+        /// <summary>
+        /// The PowerShell version this script requires, specified like: #requires -Version 3
+        /// </summary>
+        public Version RequiredPSVersion { get; private set; }
 
         #endregion
 
@@ -38,7 +63,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         /// <summary>
         /// This constructor is called by internal cmdlet methods and creates a PSScriptHelp with default values
-        /// for the parameters. Calling a method like PSScriptRequires.ParseConentIntoObj() would then populate those properties.
+        /// for the parameters. Calling a method like PSScriptRequires.ParseContentIntoObj() would then populate those properties.
         /// </summary>
         internal PSScriptRequires() { }
 
@@ -92,9 +117,40 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 ScriptRequirements parsedScriptRequirements = ast.ScriptRequirements;
                 ReadOnlyCollection<ModuleSpecification> parsedModules = new List<ModuleSpecification>().AsReadOnly();
 
-                if (parsedScriptRequirements != null && parsedScriptRequirements.RequiredModules != null)
+                if (parsedScriptRequirements != null)
                 {
-                    RequiredModules = parsedScriptRequirements.RequiredModules.ToArray();
+                    // System.Management.Automation.Language.ScriptRequirements properties are listed here:
+                    // https://learn.microsoft.com/en-us/dotnet/api/system.management.automation.language.scriptrequirements?view=powershellsdk-7.4.0
+
+                    if (parsedScriptRequirements.IsElevationRequired)
+                    {
+                        IsElevationRequired = true;
+                    }
+
+                    if (parsedScriptRequirements.RequiredApplicationId != null)
+                    {
+                        RequiredApplicationId = parsedScriptRequirements.RequiredApplicationId;
+                    }
+
+                    if (parsedScriptRequirements.RequiredAssemblies != null)
+                    {
+                        RequiredAssemblies = parsedScriptRequirements.RequiredAssemblies.ToArray();
+                    }
+
+                    if (parsedScriptRequirements.RequiredModules != null)
+                    {
+                        RequiredModules = parsedScriptRequirements.RequiredModules.ToArray();
+                    }
+
+                    if (parsedScriptRequirements.RequiredPSEditions != null)
+                    {
+                        RequiredPSEditions = parsedScriptRequirements.RequiredPSEditions.ToArray();
+                    }
+
+                    if (parsedScriptRequirements.RequiredPSVersion != null)
+                    {
+                        RequiredPSVersion = parsedScriptRequirements.RequiredPSVersion;
+                    }
                 }
             }
             catch (Exception e)
@@ -118,6 +174,42 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         internal string[] EmitContent()
         {
             List<string> psRequiresLines = new List<string>();
+            if (IsElevationRequired)
+            {
+                psRequiresLines.Add(String.Empty);
+                psRequiresLines.Add("#Requires -RunAsAdministrator");
+            }
+
+            if (!String.IsNullOrEmpty(RequiredApplicationId))
+            {
+                psRequiresLines.Add(String.Empty);
+                psRequiresLines.Add(String.Format("#Requires -ShellId {0}", RequiredApplicationId));
+            }
+
+            if (RequiredAssemblies.Length > 0)
+            {
+                psRequiresLines.Add(String.Empty);
+                foreach (string assembly in RequiredAssemblies)
+                {
+                    psRequiresLines.Add(String.Format("#Requires -Assembly {0}", assembly));
+                }
+            }
+
+            if (RequiredPSEditions.Length > 0)
+            {
+                psRequiresLines.Add(String.Empty);
+                foreach (string psEdition in RequiredPSEditions)
+                {
+                    psRequiresLines.Add(String.Format("#Requires -PSEdition {0}", psEdition));
+                }
+            }
+
+            if (RequiredPSVersion != null)
+            {
+                psRequiresLines.Add(String.Empty);
+                psRequiresLines.Add(String.Format("#Requires -Version {0}", RequiredPSVersion.ToString()));
+            }
+
             if (RequiredModules.Length > 0)
             {
                 psRequiresLines.Add(String.Empty);
