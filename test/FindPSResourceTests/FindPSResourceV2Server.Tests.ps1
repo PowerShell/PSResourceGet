@@ -9,7 +9,7 @@ Write-Verbose -Verbose -Message "Current module search paths: $psmodulePaths"
 
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
 
-    BeforeAll{
+    BeforeAll {
         $PSGalleryName = Get-PSGalleryName
         $testModuleName = "test_module"
         $testScriptName = "test_script"
@@ -44,10 +44,8 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Find-PSResource -Name "test_*" -Repository $PSGalleryName
         $res.Count | Should -BeGreaterThan 1
         # should find Module and Script resources
-        foreach ($item in $res)
-        {
-            if ($item.Type -eq "Script")
-            {
+        foreach ($item in $res) {
+            if ($item.Type -eq "Script") {
                 $foundScript = $true
             }
         }
@@ -60,18 +58,18 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res.Count | Should -BeGreaterThan 0
     }
 
-    $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0.0");                                  Reason="validate version, exact match"},
-                  @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0.0");                                  Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0");            Reason="validate version, exact range inclusive"},
-                  @{Version="(1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("3.0.0.0");                                  Reason="validate version, exact range exclusive"},
-                  @{Version="(1.0.0.0,)";          ExpectedVersions=@("3.0.0.0", "5.0.0.0");                       Reason="validate version, minimum version exclusive"},
-                  @{Version="[1.0.0.0,)";          ExpectedVersions=@("1.0.0.0", "3.0.0.0", "5.0.0.0");            Reason="validate version, minimum version inclusive"},
-                  @{Version="(,3.0.0.0)";          ExpectedVersions=@("1.0.0.0");                                  Reason="validate version, maximum version exclusive"},
-                  @{Version="(,3.0.0.0]";          ExpectedVersions=@("1.0.0.0", "3.0.0.0");                       Reason="validate version, maximum version inclusive"},
-                  @{Version="[1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("1.0.0.0", "3.0.0.0");                       Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("3.0.0.0", "5.0.0.0");                       Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version = "[5.0.0.0]"; ExpectedVersions = @("5.0.0.0"); Reason = "validate version, exact match" },
+    @{Version = "5.0.0.0"; ExpectedVersions = @("5.0.0.0"); Reason = "validate version, exact match without bracket syntax" },
+    @{Version = "[1.0.0.0, 5.0.0.0]"; ExpectedVersions = @("1.0.0.0", "3.0.0.0", "5.0.0.0"); Reason = "validate version, exact range inclusive" },
+    @{Version = "(1.0.0.0, 5.0.0.0)"; ExpectedVersions = @("3.0.0.0"); Reason = "validate version, exact range exclusive" },
+    @{Version = "(1.0.0.0,)"; ExpectedVersions = @("3.0.0.0", "5.0.0.0"); Reason = "validate version, minimum version exclusive" },
+    @{Version = "[1.0.0.0,)"; ExpectedVersions = @("1.0.0.0", "3.0.0.0", "5.0.0.0"); Reason = "validate version, minimum version inclusive" },
+    @{Version = "(,3.0.0.0)"; ExpectedVersions = @("1.0.0.0"); Reason = "validate version, maximum version exclusive" },
+    @{Version = "(,3.0.0.0]"; ExpectedVersions = @("1.0.0.0", "3.0.0.0"); Reason = "validate version, maximum version inclusive" },
+    @{Version = "[1.0.0.0, 5.0.0.0)"; ExpectedVersions = @("1.0.0.0", "3.0.0.0"); Reason = "validate version, mixed inclusive minimum and exclusive maximum version" }
+    @{Version = "(1.0.0.0, 5.0.0.0]"; ExpectedVersions = @("3.0.0.0", "5.0.0.0"); Reason = "validate version, mixed exclusive minimum and inclusive maximum version" }
 
-    It "find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
+    It "find resource when given Name to <Reason> <Version>" -TestCases $testCases2 {
         # FindVersionGlobbing()
         param($Version, $ExpectedVersions)
         $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName
@@ -131,24 +129,16 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $foundDepCCorrectVersion = $false
         $foundDepD = $false
         $foundDepDCorrectVersion = $false
-        foreach ($pkg in $resWithDependencies)
-        {
-            if ($pkg.Name -eq "TestModuleWithDependencyE")
-            {
+        foreach ($pkg in $resWithDependencies) {
+            if ($pkg.Name -eq "TestModuleWithDependencyE") {
                 $foundParentPkgE = $true
-            }
-            elseif ($pkg.Name -eq "TestModuleWithDependencyC")
-            {
+            } elseif ($pkg.Name -eq "TestModuleWithDependencyC") {
                 $foundDepC = $true
                 $foundDepCCorrectVersion = [System.Version]$pkg.Version -le [System.Version]"1.0"
-            }
-            elseif ($pkg.Name -eq "TestModuleWithDependencyB")
-            {
+            } elseif ($pkg.Name -eq "TestModuleWithDependencyB") {
                 $foundDepB = $true
                 $foundDepBCorrectVersion = [System.Version]$pkg.Version -ge [System.Version]"1.0"
-            }
-            elseif ($pkg.Name -eq "TestModuleWithDependencyD")
-            {
+            } elseif ($pkg.Name -eq "TestModuleWithDependencyD") {
                 $foundDepD = $true
                 $foundDepDCorrectVersion = [System.Version]$pkg.Version -le [System.Version]"1.0"
             }
@@ -189,8 +179,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Find-PSResource -Name "test*" -Type Module -Repository $PSGalleryName
         $res.Count | Should -BeGreaterThan 1
         foreach ($item in $res) {
-            if ($item.Type -eq "Script")
-            {
+            if ($item.Type -eq "Script") {
                 $foundScript = $True
             }
         }
@@ -247,8 +236,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $nameWithWildcard = "test_module*"
         $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTag -Repository $PSGalleryName
         $res.Count | Should -BeGreaterThan 1
-        foreach ($pkg in $res)
-        {
+        foreach ($pkg in $res) {
             $pkg.Name | Should -BeLike $nameWithWildcard
             $pkg.Tags | Should -Contain $requiredTag
         }
@@ -267,8 +255,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $nameWithWildcard = "test_module*"
         $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTags -Repository $PSGalleryName
         $res.Count | Should -BeGreaterThan 1
-        foreach ($pkg in $res)
-        {
+        foreach ($pkg in $res) {
             $pkg.Name | Should -BeLike $nameWithWildcard
             $pkg.Tags | Should -Contain $requiredTags[0]
             $pkg.Tags | Should -Contain $requiredTags[1]
@@ -450,7 +437,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
 
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidationOnly' {
 
-    BeforeAll{
+    BeforeAll {
         $PSGalleryName = Get-PSGalleryName
         $testModuleName = "MicrosoftPowerBIMgmt"
         Get-NewPSResourceRepositoryFile
@@ -459,9 +446,9 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidat
     AfterAll {
         Get-RevertPSResourceRepositoryFile
     }
-    It "find resource given CommandName" {
-        $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName -Type Module
 
+    It "find module by name" {
+        $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName -Type Module
         $res.Name | Should -Be $testModuleName
     }
 
@@ -471,15 +458,12 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidat
 
         $foundPkgs = [System.Collections.Generic.HashSet[String]]::new()
         $duplicatePkgsFound = $false
-        foreach ($item in $res)
-        {
-            if ($foundPkgs.Contains($item.Name))
-            {
+        foreach ($item in $res) {
+            if ($foundPkgs.Contains($item.Name)) {
                 $duplicatePkgsFound = $true
                 break
             }
-
-            $foundPkgs.Add($item.Name)
+            $null = $foundPkgs.Add($item.Name)
         }
 
         $duplicatePkgsFound | Should -BeFalse

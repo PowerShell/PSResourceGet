@@ -97,14 +97,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private AssemblyLoadContextProxy(Type alc, string loadContextName)
         {
-            var ctor = alc.GetConstructor(new[] { typeof(string), typeof(bool) });
+            ConstructorInfo ctor = alc.GetConstructor(new[] { typeof(string), typeof(bool) });
             _loadFromAssemblyPath = alc.GetMethod("LoadFromAssemblyPath", new[] { typeof(string) });
             _customContext = ctor.Invoke(new object[] { loadContextName, false });
         }
 
         internal Assembly LoadFromAssemblyPath(string assemblyPath)
         {
-            return (Assembly) _loadFromAssemblyPath.Invoke(_customContext, new[] { assemblyPath });
+            return (Assembly)_loadFromAssemblyPath.Invoke(_customContext, new[] { assemblyPath });
         }
 
         internal static AssemblyLoadContextProxy CreateLoadContext(string name)
@@ -114,7 +114,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 throw new ArgumentNullException(nameof(name));
             }
 
-            var alc = typeof(object).Assembly.GetType("System.Runtime.Loader.AssemblyLoadContext");
+            Type alc = typeof(object).Assembly.GetType("System.Runtime.Loader.AssemblyLoadContext");
 
             return alc is not null
                 ? new AssemblyLoadContextProxy(alc, name)

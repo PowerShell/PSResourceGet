@@ -122,8 +122,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $Version = "(1.0.0.0)"
         try {
             Install-PSResource -Name $testModuleName -Version $Version -Repository $PSGalleryName -TrustRepository -ErrorAction SilentlyContinue
-        }
-        catch {
+        } catch {
         }
         $Error[0].FullyQualifiedErrorId | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 

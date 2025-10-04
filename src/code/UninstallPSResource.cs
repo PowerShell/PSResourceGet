@@ -108,7 +108,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             this));
                     }
 
-                    Name = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] errorMsgs, out bool _);
+                    Name = Utils.ProcessNameWildcards(Name, removeWildcardEntries: false, out string[] errorMsgs, out bool _);
 
                     foreach (string error in errorMsgs)
                     {
@@ -128,7 +128,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (!UninstallPkgHelper(out List<ErrorRecord> errRecords))
                     {
-                        foreach (var err in errRecords)
+                        foreach (ErrorRecord err in errRecords)
                         {
                             WriteError(err);
                         }
@@ -136,7 +136,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    foreach (var inputObj in InputObject) {
+                    foreach (PSResourceInfo inputObj in InputObject)
+                    {
                         string inputObjectPrerelease = inputObj.Prerelease;
                         string inputObjectVersion = String.IsNullOrEmpty(inputObjectPrerelease) ? inputObj.Version.ToString() : Utils.GetNormalizedVersionString(versionString: inputObj.Version.ToString(), prerelease: inputObjectPrerelease);
                         if (!Utils.TryParseVersionOrVersionRange(
@@ -185,7 +186,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             int totalDirs = dirsToDelete.Count;
             errRecords = new List<ErrorRecord>();
 
-            if (totalDirs == 0) {
+            if (totalDirs == 0)
+            {
                 string message = Version == null || Version.Trim().Equals("*") ?
                     $"Cannot uninstall resource '{String.Join(", ", Name)}' because it does not exist" :
                     $"Cannot uninstall version '{Version}' of resource '{String.Join(", ", Name)}' because it does not exist";
@@ -401,7 +403,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 for (int i = 0; i < _dependentModules.Count; i++)
                 {
-                    var reqModule = _dependentModules[i].RequiredModules;
+                    ReadOnlyCollection<PSModuleInfo> reqModule = _dependentModules[i].RequiredModules;
 
                     for (int j = 0; j < reqModule.Count; j++)
                     {
@@ -452,7 +454,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 dependencyExists = true;
                             }
                         }
-                        else {
+                        else
+                        {
                             if (System.Version.TryParse(version, out systemVersion) && pkgToUninstall.Version.CompareTo(systemVersion) == 0)
                             {
                                 // The required version OR module version is the version we're attempting to uninstall.

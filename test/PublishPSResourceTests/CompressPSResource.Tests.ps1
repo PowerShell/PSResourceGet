@@ -6,8 +6,7 @@ Import-Module $modPath -Force -Verbose
 
 $testDir = (get-item $psscriptroot).parent.FullName
 
-function CreateTestModule
-{
+function CreateTestModule {
     param (
         [string] $Path = "$TestDrive",
         [string] $ModuleName = 'TestModule'
@@ -42,8 +41,7 @@ function CreateTestModule
 '@ | Out-File -FilePath $moduleSrc
 }
 
-function CompressExpandRetrieveNuspec
-{
+function CompressExpandRetrieveNuspec {
     param(
         [string]$PublishModuleBase,
         [string]$PublishModuleName,
@@ -96,17 +94,15 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $script:tmpModulesPath = Join-Path -Path $TestDrive -ChildPath "tmpModulesPath"
         $script:PublishModuleName = "PSGetTestModule"
         $script:PublishModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:PublishModuleName
-        if(!(Test-Path $script:PublishModuleBase))
-        {
+        if (!(Test-Path $script:PublishModuleBase)) {
             New-Item -Path $script:PublishModuleBase -ItemType Directory -Force
         }
-		$script:PublishModuleBaseUNC = $script:PublishModuleBase -Replace '^(.):', '\\localhost\$1$'
+        $script:PublishModuleBaseUNC = $script:PublishModuleBase -Replace '^(.):', '\\localhost\$1$'
 
         #Create dependency module
         $script:DependencyModuleName = "PackageManagement"
         $script:DependencyModuleBase = Join-Path $script:tmpModulesPath -ChildPath $script:DependencyModuleName
-        if(!(Test-Path $script:DependencyModuleBase))
-        {
+        if (!(Test-Path $script:DependencyModuleBase)) {
             New-Item -Path $script:DependencyModuleBase -ItemType Directory -Force
         }
 
@@ -116,8 +112,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
 
         #Create folder where we shall place all script files to be published for these tests
         $script:tmpScriptsFolderPath = Join-Path -Path $TestDrive -ChildPath "tmpScriptsPath"
-        if(!(Test-Path $script:tmpScriptsFolderPath))
-        {
+        if (!(Test-Path $script:tmpScriptsFolderPath)) {
             New-Item -Path $script:tmpScriptsFolderPath -ItemType Directory -Force
         }
 
@@ -134,7 +129,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         CreateTestModule -Path $TestDrive -ModuleName 'ModuleWithMissingRequiredModule'
     }
     AfterAll {
-       Get-RevertPSResourceRepositoryFile
+        Get-RevertPSResourceRepositoryFile
     }
     AfterEach {
         # Delete all contents of the repository without deleting the repository directory itself
@@ -193,18 +188,18 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $scriptVersion = "1.0.0"
 
         $params = @{
-            Version = $scriptVersion
-            GUID = [guid]::NewGuid()
-            Author = 'Jane'
-            CompanyName = 'Microsoft Corporation'
-            Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
-            Description = "Description for the $scriptName script"
-            LicenseUri = "https://$scriptName.com/license"
-            IconUri = "https://$scriptName.com/icon"
-            ProjectUri = "https://$scriptName.com"
-            Tags = @('Tag1','Tag2', "Tag-$scriptName-$scriptVersion")
+            Version      = $scriptVersion
+            GUID         = [guid]::NewGuid()
+            Author       = 'Jane'
+            CompanyName  = 'Microsoft Corporation'
+            Copyright    = '(c) 2020 Microsoft Corporation. All rights reserved.'
+            Description  = "Description for the $scriptName script"
+            LicenseUri   = "https://$scriptName.com/license"
+            IconUri      = "https://$scriptName.com/icon"
+            ProjectUri   = "https://$scriptName.com"
+            Tags         = @('Tag1', 'Tag2', "Tag-$scriptName-$scriptVersion")
             ReleaseNotes = "$scriptName release notes"
-            }
+        }
 
         $scriptPath = (Join-Path -Path $script:tmpScriptsFolderPath -ChildPath "$scriptName.ps1")
         New-PSScriptFileInfo @params -Path $scriptPath
@@ -396,7 +391,7 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         }
     }
 
-<# Test for Signing the nupkg. Signing doesn't work
+    <# Test for Signing the nupkg. Signing doesn't work
     It "Compressed Module is able to be signed with a certificate" {
 		$version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
