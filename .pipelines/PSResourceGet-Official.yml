@@ -1,14 +1,5 @@
-#################################################################################
-#                               OneBranch Pipelines                             #
-# This pipeline was created by EasyStart from a sample located at:              #
-#   https://aka.ms/obpipelines/easystart/samples                                #
-# Documentation:  https://aka.ms/obpipelines                                    #
-# Yaml Schema:    https://aka.ms/obpipelines/yaml/schema                        #
-# Retail Tasks:   https://aka.ms/obpipelines/tasks                              #
-# Support:        https://aka.ms/onebranchsup                                   #
-#################################################################################
 name: PSResourceGet-Release-$(Build.BuildId)
-trigger: none # https://aka.ms/obpipelines/triggers
+trigger: none 
 pr:
   branches:
     include:
@@ -36,7 +27,7 @@ resources:
       ref: refs/heads/main
 
 extends:
-  template: v2/OneBranch.Official.CrossPlat.yml@onebranchTemplates # https://aka.ms/obpipelines/templates
+  template: v2/OneBranch.Official.CrossPlat.yml@onebranchTemplates 
   parameters:
     featureFlags:
       WindowsHostVersion: '1ESWindows2022'
@@ -49,18 +40,16 @@ extends:
         enabled: true
         packageName: Microsoft.PowerShell.PSResourceGet
       codeql:
+        tsaEnabled: true
         compiled:
           enabled: true
-      asyncSdl: # https://aka.ms/obpipelines/asyncsdl
+      credscan:
         enabled: true
-        forStages: [stagebuild]
-        credscan:
-          enabled: true
-          scanFolder:  $(Build.SourcesDirectory)\PSResourceGet
-        binskim:
-          enabled: true
-        apiscan:
-          enabled: false
+        scanFolder:  $(Build.SourcesDirectory)\PSResourceGet
+      binskim:
+        enabled: true
+      apiscan:
+        enabled: false
 
     stages:
     - stage: stagebuild
