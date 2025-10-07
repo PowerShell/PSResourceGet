@@ -16,6 +16,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// </summary>
     [Cmdlet(VerbsCommon.Get, "InstalledPSResource")]
     [Alias("Get-PSResource")]
+    [Alias("gres")]
     [OutputType(typeof(PSResourceInfo))]
     public sealed class GetInstalledPSResourceCommand : PSCmdlet
     {

@@ -153,6 +153,10 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
         (Get-Alias Get-PSResource).Definition | Should -BeExactly 'Get-InstalledPSResource'
     }
 
+    It "Get definition for alias 'gres'" {
+        (Get-Alias gres).Definition | Should -BeExactly 'Get-InstalledPSResource'
+    }
+
     It "Should not throw on ErrorAction ignore when no subdirectories are found" {
         { Get-InstalledPSResource -Path $TestEmptyDirectoryPath -ErrorAction 'Ignore' } | Should -Not -Throw
     }
