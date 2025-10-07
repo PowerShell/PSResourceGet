@@ -41,9 +41,12 @@
     AliasesToExport = @(
         'Get-PSResource',
         'fdres',
+        'gres',
         'isres',
         'pbres',
-        'udres')
+        'svres',
+        'udres',
+        'usres')
     PrivateData = @{
         PSData = @{
             Prerelease   = 'preview3'

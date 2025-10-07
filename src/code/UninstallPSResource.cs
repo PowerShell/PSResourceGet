@@ -17,6 +17,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// Uninstall-PSResource uninstalls a package found in a module or script installation path.
     /// </summary>
     [Cmdlet(VerbsLifecycle.Uninstall, "PSResource", DefaultParameterSetName = NameParameterSet, SupportsShouldProcess = true)]
+    [Alias("usres")]
     public sealed class UninstallPSResource : PSCmdlet
     {
         #region Parameters

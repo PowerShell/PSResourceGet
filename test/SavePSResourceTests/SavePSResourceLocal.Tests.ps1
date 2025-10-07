@@ -205,4 +205,8 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         $res.Name | Should -Be $moduleName
         $res.Version | Should -Be "1.0.0"
     }
+
+    It "Get definition for alias 'svres'" {
+        (Get-Alias svres).Definition | Should -BeExactly 'Save-PSResource'
+    }
 }
