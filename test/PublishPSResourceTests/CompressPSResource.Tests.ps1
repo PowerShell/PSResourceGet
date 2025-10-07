@@ -396,6 +396,48 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         }
     }
 
+    It "Compress-PSResource includes .gitkeep files (empty and non-empty)" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+        
+        # Create Public and Private directories with .gitkeep files
+        $publicDir = Join-Path -Path $script:PublishModuleBase -ChildPath "Public"
+        $privateDir = Join-Path -Path $script:PublishModuleBase -ChildPath "Private"
+        New-Item -Path $publicDir -ItemType Directory -Force
+        New-Item -Path $privateDir -ItemType Directory -Force
+        
+        # Create empty .gitkeep in Public
+        $publicGitkeep = Join-Path -Path $publicDir -ChildPath ".gitkeep"
+        New-Item -Path $publicGitkeep -ItemType File -Force
+        
+        # Create non-empty .gitkeep in Private
+        $privateGitkeep = Join-Path -Path $privateDir -ChildPath ".gitkeep"
+        "# Keep this directory" | Out-File -FilePath $privateGitkeep -Force
+        
+        Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath
+        
+        # Extract and verify files are included
+        $nupkgPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
+        $zipPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.zip"
+        Rename-Item -Path $nupkgPath -NewName $zipPath
+        $unzippedPath = Join-Path -Path $TestDrive -ChildPath "$script:PublishModuleName-gitkeep-test"
+        New-Item $unzippedPath -ItemType directory -Force
+        Expand-Archive -Path $zipPath -DestinationPath $unzippedPath
+        
+        # Verify both .gitkeep files exist
+        $extractedPublicGitkeep = Join-Path -Path $unzippedPath -ChildPath "Public" | Join-Path -ChildPath ".gitkeep"
+        $extractedPrivateGitkeep = Join-Path -Path $unzippedPath -ChildPath "Private" | Join-Path -ChildPath ".gitkeep"
+        
+        Test-Path -Path $extractedPublicGitkeep | Should -Be $True
+        Test-Path -Path $extractedPrivateGitkeep | Should -Be $True
+        
+        # Verify empty file is still empty and non-empty has content
+        (Get-Item $extractedPublicGitkeep).Length | Should -Be 0
+        (Get-Item $extractedPrivateGitkeep).Length | Should -BeGreaterThan 0
+        
+        $null = Remove-Item $unzippedPath -Force -Recurse
+    }
+
 <# Test for Signing the nupkg. Signing doesn't work
     It "Compressed Module is able to be signed with a certificate" {
 		$version = "1.0.0"
