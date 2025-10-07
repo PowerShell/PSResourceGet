@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using System;
@@ -317,6 +317,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private async void ProcessHackathonParameterSet()
         {
+            /*
             var schema = @"
                         type Query {
                             continents: [Continent]
@@ -367,7 +368,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             PRIVATE
                         }
                         ";
-
+                */
+                
             // want to query https://countries.trevorblades.com/graphql
 
             var GraphQLUri = "https://localhost:7250/graphql/";

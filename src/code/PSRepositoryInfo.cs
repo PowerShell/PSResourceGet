@@ -25,7 +25,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             V3,
             Local,
             NugetServer,
-            ContainerRegistry
+            ContainerRegistry,
+            GraphQL
         }
 
         public enum CredentialProviderType

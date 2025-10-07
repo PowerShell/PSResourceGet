@@ -58,6 +58,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     currentServer = new ContainerRegistryServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
                     break;
 
+                case PSRepositoryInfo.APIVersion.GraphQL:
+                    currentServer = new GraphQLServerAPICalls(repository, cmdletPassedIn, networkCredential, userAgentString);
+                    break;
+
                 case PSRepositoryInfo.APIVersion.Unknown:
                     break;
             }
