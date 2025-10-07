@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="12" errors="0" failures="12" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2025-10-07" time="19:59:10">
+  <environment user-domain="" nunit-version="2.5.8.0" machine-name="runnervmwhb2z" os-version="6.11.0-1018-azure" clr-version="8.0.19" user="runner" platform="Linux" cwd="/home/runner/work/PSResourceGet/PSResourceGet/test" />
+  <culture-info current-culture="" current-uiculture="" />
+  <test-suite type="TestFixture" name="Pester" executed="True" result="Failure" success="False" time="0.5154" asserts="0" description="Pester">
+    <results>
+      <test-suite type="TestFixture" name="/home/runner/work/PSResourceGet/PSResourceGet/test/PublishPSResourceTests/CompressPSResource.Tests.ps1" executed="True" result="Failure" success="False" time="0.5154" asserts="0" description="/home/runner/work/PSResourceGet/PSResourceGet/test/PublishPSResourceTests/CompressPSResource.Tests.ps1">
+        <results>
+          <test-suite type="TestFixture" name="Test Compress-PSResource" executed="True" result="Failure" success="False" time="0.1713" asserts="0" description="Test Compress-PSResource">
+            <results>
+              <test-case description="Compress-PSResource compresses a module into a nupkg and saves it to the DestinationPath" name="Test Compress-PSResource.Compress-PSResource compresses a module into a nupkg and saves it to the DestinationPath" time="0" asserts="0" success="False" result="Failure" executed="True">
+                <failure>
+                  <message>This test should run but it did not. Most likely a setup in some parent block failed.</message>
+                  <stack-trace />
+                </failure>
+              </test-case>
+              <test-case description="Compress a module using -Path positional parameter and -Destination positional parameter" name="Test Compress-PSResource.Compress a module using -Path positional parameter and -Destination positional parameter" time="0" asserts="0" success="False" result="Failure" executed="True">
+                <failure>
+                  <message>This test should run but it did not. Most likely a setup in some parent block failed.</message>
+                  <stack-trace />
+                </failure>
+              </test-case>
+              <test-case description="Compress-PSResource compresses a module and preserves file structure" name="Test Compress-PSResource.Compress-PSResource compresses a module and preserves file structure" time="0" asserts="0" success="False" result="Failure" executed="True">
+                <failure>
+                  <message>This test should run but it did not. Most likely a setup in some parent block failed.</message>
+                  <stack-trace />
+                </failure>
+              </test-case>
+              <test-case description="Compresses a script" name="Test Compress-PSResource.Compresses a script" time="0" asserts="0" success="False" result="Failure" executed="True">
+                <failure>
+                  <message>This test should run but it did not. Most likely a setup in some parent block failed.</message>
+                  <stack-trace />
+                </failure>
+              </test-case>
+              <test-case description="Compress-PSResource -DestinationPath works for relative paths" name="Test Compress-PSResource.Compress-PSResource -DestinationPath works for relative paths" time="0" asserts="0" success="False" result="Failure" executed="True">
+                <failure>
+                  <message>This test should run but it did not. Most likely a setup in some parent block failed.</message>
+                  <stack-trace />
+                </failure>
+              </test-case>
+              <test-case description="Compress-PSResource -PassThru returns a FileInfo object with the correct path" name="Test Compress-PSResource.Compress-PSResource -PassThru returns a FileInfo object with the correct path" time="0" asserts="0" success="False" result="Failure" executed="True">
+                <failure>
+                  <message>This test should run but it did not. Most likely a setup in some parent block failed.</message>
+                  <stack-trace />
+                </failure>
+              </test-case>
+              <test-case description="Compress-PSResource creates nuspec dependency version range when RequiredVersion is in RequiredModules section" name="Test Compress-PSResource.Compress-PSResource creates nuspec dependency version range when RequiredVersion is in RequiredModules section" time="0" asserts="0" success="False" result="Failure" executed="True">
+                <failure>
+                  <message>This test should run but it did not. Most likely a setup in some parent block failed.</message>
+                  <stack-trace />
+                </failure>
+              </test-case>
+              <test-case description="Compress-PSResource creates nuspec dependency version range when ModuleVersion is in RequiredModules section" name="Test Compress-PSResource.Compress-PSResource creates nuspec dependency version range when ModuleVersion is in RequiredModules section" time="0" asserts="0" success="False" result="Failure" executed="True">
+                <failure>
+                  <message>This test should run but it did not. Most likely a setup in some parent block failed.</message>
+                  <stack-trace />
+                </failure>
+              </test-case>
+              <test-case description="Compress-PSResource creates nuspec dependency version range when MaximumVersion is in RequiredModules section" name="Test Compress-PSResource.Compress-PSResource creates nuspec dependency version range when MaximumVersion is in RequiredModules section" time="0" asserts="0" success="False" result="Failure" executed="True">
+                <failure>
+                  <message>This test should run but it did not. Most likely a setup in some parent block failed.</message>
+                  <stack-trace />
+                </failure>
+              </test-case>
+              <test-case description="Compress-PSResource creates nuspec dependency version range when ModuleVersion and MaximumVersion are in RequiredModules section" name="Test Compress-PSResource.Compress-PSResource creates nuspec dependency version range when ModuleVersion and MaximumVersion are in RequiredModules section" time="0" asserts="0" success="False" result="Failure" executed="True">
+                <failure>
+                  <message>This test should run but it did not. Most likely a setup in some parent block failed.</message>
+                  <stack-trace />
+                </failure>
+              </test-case>
+              <test-case description="Compress-PSResource creates nuspec dependency version range when there are multiple modules in RequiredModules section" name="Test Compress-PSResource.Compress-PSResource creates nuspec dependency version range when there are multiple modules in RequiredModules section" time="0" asserts="0" success="False" result="Failure" executed="True">
+                <failure>
+                  <message>This test should run but it did not. Most likely a setup in some parent block failed.</message>
+                  <stack-trace />
+                </failure>
+              </test-case>
+              <test-case description="Compress-PSResource includes .gitkeep files (empty and non-empty)" name="Test Compress-PSResource.Compress-PSResource includes .gitkeep files (empty and non-empty)" time="0" asserts="0" success="False" result="Failure" executed="True">
+                <failure>
+                  <message>This test should run but it did not. Most likely a setup in some parent block failed.</message>
+                  <stack-trace />
+                </failure>
+              </test-case>
+            </results>
+          </test-suite>
+        </results>
+      </test-suite>
+    </results>
+  </test-suite>
+</test-results>
