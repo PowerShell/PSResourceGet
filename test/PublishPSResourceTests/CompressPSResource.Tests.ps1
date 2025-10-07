@@ -419,4 +419,49 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $signature.Status | Should -Be 'Valid'
 	}
     #>
+
+    It "Compress-PSResource includes .gitkeep files and empty files" {
+        $version = "1.0.0"
+        
+        # Create module structure with .gitkeep files
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+        
+        # Create Public and Private directories with .gitkeep files
+        $publicDir = Join-Path -Path $script:PublishModuleBase -ChildPath "Public"
+        $privateDir = Join-Path -Path $script:PublishModuleBase -ChildPath "Private"
+        New-Item -Path $publicDir -ItemType Directory -Force
+        New-Item -Path $privateDir -ItemType Directory -Force
+        
+        # Create empty .gitkeep in Public
+        $publicGitkeep = Join-Path -Path $publicDir -ChildPath ".gitkeep"
+        New-Item -Path $publicGitkeep -ItemType File -Force
+        
+        # Create non-empty .gitkeep in Private
+        $privateGitkeep = Join-Path -Path $privateDir -ChildPath ".gitkeep"
+        "# Placeholder file" | Out-File -FilePath $privateGitkeep -Encoding utf8
+        
+        # Compress the module
+        Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath
+        
+        # Verify the nupkg was created
+        $nupkgPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
+        Test-Path -Path $nupkgPath | Should -Be $True
+        
+        # Extract and verify .gitkeep files are present
+        $zipPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.zip"
+        Rename-Item -Path $nupkgPath -NewName $zipPath
+        $unzippedPath = Join-Path -Path $TestDrive -ChildPath "ExtractedModule"
+        New-Item -Path $unzippedPath -ItemType Directory -Force
+        Expand-Archive -Path $zipPath -DestinationPath $unzippedPath
+        
+        # Check that .gitkeep files exist in the extracted package
+        $extractedPublicGitkeep = Join-Path -Path $unzippedPath -ChildPath "Public\.gitkeep"
+        $extractedPrivateGitkeep = Join-Path -Path $unzippedPath -ChildPath "Private\.gitkeep"
+        
+        Test-Path -Path $extractedPublicGitkeep | Should -Be $True
+        Test-Path -Path $extractedPrivateGitkeep | Should -Be $True
+        
+        # Cleanup
+        Remove-Item -Path $unzippedPath -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }

@@ -1168,6 +1168,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             packageElement.AppendChild(metadataElement);
+
+            // Add <files> section to explicitly include all files, including empty files and files starting with '.'
+            // This overrides NuGet's default exclusions which would skip .gitkeep files and empty files
+            XmlElement filesElement = doc.CreateElement("files", nameSpaceUri);
+            
+            // Include all files from the output directory
+            XmlElement fileElement = doc.CreateElement("file", nameSpaceUri);
+            fileElement.SetAttribute("src", "**");
+            fileElement.SetAttribute("target", "");
+            filesElement.AppendChild(fileElement);
+            
+            packageElement.AppendChild(filesElement);
             doc.AppendChild(packageElement);
 
             var nuspecFullName = System.IO.Path.Combine(outputDir, _pkgName + ".nuspec");
