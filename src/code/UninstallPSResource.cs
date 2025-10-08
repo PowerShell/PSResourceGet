@@ -258,6 +258,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
+            // If we had packages but didn't uninstall any (e.g., due to version/prerelease filters), write a warning
+            if (currentUninstalledDirCount == 0 && totalDirs > 0)
+            {
+                string warningMessage = Prerelease 
+                    ? $"No prerelease versions of '{String.Join(", ", Name)}' were found to uninstall."
+                    : $"No packages matching the specified criteria for '{String.Join(", ", Name)}' were found to uninstall.";
+                
+                if (Version != null && !Version.Trim().Equals("*"))
+                {
+                    warningMessage = Prerelease 
+                        ? $"No prerelease versions of '{String.Join(", ", Name)}' matching version '{Version}' were found to uninstall."
+                        : $"No packages of '{String.Join(", ", Name)}' matching version '{Version}' were found to uninstall.";
+                }
+
+                WriteWarning(warningMessage);
+            }
+
             return successfullyUninstalled;
         }
 
