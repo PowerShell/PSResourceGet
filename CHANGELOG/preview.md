@@ -1,5 +1,10 @@
 # Preview Changelog
 
+## [Unreleased]
+
+### New Features
+- New cmdlet `Reset-PSResourceRepository` which creates a fresh repository store by deleting the existing PSResourceRepository.xml file and registering only PSGallery with default settings
+
 ## [1.2.0-preview3](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview2..v1.2.0-preview3) - 2025-09-12
 
 ### New Features
