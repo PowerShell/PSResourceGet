@@ -432,4 +432,11 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -Contain "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.UpdatePSResource"
         $err[1].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.UpdatePSResource"
     }
+
+    # Test that AuthenticodeCheck parameter displays warning on non-Windows
+    It "Update with AuthenticodeCheck on non-Windows should display warning" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
+        Update-PSResource -Name $testModuleName -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -WarningVariable warn -WarningAction SilentlyContinue
+        $warn | Should -Contain "Authenticode check cannot be performed on Linux or MacOS."
+    }
 }
