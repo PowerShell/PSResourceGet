@@ -72,7 +72,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
             catch (Exception e)
             {
-                throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Repository store may be corrupted, file reading failed with error: {0}.", e.Message));
+                throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Repository store may be corrupted, file reading failed with error: {0}. Try running 'Reset-PSResourceRepository' to reset the repository store.", e.Message));
             }
         }
 
@@ -843,6 +843,102 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             var reposToReturn = foundRepos.OrderBy(x => x.Priority).ThenBy(x => x.Name);
 
             return reposToReturn.ToList();
+        }
+
+        /// <summary>
+        /// Reset the repository store by creating a new PSRepositories.xml file with PSGallery registered.
+        /// This creates a temporary new file first, and only replaces the old file if creation succeeds.
+        /// If creation fails, the old file is restored.
+        /// Returns: PSRepositoryInfo for the PSGallery repository
+        /// </summary>
+        public static PSRepositoryInfo Reset(PSCmdlet cmdletPassedIn, out string errorMsg)
+        {
+            errorMsg = string.Empty;
+            string tempFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".xml");
+            string backupFilePath = string.Empty;
+
+            try
+            {
+                // Ensure the repository directory exists
+                if (!Directory.Exists(RepositoryPath))
+                {
+                    Directory.CreateDirectory(RepositoryPath);
+                }
+
+                // Create new repository XML in a temporary location
+                XDocument newRepoXML = new XDocument(
+                    new XElement("configuration"));
+                newRepoXML.Save(tempFilePath);
+
+                // Validate that the temporary file can be loaded
+                LoadXDocument(tempFilePath);
+
+                // Back up the existing file if it exists
+                if (File.Exists(FullRepositoryPath))
+                {
+                    backupFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + "_backup.xml");
+                    File.Copy(FullRepositoryPath, backupFilePath, overwrite: true);
+                    
+                    // Delete the old file
+                    File.Delete(FullRepositoryPath);
+                }
+
+                // Move the temporary file to the actual location
+                File.Copy(tempFilePath, FullRepositoryPath, overwrite: true);
+
+                // Add PSGallery to the newly created store
+                Uri psGalleryUri = new Uri(PSGalleryRepoUri);
+                PSRepositoryInfo psGalleryRepo = Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null, repoCredentialProvider: CredentialProviderType.None, APIVersion.V2, force: false);
+
+                // Clean up temporary and backup files on success
+                if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                }
+                if (!string.IsNullOrEmpty(backupFilePath) && File.Exists(backupFilePath))
+                {
+                    File.Delete(backupFilePath);
+                }
+
+                return psGalleryRepo;
+            }
+            catch (Exception e)
+            {
+                // Restore the backup file if it exists
+                if (!string.IsNullOrEmpty(backupFilePath) && File.Exists(backupFilePath))
+                {
+                    try
+                    {
+                        if (File.Exists(FullRepositoryPath))
+                        {
+                            File.Delete(FullRepositoryPath);
+                        }
+                        File.Copy(backupFilePath, FullRepositoryPath, overwrite: true);
+                        File.Delete(backupFilePath);
+                    }
+                    catch (Exception restoreEx)
+                    {
+                        errorMsg = string.Format(CultureInfo.InvariantCulture, "Repository store reset failed with error: {0}. An attempt to restore the old repository store also failed with error: {1}", e.Message, restoreEx.Message);
+                        return null;
+                    }
+                }
+
+                // Clean up temporary file
+                if (File.Exists(tempFilePath))
+                {
+                    try
+                    {
+                        File.Delete(tempFilePath);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors
+                    }
+                }
+
+                errorMsg = string.Format(CultureInfo.InvariantCulture, "Repository store reset failed with error: {0}.", e.Message);
+                return null;
+            }
         }
 
         #endregion
