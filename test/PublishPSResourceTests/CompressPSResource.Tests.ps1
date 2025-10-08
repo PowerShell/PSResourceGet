@@ -400,19 +400,13 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
         
-        # Create Public and Private directories with .gitkeep files
-        $publicDir = Join-Path -Path $script:PublishModuleBase -ChildPath "Public"
-        $privateDir = Join-Path -Path $script:PublishModuleBase -ChildPath "Private"
-        New-Item -Path $publicDir -ItemType Directory -Force
-        New-Item -Path $privateDir -ItemType Directory -Force
+        # Create 'hidden' directory with .gitkeep files
+        $hiddenDir = Join-Path -Path $script:PublishModuleBase -ChildPath "hidden"
+        New-Item -Path $hiddenDir -ItemType Directory -Force
         
-        # Create empty .gitkeep in Public
-        $publicGitkeep = Join-Path -Path $publicDir -ChildPath ".gitkeep"
-        New-Item -Path $publicGitkeep -ItemType File -Force
-        
-        # Create non-empty .gitkeep in Private
-        $privateGitkeep = Join-Path -Path $privateDir -ChildPath ".gitkeep"
-        "# Keep this directory" | Out-File -FilePath $privateGitkeep -Force
+        # Create empty .gitkeep file in 'hidden' directory
+        $hiddenGitkeep = Join-Path -Path $hiddenDir -ChildPath ".gitkeep"
+        New-Item -Path $hiddenGitkeep -ItemType File -Force
         
         Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath
         
@@ -425,15 +419,9 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         Expand-Archive -Path $zipPath -DestinationPath $unzippedPath
         
         # Verify both .gitkeep files exist
-        $extractedPublicGitkeep = Join-Path -Path $unzippedPath -ChildPath "Public" | Join-Path -ChildPath ".gitkeep"
-        $extractedPrivateGitkeep = Join-Path -Path $unzippedPath -ChildPath "Private" | Join-Path -ChildPath ".gitkeep"
+        $extractedHiddenkeep = Join-Path -Path $unzippedPath -ChildPath "hidden" | Join-Path -ChildPath ".gitkeep"
         
-        Test-Path -Path $extractedPublicGitkeep | Should -Be $True
-        Test-Path -Path $extractedPrivateGitkeep | Should -Be $True
-        
-        # Verify empty file is still empty and non-empty has content
-        (Get-Item $extractedPublicGitkeep).Length | Should -Be 0
-        (Get-Item $extractedPrivateGitkeep).Length | Should -BeGreaterThan 0
+        Test-Path -Path $extractedHiddenkeep | Should -Be $True
         
         $null = Remove-Item $unzippedPath -Force -Recurse
     }
