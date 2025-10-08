@@ -605,7 +605,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         Path = nuspecFile,
                         Exclude = System.Array.Empty<string>(),
                         Symbols = false,
-                        Logger = NullLogger.Instance
+                        Logger = NullLogger.Instance,
+                        NoDefaultExcludes = true
                     },
                     MSBuildProjectFactory.ProjectCreator,
                     builder);

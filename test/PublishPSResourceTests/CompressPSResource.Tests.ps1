@@ -396,6 +396,36 @@ Describe "Test Compress-PSResource" -tags 'CI' {
         }
     }
 
+    It "Compress-PSResource includes .gitkeep files (empty and non-empty)" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+        
+        # Create 'hidden' directory with .gitkeep files
+        $hiddenDir = Join-Path -Path $script:PublishModuleBase -ChildPath "hidden"
+        New-Item -Path $hiddenDir -ItemType Directory -Force
+        
+        # Create empty .gitkeep file in 'hidden' directory
+        $hiddenGitkeep = Join-Path -Path $hiddenDir -ChildPath ".gitkeep"
+        New-Item -Path $hiddenGitkeep -ItemType File -Force
+        
+        Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:repositoryPath
+        
+        # Extract and verify files are included
+        $nupkgPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.nupkg"
+        $zipPath = Join-Path -Path $script:repositoryPath -ChildPath "$script:PublishModuleName.$version.zip"
+        Rename-Item -Path $nupkgPath -NewName $zipPath
+        $unzippedPath = Join-Path -Path $TestDrive -ChildPath "$script:PublishModuleName-gitkeep-test"
+        New-Item $unzippedPath -ItemType directory -Force
+        Expand-Archive -Path $zipPath -DestinationPath $unzippedPath
+        
+        # Verify both .gitkeep files exist
+        $extractedHiddenkeep = Join-Path -Path $unzippedPath -ChildPath "hidden" | Join-Path -ChildPath ".gitkeep"
+        
+        Test-Path -Path $extractedHiddenkeep | Should -Be $True
+        
+        $null = Remove-Item $unzippedPath -Force -Recurse
+    }
+
 <# Test for Signing the nupkg. Signing doesn't work
     It "Compressed Module is able to be signed with a certificate" {
 		$version = "1.0.0"
