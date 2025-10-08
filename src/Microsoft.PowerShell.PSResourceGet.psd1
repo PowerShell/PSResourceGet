@@ -23,6 +23,7 @@
         'Get-PSScriptFileInfo',
         'Install-PSResource',
         'Register-PSResourceRepository',
+        'Reset-PSResourceRepository',
         'Save-PSResource',
         'Set-PSResourceRepository',
         'New-PSScriptFileInfo',
