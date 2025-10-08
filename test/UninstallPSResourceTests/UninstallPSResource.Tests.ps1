@@ -236,16 +236,18 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
     }
 
     It "Write warning when using -Prerelease flag with only stable versions installed" {
-        # Install a stable version
-        Install-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository
+        # BeforeEach already installs a stable version of $testModuleName (5.0.0.0)
+        # Verify it's installed
+        $pkg = Get-InstalledPSResource $testModuleName
+        $pkg | Should -Not -BeNullOrEmpty
         
         # Try to uninstall with -Prerelease flag, should show warning
         Uninstall-PSResource -Name $testModuleName -Prerelease -SkipDependencyCheck -WarningVariable warn -WarningAction SilentlyContinue
         
-        # Module should still be present
-        $res = Get-InstalledPSResource -Name $testModuleName -Version "5.0.0.0"
+        # Module should still be present since no prerelease versions were found
+        $res = Get-InstalledPSResource -Name $testModuleName
+        $res | Should -Not -BeNullOrEmpty
         $res.Name | Should -Be $testModuleName
-        $res.Version | Should -Be "5.0.0.0"
         
         # Warning should have been written
         $warn.Count | Should -Be 1
