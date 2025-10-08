@@ -72,7 +72,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
             catch (Exception e)
             {
-                throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Repository store may be corrupted, file reading failed with error: {0}.", e.Message));
+                throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Repository store may be corrupted, file reading failed with error: {0}. Run 'Reset-PSResourceRepository' to reset the repository store to its default state.", e.Message));
             }
         }
 
@@ -843,6 +843,55 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             var reposToReturn = foundRepos.OrderBy(x => x.Priority).ThenBy(x => x.Name);
 
             return reposToReturn.ToList();
+        }
+
+        /// <summary>
+        /// Resets the repository store by deleting the existing file and creating a new one with PSGallery
+        /// Returns: PSRepositoryInfo for the newly registered PSGallery
+        /// </summary>
+        public static PSRepositoryInfo ResetRepositoryStore()
+        {
+            // Delete the existing repository file if it exists
+            if (File.Exists(FullRepositoryPath))
+            {
+                try
+                {
+                    File.Delete(FullRepositoryPath);
+                }
+                catch (Exception e)
+                {
+                    throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Failed to delete repository store file with error: {0}.", e.Message));
+                }
+            }
+
+            // Ensure directory exists
+            if (!Directory.Exists(RepositoryPath))
+            {
+                try
+                {
+                    Directory.CreateDirectory(RepositoryPath);
+                }
+                catch (Exception e)
+                {
+                    throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Failed to create repository directory with error: {0}.", e.Message));
+                }
+            }
+
+            // Create a new repository store file
+            try
+            {
+                XDocument newRepoXML = new XDocument(
+                    new XElement("configuration"));
+                newRepoXML.Save(FullRepositoryPath);
+            }
+            catch (Exception e)
+            {
+                throw new PSInvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Repository store creation failed with error: {0}.", e.Message));
+            }
+
+            // Add PSGallery to the newly created store
+            Uri psGalleryUri = new Uri(PSGalleryRepoUri);
+            return Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null, repoCredentialProvider: CredentialProviderType.None, APIVersion.V2, force: false);
         }
 
         #endregion
