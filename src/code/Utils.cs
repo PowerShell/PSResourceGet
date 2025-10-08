@@ -2160,6 +2160,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             // Because authenticode and catalog verifications are only applicable on Windows, we allow all packages by default to be installed on unix systems.
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
+                cmdletPassedIn.WriteWarning("Authenticode check cannot be performed on Linux or MacOS.");
                 return true;
             }
 

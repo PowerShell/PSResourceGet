@@ -554,6 +554,14 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
     }
 
+    # Test that AuthenticodeCheck parameter displays warning on non-Windows
+    It "Install with AuthenticodeCheck on non-Windows should display warning" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -AuthenticodeCheck -WarningVariable warn -WarningAction SilentlyContinue
+        $warn[0] | Should -Contain "Authenticode check cannot be performed on Linux or MacOS"
+        $res = Get-InstalledPSResource $testModuleName
+        $res.Name | Should -Be $testModuleName
+    }
+
     # Unix test for installing scripts
     It "Install script resource - Unix only" -Skip:(Get-IsWindows) {
         # previously installing pester on Unix was throwing an error due to how the environment PATH variable was being gotten.
