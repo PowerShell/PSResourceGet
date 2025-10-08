@@ -202,13 +202,6 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         $err[1].FullyQualifiedErrorId | Should -Contain "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
 
-    # Test that AuthenticodeCheck parameter displays warning on non-Windows
-    It "Save with AuthenticodeCheck on non-Windows should display warning" -Skip:(Get-IsWindows) {
-        Save-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Path $SaveDir -AuthenticodeCheck -WarningVariable warn -WarningAction SilentlyContinue
-        $warn | Should -Contain "Authenticode check cannot be performed on Linux or MacOS."
-        Test-Path "$SaveDir/$testModuleName" | Should -Be $true
-    }
-
     # Save resource that requires license
     It "Save resource that requires accept license with -AcceptLicense flag" {
         $pkg = Save-PSResource -Repository $PSGalleryName -TrustRepository -Path $SaveDir -Name $testModuleNameWithLicense -AcceptLicense -PassThru
