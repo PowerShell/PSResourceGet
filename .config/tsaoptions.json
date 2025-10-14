@@ -1,10 +1,10 @@
 {
-  "instanceUrl": "https://msazure.visualstudio.com",
-  "projectName": "One",
-  "areaPath": "One\\MGMT\\Compute\\Powershell\\Powershell\\PowerShell Core",
-  "notificationAliases": [
-    "adityap@microsoft.com",
-    "americks@microsoft.com",
-    "annavied@microsoft.com"
-  ]
+    "instanceUrl": "https://msazure.visualstudio.com",
+    "projectName": "One",
+    "areaPath": "One\\MGMT\\Compute\\Powershell\\Powershell\\PowerShell Core\\PSResourceGet",
+    "notificationAliases": [
+        "adityap@microsoft.com",
+        "americks@microsoft.com",
+        "annavied@microsoft.com"
+    ]
 }
