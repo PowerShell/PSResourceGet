@@ -340,4 +340,8 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $pkg.Name | Should -Be $testModuleName
         $pkg.Path.ToString().Contains("Documents") | Should -Be $true
     }
+
+    It "Get definition for alias 'usres'" {
+        (Get-Alias usres).Definition | Should -BeExactly 'Uninstall-PSResource'
+    }
 }
