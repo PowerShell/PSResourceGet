@@ -40,7 +40,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this));
             }
 
-            var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
+            System.Collections.ObjectModel.Collection<string> resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
             if (resolvedPaths.Count != 1)
             {
                 ThrowTerminatingError(new ErrorRecord(

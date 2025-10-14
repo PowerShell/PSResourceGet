@@ -9,7 +9,7 @@ Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
 
 Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
 
-    BeforeAll{
+    BeforeAll {
         $testModuleName = "test_local_mod"
         $ADOV2RepoName = "PSGetTestingPublicFeed"
         $ADOV2RepoUri = "https://pkgs.dev.azure.com/powershell/PowerShell/_packaging/psresourceget-public-test-ci/nuget/v2"
@@ -42,18 +42,18 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $res.Count | Should -BeGreaterThan 1
     }
 
-    $testCases2 = @{Version="[5.0.0]";           ExpectedVersions=@("5.0.0");                                  Reason="validate version, exact match"},
-                  @{Version="5.0.0";             ExpectedVersions=@("5.0.0");                                  Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[1.0.0, 5.0.0]";    ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, exact range inclusive"},
-                  @{Version="(1.0.0, 5.0.0)";    ExpectedVersions=@("3.0.0");                                  Reason="validate version, exact range exclusive"},
-                  @{Version="(1.0.0,)";          ExpectedVersions=@("3.0.0", "5.0.0");                       Reason="validate version, minimum version exclusive"},
-                  @{Version="[1.0.0,)";          ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, minimum version inclusive"},
-                  @{Version="(,3.0.0)";          ExpectedVersions=@("1.0.0");                                  Reason="validate version, maximum version exclusive"},
-                  @{Version="(,3.0.0]";          ExpectedVersions=@("1.0.0", "3.0.0");                       Reason="validate version, maximum version inclusive"},
-                  @{Version="[1.0.0, 5.0.0)";    ExpectedVersions=@("1.0.0", "3.0.0");                       Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(1.0.0, 5.0.0]";    ExpectedVersions=@("3.0.0", "5.0.0");                       Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version = "[5.0.0]"; ExpectedVersions = @("5.0.0"); Reason = "validate version, exact match" },
+    @{Version = "5.0.0"; ExpectedVersions = @("5.0.0"); Reason = "validate version, exact match without bracket syntax" },
+    @{Version = "[1.0.0, 5.0.0]"; ExpectedVersions = @("1.0.0", "3.0.0", "5.0.0"); Reason = "validate version, exact range inclusive" },
+    @{Version = "(1.0.0, 5.0.0)"; ExpectedVersions = @("3.0.0"); Reason = "validate version, exact range exclusive" },
+    @{Version = "(1.0.0,)"; ExpectedVersions = @("3.0.0", "5.0.0"); Reason = "validate version, minimum version exclusive" },
+    @{Version = "[1.0.0,)"; ExpectedVersions = @("1.0.0", "3.0.0", "5.0.0"); Reason = "validate version, minimum version inclusive" },
+    @{Version = "(,3.0.0)"; ExpectedVersions = @("1.0.0"); Reason = "validate version, maximum version exclusive" },
+    @{Version = "(,3.0.0]"; ExpectedVersions = @("1.0.0", "3.0.0"); Reason = "validate version, maximum version inclusive" },
+    @{Version = "[1.0.0, 5.0.0)"; ExpectedVersions = @("1.0.0", "3.0.0"); Reason = "validate version, mixed inclusive minimum and exclusive maximum version" }
+    @{Version = "(1.0.0, 5.0.0]"; ExpectedVersions = @("3.0.0", "5.0.0"); Reason = "validate version, mixed exclusive minimum and inclusive maximum version" }
 
-    It "Find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
+    It "Find resource when given Name to <Reason> <Version>" -TestCases $testCases2 {
         # FindVersionGlobbing()
         param($Version, $ExpectedVersions)
         $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $ADOV2RepoName
@@ -92,7 +92,7 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $resWithPrerelease.Count | Should -BeGreaterOrEqual $resWithoutPrerelease.Count
     }
 
-<# LATER
+    <# LATER
     It "Find resource and its dependency resources with IncludeDependencies parameter" {
         # FindName() with deps
         $resWithoutDependencies = Find-PSResource -Name "TestModuleWithDependencyE" -Repository $ADOV2RepoName

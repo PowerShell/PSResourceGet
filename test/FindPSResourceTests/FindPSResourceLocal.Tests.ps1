@@ -9,7 +9,7 @@ Write-Verbose -Verbose "Current module search paths: $psmodulePaths"
 
 Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
-    BeforeAll{
+    BeforeAll {
         $localRepo = "psgettestlocal"
         $localUNCRepo = 'psgettestlocal3'
         $testModuleName = "test_local_mod"
@@ -120,18 +120,18 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res.Count | Should -BeGreaterThan 1
     }
 
-    $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0");                              Reason="validate version, exact match"},
-                  @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0");                              Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, exact range inclusive"},
-                  @{Version="(1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("3.0.0");                              Reason="validate version, exact range exclusive"},
-                  @{Version="(1.0.0.0,)";          ExpectedVersions=@("3.0.0", "5.0.0");                     Reason="validate version, minimum version exclusive"},
-                  @{Version="[1.0.0.0,)";          ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, minimum version inclusive"},
-                  @{Version="(,3.0.0.0)";          ExpectedVersions=@("1.0.0");                              Reason="validate version, maximum version exclusive"},
-                  @{Version="(,3.0.0.0]";          ExpectedVersions=@("1.0.0", "3.0.0");                     Reason="validate version, maximum version inclusive"},
-                  @{Version="[1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("1.0.0", "3.0.0");                     Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("3.0.0", "5.0.0");                     Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version = "[5.0.0.0]"; ExpectedVersions = @("5.0.0"); Reason = "validate version, exact match" },
+    @{Version = "5.0.0.0"; ExpectedVersions = @("5.0.0"); Reason = "validate version, exact match without bracket syntax" },
+    @{Version = "[1.0.0.0, 5.0.0.0]"; ExpectedVersions = @("1.0.0", "3.0.0", "5.0.0"); Reason = "validate version, exact range inclusive" },
+    @{Version = "(1.0.0.0, 5.0.0.0)"; ExpectedVersions = @("3.0.0"); Reason = "validate version, exact range exclusive" },
+    @{Version = "(1.0.0.0,)"; ExpectedVersions = @("3.0.0", "5.0.0"); Reason = "validate version, minimum version exclusive" },
+    @{Version = "[1.0.0.0,)"; ExpectedVersions = @("1.0.0", "3.0.0", "5.0.0"); Reason = "validate version, minimum version inclusive" },
+    @{Version = "(,3.0.0.0)"; ExpectedVersions = @("1.0.0"); Reason = "validate version, maximum version exclusive" },
+    @{Version = "(,3.0.0.0]"; ExpectedVersions = @("1.0.0", "3.0.0"); Reason = "validate version, maximum version inclusive" },
+    @{Version = "[1.0.0.0, 5.0.0.0)"; ExpectedVersions = @("1.0.0", "3.0.0"); Reason = "validate version, mixed inclusive minimum and exclusive maximum version" }
+    @{Version = "(1.0.0.0, 5.0.0.0]"; ExpectedVersions = @("3.0.0", "5.0.0"); Reason = "validate version, mixed exclusive minimum and inclusive maximum version" }
 
-    It "find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
+    It "find resource when given Name to <Reason> <Version>" -TestCases $testCases2 {
         # FindVersionGlobbing()
         param($Version, $ExpectedVersions)
         $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $localRepo
@@ -219,8 +219,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
         $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTag -Repository $localRepo
         $res.Count | Should -BeGreaterThan 1
-        foreach ($pkg in $res)
-        {
+        foreach ($pkg in $res) {
             $pkg.Name | Should -BeLike $nameWithWildcard
             $pkg.Tags | Should -Contain "$requiredTag"
         }
@@ -240,8 +239,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
         $res = Find-PSResource -Name $nameWithWildcard -Tag $requiredTags -Repository $localRepo
         $res.Count | Should -BeGreaterThan 1
-        foreach ($pkg in $res)
-        {
+        foreach ($pkg in $res) {
             $pkg.Name | Should -BeLike $nameWithWildcard
             $pkg.Tags | Should -Contain $requiredTags[0]
             $pkg.Tags | Should -Contain $requiredTags[1]

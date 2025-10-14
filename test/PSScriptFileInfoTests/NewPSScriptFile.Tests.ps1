@@ -15,13 +15,12 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
         $script:testScriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "$script:PSScriptInfoName.ps1"
     }
     AfterEach {
-        if (Test-Path -Path $script:testScriptFilePath)
-        {
+        if (Test-Path -Path $script:testScriptFilePath) {
             Remove-Item $script:testScriptFilePath
         }
     }
 
-    It "Create .ps1 file with minimal required fields" {    
+    It "Create .ps1 file with minimal required fields" {
         $description = "Test description"
         New-PSScriptFileInfo -Path  $script:testScriptFilePath -Description $description
         Test-PSScriptFileInfo -Path $script:testScriptFilePath | Should -BeTrue
@@ -39,7 +38,7 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
     }
 
     It "Create new .ps1 given Version parameter" {
-        $version =  "2.0.0.0"
+        $version = "2.0.0.0"
         $description = "Test description"
 
         New-PSScriptFileInfo -Path $script:testScriptFilePath -Version $version -Description $description
@@ -63,7 +62,7 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
     }
 
     It "Create new .ps1 given Author parameter" {
-        $author = "Test Author" 
+        $author = "Test Author"
         $description = "Test description"
 
         New-PSScriptFileInfo -Path  $script:testScriptFilePath -Author $author -Description $description
@@ -86,7 +85,7 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
     }
 
     It "Create new .ps1 given CompanyName parameter" {
-        $companyName =  "Microsoft"
+        $companyName = "Microsoft"
         $description = "Test description"
 
         New-PSScriptFileInfo -Path $script:testScriptFilePath -CompanyName $companyName -Description $description
@@ -98,7 +97,7 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
     }
 
     It "Create new .ps1 given Copyright parameter" {
-        $copyright =  "(c) Test Corporation"
+        $copyright = "(c) Test Corporation"
         $description = "Test description"
 
         New-PSScriptFileInfo -Path $script:testScriptFilePath -Copyright $copyright -Description $description
@@ -112,11 +111,11 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
     It "Create new .ps1 given RequiredModules parameter" {
         $requiredModuleName = 'PackageManagement'
         $requiredModuleVersion = '1.0.0.0'
-        $RequiredModules =  @(@{ModuleName = $requiredModuleName; ModuleVersion = $requiredModuleVersion })
+        $RequiredModules = @(@{ModuleName = $requiredModuleName; ModuleVersion = $requiredModuleVersion })
 
-        $description = "Test description"        
+        $description = "Test description"
 
-        New-PSScriptFileInfo -Path $script:testScriptFilePath -RequiredModules $RequiredModules -Description $Description 
+        New-PSScriptFileInfo -Path $script:testScriptFilePath -RequiredModules $RequiredModules -Description $Description
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
@@ -129,7 +128,7 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
         $description = "Test Description"
         $releaseNotes = "Release notes for script."
 
-        New-PSScriptFileInfo -Path $script:testScriptFilePath -ReleaseNotes $releaseNotes -Description $description 
+        New-PSScriptFileInfo -Path $script:testScriptFilePath -ReleaseNotes $releaseNotes -Description $description
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
@@ -142,7 +141,7 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
         $tag1 = "tag1"
         $tag2 = "tag2"
 
-        New-PSScriptFileInfo -Path $script:testScriptFilePath -Tags $tag1, $tag2 -Description $description 
+        New-PSScriptFileInfo -Path $script:testScriptFilePath -Tags $tag1, $tag2 -Description $description
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
@@ -156,7 +155,7 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
         $tag1 = "tag1"
         $tag2 = "tag2"
 
-        New-PSScriptFileInfo -Path $script:testScriptFilePath -Tag $tag1, $tag2 -Description $description 
+        New-PSScriptFileInfo -Path $script:testScriptFilePath -Tag $tag1, $tag2 -Description $description
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
@@ -169,7 +168,7 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
         $description = "Test Description"
         $projectUri = "https://www.testprojecturi.com/"
 
-        New-PSScriptFileInfo -Path $script:testScriptFilePath -ProjectUri $projectUri -Description $description 
+        New-PSScriptFileInfo -Path $script:testScriptFilePath -ProjectUri $projectUri -Description $description
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
@@ -181,7 +180,7 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
         $description = "Test Description"
         $licenseUri = "https://www.testlicenseuri.com/"
 
-        New-PSScriptFileInfo -Path $script:testScriptFilePath -LicenseUri $licenseUri -Description $description 
+        New-PSScriptFileInfo -Path $script:testScriptFilePath -LicenseUri $licenseUri -Description $description
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
@@ -193,7 +192,7 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
         $description = "Test Description"
         $iconUri = "https://www.testiconuri.com/"
 
-        New-PSScriptFileInfo -Path $script:testScriptFilePath -IconUri $iconUri -Description $description 
+        New-PSScriptFileInfo -Path $script:testScriptFilePath -IconUri $iconUri -Description $description
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw
@@ -245,8 +244,8 @@ Describe "Test New-PSScriptFileInfo" -tags 'CI' {
 
     It "Create new .ps1 given PrivateData parameter" {
         $description = "Test Description"
-        $privateData = @{"PrivateDataEntry1" = "PrivateDataValue1"}
-        New-PSScriptFileInfo -Path $script:testScriptFilePath -PrivateData $privateData -Description $description 
+        $privateData = @{"PrivateDataEntry1" = "PrivateDataValue1" }
+        New-PSScriptFileInfo -Path $script:testScriptFilePath -PrivateData $privateData -Description $description
 
         Test-Path -Path $script:testScriptFilePath | Should -BeTrue
         $results = Get-Content -Path $script:testScriptFilePath -Raw

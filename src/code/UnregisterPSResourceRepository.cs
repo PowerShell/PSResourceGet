@@ -45,7 +45,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
         protected override void ProcessRecord()
         {
-            Name = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] _, out bool nameContainsWildcard);
+            Name = Utils.ProcessNameWildcards(Name, removeWildcardEntries: false, out string[] _, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {
                 WriteError(new ErrorRecord(

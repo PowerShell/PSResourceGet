@@ -59,7 +59,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
     }
 
     It "Update module manifest given ModuleVersion parameter" {
-        $ModuleVersion =  "7.0.0.0"
+        $ModuleVersion = "7.0.0.0"
         New-ModuleManifest -Path $script:testManifestPath
         Update-PSModuleManifest -Path $script:testManifestPath -ModuleVersion $ModuleVersion
 
@@ -70,13 +70,12 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
     It "Update module manifest given RequiredModules parameter" {
         $requiredModuleName = 'PackageManagement'
         $requiredModuleVersion = '1.0.0.0'
-        $RequiredModules =  @(@{ModuleName = $requiredModuleName; ModuleVersion = $requiredModuleVersion })
+        $RequiredModules = @(@{ModuleName = $requiredModuleName; ModuleVersion = $requiredModuleVersion })
         New-ModuleManifest -Path $script:testManifestPath
         Update-PSModuleManifest -Path $script:testManifestPath -RequiredModules $RequiredModules -Description "test"
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
-        foreach ($module in $results.RequiredModules)
-        {
+        foreach ($module in $results.RequiredModules) {
             $module | Should -Be $requiredModuleName
             $module.Version | Should -Be $requiredModuleVersion
         }
@@ -98,7 +97,7 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
         $ModuleVersion = "1.0.0"
         $Prerelease = "  "
         New-ModuleManifest -Path $script:testManifestPath -Description $Description -ModuleVersion $ModuleVersion
-        {Update-PSModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease} | Should -Throw -ErrorId "PrereleaseValueCannotBeWhiteSpace,Microsoft.PowerShell.PSResourceGet.Cmdlets.UpdateModuleManifest"
+        { Update-PSModuleManifest -Path $script:testManifestPath -Prerelease $Prerelease } | Should -Throw -ErrorId "PrereleaseValueCannotBeWhiteSpace,Microsoft.PowerShell.PSResourceGet.Cmdlets.UpdateModuleManifest"
     }
 
     It "Update module manifest given ReleaseNotes parameter" {
@@ -359,14 +358,14 @@ Describe 'Test Update-PSModuleManifest' -tags 'CI' {
 
         New-ModuleManifest -Path $script:testManifestPath -Description $Description
         Update-PSModuleManifest -Path $script:testManifestPath `
-                              -CompanyName $CompanyName `
-                              -Copyright $Copyright `
-                              -PowerShellVersion $PowerShellVersion `
-                              -ClrVersion $ClrVersion `
-                              -DotNetFrameworkVersion $DotnetFrameworkVersion `
-                              -PowerShellHostVersion $PowerShellHostVersion `
-                              -HelpInfoUri $HelpInfoUri `
-                              -CompatiblePSEditions $CompatiblePSEditions
+            -CompanyName $CompanyName `
+            -Copyright $Copyright `
+            -PowerShellVersion $PowerShellVersion `
+            -ClrVersion $ClrVersion `
+            -DotNetFrameworkVersion $DotnetFrameworkVersion `
+            -PowerShellHostVersion $PowerShellHostVersion `
+            -HelpInfoUri $HelpInfoUri `
+            -CompatiblePSEditions $CompatiblePSEditions
 
         $results = Test-ModuleManifest -Path $script:testManifestPath
         $results.CompanyName | Should -Be $CompanyName

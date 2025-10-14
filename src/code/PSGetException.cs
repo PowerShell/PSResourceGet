@@ -24,7 +24,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
     public class JsonParsingException : Exception
     {
         public JsonParsingException(string message, Exception innerException = null)
-            : base (message)
+            : base(message)
         {
         }
     }
@@ -48,15 +48,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
     public class InvalidOrEmptyResponse : Exception
     {
         public InvalidOrEmptyResponse(string message, Exception innerException = null)
-            : base (message)
-        {   
+            : base(message)
+        {
         }
     }
 
     public class LocalResourceEmpty : Exception
     {
         public LocalResourceEmpty(string message, Exception innerException = null)
-            : base (message)
+            : base(message)
         {
         }
     }
@@ -64,7 +64,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
     public class LocalResourceNotFoundException : Exception
     {
         public LocalResourceNotFoundException(string message, Exception innerException = null)
-            : base (message)
+            : base(message)
         {
         }
     }

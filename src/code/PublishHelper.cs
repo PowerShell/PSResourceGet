@@ -18,7 +18,7 @@ using System.Xml;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
-	internal class PublishHelper
+    internal class PublishHelper
     {
         #region Enums
         internal enum CallerCmdlet
@@ -120,27 +120,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             parsedMetadata = new Hashtable(StringComparer.OrdinalIgnoreCase);
             if (resourceType == ResourceType.Script)
+            {
+                if (!PSScriptFileInfo.TryTestPSScriptFileInfo(
+                    scriptFileInfoPath: pathToScriptFileToPublish,
+                    parsedScript: out PSScriptFileInfo scriptToPublish,
+                    out ErrorRecord[] errors,
+                    out string[] _
+                ))
                 {
-                    if (!PSScriptFileInfo.TryTestPSScriptFileInfo(
-                        scriptFileInfoPath: pathToScriptFileToPublish,
-                        parsedScript: out PSScriptFileInfo scriptToPublish,
-                        out ErrorRecord[] errors,
-                        out string[] _
-                    ))
+                    foreach (ErrorRecord error in errors)
                     {
-                        foreach (ErrorRecord error in errors)
-                        {
-                            _cmdletPassedIn.WriteError(error);
-                        }
-
-                        ScriptError = true;
-
-                        return;
+                        _cmdletPassedIn.WriteError(error);
                     }
 
-                    parsedMetadata = scriptToPublish.ToHashtable();
+                    ScriptError = true;
 
-                    _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToScriptFileToPublish);
+                    return;
+                }
+
+                parsedMetadata = scriptToPublish.ToHashtable();
+
+                _pkgName = System.IO.Path.GetFileNameWithoutExtension(pathToScriptFileToPublish);
             }
             else
             {
@@ -320,7 +320,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             finally
             {
-                if(_callerCmdlet == CallerCmdlet.CompressPSResource)
+                if (_callerCmdlet == CallerCmdlet.CompressPSResource)
                 {
                     _cmdletPassedIn.WriteVerbose(string.Format("Deleting temporary directory '{0}'", outputDir));
                     Utils.DeleteDirectory(outputDir);
@@ -328,7 +328,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
         }
 
-        internal void PushResource(string Repository, string modulePrefix, bool SkipDependenciesCheck, NetworkCredential _networkCredential)
+        internal void PushResource(string Repository, string modulePrefix, bool SkipDependenciesCheck, NetworkCredential networkCredential)
         {
             try
             {
@@ -381,7 +381,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
-                _networkCredential = repository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
+                _networkCredential = repository.SetNetworkCredentials(networkCredential, _cmdletPassedIn);
 
                 // Check if dependencies already exist within the repo if:
                 // 1) the resource to publish has dependencies and
@@ -469,7 +469,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    if(_isNupkgPathSpecified)
+                    if (_isNupkgPathSpecified)
                     {
                         outputNupkgDir = pathToNupkgToPublish;
                     }
@@ -669,7 +669,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // to accommodate for the appropriate publish location.
             string publishLocation = repoUri.EndsWith("/v2", StringComparison.OrdinalIgnoreCase) ? repoUri + "/package" : repoUri;
 
-            var settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, null);
+            ISettings settings = NuGet.Configuration.Settings.LoadDefaultSettings(null, null, null);
             var success = false;
 
             var sourceProvider = new PackageSourceProvider(settings);
@@ -741,7 +741,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         error = new ErrorRecord(new ArgumentException($"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception: '{e.Message}'"),
                             "401Error",
                             ErrorCategory.PermissionDenied,
-                            this); ;
+                            this);
+                        ;
                     }
                 }
                 else if (e.Message.Contains("403"))
@@ -840,7 +841,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return;
             }
 
-            var packageSource = sourceProvider.LoadPackageSources().FirstOrDefault(s => s.Source == source);
+            PackageSource packageSource = sourceProvider.LoadPackageSources().FirstOrDefault(s => s.Source == source);
             if (packageSource != null)
             {
                 if (!packageSource.IsEnabled)
@@ -850,7 +851,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
 
-            var networkCred = Credential == null ? _networkCredential : Credential.GetNetworkCredential();
+            NetworkCredential networkCred = Credential == null ? _networkCredential : Credential.GetNetworkCredential();
             string key;
 
             if (packageSource == null)
@@ -1280,7 +1281,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var repository = new[] { repositoryName };
                 // Note: we set prerelease argument for FindByResourceName() to true because if no version is specified we want latest version (including prerelease).
                 // If version is specified it will get that one. There is also no way to specify a prerelease flag with RequiredModules hashtable of dependency so always try to get latest version.
-                var dependencyFound = findHelper.FindByResourceName(new string[] { depName }, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, prerelease: true, tag: null, repository, includeDependencies: false, suppressErrors: true);
+                IEnumerable<PSResourceInfo> dependencyFound = findHelper.FindByResourceName(new string[] { depName }, ResourceType.Module, versionRange, nugetVersion, versionType, depVersion, prerelease: true, tag: null, repository, includeDependencies: false, suppressErrors: true);
                 if (dependencyFound == null || !dependencyFound.Any())
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -1395,7 +1396,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-                var dir = Directory.CreateDirectory(extractPath);
+                DirectoryInfo dir = Directory.CreateDirectory(extractPath);
                 dir.Attributes &= ~FileAttributes.ReadOnly;
 
                 // change extension to .zip

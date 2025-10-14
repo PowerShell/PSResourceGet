@@ -26,14 +26,14 @@ namespace Benchmarks
             pwsh.AddScript("Import-Module PSResourceGet -Force");
             pwsh.AddScript("New-Item TestRepo -ItemType Directory");
             pwsh.AddScript("Save-PSResource -Name Az -Repository PSGallery -AsNupkg -TrustRepository -Path .\\TestRepo");
-			
+
             // Now import the PSGet module version we want to test and register a local repo
             pwsh.AddScript("Import-Module PowerShellGet -RequiredVersion 2.2.5 -Force");
             pwsh.AddScript("Register-PSRepository -Name LocalRepo -SourceLocation .\\TestRepo");
 
             pwsh.Invoke();
         }
-        
+
         [GlobalCleanup]
         public void GlobalCleanup()
         {

@@ -21,12 +21,12 @@ namespace Benchmarks
             var defaultSS = System.Management.Automation.Runspaces.InitialSessionState.CreateDefault2();
             defaultSS.ExecutionPolicy = ExecutionPolicy.Unrestricted;
             pwsh = System.Management.Automation.PowerShell.Create(defaultSS);
-            
+
             // Import the PSGet version we want to test
             pwsh.AddScript("Import-Module PowerShellGet -RequiredVersion 3.0.14 -Force");
             pwsh.Invoke();
         }
-        
+
         [GlobalCleanup]
         public void GlobalCleanup()
         {

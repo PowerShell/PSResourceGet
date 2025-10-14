@@ -187,7 +187,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this));
             }
 
-            var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
+            System.Collections.ObjectModel.Collection<string> resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
             if (resolvedPaths.Count != 1)
             {
                 ThrowTerminatingError(new ErrorRecord(
@@ -299,7 +299,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 File.WriteAllLines(tempScriptPath, updatedPSScriptFileContents);
                 File.Copy(tempScriptPath, resolvedPath, overwrite: true);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 WriteError(new ErrorRecord(
                     new PSInvalidOperationException($"Could not update .ps1 file due to: {e.Message}"),

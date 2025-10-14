@@ -1,9 +1,14 @@
+# Copied from PowerShell/PowerShell 2025-06-28
+# https://github.com/PowerShell/PowerShell/blob/master/.editorconfig
+#
+#
 # EditorConfig is awesome: https://EditorConfig.org
 # .NET coding convention settings for EditorConfig
 # https://learn.microsoft.com/visualstudio/ide/editorconfig-code-style-settings-reference
 #
-# This file was taken from PowerShell/PowerShell 2024-07-13
-# https://github.com/PowerShell/PowerShell/blob/master/.editorconfig
+# This file comes from dotnet repositories:
+# https://github.com/dotnet/runtime/blob/master/.editorconfig
+# https://github.com/dotnet/roslyn/blob/master/.editorconfig
 
 # Top-most EditorConfig file
 root = true
@@ -102,6 +107,8 @@ dotnet_naming_style.camel_case_underscore_style.capitalization = camel_case
 # Suggest more modern language features when available
 dotnet_style_object_initializer = true:suggestion
 dotnet_style_collection_initializer = true:suggestion
+# Background Info: https://github.com/dotnet/runtime/pull/100250
+dotnet_style_prefer_collection_expression = when_types_exactly_match
 dotnet_style_coalesce_expression = true:suggestion
 dotnet_style_null_propagation = true:suggestion
 dotnet_style_explicit_tuple_names = true:suggestion
@@ -115,6 +122,13 @@ dotnet_style_prefer_auto_properties = true:suggestion
 csharp_prefer_simple_default_expression = true:suggestion
 
 dotnet_code_quality_unused_parameters = non_public:suggestion
+
+# Dotnet diagnostic settings:
+[*.cs]
+
+# CA1859: Use concrete types when possible for improved performance
+# https://learn.microsoft.com/en-gb/dotnet/fundamentals/code-analysis/quality-rules/ca1859
+dotnet_diagnostic.CA1859.severity = suggestion
 
 # CSharp code style settings:
 [*.cs]
