@@ -52,7 +52,14 @@ function Invoke-ModuleBuild {
 
     Write-Verbose -Verbose -Message 'Invoking build script'
 
-    $BuildScript.Invoke()
+    #$BuildScript.Invoke()
+    $result = Invoke-Command -ScriptBlock $BuildScript
+
+    if ($result.Error.Count -gt 0) {
+        throw "Error occurred during build: $($result.Error)"
+    }
+
+    $result.Output | ForEach-Object { Write-Output $_ }
 
     Write-Verbose -Verbose -Message 'Finished invoking build script'
 }
