@@ -1014,6 +1014,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                         return null;
                     }
 
+                    // codeql[cs/sensitive-data-transmission] This is expected PSResourceGet behavior to create the content of the request which is only transmitted to the server, not the user. This information is also not exposed back to the user via error or verbose messaging.
                     request.Content = new StringContent(content);
                     request.Content.Headers.Clear();
                     if (contentHeaders != null)
