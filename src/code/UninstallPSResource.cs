@@ -259,13 +259,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            // If we found package to uninstall by name, but not satisfied by version criteria (i.e version didn't exist or match prerelease criteria) write error
+            // the package requested for uninstallation was found by name, but not satisfied by version criteria (i.e version didn't exist or match prerelease criteria) so write error
             if (currentUninstalledDirCount == 0)
             {
                 string prereleaseMessage = Prerelease ? "prerelease " : String.Empty;
-                string versionMessage = Version != null ? "matching '{Version} '" : String.Empty;
+                string versionMessage = Version != null ? $"matching '{Version} '" : String.Empty;
 
-                string warningMessage = $"Cannot uninstall {prereleaseMessage}version(s) '{versionMessage}'of resource '{String.Join(", ", Name)}' because it does not exist.";
+                string warningMessage = $"Cannot uninstall {prereleaseMessage}version(s) {versionMessage}of resource '{String.Join(", ", Name)}' because it does not exist.";
 
                 WriteWarning(warningMessage);
             }
