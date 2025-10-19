@@ -469,6 +469,158 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return GetProperty<Version>(nameof(PSResourceInfo.Version), psObjectInfo);
         }
 
+        /// <summary
+        public static bool TryConvertXmlFromGraphQL(
+            string xmlString, // TODO: later this will be sent as a XmlDocument or XmlNode
+            out PSResourceInfo psGetInfo,
+            out string errorMsg)
+        {
+            psGetInfo = null;
+            errorMsg = String.Empty;
+
+            if (String.IsNullOrEmpty(xmlString))
+            {
+                errorMsg = "TryConvertXmlFromGraphQL: Invalid xmlString. String cannot be null.";
+                return false;
+            }
+
+            try
+            {
+                Hashtable metadata = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
+                XmlDocument doc = new XmlDocument();
+                doc.LoadXml(xmlString);
+
+                XmlElement rootElement = doc.DocumentElement;
+                if (rootElement.HasChildNodes)
+                {
+                    XmlNode operationNameElement = rootElement.ChildNodes[0];
+                    if (operationNameElement.HasChildNodes)
+                    {
+                        // this is where the metadata properties reside
+                        var metadataElements = operationNameElement.ChildNodes;
+                        foreach (XmlElement entryChild in metadataElements)
+                        {
+                            var metadataPropertyKey = entryChild.LocalName;
+                            var metadataPropertyValue = entryChild.InnerText;
+                            if (metadataPropertyKey.Equals("title"))
+                            {
+                                metadata["id"] = metadataPropertyValue;
+                            }
+                            if (metadataPropertyKey.Equals("version"))
+                            {
+                                metadata[metadataPropertyKey] = ParseHttpVersion(metadataPropertyValue, out string prereleaseLabel);
+                                metadata["prerelease"] = prereleaseLabel;
+                            }
+                            else if (metadataPropertyKey.EndsWith("Url"))
+                            {
+                                metadata[metadataPropertyKey] = ParseHttpUrl(metadataPropertyValue) as Uri;
+                            }
+                            else if (metadataPropertyKey.Equals("tags"))
+                            {
+                                metadata[metadataPropertyKey] = metadataPropertyValue.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            }
+                            else if (metadataPropertyKey.Equals("published"))
+                            {
+                                metadata[metadataPropertyKey] = ParseHttpDateTime(metadataPropertyValue);
+                            }
+                            else if (metadataPropertyKey.Equals("flattenedDependencies"))
+                            {
+                                metadata["dependencies"] = ParseHttpDependencies(metadataPropertyValue);
+                            }
+                            else if (metadataPropertyKey.Equals("isPrerelease"))
+                            {
+                                bool.TryParse(metadataPropertyValue, out bool isPrerelease);
+
+                                metadata[metadataPropertyKey] = isPrerelease;
+                            }
+                            else if (metadataPropertyKey.Equals("normalizedVersion"))
+                            {
+                                if (!NuGetVersion.TryParse(metadataPropertyValue, out NuGetVersion parsedNormalizedVersion))
+                                {
+                                    errorMsg = string.Format(
+                                        CultureInfo.InvariantCulture,
+                                        @"TryReadPSGetInfo: Cannot parse NormalizedVersion");
+
+                                    parsedNormalizedVersion = new NuGetVersion("1.0.0.0");
+                                }
+
+                                metadata[metadataPropertyKey] = parsedNormalizedVersion;
+                            }
+                            else if (metadataPropertyKey.Equals("flattenedAuthors"))
+                            {
+                                metadata["authors"] = metadataPropertyValue;
+                            }
+                            else
+                            {
+                                metadata[metadataPropertyKey] = metadataPropertyValue;
+                            }
+                        }
+
+                        var typeInfo = ParseHttpMetadataType(metadata["tags"] as string[], out ArrayList commandNames, out ArrayList cmdletNames, out ArrayList dscResourceNames);
+                        var resourceHashtable = new Hashtable {
+                            { nameof(PSResourceInfo.Includes.Command), new PSObject(commandNames) },
+                            { nameof(PSResourceInfo.Includes.Cmdlet), new PSObject(cmdletNames) },
+                            { nameof(PSResourceInfo.Includes.DscResource), new PSObject(dscResourceNames) }
+                        };
+
+                        var additionalMetadataHashtable = new Dictionary<string, string>();
+
+                        // Only add NormalizedVersion to additionalMetadata if server response included it
+                        if (metadata.ContainsKey("normalizedVersion"))
+                        {
+                            additionalMetadataHashtable.Add("NormalizedVersion", metadata["normalizedVersion"].ToString());
+                        }
+
+                        var includes = new ResourceIncludes(resourceHashtable);
+
+                        psGetInfo = new PSResourceInfo(
+                            additionalMetadata: additionalMetadataHashtable,
+                            author: metadata["authors"] as String,
+                            companyName: metadata["companyName"] as String,
+                            copyright: metadata["copyright"] as String,
+                            dependencies: metadata["dependencies"] as Dependency[],
+                            description: metadata["description"] as String,
+                            iconUri: metadata["iconUrl"] as Uri,
+                            includes: includes,
+                            installedDate: null,
+                            installedLocation: null,
+                            isPrerelease: (bool)metadata["isPrerelease"],
+                            licenseUri: metadata["licenseUrl"] as Uri,
+                            name: String.Empty, //metadata["Id"] as String
+                            powershellGetFormatVersion: null,
+                            prerelease: metadata["prerelease"] as String,
+                            projectUri: metadata["projectUrl"] as Uri,
+                            publishedDate: metadata["published"] as DateTime?,
+                            releaseNotes: metadata["releaseNotes"] as String,
+                            repository: null, //repository.Name
+                            repositorySourceLocation: String.Empty, //repository.Uri.ToString()
+                            tags: metadata["tags"] as string[],
+                            type: typeInfo,
+                            updatedDate: null,
+                            version: metadata["version"] as Version);
+
+                        return true;
+                    }
+                }
+                
+                Console.WriteLine(rootElement.LocalName);
+            }
+            catch (Exception ex)
+            {
+                errorMsg = string.Format(
+                    CultureInfo.InvariantCulture,
+                    @"TryConvertFromXml: Cannot parse PSResourceInfo from xml string with error: {0}",
+                    ex.Message);
+
+                return false;
+            }
+
+            return true;
+        }
+
+
+
         /// <summary>
         /// Converts XML entry to PSResourceInfo instance
         /// used for V2 Server API call find response conversion to PSResourceInfo object
@@ -1601,6 +1753,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         internal static Dependency[] ParseHttpDependencies(string dependencyString)
         {
+            /*
+            RequiredModule1:(, ):|RequiredModule2:[2.0.0, ):|RequiredModule3:[2.5.0, 2.5.0]:|RequiredModule4:[1.1.0, 2.0.0]:|RequiredModule5:(, 1.5.0]:
+            */
             /*
             Az.Profile:[0.1.0, ):|Az.Aks:[0.1.0, ):|Az.AnalysisServices:[0.1.0, ):
             Post 1st Split:
