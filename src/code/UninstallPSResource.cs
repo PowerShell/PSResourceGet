@@ -264,7 +264,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // the package requested for uninstallation was found by name, but not satisfied by version criteria (i.e version didn't exist or match prerelease criteria) so write error
-            // if (currentUninstalledDirCount == 0)
             if (requestedPackageNames.Count > 0)
             {
                 string[] pkgsFailedToUninstall = requestedPackageNames.ToArray();
