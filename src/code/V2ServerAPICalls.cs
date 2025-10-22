@@ -44,6 +44,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool _isADORepo;
         private bool _isJFrogRepo;
         private bool _isPSGalleryRepo;
+        private bool _useGraphQL;
+        private string _graphQLUrl;
 
         #endregion
 
@@ -82,6 +84,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _isADORepo = repoURL.Contains("pkgs.dev.azure.com") || repoURL.Contains("pkgs.visualstudio.com");
             _isJFrogRepo = repoURL.Contains("jfrog") || repoURL.Contains("artifactory");
             _isPSGalleryRepo = repoURL.Contains("powershellgallery.com/api/v2");
+            _useGraphQL = _isPSGalleryRepo;
+            _graphQLUrl = "https://localhost:7239";
         }
 
         #endregion
@@ -109,30 +113,38 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initialScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
-                if (errRecord != null)
+                if (!_useGraphQL)
                 {
-                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-                }
-
-                if (initialScriptCount != 0)
-                {
-                    responses.Add(initialScriptResponse);
-                    int count = initialScriptCount / 6000;
-                    // if more than 100 count, loop and add response to list
-                    while (count > 0)
+                    int initialScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
+                    if (errRecord != null)
                     {
-                        _cmdletPassedIn.WriteDebug($"Count is '{count}'");
-                        scriptSkip += 6000;
-                        var tmpResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
-                        if (errRecord != null)
-                        {
-                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-                        }
-
-                        responses.Add(tmpResponse);
-                        count--;
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                     }
+
+                    if (initialScriptCount != 0)
+                    {
+                        responses.Add(initialScriptResponse);
+                        int count = initialScriptCount / 6000;
+                        // if more than 100 count, loop and add response to list
+                        while (count > 0)
+                        {
+                            _cmdletPassedIn.WriteDebug($"Count is '{count}'");
+                            scriptSkip += 6000;
+                            var tmpResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
+                            if (errRecord != null)
+                            {
+                                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                            }
+
+                            responses.Add(tmpResponse);
+                            count--;
+                        }
+                    }
+                }
+                else if(!initialScriptResponse.Equals("\"<Root />\""))
+                {
+                    // only add response if it's non-empty, i.e not just root node signifying empty response
+                    responses.Add(initialScriptResponse);
                 }
             }
             if (type != ResourceType.Script)
@@ -144,31 +156,38 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initialModuleCount = GetCountFromResponse(initialModuleResponse, out errRecord);
-                if (errRecord != null)
+                if (!_useGraphQL)
                 {
-                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-                }
+                    int initialModuleCount = GetCountFromResponse(initialModuleResponse, out errRecord);
+                    if (errRecord != null)
+                    {
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    }
 
-                if (initialModuleCount != 0)
+                    if (initialModuleCount != 0)
+                    {
+                        responses.Add(initialModuleResponse);
+                        int count = initialModuleCount / 6000;
+
+                        // if more than 100 count, loop and add response to list
+                        while (count > 0)
+                        {
+                            _cmdletPassedIn.WriteDebug($"Count is '{count}'");
+                            moduleSkip += 6000;
+                            var tmpResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
+                            if (errRecord != null)
+                            {
+                                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                            }
+
+                            responses.Add(tmpResponse);
+                            count--;
+                        }
+                    }
+                }
+                else if(!initialModuleResponse.Equals("\"<Root />\""))
                 {
                     responses.Add(initialModuleResponse);
-                    int count = initialModuleCount / 6000;
-
-                    // if more than 100 count, loop and add response to list
-                    while (count > 0)
-                    {
-                        _cmdletPassedIn.WriteDebug($"Count is '{count}'");
-                        moduleSkip += 6000;
-                        var tmpResponse = FindAllFromTypeEndPoint(includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
-                        if (errRecord != null)
-                        {
-                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-                        }
-
-                        responses.Add(tmpResponse);
-                        count--;
-                    }
                 }
             }
 
@@ -191,36 +210,45 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 int scriptSkip = 0;
                 string initialScriptResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
+
                 if (errRecord != null)
                 {
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initialScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
-                if (errRecord != null)
+                if (!_useGraphQL)
                 {
-                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-                }
-
-                if (initialScriptCount != 0)
-                {
-                    responses.Add(initialScriptResponse);
-                    int count = initialScriptCount / 100;
-                    // if more than 100 count, loop and add response to list
-                    while (count > 0)
+                    int initialScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
+                    if (errRecord != null)
                     {
-                        _cmdletPassedIn.WriteDebug($"Count is '{count}'");
-                        // skip 100
-                        scriptSkip += 100;
-                        var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: false,  scriptSkip, out errRecord);
-                        if (errRecord != null)
-                        {
-                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-                        }
-
-                        responses.Add(tmpResponse);
-                        count--;
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                     }
+
+                    if (initialScriptCount != 0)
+                    {
+                        responses.Add(initialScriptResponse);
+                        int count = initialScriptCount / 100;
+                        // if more than 100 count, loop and add response to list
+                        while (count > 0)
+                        {
+                            _cmdletPassedIn.WriteDebug($"Count is '{count}'");
+                            // skip 100
+                            scriptSkip += 100;
+                            var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
+                            if (errRecord != null)
+                            {
+                                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                            }
+
+                            responses.Add(tmpResponse);
+                            count--;
+                        }
+                    }
+                }
+                else if(!initialScriptResponse.Equals("\"<Root />\""))
+                {
+                    // only add response if it's non-empty, i.e not just root node signifying empty response
+                    responses.Add(initialScriptResponse);
                 }
             }
             if (_type != ResourceType.Script)
@@ -232,34 +260,41 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initialModuleCount = GetCountFromResponse(initialModuleResponse, out errRecord);
-                if (errRecord != null)
+                if (!_useGraphQL)
                 {
-                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-                }
+                    int initialModuleCount = GetCountFromResponse(initialModuleResponse, out errRecord);
+                    if (errRecord != null)
+                    {
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    }
 
-                if (initialModuleCount != 0)
+                    if (initialModuleCount != 0)
+                    {
+                        responses.Add(initialModuleResponse);
+                        int count = initialModuleCount / 100;
+                        // if more than 100 count, loop and add response to list
+                        while (count > 0)
+                        {
+                            _cmdletPassedIn.WriteDebug($"Count is '{count}'");
+                            moduleSkip += 100;
+                            var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
+                            if (errRecord != null)
+                            {
+                                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                            }
+
+                            responses.Add(tmpResponse);
+                            count--;
+                        }
+                    }
+                }
+                else if(!initialModuleResponse.Equals("\"<Root />\""))
                 {
                     responses.Add(initialModuleResponse);
-                    int count = initialModuleCount / 100;
-                    // if more than 100 count, loop and add response to list
-                    while (count > 0)
-                    {
-                        _cmdletPassedIn.WriteDebug($"Count is '{count}'");
-                        moduleSkip += 100;
-                        var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: true, moduleSkip, out errRecord);
-                        if (errRecord != null)
-                        {
-                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-                        }
-
-                        responses.Add(tmpResponse);
-                        count--;
-                    }
                 }
             }
 
-            if (responses.Count == 0)
+            if (!_useGraphQL && responses.Count == 0)
             {
                 errRecord = new ErrorRecord(
                     new ResourceNotFoundException($"Package with Tags '{String.Join(", ", tags)}' could not be found in repository '{Repository.Name}'."),
@@ -360,38 +395,54 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
             }
 
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
-            string response = HttpRequestCall(requestUrlV2, out errRecord);
-            if (errRecord != null)
+            var requestUrlV2 = "";
+            string response = "";
+            errRecord = null;
+
+            if (_useGraphQL)
             {
-                // usually this is for errors in calling the V2 server, but for ADO V2 this error will include package not found errors which we want to deliver in a standard message
-                if (_isADORepo && errRecord.Exception is ResourceNotFoundException)
+                requestUrlV2 = $"{_graphQLUrl}/api/v2/FindPackagesById?{queryBuilder.BuildQueryString()}";
+                response = HttpRequestCall(requestUrlV2, out errRecord);
+                if (errRecord != null)
+                {
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                }
+            }
+            else
+            {
+                requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+                response = HttpRequestCall(requestUrlV2, out errRecord);
+                if (errRecord != null)
+                {
+                    // usually this is for errors in calling the V2 server, but for ADO V2 this error will include package not found errors which we want to deliver in a standard message
+                    if (_isADORepo && errRecord.Exception is ResourceNotFoundException)
+                    {
+                        errRecord = new ErrorRecord(
+                            new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'. For ADO feed, if the package is in an upstream feed make sure you are authenticated to the upstream feed.", errRecord.Exception),
+                            "PackageNotFound",
+                            ErrorCategory.ObjectNotFound,
+                            this);
+                        response = string.Empty;
+                    }
+
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                }
+
+                int count = GetCountFromResponse(response, out errRecord);
+                if (errRecord != null)
+                {
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                }
+
+                if (count == 0)
                 {
                     errRecord = new ErrorRecord(
-                        new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'. For ADO feed, if the package is in an upstream feed make sure you are authenticated to the upstream feed.", errRecord.Exception),
+                        new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'."),
                         "PackageNotFound",
                         ErrorCategory.ObjectNotFound,
                         this);
                     response = string.Empty;
                 }
-
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-            }
-
-            int count = GetCountFromResponse(response, out errRecord);
-            if (errRecord != null)
-            {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-            }
-
-            if (count == 0)
-            {
-                errRecord = new ErrorRecord(
-                    new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'."),
-                    "PackageNotFound",
-                    ErrorCategory.ObjectNotFound,
-                    this);
-                response = string.Empty;
             }
 
             return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -589,35 +640,42 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int initialCount = GetCountFromResponse(initialResponse, out errRecord);
-            if (errRecord != null)
+            if (_useGraphQL)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                responses.Add(initialResponse);
             }
-
-            if (initialCount == 0)
+            else
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-            }
-
-            responses.Add(initialResponse);
-
-            if (!getOnlyLatest)
-            {
-                int count = (int)Math.Ceiling((double)(initialCount / 100));
-
-                while (count > 0)
+                int initialCount = GetCountFromResponse(initialResponse, out errRecord);
+                if (errRecord != null)
                 {
-                    _cmdletPassedIn.WriteDebug($"Count is '{count}'");
-                    // skip 100
-                    skip += 100;
-                    var tmpResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, out errRecord);
-                    if (errRecord != null)
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                }
+
+                if (initialCount == 0)
+                {
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                }
+
+                responses.Add(initialResponse);
+
+                if (!getOnlyLatest)
+                {
+                    int count = (int)Math.Ceiling((double)(initialCount / 100));
+
+                    while (count > 0)
                     {
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                        _cmdletPassedIn.WriteDebug($"Count is '{count}'");
+                        // skip 100
+                        skip += 100;
+                        var tmpResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, out errRecord);
+                        if (errRecord != null)
+                        {
+                            return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                        }
+                        responses.Add(tmpResponse);
+                        count--;
                     }
-                    responses.Add(tmpResponse);
-                    count--;
                 }
             }
 
@@ -655,7 +713,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
             }
 
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+            string requestUrlV2 = "";
+            if (_useGraphQL)
+            {
+                requestUrlV2 = $"{_graphQLUrl}/api/v2/FindPackagesById?{queryBuilder.BuildQueryString()}";
+            }
+            else
+            {
+                requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+            }
+
             string response = HttpRequestCall(requestUrlV2, out errRecord);
             if (errRecord != null)
             {
@@ -673,22 +740,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int count = GetCountFromResponse(response, out errRecord);
-            _cmdletPassedIn.WriteDebug($"Count from response is '{count}'");
-
-            if (errRecord != null)
+            if (!_useGraphQL)
             {
-                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-            }
+                int count = GetCountFromResponse(response, out errRecord);
+                _cmdletPassedIn.WriteDebug($"Count from response is '{count}'");
 
-            if (count == 0)
-            {
-                errRecord = new ErrorRecord(
-                    new ResourceNotFoundException($"Package with name '{packageName}', version '{version}' could not be found in repository '{Repository.Name}'."),
-                    "PackageNotFound",
-                    ErrorCategory.ObjectNotFound,
-                    this);
-                response = string.Empty;
+                if (errRecord != null)
+                {
+                    return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                }
+
+                if (count == 0)
+                {
+                    errRecord = new ErrorRecord(
+                        new ResourceNotFoundException($"Package with name '{packageName}', version '{version}' could not be found in repository '{Repository.Name}'."),
+                        "PackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this);
+                    response = string.Empty;
+                }
             }
 
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -935,7 +1005,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?{queryBuilder.BuildQueryString()}";
+            string requestUrlV2 = "";
+            if (_useGraphQL)
+            {
+                requestUrlV2 = $"{_graphQLUrl}/api/v2/FindPackagesById?{queryBuilder.BuildQueryString()}";
+            }
+            else
+            {
+                requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?{queryBuilder.BuildQueryString()}";
+            }
+
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
@@ -991,7 +1070,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 filterBuilder.AddCriterion($"substringof('{tag}', Tags) eq true");
             }
 
-            var requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?{queryBuilder.BuildQueryString()}";
+            string requestUrlV2 = "";
+            if (_useGraphQL)
+            {
+                requestUrlV2 = $"{_graphQLUrl}/api/v2/FindPackagesById?{queryBuilder.BuildQueryString()}";
+            }
+            else
+            {
+                requestUrlV2 = $"{Repository.Uri}{typeEndpoint}/Search()?{queryBuilder.BuildQueryString()}";
+            }
 
             return HttpRequestCall(requestUrlV2: requestUrlV2, out errRecord);
         }
@@ -1366,8 +1453,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 filterBuilder.AddCriterion($"substringof('PS{type.ToString()}', Tags) eq true");
             }
 
-
-            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+            string requestUrlV2 = "";
+            if (_useGraphQL)
+            {
+                requestUrlV2 = $"{_graphQLUrl}/api/v2/FindPackagesById?{queryBuilder.BuildQueryString()}";
+            }
+            else
+            {
+                requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+            }
 
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
