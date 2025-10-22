@@ -167,23 +167,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private void ProcessResourceNameParameterSet()
         {
-            // if (Name[0].Equals("graphql"))
-            // {
-            //     string xmlString = @"<Root>\r\n  <packageByName>\r\n    <packageId>test_module</packageId>\r\n    <package>\r\n      <copyright>(c) 2020 Contoso Corporation. All rights reserved.</copyright>\r\n      <description>this is a test module without including any categories</description>\r\n      <iconUrl />\r\n      <licenseUrl />\r\n      <published>2020-09-21T15:47:45.273Z</published>\r\n      <projectUrl />\r\n      <tags>Test CommandsAndResource Tag2 PSModule</tags>\r\n      <title />\r\n      <version>5.2.5-alpha001</version>\r\n      <flattenedAuthors>americks</flattenedAuthors>\r\n      <flattenedDependencies>RequiredModule1:(, ):|RequiredModule2:[2.0.0, ):|RequiredModule3:[2.5.0, 2.5.0]:|RequiredModule4:[1.1.0, 2.0.0]:|RequiredModule5:(, 1.5.0]:</flattenedDependencies>\r\n      <isPrerelease>true</isPrerelease>\r\n      <releaseNotes />\r\n      <normalizedVersion>5.2.5-alpha001</normalizedVersion>\r\n      <companyName>Me</companyName>\r\n      <cmdlets></cmdlets>\r\n      <functions></functions>\r\n      <dscResources></dscResources>\r\n      <roleCapabilities></roleCapabilities>\r\n    </package>\r\n  </packageByName>\r\n</Root>";
-            //     string responseToConvert = xmlString.Trim('\"').Replace("\\n", "").Replace("\\r", "");
-            //     if (!PSResourceInfo.TryConvertXmlFromGraphQL(responseToConvert, out PSResourceInfo psGetInfo, null, out string errMsg))
-            //     {
-            //         WriteError(new ErrorRecord(
-            //             new PSInvalidOperationException(errMsg),
-            //             "ErrorFilteringNamesForUnsupportedWildcards",
-            //             ErrorCategory.InvalidArgument,
-            //             this));
-            //     }
-
-            //     WriteObject(psGetInfo);
-            //     return;
-            // }
-
             // only cases where Name is allowed to not be specified is if Type or Tag parameters are
             if (!MyInvocation.BoundParameters.ContainsKey(nameof(Name)))
             {

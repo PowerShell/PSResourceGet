@@ -6,7 +6,6 @@ using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Management.Automation;
 using System.Xml;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
@@ -41,18 +40,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             foreach (string response in responses)
             {
-                // if (Repository.Uri.AbsoluteUri.Contains("www.powershellgallery.com"))
-                // {
-                //     string responseToConvert = response.Trim('\"').Replace("\\n", "").Replace("\\r", "");
-                //     if (!PSResourceInfo.TryConvertXmlFromGraphQL(responseToConvert, out PSResourceInfo psGetInfo, Repository, out string errorMsg))
-                //     {
-                //         Exception parseException = new XmlParsingException(errorMsg);
-
-                //         yield return new PSResourceResult(returnedObject: null, exception: parseException, isTerminatingError: false);
-                //     }
-
-                //     yield return new PSResourceResult(returnedObject: psGetInfo, exception: null, isTerminatingError: false);
-                // }
                 if (Repository.Uri.AbsoluteUri.Contains("www.powershellgallery.com"))
                 {
                     string responseToConvert = response.Trim('\"').Replace("\\n", "").Replace("\\r", "");
