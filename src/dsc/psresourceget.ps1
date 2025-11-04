@@ -542,13 +542,18 @@ function SetOperation {
         'repository' {
             $rep = Get-PSResourceRepository -Name $inputObj.Name -ErrorAction SilentlyContinue
 
-            $properties = @('Name', 'Uri', 'Trusted', 'Priority', 'RepositoryType')
+            $properties = @('name', 'uri', 'trusted', 'priority', 'repositoryType')
 
             $splatt = @{}
 
             foreach($property in $properties) {
                 if ($null -ne $inputObj.PSObject.Properties[$property]) {
-                    $splatt[$property] = $inputObj.$property
+                    if ($property -eq 'repositoryType') {
+                        $splatt['ApiVersion'] = $inputObj.$property
+                    }
+                    else {
+                        $splatt[$property] = $inputObj.$property
+                    }
                 }
             }
 
@@ -568,8 +573,8 @@ function SetOperation {
             return GetOperation -ResourceType $ResourceType
         }
 
-        'repositorylist' { throw [System.NotImplementedException]::new("Get operation is not implemented for RepositoryList resource.") }
-        'psresource' { throw [System.NotImplementedException]::new("Get operation is not implemented for PSResource resource.") }
+        'repositorylist' { throw [System.NotImplementedException]::new("Set operation is not implemented for RepositoryList resource.") }
+        'psresource' { throw [System.NotImplementedException]::new("Set operation is not implemented for PSResource resource.") }
         'psresourcelist' { return SetPSResourceList -inputObj $inputObj }
         default { throw "Unknown ResourceType: $ResourceType" }
     }
@@ -585,7 +590,7 @@ function DeleteOperation {
     $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
     switch ($ResourceType) {
         'repository' {
-            if (-not $inputObj._exist -ne $false) {
+            if ($inputObj._exist -ne $false) {
                 throw "_exist property is not set to false for the repository. Cannot delete."
             }
 
