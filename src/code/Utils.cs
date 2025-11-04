@@ -1715,7 +1715,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         if (ex.Message.Contains("The directory is not empty") && psVersion.StartsWith("5"))
                         {
                             // there is a known bug with WindowsPowerShell and OneDrive based module paths, where .NET Directory.Delete() will throw a 'The directory is not empty.' error.
-                            throw new Exception(string.Format("Cannot uninstall module with OneDrive based path on WindowsPowerShell due to .NET issue. Try installing and uninstalling using PowerShellCore if using OneDrive."), ex);
+                            throw new Exception(string.Format("Cannot uninstall module with OneDrive based path on Windows PowerShell due to .NET issue. Try installing and uninstalling using PowerShell 7+ if using OneDrive."), ex);
                         }
 
                         throw new Exception(string.Format("Access denied to path while deleting path {0}", dirPath), ex);
