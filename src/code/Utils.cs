@@ -1658,6 +1658,16 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
+        private static void SetAttributesHelper(DirectoryInfo directory)
+        {
+            foreach (var subDirectory in directory.GetDirectories())
+            {
+                subDirectory.Attributes = FileAttributes.Normal;
+                SetAttributesHelper(subDirectory);
+            }
+
+            directory.Attributes = FileAttributes.Normal;
+        }
         /// <Summary>
         /// Deletes a directory and its contents
         /// This is a workaround for .NET Directory.Delete(), which can fail with WindowsPowerShell
@@ -1672,13 +1682,17 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             // Remove read only file attributes first
-            foreach (var dirFilePath in Directory.GetFiles(dirPath,"*",SearchOption.AllDirectories))
+            foreach (var dirFilePath in Directory.GetFiles(dirPath, "*", SearchOption.AllDirectories))
             {
                 if (File.GetAttributes(dirFilePath).HasFlag(FileAttributes.ReadOnly))
                 {
                     File.SetAttributes(dirFilePath, File.GetAttributes(dirFilePath) & ~FileAttributes.ReadOnly);
                 }
             }
+
+            DirectoryInfo rootDir = new DirectoryInfo(dirPath);
+            SetAttributesHelper(rootDir);
+
             // Delete directory recursive, try multiple times before throwing ( #1662 )
             int maxAttempts = 5;
             int msDelay = 5;
@@ -1686,7 +1700,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 try
                 {
-                    Directory.Delete(dirPath,true);
+                    Directory.Delete(dirPath, true);
                     return;
                 }
                 catch (Exception ex)
@@ -1694,6 +1708,17 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     if (attempt < maxAttempts && (ex is IOException || ex is UnauthorizedAccessException))
                     {
                         Thread.Sleep(msDelay);
+                    }
+                    else if (ex is System.IO.IOException)
+                    {
+                        string psVersion = System.Management.Automation.Runspaces.Runspace.DefaultRunspace.Version.ToString();
+                        if (ex.Message.Contains("The directory is not empty") && psVersion.StartsWith("5"))
+                        {
+                            // there is a known bug with WindowsPowerShell and OneDrive based module paths, where .NET Directory.Delete() will throw a 'The directory is not empty.' error.
+                            throw new Exception(string.Format("Cannot uninstall module with OneDrive based path on Windows PowerShell due to .NET issue. Try installing and uninstalling using PowerShell 7+ if using OneDrive."), ex);
+                        }
+
+                        throw new Exception(string.Format("Access denied to path while deleting path {0}", dirPath), ex);
                     }
                     else
                     {
