@@ -182,6 +182,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WriteDebug("In UninstallPSResource::UninstallPkgHelper");
             var successfullyUninstalled = false;
             GetHelper getHelper = new GetHelper(this);
+
+            HashSet<string> requestedPackageNames = new HashSet<string>(Name, StringComparer.InvariantCultureIgnoreCase);
             List<string> dirsToDelete = getHelper.FilterPkgPathsByName(Name, _pathsToSearch);
             int totalDirs = dirsToDelete.Count;
             errRecords = new List<ErrorRecord>();
@@ -257,6 +259,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     return successfullyUninstalled;
                 }
+
+                requestedPackageNames.Remove(pkgName);
+            }
+
+            // the package requested for uninstallation was found by name, but not satisfied by version criteria (i.e version didn't exist or match prerelease criteria) so write error
+            if (requestedPackageNames.Count > 0)
+            {
+                string[] pkgsFailedToUninstall = requestedPackageNames.ToArray();
+                string prereleaseMessage = Prerelease ? "prerelease " : String.Empty;
+                string versionMessage = Version != null ? $"matching '{Version} '" : String.Empty;
+
+                string warningMessage = $"Cannot uninstall {prereleaseMessage}version(s) {versionMessage}of resource '{String.Join(", ", pkgsFailedToUninstall)}' because it does not exist.";
+
+                WriteWarning(warningMessage);
             }
 
             return successfullyUninstalled;
