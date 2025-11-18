@@ -1375,7 +1375,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public static bool ValidateModuleManifest(string moduleManifestPath, out string errorMsg)
         {
             errorMsg = string.Empty;
-            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create(RunspaceMode.CurrentRunspace))
             {
                 // use PowerShell cmdlet Test-ModuleManifest
                 // TODO: Test-ModuleManifest will throw an error if RequiredModules specifies a module that does not exist
