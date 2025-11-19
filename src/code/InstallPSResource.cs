@@ -565,6 +565,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this));
             }
 
+            // When reqResourceParams is provided (via -RequiredResource), use its properties
+            // instead of the cmdlet-level parameters
+            bool acceptLicense = reqResourceParams != null ? reqResourceParams.AcceptLicense : AcceptLicense;
+            bool quiet = reqResourceParams != null ? reqResourceParams.Quiet : Quiet;
+            bool reinstall = reqResourceParams != null ? reqResourceParams.Reinstall : Reinstall;
+            bool trustRepository = reqResourceParams != null ? reqResourceParams.TrustRepository : TrustRepository;
+            bool noClobber = reqResourceParams != null ? reqResourceParams.NoClobber : NoClobber;
+            bool skipDependencyCheck = reqResourceParams != null ? reqResourceParams.SkipDependencyCheck : SkipDependencyCheck;
+            ScopeType scope = reqResourceParams != null && reqResourceParams.Scope != ScopeType.CurrentUser ? reqResourceParams.Scope : Scope;
+
             IEnumerable<PSResourceInfo> installedPkgs = _installHelper.BeginInstallPackages(
                 names: pkgNames,
                 versionRange: versionRange,
@@ -573,19 +583,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 versionString: Version,
                 prerelease: pkgPrerelease,
                 repository: pkgRepository,
-                acceptLicense: AcceptLicense,
-                quiet: Quiet,
-                reinstall: Reinstall,
+                acceptLicense: acceptLicense,
+                quiet: quiet,
+                reinstall: reinstall,
                 force: false,
-                trustRepository: TrustRepository,
-                noClobber: NoClobber,
+                trustRepository: trustRepository,
+                noClobber: noClobber,
                 asNupkg: false,
                 includeXml: true,
-                skipDependencyCheck: SkipDependencyCheck,
+                skipDependencyCheck: skipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg,
-                scope: Scope,
+                scope: scope,
                 tmpPath: _tmpPath,
                 pkgsInstalled: _packagesOnMachine);
 
