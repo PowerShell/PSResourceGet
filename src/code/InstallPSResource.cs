@@ -573,7 +573,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool trustRepository = reqResourceParams != null ? reqResourceParams.TrustRepository : TrustRepository;
             bool noClobber = reqResourceParams != null ? reqResourceParams.NoClobber : NoClobber;
             bool skipDependencyCheck = reqResourceParams != null ? reqResourceParams.SkipDependencyCheck : SkipDependencyCheck;
-            ScopeType scope = reqResourceParams != null && reqResourceParams.Scope != ScopeType.CurrentUser ? reqResourceParams.Scope : Scope;
+            ScopeType scope = reqResourceParams != null ? reqResourceParams.Scope : Scope;
 
             IEnumerable<PSResourceInfo> installedPkgs = _installHelper.BeginInstallPackages(
                 names: pkgNames,
