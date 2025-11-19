@@ -1179,13 +1179,20 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 string jsonContent = File.ReadAllText(configPath);
+                var config = Newtonsoft.Json.Linq.JObject.Parse(jsonContent);
                 
-                // Parse JSON to check for experimental features
                 // Look for "ExperimentalFeatures": ["FeatureName"] in the config
-                if (jsonContent.Contains($"\"{featureName}\""))
+                var experimentalFeatures = config["ExperimentalFeatures"] as Newtonsoft.Json.Linq.JArray;
+                if (experimentalFeatures != null)
                 {
-                    psCmdlet.WriteVerbose(string.Format("Experimental feature '{0}' found in configuration file", featureName));
-                    return true;
+                    foreach (var feature in experimentalFeatures)
+                    {
+                        if (string.Equals(feature.ToString(), featureName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            psCmdlet.WriteVerbose(string.Format("Experimental feature '{0}' found in configuration file", featureName));
+                            return true;
+                        }
+                    }
                 }
 
                 psCmdlet.WriteVerbose(string.Format("Experimental feature '{0}' not found in configuration file", featureName));
@@ -1229,27 +1236,14 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
 
                 string jsonContent = File.ReadAllText(configPath);
+                var config = Newtonsoft.Json.Linq.JObject.Parse(jsonContent);
                 
-                // Simple JSON parsing to find PSUserContentPath
-                // Format: "PSUserContentPath": "C:\\CustomPath"
-                int userPathIndex = jsonContent.IndexOf("\"PSUserContentPath\"", StringComparison.OrdinalIgnoreCase);
-                if (userPathIndex >= 0)
+                // Look for PSUserContentPath in the config
+                var psUserContentPath = config["PSUserContentPath"]?.ToString();
+                if (!string.IsNullOrEmpty(psUserContentPath))
                 {
-                    int colonIndex = jsonContent.IndexOf(':', userPathIndex);
-                    if (colonIndex >= 0)
-                    {
-                        int firstQuote = jsonContent.IndexOf('"', colonIndex + 1);
-                        int secondQuote = jsonContent.IndexOf('"', firstQuote + 1);
-                        
-                        if (firstQuote >= 0 && secondQuote > firstQuote)
-                        {
-                            string customPath = jsonContent.Substring(firstQuote + 1, secondQuote - firstQuote - 1);
-                            // Unescape JSON string (handle \\)
-                            customPath = customPath.Replace("\\\\", "\\");
-                            psCmdlet.WriteVerbose(string.Format("Found PSUserContentPath in config file: {0}", customPath));
-                            return customPath;
-                        }
-                    }
+                    psCmdlet.WriteVerbose(string.Format("Found PSUserContentPath in config file: {0}", psUserContentPath));
+                    return psUserContentPath;
                 }
 
                 psCmdlet.WriteVerbose("PSUserContentPath not configured in PowerShell configuration file or environment variable");
