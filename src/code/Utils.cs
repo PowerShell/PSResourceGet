@@ -1400,32 +1400,32 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
                 }
 
+                // Validate the result object directly
+                if (results.Any())
+                {
+                    PSModuleInfo psModuleInfoObj = results[0].BaseObject as PSModuleInfo;
+                    if (string.IsNullOrWhiteSpace(psModuleInfoObj.Author))
+                    {
+                        errorMsg = "No author was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        return false;
+                    }
+                    else if (string.IsNullOrWhiteSpace(psModuleInfoObj.Description))
+                    {
+                        errorMsg = "No description was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        return false;
+                    }
+                    else if (psModuleInfoObj.Version == null)
+                    {
+                        errorMsg = "No version or an incorrectly formatted version was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        return false;
+                    }
+                }
+                
+                // Check for any errors from Test-ModuleManifest
                 if (pwsh.HadErrors)
                 {
-                    if (results.Any())
-                    {
-                        PSModuleInfo psModuleInfoObj = results[0].BaseObject as PSModuleInfo;
-                        if (string.IsNullOrWhiteSpace(psModuleInfoObj.Author))
-                        {
-                            errorMsg = "No author was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
-                        }
-                        else if (string.IsNullOrWhiteSpace(psModuleInfoObj.Description))
-                        {
-                            errorMsg = "No description was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
-                        }
-                        else if (psModuleInfoObj.Version == null)
-                        {
-                            errorMsg = "No version or an incorrectly formatted version was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
-                        }
-                    }
-
-                    if (string.IsNullOrEmpty(errorMsg))
-                    {
-                        // Surface any inner error messages
-                        var innerErrorMsg = (pwsh.Streams.Error.Count > 0) ? pwsh.Streams.Error[0].ToString() : string.Empty;
-                        errorMsg = $"Module manifest file validation failed with error: {innerErrorMsg}. Run 'Test-ModuleManifest' to validate the module manifest.";
-                    }
-
+                    var innerErrorMsg = (pwsh.Streams.Error.Count > 0) ? pwsh.Streams.Error[0].ToString() : string.Empty;
+                    errorMsg = $"Module manifest file validation failed with error: {innerErrorMsg}. Run 'Test-ModuleManifest' to validate the module manifest.";
                     return false;
                 }
             }
