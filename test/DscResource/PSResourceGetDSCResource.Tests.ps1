@@ -1,3 +1,6 @@
+$modPath = "$psscriptroot/../PSGetTestUtils.psm1"
+Import-Module $modPath -Force -Verbose
+
 Describe "DSC resource tests" -tags 'CI' {
     BeforeAll {
         $DSC_ROOT = $env:DSC_ROOT
@@ -130,5 +133,107 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
         $repo = Get-PSResourceRepository -Name 'TestRepoToDelete' -ErrorAction SilentlyContinue
         $repo | Should -BeNullOrEmpty
     }
+}
+
+Describe "PSResourceList Resource Tests" -Tags 'CI' {
+    BeforeAll {
+        $DSC_ROOT = $env:DSC_ROOT
+        if (-not (Test-Path -Path $DSC_ROOT)) {
+            throw "DSC_ROOT environment variable is not set or path does not exist."
+        }
+
+        $env:PATH += ";$DSC_ROOT"
+
+        # Ensure DSC v3 is available
+        if (-not (Get-Command -name dsc -CommandType Application -ErrorAction SilentlyContinue)) {
+            throw "DSC v3 is not installed"
+        }
+
+        $dscExe = Get-Command -name dsc -CommandType Application | Select-Object -First 1
+
+        $localRepo = "psgettestlocal"
+        $testModuleName = "test_local_mod"
+        $testModuleName2 = "test_local_mod2"
+        $testModuleName3 = "Test_Local_Mod3"
+        Get-NewPSResourceRepositoryFile
+        Register-LocalRepos
+
+        $localRepoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
+
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
+        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags @()
+        New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags @()
+        New-TestModule -moduleName $testModuleName3 -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
+    }
+    AfterAll {
+        # Clean up the test repository
+        Get-RevertPSResourceRepositoryFile
+    }
+
+    It 'Can get a PSResourceList resource instance' {
+        $psResourceListParams = @{
+            repositoryName = $localRepo
+            resources      = @()
+        }
+
+        $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
+
+        $getResult = & $dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+
+        $getResult.actualState.repositoryName | Should -BeExactly $localRepo
+        $getResult.actualState.resources.Count | Should -Be 0
+    }
+
+    It 'Can get a PSResourceList resource instance with resources' {
+        $psResourceListParams = @{
+            repositoryName = $localRepo
+            resources      = @(
+                @{
+                    name        = $testModuleName
+                    version     = '1.0.0'
+                },
+                @{
+                    name        = $testModuleName2
+                    version     = '5.0.0'
+                }
+            )
+        }
+
+        $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
+        $getResult = & $dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $getResult.actualState.repositoryName | Should -BeExactly $localRepo
+        $getResult.actualState.resources.Count | Should -Be 2
+        $getResult.actualState.resources[0].name | Should -BeExactly $testModuleName
+        $getResult.actualState.resources[0]._exist | Should -BeFalse
+        $getResult.actualState.resources[1].name | Should -BeExactly $testModuleName2
+        $getResult.actualState.resources[1]._exist | Should -BeFalse
+    }
+
+    It 'Can set a PSResourceList resource instance with resources' {
+        $psResourceListParams = @{
+            repositoryName = $localRepo
+            resources      = @(
+                @{
+                    name        = $testModuleName
+                    version     = '1.0.0'
+                },
+                @{
+                    name        = $testModuleName2
+                    version     = '5.0.0'
+                }
+            )
+        }
+
+        $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
+        $getResult = & $dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $getResult.actualState.repositoryName | Should -BeExactly $localRepo
+        $getResult.actualState.resources.Count | Should -Be 2
+        $getResult.actualState.resources[0].name | Should -BeExactly $testModuleName
+        $getResult.actualState.resources[0].version | Should -BeExactly '5.0.0'
+        $getResult.actualState.resources[1].name | Should -BeExactly $testModuleName2
+        $getResult.actualState.resources[1].version | Should -BeExactly '1.0.0'
+    }
+
+
 }
 

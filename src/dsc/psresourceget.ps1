@@ -123,7 +123,7 @@ class PSResourceList {
     }
 
     [string] ToJson() {
-        $resourceJson = ($this.resources | ForEach-Object { $_.ToJson() }) -join ','
+        $resourceJson = if ($this.resources) {($this.resources | ForEach-Object { $_.ToJson() }) -join ',' } else {''}
         $resourceJson = "[$resourceJson]"
         $jsonString = "{'repositoryName': '$($this.repositoryName)','resources': $resourceJson}"
         $jsonString = $jsonString -replace "'", '"'
