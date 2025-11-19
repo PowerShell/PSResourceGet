@@ -121,7 +121,7 @@
               "title": "Version",
               "description": "The version range of the resource.",
               "type": "string",
-              "pattern": "^(\\[|\\()\\s*\\d+(\\.\\d+){0,2}(-[0-9A-Za-z-.]+)?\\s*(,\\s*(\\d+(\\.\\d+){0,2}(-[0-9A-Za-z-.]+)?)?\\s*(\\]|\\)))?$"
+              "pattern": "^\\d+(\\.\\d+){1,3}(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
             },
             "scope": {
               "title": "Scope",
