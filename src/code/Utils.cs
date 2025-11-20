@@ -1160,8 +1160,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         private readonly static Version PSVersion7_7 = new Version(7, 7, 0);
 
         /// <summary>
-        /// Gets the user content directory path using PowerShell's GetPSModulePath API.
-        /// Falls back to legacy path if the API is not available or PowerShell version is below 7.7.0.
+        /// Gets the user content directory path using PowerShell's Get-PSContentPath cmdlet.
+        /// Falls back to legacy path if the cmdlet is not available or PowerShell version is below 7.7.0.
         /// </summary>
         private static string GetUserContentPath(PSCmdlet psCmdlet, string legacyPath)
         {
@@ -1171,38 +1171,41 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 ? version
                 : new Version(5, 1);
 
-            // Only use GetPSModulePath API if PowerShell version is 7.7.0 or greater (when PSContentPath feature is available)
+            // Only use Get-PSContentPath cmdlet if PowerShell version is 7.7.0 or greater (when PSContentPath feature is available)
             if (psVersion >= PSVersion7_7)
             {
-                // Try to use PowerShell's GetPSModulePath API via reflection
-                // This API automatically respects PSContentPath settings
+                // Try to use PowerShell's Get-PSContentPath cmdlet
+                // This cmdlet automatically respects PSContentPath settings
                 try
                 {
-                    var moduleIntrinsicsType = typeof(PSModuleInfo).Assembly.GetType("System.Management.Automation.ModuleIntrinsics");
-                    var scopeEnumType = typeof(PSModuleInfo).Assembly.GetType("System.Management.Automation.PSModulePathScope");
-                    
-                    if (moduleIntrinsicsType != null && scopeEnumType != null)
+                    using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                     {
-                        var getPSModulePathMethod = moduleIntrinsicsType.GetMethod("GetPSModulePath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                        pwsh.AddCommand("Get-PSContentPath");
+                        var results = pwsh.Invoke();
                         
-                        if (getPSModulePathMethod != null)
+                        if (!pwsh.HadErrors && results != null && results.Count > 0)
                         {
-                            // PSModulePathScope.User = 0
-                            object userScope = Enum.ToObject(scopeEnumType, 0);
-                            string userModulePath = (string)getPSModulePathMethod.Invoke(null, new object[] { userScope });
-                            
-                            if (!string.IsNullOrEmpty(userModulePath))
+                            // Get-PSContentPath returns a PSObject, extract the path string
+                            string userContentPath = results[0]?.ToString();
+                            if (!string.IsNullOrEmpty(userContentPath))
                             {
-                                string userContentPath = Path.GetDirectoryName(userModulePath);
-                                psCmdlet.WriteVerbose($"User content path from GetPSModulePath API: {userContentPath}");
+                                psCmdlet.WriteVerbose($"User content path from Get-PSContentPath: {userContentPath}");
                                 return userContentPath;
+                            }
+                        }
+                        
+                        if (pwsh.HadErrors)
+                        {
+                            foreach (var error in pwsh.Streams.Error)
+                            {
+                                psCmdlet.WriteVerbose($"Get-PSContentPath error: {error}");
                             }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    psCmdlet.WriteVerbose($"GetPSModulePath API not available: {ex.Message}");
+                    psCmdlet.WriteVerbose($"Get-PSContentPath cmdlet not available: {ex.Message}");
                 }
             }
             else
