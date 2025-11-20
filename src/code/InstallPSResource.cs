@@ -487,9 +487,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                     }
 
-                    if (pkgParams.Scope == ScopeType.AllUsers)
+                    if (pkgParams.Scope.HasValue && pkgParams.Scope.Value == ScopeType.AllUsers)
                     {
-                        _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, pkgParams.Scope);
+                        _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, pkgParams.Scope.Value);
                     }
 
                     pkgVersion = pkgInstallInfo["version"] == null ? String.Empty : pkgInstallInfo["version"].ToString();
@@ -566,14 +566,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // When reqResourceParams is provided (via -RequiredResource), use its properties
-            // instead of the cmdlet-level parameters
-            bool acceptLicense = reqResourceParams != null ? reqResourceParams.AcceptLicense : AcceptLicense;
-            bool quiet = reqResourceParams != null ? reqResourceParams.Quiet : Quiet;
-            bool reinstall = reqResourceParams != null ? reqResourceParams.Reinstall : Reinstall;
-            bool trustRepository = reqResourceParams != null ? reqResourceParams.TrustRepository : TrustRepository;
-            bool noClobber = reqResourceParams != null ? reqResourceParams.NoClobber : NoClobber;
-            bool skipDependencyCheck = reqResourceParams != null ? reqResourceParams.SkipDependencyCheck : SkipDependencyCheck;
-            ScopeType scope = reqResourceParams != null ? reqResourceParams.Scope : Scope;
+            // instead of the cmdlet-level parameters. Only use the property if it was explicitly set (not null).
+            bool acceptLicense = reqResourceParams?.AcceptLicense ?? AcceptLicense;
+            bool quiet = reqResourceParams?.Quiet ?? Quiet;
+            bool reinstall = reqResourceParams?.Reinstall ?? Reinstall;
+            bool trustRepository = reqResourceParams?.TrustRepository ?? TrustRepository;
+            bool noClobber = reqResourceParams?.NoClobber ?? NoClobber;
+            bool skipDependencyCheck = reqResourceParams?.SkipDependencyCheck ?? SkipDependencyCheck;
+            ScopeType scope = reqResourceParams?.Scope ?? Scope;
 
             IEnumerable<PSResourceInfo> installedPkgs = _installHelper.BeginInstallPackages(
                 names: pkgNames,
