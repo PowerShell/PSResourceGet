@@ -1157,145 +1157,62 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         }
 
         private readonly static Version PSVersion6 = new Version(6, 0);
+        private readonly static Version PSVersion7_7 = new Version(7, 7, 0);
 
         /// <summary>
-        /// Gets the user content directory path based on PSContentPath experimental feature settings.
-        /// Checks if PSContentPath is enabled and returns the appropriate path (custom, default, or legacy).
+        /// Gets the user content directory path using PowerShell's GetPSModulePath API.
+        /// Falls back to legacy path if the API is not available or PowerShell version is below 7.7.0.
         /// </summary>
-        private static string GetUserContentPath(PSCmdlet psCmdlet, string defaultPSContentPath, string legacyPath)
+        private static string GetUserContentPath(PSCmdlet psCmdlet, string legacyPath)
         {
-            bool usePSContentPath = IsExperimentalFeatureEnabled(psCmdlet, "PSContentPath");
-            
-            if (usePSContentPath)
-            {
-                psCmdlet.WriteVerbose("PSContentPath experimental feature is enabled");
-                
-                // Check environment variable and config file for custom PSUserContentPath
-                string customPSUserContentPath = GetPSUserContentPath(psCmdlet);
-                
-                if (!string.IsNullOrEmpty(customPSUserContentPath) && Directory.Exists(customPSUserContentPath))
-                {
-                    // Use custom configured path
-                    psCmdlet.WriteVerbose($"Using custom PSUserContentPath: {customPSUserContentPath}");
-                    return customPSUserContentPath;
-                }
-                else
-                {
-                    // Use default PSContentPath location when feature is enabled
-                    psCmdlet.WriteVerbose($"Using default PSContentPath location: {defaultPSContentPath}");
-                    return defaultPSContentPath;
-                }
-            }
-            else
-            {
-                // PSContentPath not enabled, use legacy location
-                psCmdlet.WriteVerbose($"Using legacy location: {legacyPath}");
-                return legacyPath;
-            }
-        }
+            // Get PowerShell engine version from $PSVersionTable.PSVersion
+            Version psVersion = psCmdlet.SessionState.PSVariable.GetValue("PSVersionTable") is Hashtable versionTable 
+                && versionTable["PSVersion"] is Version version
+                ? version
+                : new Version(5, 1);
 
-        /// <summary>
-        /// Checks if a PowerShell experimental feature is enabled by reading the PowerShell configuration file.
-        /// Returns false if the configuration file doesn't exist or if the feature is not enabled.
-        /// </summary>
-        private static bool IsExperimentalFeatureEnabled(PSCmdlet psCmdlet, string featureName)
-        {
-            try
+            // Only use GetPSModulePath API if PowerShell version is 7.7.0 or greater (when PSContentPath feature is available)
+            if (psVersion >= PSVersion7_7)
             {
-                // PowerShell configuration file location
-                string configPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "powershell",
-                    "powershell.config.json"
-                );
-
-                if (!File.Exists(configPath))
+                // Try to use PowerShell's GetPSModulePath API via reflection
+                // This API automatically respects PSContentPath settings
+                try
                 {
-                    psCmdlet.WriteVerbose("PowerShell configuration file not found, experimental features not enabled");
-                    return false;
-                }
-
-                string jsonContent = File.ReadAllText(configPath);
-                using (var jsonDoc = JsonDocument.Parse(jsonContent))
-                {
-                    // Look for "ExperimentalFeatures": ["FeatureName"] in the config
-                    if (jsonDoc.RootElement.TryGetProperty("ExperimentalFeatures", out var experimentalFeatures) &&
-                        experimentalFeatures.ValueKind == JsonValueKind.Array)
+                    var moduleIntrinsicsType = typeof(PSModuleInfo).Assembly.GetType("System.Management.Automation.ModuleIntrinsics");
+                    var scopeEnumType = typeof(PSModuleInfo).Assembly.GetType("System.Management.Automation.PSModulePathScope");
+                    
+                    if (moduleIntrinsicsType != null && scopeEnumType != null)
                     {
-                        foreach (var feature in experimentalFeatures.EnumerateArray())
+                        var getPSModulePathMethod = moduleIntrinsicsType.GetMethod("GetPSModulePath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                        
+                        if (getPSModulePathMethod != null)
                         {
-                            if (string.Equals(feature.GetString(), featureName, StringComparison.OrdinalIgnoreCase))
+                            // PSModulePathScope.User = 0
+                            object userScope = Enum.ToObject(scopeEnumType, 0);
+                            string userModulePath = (string)getPSModulePathMethod.Invoke(null, new object[] { userScope });
+                            
+                            if (!string.IsNullOrEmpty(userModulePath))
                             {
-                                psCmdlet.WriteVerbose(string.Format("Experimental feature '{0}' found in configuration file", featureName));
-                                return true;
+                                string userContentPath = Path.GetDirectoryName(userModulePath);
+                                psCmdlet.WriteVerbose($"User content path from GetPSModulePath API: {userContentPath}");
+                                return userContentPath;
                             }
                         }
                     }
                 }
-
-                psCmdlet.WriteVerbose(string.Format("Experimental feature '{0}' not found in configuration file", featureName));
-                return false;
-            }
-            catch (Exception ex)
-            {
-                psCmdlet.WriteVerbose(string.Format("Error reading PowerShell configuration file: {0}", ex.Message));
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Gets the custom PSUserContentPath from environment variable or PowerShell configuration file.
-        /// Environment variable takes precedence over the configuration file setting.
-        /// Returns null if neither is set or configured.
-        /// </summary>
-        private static string GetPSUserContentPath(PSCmdlet psCmdlet)
-        {
-            try
-            {
-                // First check the environment variable (takes precedence)
-                string envPSUserContentPath = Environment.GetEnvironmentVariable("PSUserContentPath");
-                if (!string.IsNullOrEmpty(envPSUserContentPath))
+                catch (Exception ex)
                 {
-                    psCmdlet.WriteVerbose(string.Format("Found PSUserContentPath from environment variable: {0}", envPSUserContentPath));
-                    return envPSUserContentPath;
+                    psCmdlet.WriteVerbose($"GetPSModulePath API not available: {ex.Message}");
                 }
-
-                // If environment variable not set, check the configuration file
-                string configPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "powershell",
-                    "powershell.config.json"
-                );
-
-                if (!File.Exists(configPath))
-                {
-                    psCmdlet.WriteVerbose("PowerShell configuration file not found");
-                    return null;
-                }
-
-                string jsonContent = File.ReadAllText(configPath);
-                using (var jsonDoc = JsonDocument.Parse(jsonContent))
-                {
-                    // Look for PSUserContentPath in the config
-                    if (jsonDoc.RootElement.TryGetProperty("PSUserContentPath", out var pathElement))
-                    {
-                        string psUserContentPath = pathElement.GetString();
-                        if (!string.IsNullOrEmpty(psUserContentPath))
-                        {
-                            psCmdlet.WriteVerbose(string.Format("Found PSUserContentPath in config file: {0}", psUserContentPath));
-                            return psUserContentPath;
-                        }
-                    }
-                }
-
-                psCmdlet.WriteVerbose("PSUserContentPath not configured in PowerShell configuration file or environment variable");
-                return null;
             }
-            catch (Exception ex)
+            else
             {
-                psCmdlet.WriteVerbose(string.Format("Error reading PSUserContentPath: {0}", ex.Message));
-                return null;
+                psCmdlet.WriteVerbose($"PowerShell version {psVersion} is below 7.7.0, using legacy location");
             }
+            
+            // Fallback to legacy location
+            psCmdlet.WriteVerbose($"Using legacy location: {legacyPath}");
+            return legacyPath;
         }
 
         private static void GetStandardPlatformPaths(
@@ -1305,7 +1222,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                string powerShellType = (psCmdlet.Host.Version >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
+                // Get PowerShell engine version from $PSVersionTable.PSVersion
+                Version psVersion = psCmdlet.SessionState.PSVariable.GetValue("PSVersionTable") is Hashtable versionTable 
+                    && versionTable["PSVersion"] is Version version
+                    ? version
+                    : new Version(5, 1); // Default to Windows PowerShell version if unable to determine
+                
+                string powerShellType = (psVersion >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
                 
                 // Windows PowerShell doesn't support experimental features or PSContentPath
                 if (powerShellType == "WindowsPowerShell")
@@ -1316,16 +1239,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
                 else
                 {
-                    string defaultPSContentPath = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                        powerShellType
-                    );
                     string legacyPath = Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                         powerShellType
                     );
                     
-                    localUserDir = GetUserContentPath(psCmdlet, defaultPSContentPath, legacyPath);
+                    localUserDir = GetUserContentPath(psCmdlet, legacyPath);
                 }
                 
                 allUsersDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), powerShellType);
@@ -1333,16 +1252,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             else
             {
                 // paths are the same for both Linux and macOS
-                string xdgDataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
-                if (string.IsNullOrEmpty(xdgDataHome))
-                {
-                    xdgDataHome = Path.Combine(GetHomeOrCreateTempHome(), ".local", "share");
-                }
-                
-                string defaultPSContentPath = Path.Combine(xdgDataHome, "powershell");
                 string legacyPath = Path.Combine(GetHomeOrCreateTempHome(), ".local", "share", "powershell");
                 
-                localUserDir = GetUserContentPath(psCmdlet, defaultPSContentPath, legacyPath);
+                localUserDir = GetUserContentPath(psCmdlet, legacyPath);
                 
                 // Create the default data directory if it doesn't exist
                 if (!Directory.Exists(localUserDir))
