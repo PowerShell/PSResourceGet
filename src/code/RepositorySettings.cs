@@ -922,9 +922,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     {
                         File.Delete(tempFilePath);
                     }
-                    catch
+                    catch (Exception cleanupEx)
                     {
-                        // Ignore cleanup errors
+                        errorMsg = string.Format(CultureInfo.InvariantCulture, "Repository store reset failed with error: {0}. Additionally, cleanup of temporary file failed with error: {1}", e.Message, cleanupEx.Message);
+                        return null;
                     }
                 }
 
