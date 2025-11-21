@@ -50,7 +50,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string pathToModuleDirToPublish = string.Empty;
         private string pathToNupkgToPublish = string.Empty;
         private ResourceType resourceType = ResourceType.None;
-        private NetworkCredential _networkCredential;
         string userAgentString = UserAgentInfo.UserAgentString();
         private bool _isNupkgPathSpecified = false;
         private Hashtable dependencies;
@@ -381,7 +380,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
-                _networkCredential = repository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
+                var networkCredential = repository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
 
                 // Check if dependencies already exist within the repo if:
                 // 1) the resource to publish has dependencies and
@@ -389,7 +388,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (dependencies != null && !SkipDependenciesCheck)
                 {
                     // If error gets thrown, exit process record
-                    if (!CheckDependenciesExist(dependencies, repository.Name))
+                    if (!CheckDependenciesExist(dependencies, repository.Name, networkCredential))
                     {
                         return;
                     }
@@ -440,7 +439,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (repository.ApiVersion == PSRepositoryInfo.APIVersion.ContainerRegistry)
                 {
-                    ContainerRegistryServerAPICalls containerRegistryServer = new ContainerRegistryServerAPICalls(repository, _cmdletPassedIn, _networkCredential, userAgentString);
+                    ContainerRegistryServerAPICalls containerRegistryServer = new ContainerRegistryServerAPICalls(repository, _cmdletPassedIn, networkCredential, userAgentString);
 
                     if (_isNupkgPathSpecified)
                     {
@@ -475,7 +474,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     // This call does not throw any exceptions, but it will write unsuccessful responses to the console
-                    if (!PushNupkg(outputNupkgDir, repository.Name, repository.Uri.ToString(), out ErrorRecord pushNupkgError))
+                    if (!PushNupkg(outputNupkgDir, repository.Name, repository.Uri.ToString(), networkCredential, out ErrorRecord pushNupkgError))
                     {
                         _cmdletPassedIn.WriteError(pushNupkgError);
                         // exit out of processing
@@ -648,7 +647,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return true;
         }
 
-        private bool PushNupkg(string outputNupkgDir, string repoName, string repoUri, out ErrorRecord error)
+        private bool PushNupkg(string outputNupkgDir, string repoName, string repoUri, NetworkCredential networkCredential, out ErrorRecord error)
         {
             _cmdletPassedIn.WriteDebug("In PublishPSResource::PushNupkg()");
 
@@ -674,9 +673,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var success = false;
 
             var sourceProvider = new PackageSourceProvider(settings);
-            if (Credential != null || _networkCredential != null)
+            if (Credential != null || networkCredential != null)
             {
-                InjectCredentialsToSettings(settings, sourceProvider, publishLocation);
+                InjectCredentialsToSettings(settings, sourceProvider, publishLocation, networkCredential);
             }
 
 
@@ -833,10 +832,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return success;
         }
 
-        private void InjectCredentialsToSettings(ISettings settings, IPackageSourceProvider sourceProvider, string source)
+        private void InjectCredentialsToSettings(ISettings settings, IPackageSourceProvider sourceProvider, string source, NetworkCredential networkCredential)
         {
             _cmdletPassedIn.WriteDebug("In PublishPSResource::InjectCredentialsToSettings()");
-            if (Credential == null && _networkCredential == null)
+            if (Credential == null && networkCredential == null)
             {
                 return;
             }
@@ -851,7 +850,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
 
-            var networkCred = Credential == null ? _networkCredential : Credential.GetNetworkCredential();
+            var networkCred = Credential == null ? networkCredential : Credential.GetNetworkCredential();
             string key;
 
             if (packageSource == null)
@@ -1246,7 +1245,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return dependenciesHash;
         }
 
-        private bool CheckDependenciesExist(Hashtable dependencies, string repositoryName)
+        private bool CheckDependenciesExist(Hashtable dependencies, string repositoryName, NetworkCredential networkCredential)
         {
             _cmdletPassedIn.WriteDebug("In PublishHelper::CheckDependenciesExist()");
 
@@ -1276,7 +1275,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 // Search for and return the dependency if it's in the repository.
-                FindHelper findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
+                FindHelper findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, networkCredential);
 
                 var repository = new[] { repositoryName };
                 // Note: we set prerelease argument for FindByResourceName() to true because if no version is specified we want latest version (including prerelease).
