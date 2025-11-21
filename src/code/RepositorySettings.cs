@@ -877,24 +877,17 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 if (File.Exists(FullRepositoryPath))
                 {
                     backupFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + "_backup.xml");
-                    File.Copy(FullRepositoryPath, backupFilePath, overwrite: true);
-                    
-                    // Delete the old file
-                    File.Delete(FullRepositoryPath);
+                    Utils.MoveFiles(FullRepositoryPath, backupFilePath, overwrite: true);
                 }
 
                 // Move the temporary file to the actual location
-                File.Copy(tempFilePath, FullRepositoryPath, overwrite: true);
+                Utils.MoveFiles(tempFilePath, FullRepositoryPath, overwrite: true);
 
                 // Add PSGallery to the newly created store
                 Uri psGalleryUri = new Uri(PSGalleryRepoUri);
                 PSRepositoryInfo psGalleryRepo = Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null, repoCredentialProvider: CredentialProviderType.None, APIVersion.V2, force: false);
 
-                // Clean up temporary and backup files on success
-                if (File.Exists(tempFilePath))
-                {
-                    File.Delete(tempFilePath);
-                }
+                // Clean up backup file on success
                 if (!string.IsNullOrEmpty(backupFilePath) && File.Exists(backupFilePath))
                 {
                     File.Delete(backupFilePath);
@@ -913,8 +906,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         {
                             File.Delete(FullRepositoryPath);
                         }
-                        File.Copy(backupFilePath, FullRepositoryPath, overwrite: true);
-                        File.Delete(backupFilePath);
+                        Utils.MoveFiles(backupFilePath, FullRepositoryPath, overwrite: true);
                     }
                     catch (Exception restoreEx)
                     {
