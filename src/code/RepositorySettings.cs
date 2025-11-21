@@ -851,7 +851,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// If creation fails, the old file is restored.
         /// Returns: PSRepositoryInfo for the PSGallery repository
         /// </summary>
-        public static PSRepositoryInfo Reset(PSCmdlet cmdletPassedIn, out string errorMsg)
+        public static PSRepositoryInfo Reset(out string errorMsg)
         {
             errorMsg = string.Empty;
             string tempFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".xml");
