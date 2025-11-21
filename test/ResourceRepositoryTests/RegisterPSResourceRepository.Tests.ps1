@@ -405,7 +405,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
     }
 
     It "should throw error when trying to register repository with ApiVersion unknown" {
-        {Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -ApiVersion "unknown" -ErrorAction Stop} | Should -Throw -ErrorId "InvalidApiVersion,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+        {Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -ApiVersion "unknown" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
         
         # Verify the repository was not created
         $repo = Get-PSResourceRepository $TestRepoName1 -ErrorAction SilentlyContinue

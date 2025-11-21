@@ -351,7 +351,7 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         $repoApiVersion = $repo.ApiVersion
         $repoApiVersion | Should -Be "local"
 
-        {Set-PSResourceRepository -Name $TestRepoName1 -ApiVersion "unknown" -ErrorAction Stop} | Should -Throw -ErrorId "InvalidApiVersion,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
+        {Set-PSResourceRepository -Name $TestRepoName1 -ApiVersion "unknown" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
         
         # Verify the repository ApiVersion was not changed
         $repo = Get-PSResourceRepository $TestRepoName1
