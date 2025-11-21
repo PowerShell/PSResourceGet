@@ -884,9 +884,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         {
                             File.Delete(tempFilePath);
                         }
-                        catch
+                        catch (Exception cleanupEx)
                         {
-                            // Ignore cleanup errors for temp file
+                            errorMsg = string.Format(CultureInfo.InvariantCulture, "Failed to validate newly created repository store file with error: {0}. Additionally, cleanup of temporary file failed with error: {1}", loadEx.Message, cleanupEx.Message);
+                            return null;
                         }
                     }
                     errorMsg = string.Format(CultureInfo.InvariantCulture, "Failed to validate newly created repository store file with error: {0}.", loadEx.Message);
