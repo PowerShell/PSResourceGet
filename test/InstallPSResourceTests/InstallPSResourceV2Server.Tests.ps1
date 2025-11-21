@@ -429,6 +429,19 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         (Get-InstalledPSResource -Name 'TestModule99').'Prerelease' | Should -Be 'beta2'
     }
 
+    It "Install module using -RequiredResource with TrustRepository in hashtable" {
+        # This test verifies that TrustRepository specified in -RequiredResource hashtable is respected
+        Install-PSResource -RequiredResource @{
+            'TestModule99' = @{
+                'repository' = 'PSGallery'
+                'trustrepository' = 'true'
+            }
+        }
+        $res = Get-InstalledPSResource -Name 'TestModule99'
+        $res.Name | Should -Be 'TestModule99'
+        $res.Version | Should -Be '0.0.93'
+    }
+
     It "Install modules using -RequiredResource with JSON string" {
         $rrJSON = "{
            'test_module': {
