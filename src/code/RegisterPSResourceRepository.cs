@@ -145,13 +145,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSRepositoryInfo.APIVersion? repoApiVersion = null;
             if (MyInvocation.BoundParameters.ContainsKey(nameof(ApiVersion)))
             {
-                {
-                    ThrowTerminatingError(new ErrorRecord(
-                        new ArgumentException("ApiVersion 'Unknown' is not a valid value for Register-PSResourceRepository. Valid values are: V2, V3, Local, NugetServer, ContainerRegistry"),
-                        "InvalidApiVersion",
-                        ErrorCategory.InvalidArgument,
-                        this));
-                }
                 repoApiVersion = ApiVersion;
             }
 
