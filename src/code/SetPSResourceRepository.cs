@@ -88,6 +88,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Specifies the Api version of the repository to be set.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
+        [ValidateSet("V2", "V3", "Local", "NugetServer", "ContainerRegistry")]
         public PSRepositoryInfo.APIVersion ApiVersion { get; set; }
 
         /// <summary>
