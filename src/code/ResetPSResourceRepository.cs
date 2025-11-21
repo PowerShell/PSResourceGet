@@ -59,7 +59,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             WriteVerbose("Repository store reset successfully. PSGallery has been registered.");
 
-            if (PassThru && psGalleryRepo != null)
+            if (PassThru)
             {
                 WriteObject(psGalleryRepo);
             }
