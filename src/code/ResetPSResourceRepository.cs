@@ -45,7 +45,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return;
             }
 
-            PSRepositoryInfo psGalleryRepo = RepositorySettings.Reset(this, out string errorMsg);
+            PSRepositoryInfo psGalleryRepo = RepositorySettings.Reset(out string errorMsg);
 
             if (!string.IsNullOrEmpty(errorMsg))
             {
