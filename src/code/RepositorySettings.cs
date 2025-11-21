@@ -871,7 +871,27 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 newRepoXML.Save(tempFilePath);
 
                 // Validate that the temporary file can be loaded
-                LoadXDocument(tempFilePath);
+                try
+                {
+                    LoadXDocument(tempFilePath);
+                }
+                catch (Exception loadEx)
+                {
+                    // Clean up temp file on validation failure
+                    if (File.Exists(tempFilePath))
+                    {
+                        try
+                        {
+                            File.Delete(tempFilePath);
+                        }
+                        catch
+                        {
+                            // Ignore cleanup errors for temp file
+                        }
+                    }
+                    errorMsg = string.Format(CultureInfo.InvariantCulture, "Failed to validate newly created repository store file with error: {0}.", loadEx.Message);
+                    return null;
+                }
 
                 // Back up the existing file if it exists
                 if (File.Exists(FullRepositoryPath))
