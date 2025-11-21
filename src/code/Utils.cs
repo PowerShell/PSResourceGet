@@ -1157,49 +1157,32 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         }
 
         private readonly static Version PSVersion6 = new Version(6, 0);
-        private readonly static Version PSVersion7_7 = new Version(7, 7, 0);
+        private readonly static Version PSVersion7_7 = new Version(7, 7);
 
         /// <summary>
         /// Gets the user content directory path using PowerShell's Get-PSContentPath cmdlet.
         /// Falls back to legacy path if the cmdlet is not available or PowerShell version is below 7.7.0.
         /// </summary>
-        private static string GetUserContentPath(PSCmdlet psCmdlet, string legacyPath)
+        private static string GetUserContentPath(PSCmdlet psCmdlet, Version psVersion, string legacyPath)
         {
-            // Get PowerShell engine version from $PSVersionTable.PSVersion
-            Version psVersion = psCmdlet.SessionState.PSVariable.GetValue("PSVersionTable") is Hashtable versionTable 
-                && versionTable["PSVersion"] is Version version
-                ? version
-                : new Version(5, 1);
 
             // Only use Get-PSContentPath cmdlet if PowerShell version is 7.7.0 or greater (when PSContentPath feature is available)
             if (psVersion >= PSVersion7_7)
             {
-                // Try to use PowerShell's Get-PSContentPath cmdlet
-                // This cmdlet automatically respects PSContentPath settings
+                // Try to use PowerShell's Get-PSContentPath cmdlet in the current runspace
+                // This cmdlet is only available if experimental feature PSContentPath is enabled
                 try
                 {
-                    using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+                    var results = psCmdlet.InvokeCommand.InvokeScript("Get-PSContentPath");
+                    
+                    if (results != null && results.Count > 0)
                     {
-                        pwsh.AddCommand("Get-PSContentPath");
-                        var results = pwsh.Invoke();
-                        
-                        if (!pwsh.HadErrors && results != null && results.Count > 0)
+                        // Get-PSContentPath returns a PSObject, extract the path string
+                        string userContentPath = results[0]?.ToString();
+                        if (!string.IsNullOrEmpty(userContentPath))
                         {
-                            // Get-PSContentPath returns a PSObject, extract the path string
-                            string userContentPath = results[0]?.ToString();
-                            if (!string.IsNullOrEmpty(userContentPath))
-                            {
-                                psCmdlet.WriteVerbose($"User content path from Get-PSContentPath: {userContentPath}");
-                                return userContentPath;
-                            }
-                        }
-                        
-                        if (pwsh.HadErrors)
-                        {
-                            foreach (var error in pwsh.Streams.Error)
-                            {
-                                psCmdlet.WriteVerbose($"Get-PSContentPath error: {error}");
-                            }
+                            psCmdlet.WriteVerbose($"User content path from Get-PSContentPath: {userContentPath}");
+                            return userContentPath;
                         }
                     }
                 }
@@ -1223,14 +1206,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             out string localUserDir,
             out string allUsersDir)
         {
+            // Get PowerShell engine version from $PSVersionTable.PSVersion
+            Version psVersion = new Version(5, 1);
+            try 
+            { 
+                dynamic psVersionObj = (psCmdlet.SessionState.PSVariable.GetValue("PSVersionTable") as Hashtable)?["PSVersion"];
+                if (psVersionObj != null) psVersion = new Version((int)psVersionObj.Major, (int)psVersionObj.Minor);
+            }
+            catch { 
+                // Fallback if dynamic access fails
+            }
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // Get PowerShell engine version from $PSVersionTable.PSVersion
-                Version psVersion = psCmdlet.SessionState.PSVariable.GetValue("PSVersionTable") is Hashtable versionTable 
-                    && versionTable["PSVersion"] is Version version
-                    ? version
-                    : new Version(5, 1); // Default to Windows PowerShell version if unable to determine
-                
                 string powerShellType = (psVersion >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
                 
                 // Windows PowerShell doesn't support experimental features or PSContentPath
@@ -1247,7 +1235,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         powerShellType
                     );
                     
-                    localUserDir = GetUserContentPath(psCmdlet, legacyPath);
+                    localUserDir = GetUserContentPath(psCmdlet, psVersion, legacyPath);
                 }
                 
                 allUsersDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), powerShellType);
@@ -1257,7 +1245,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // paths are the same for both Linux and macOS
                 string legacyPath = Path.Combine(GetHomeOrCreateTempHome(), ".local", "share", "powershell");
                 
-                localUserDir = GetUserContentPath(psCmdlet, legacyPath);
+                localUserDir = GetUserContentPath(psCmdlet, psVersion, legacyPath);
                 
                 // Create the default data directory if it doesn't exist
                 if (!Directory.Exists(localUserDir))
