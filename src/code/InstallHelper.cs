@@ -397,17 +397,47 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string scriptPath)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::MoveFilesIntoInstallPath()");
-            // Creating the proper installation path depending on whether pkg is a module or script
-            var newPathParent = isModule ? Path.Combine(installPath, pkgInfo.Name) : installPath;
-            var finalModuleVersionDir = isModule ? Path.Combine(installPath, pkgInfo.Name, moduleManifestVersion) : installPath;
-
+            
+            // Source path            
             // If script, just move the files over, if module, move the version directory over
-            var tempModuleVersionDir = (!isModule || isLocalRepo) ? dirNameVersion
+            string tempModuleVersionDir = (!isModule || isLocalRepo) ? dirNameVersion
                 : Path.Combine(tempInstallPath, pkgInfo.Name, newVersion);
 
             _cmdletPassedIn.WriteVerbose($"Installation source path is: '{tempModuleVersionDir}'");
+            
+            // Destination path
+            // Creating the proper installation path depending on whether pkg is a module or script
+            string finalModuleVersionDir;
+            string newPathParent;
+            string moduleFolderNameToUse = moduleManifestVersion; // default to passed-in value (API pkg version)
+
+            // If this is a module, prefer the version declared in the manifest inside the temp extraction
+            if (isModule)
+            {
+                if (TryGetManifestVersionFromTemp(tempModuleVersionDir, pkgInfo.Name, out string manifestVersionFromPsd1))
+                {
+                    // Use manifest-declared version as the directory name so Import-Module sees the same version string
+                    if (!moduleFolderNameToUse.Equals(manifestVersionFromPsd1)) {
+                        _cmdletPassedIn.WriteVerbose($"Version returned from the repository API '{moduleManifestVersion}' is different from the manifest '{manifestVersionFromPsd1}'. Will use version from the manifest instead for package '{pkgInfo.Name}'.");
+                        moduleFolderNameToUse = manifestVersionFromPsd1;
+                    }                    
+                }
+                else
+                {
+                    _cmdletPassedIn.WriteVerbose($"Failed to get version from manifest for '{pkgInfo.Name}', will use the version returned from repository API '{moduleManifestVersion}'.");
+                }
+
+                newPathParent = Path.Combine(installPath, pkgInfo.Name);
+                finalModuleVersionDir = Path.Combine(installPath, pkgInfo.Name, moduleFolderNameToUse);
+            }
+            else
+            {
+                // Script installs go to the installPath directly
+                finalModuleVersionDir = newPathParent = installPath;
+            }
             _cmdletPassedIn.WriteVerbose($"Installation destination path is: '{finalModuleVersionDir}'");
 
+            // Move files to install path
             if (isModule)
             {
                 // If new path does not exist
@@ -466,7 +496,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         _cmdletPassedIn.WriteVerbose("Deleting script metadata XML");
                         File.Delete(Path.Combine(scriptInfoFolderPath, scriptXML));
-
                     }
 
                     _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML)));
@@ -494,6 +523,62 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
         }
 
+
+        /// <summary>
+        /// Try to get version from the .psd1 manifest, because API sometimes returns x.y.0, but manifest says version x.y.
+        /// </summary>
+        private bool TryGetManifestVersionFromTemp(
+            string tempModuleVersionDir,
+            string packageName,
+            out string manifestVersion)
+        {
+            manifestVersion = null;
+
+            try
+            {
+                // First try the canonical path <tempModuleVersionDir>\<packageName>.psd1
+                var psd1Path = Path.Combine(tempModuleVersionDir, packageName + PSDataFileExt);
+
+                // If not present at canonical location, search recursively for the first .psd1
+                if (!File.Exists(psd1Path))
+                {
+                    var found = Directory.GetFiles(tempModuleVersionDir, "*.psd1", SearchOption.AllDirectories).FirstOrDefault();
+                    if (!string.IsNullOrEmpty(found))
+                    {
+                        psd1Path = found;
+                    }
+                }
+
+                if (!File.Exists(psd1Path))
+                {
+                    return false;
+                }
+
+                var text = File.ReadAllText(psd1Path);
+
+                // Try to extract ModuleVersion first, then Version.
+                var m = Regex.Match(text, @"ModuleVersion\s*=\s*(['""]?)([0-9A-Za-z\.\-\+]+)\1", RegexOptions.IgnoreCase);
+                if (!m.Success)
+                {
+                    m = Regex.Match(text, @"Version\s*=\s*(['""]?)([0-9A-Za-z\.\-\+]+)\1", RegexOptions.IgnoreCase);
+                }
+
+                if (m.Success)
+                {
+                    manifestVersion = m.Groups[2].Value;
+                    return !string.IsNullOrEmpty(manifestVersion);
+                }
+
+                return false;
+            }
+            catch (Exception e)
+            {
+                // Don't fail install here; just log verbose so we can still fall back to API version.
+                _cmdletPassedIn.WriteVerbose($"Unable to read manifest version from temp path '{tempModuleVersionDir}': {e.Message}");
+                manifestVersion = null;
+                return false;
+            }
+        }
 
         /// <summary>
         /// Iterates through package names passed in and calls method to install each package and their dependencies.
