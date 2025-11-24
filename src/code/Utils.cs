@@ -189,12 +189,17 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     if (name.Contains("?") || name.Contains("["))
                     {
-                        errorMsgsList.Add(String.Format("-Name with wildcards '?' and '[' are not supported for this cmdlet so Name entry: {0} will be discarded.", name));
+                        errorMsgsList.Add(String.Format("-Name with wildcards '?' and '[' are not supported for this cmdlet so Name entry: '{0}' will be discarded.", name));
                         continue;
                     }
 
                     isContainWildcard = true;
                     namesWithSupportedWildcards.Add(name);
+                }
+                else if(name.Contains("/") || name.Contains("\\"))
+                {
+                    errorMsgsList.Add(String.Format("-Name with path separator '/' or '\\' is not supported for this cmdlet so Name entry: '{0}' will be discarded.", name));
+                    continue;
                 }
                 else
                 {
