@@ -662,6 +662,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 ExcludeInteractiveBrowserCredential = false
             };
 
+            // codeql[cs/security/identity/default-azure-credential-use] DefaultAzureCredential is not being used to create a credential in a production environment (i.e hosted server). It is created locally for a PSResourceGet command invocation, intended to be short-lived, and supports multiple authentication mechanisms which cannot be predicted and isolated for the invocation beforehand.
             var dCred = new DefaultAzureCredential(credOptions);
             var tokenRequestContext = new TokenRequestContext(new string[] { "https://management.azure.com/.default" });
 
