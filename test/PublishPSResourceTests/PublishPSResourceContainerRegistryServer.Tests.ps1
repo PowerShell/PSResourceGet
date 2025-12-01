@@ -568,6 +568,21 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Name | Should -Be $packageName
         $results[0].Version | Should -Be $version
     }
+
+    It "Publish a package should always require authentication" {
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -InformationVariable isRegistryUnauthenticated
+
+        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName
+        $results | Should -Not -BeNullOrEmpty
+        $results[0].Name | Should -Be $script:PublishModuleName
+        $results[0].Version | Should -Be $version
+
+        $isRegistryUnauthenticated | Should -Be "Value of isRepositoryUnauthenticated: False"
+        $isRegistryUnauthenticated[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
+    }
 }
 
 Describe 'Test Publish-PSResource for MAR Repository' -tags 'CI' {
