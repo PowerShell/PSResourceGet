@@ -54,6 +54,8 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         const string containerRegistryRepositoryListTemplate = "https://{0}/v2/_catalog"; // 0 - registry
 
+        private string _cachedContainterRegistryToken = null;
+
         #endregion
 
         #region Constructor
@@ -67,6 +69,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 Credentials = networkCredential
             };
+
+            _cachedContainterRegistryToken = null;
 
             _sessionClient = new HttpClient(handler);
             _sessionClient.Timeout = TimeSpan.FromMinutes(10);
@@ -384,6 +388,12 @@ namespace Microsoft.PowerShell.PSResourceGet
             string tenantID = string.Empty;
             errRecord = null;
 
+            if (!string.IsNullOrEmpty(_cachedContainterRegistryToken))
+            {
+                _cmdletPassedIn.WriteVerbose("Using cached container registry access token.");
+                return _cachedContainterRegistryToken;
+            }
+
             var repositoryCredentialInfo = Repository.CredentialInfo;
             if (repositoryCredentialInfo != null)
             {
@@ -444,6 +454,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 return null;
             }
+
+            _cmdletPassedIn.WriteVerbose("Container registry access token retrieved.");
+            _cachedContainterRegistryToken = containerRegistryAccessToken;
 
             return containerRegistryAccessToken;
         }
@@ -739,7 +752,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 using (JsonDocument metadataJSONDoc = JsonDocument.Parse(serverPkgInfo.Metadata))
                 {
-                    string pkgVersionString = String.Empty; 
+                    string pkgVersionString = String.Empty;
                     JsonElement rootDom = metadataJSONDoc.RootElement;
 
                     if (rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement))
