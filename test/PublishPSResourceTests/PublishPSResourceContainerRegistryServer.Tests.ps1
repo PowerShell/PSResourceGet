@@ -573,15 +573,15 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $version = "15.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -InformationVariable isRegistryUnauthenticated
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -InformationVariable RegistryAuthenticated
 
         $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
 
-        $isRegistryUnauthenticated | Should -Be "Value of isRepositoryUnauthenticated: False"
-        $isRegistryUnauthenticated[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
+        $RegistryAuthenticated[0].MessageData | Should -Be "Value of isRepositoryUnauthenticated: False"
+        $RegistryAuthenticated[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
     }
 }
 
