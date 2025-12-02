@@ -352,12 +352,12 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -InformationVariable RegistryAuthenticated
 
-        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName
+        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -InformationVariable FindRegistryAuthenticated
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
 
-        Write-Verbose -Verbose "obj: $RegistryAuthenticated"
+        Write-Verbose -Verbose "obj: $RegistryAuthenticated, preference: $InformationPreference, find: $FindRegistryAuthenticated"
         $RegistryAuthenticated[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
         $RegistryAuthenticated[0].MessageData | Should -Be "Value of isRepositoryUnauthenticated: False"
     }
