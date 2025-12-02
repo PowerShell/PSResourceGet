@@ -196,9 +196,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     isContainWildcard = true;
                     namesWithSupportedWildcards.Add(name);
                 }
-                else if(name.Contains("/") || name.Contains("\\"))
+                else if(name.StartsWith("/") || name.StartsWith("\\"))
                 {
-                    errorMsgsList.Add(String.Format("-Name with path separator '/' or '\\' is not supported for this cmdlet so Name entry: '{0}' will be discarded.", name));
+                    errorMsgsList.Add(String.Format("-Name starting with path separator '/' or '\\' is not supported for this cmdlet so Name entry: '{0}' will be discarded.", name));
                     continue;
                 }
                 else
