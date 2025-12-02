@@ -570,7 +570,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
 
     It "Publish a package should always require authentication" {
-        $version = "1.0.0"
+        $version = "15.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
         Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -InformationVariable isRegistryUnauthenticated
