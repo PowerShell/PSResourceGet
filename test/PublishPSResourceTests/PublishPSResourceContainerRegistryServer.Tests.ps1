@@ -350,16 +350,15 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $version = "15.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -InformationVariable RegistryAuthenticated
+        $infoRecord = & { Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName 6>&1 } | Where-Object { $_ -is [System.Management.Automation.InformationRecord] }
 
         $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -InformationVariable FindRegistryAuthenticated
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
 
-        Write-Verbose -Verbose "obj: $RegistryAuthenticated, preference: $InformationPreference, find: $FindRegistryAuthenticated"
-        $RegistryAuthenticated[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
-        $RegistryAuthenticated[0].MessageData | Should -Be "Value of isRepositoryUnauthenticated: False"
+        $infoRecord[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
+        $infoRecord[0].MessageData | Should -Be "Value of isRepositoryUnauthenticated: False"
     }
 
     It "Publish a script"{
