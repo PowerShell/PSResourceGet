@@ -351,8 +351,10 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
         $infoRecord = & { Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName 6>&1 } | Where-Object { $_ -is [System.Management.Automation.InformationRecord] }
+        $infoRecord | Should -Not -BeNullOrEmpty
 
-        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName -InformationVariable FindRegistryAuthenticated
+
+        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
