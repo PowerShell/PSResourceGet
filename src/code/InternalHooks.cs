@@ -17,6 +17,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         internal static string MARPrefix;
 
+        internal static bool IsRegistryUnauthenticatedCheckRequired;
+
+        internal static bool IsRegistryUnauthenticated;
+
         public static void SetTestHook(string property, object value)
         {
             var fieldInfo = typeof(InternalHooks).GetField(property, BindingFlags.Static | BindingFlags.NonPublic);
@@ -26,6 +30,16 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public static string GetUserString()
         {
             return Microsoft.PowerShell.PSResourceGet.Cmdlets.UserAgentInfo.UserAgentString();
+        }
+
+        public static bool? GetRegistryAuthenticationStatus()
+        {
+            if (IsRegistryUnauthenticatedCheckRequired)
+            {
+                return IsRegistryUnauthenticated;
+            }
+            
+            return null;
         }
     }
 }

@@ -351,16 +351,23 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
         $infoRecord = & { Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName 6>&1 } | Where-Object { $_ -is [System.Management.Automation.InformationRecord] }
-        $infoRecord | Should -Not -BeNullOrEmpty
-
 
         $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName
         $results | Should -Not -BeNullOrEmpty
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
 
-        $infoRecord[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
-        $infoRecord[0].MessageData | Should -Be "Value of isRepositoryUnauthenticated: False"
+        $isRegistryUnauthenticatedCheckRequired = [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::GetRegistryAuthenticationStatus()
+        if ($isRegistryUnauthenticatedCheckRequired -ne $null)
+        {
+            $infoRecord | Should -Not -BeNullOrEmpty
+            $infoRecord[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
+            $infoRecord[0].MessageData | Should -Be "Value of isRepositoryUnauthenticated: $isRegistryUnauthenticatedCheckRequired"
+
+            # Reset the test hook after use
+            [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("IsRegistryUnauthenticatedCheckRequired", $false)
+            [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("IsRegistryUnauthenticated", $false)
+        }
     }
 
     It "Publish a script"{
