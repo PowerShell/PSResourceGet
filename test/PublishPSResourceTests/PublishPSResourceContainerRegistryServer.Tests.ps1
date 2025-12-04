@@ -357,16 +357,11 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Name | Should -Be $script:PublishModuleName
         $results[0].Version | Should -Be $version
 
-        $isRegistryUnauthenticatedCheckRequired = [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::GetRegistryAuthenticationStatus()
-        if ($isRegistryUnauthenticatedCheckRequired -ne $null)
+        if ($usingAzAuth)
         {
             $infoRecord | Should -Not -BeNullOrEmpty
             $infoRecord[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
             $infoRecord[0].MessageData | Should -Be "Value of isRepositoryUnauthenticated: $isRegistryUnauthenticatedCheckRequired"
-
-            # Reset the test hook after use
-            [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("IsRegistryUnauthenticatedCheckRequired", $false)
-            [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("IsRegistryUnauthenticated", $false)
         }
     }
 

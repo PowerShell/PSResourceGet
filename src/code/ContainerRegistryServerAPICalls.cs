@@ -409,8 +409,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             else
             {
                 bool isRepositoryUnauthenticated = isPushOperation ? false : IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), needCatalogAccess, out errRecord, out accessToken);
-                InternalHooks.SetTestHook("IsRegistryUnauthenticatedCheckRequired", true);
-                InternalHooks.SetTestHook("IsRegistryUnauthenticated", isRepositoryUnauthenticated);
                 _cmdletPassedIn.WriteInformation($"Value of isRepositoryUnauthenticated: {isRepositoryUnauthenticated}", new string[] { "PSRGContainerRegistryUnauthenticatedCheck" });
 
                 _cmdletPassedIn.WriteDebug($"Is repository unauthenticated: {isRepositoryUnauthenticated}");
