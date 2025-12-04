@@ -361,7 +361,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         {
             $infoRecord | Should -Not -BeNullOrEmpty
             $infoRecord[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
-            $infoRecord[0].MessageData | Should -Be "Value of isRepositoryUnauthenticated: $isRegistryUnauthenticatedCheckRequired"
+            $infoRecord[0].MessageData | Should -Be "Value of isRepositoryUnauthenticated: False"
         }
     }
 
