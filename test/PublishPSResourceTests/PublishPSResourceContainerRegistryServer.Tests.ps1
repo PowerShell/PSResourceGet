@@ -350,7 +350,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $version = "15.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
 
-        $infoRecord = & { Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName 6>&1 } | Where-Object { $_ -is [System.Management.Automation.InformationRecord] }
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -InformationVariable RegistryUnauthenticated
 
         $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName
         $results | Should -Not -BeNullOrEmpty
@@ -359,9 +359,9 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         if ($usingAzAuth)
         {
-            $infoRecord | Should -Not -BeNullOrEmpty
-            $infoRecord[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
-            $infoRecord[0].MessageData | Should -Be "Value of isRepositoryUnauthenticated: False"
+            $RegistryUnauthenticated | Should -Not -BeNullOrEmpty
+            $RegistryUnauthenticated[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
+            $RegistryUnauthenticated[0].MessageData | Should -Be "Value of isRepositoryUnauthenticated: False"
         }
     }
 
