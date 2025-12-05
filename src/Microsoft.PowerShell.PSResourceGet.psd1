@@ -50,7 +50,7 @@
         'usres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'preview4'
+            Prerelease   = 'preview5'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -60,6 +60,20 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.2.0-preview5
+
+### New Features
+- Add `Reset-PSResourceRepository` cmdlet to recover from corrupted repository store (#1895)
+- Improve performance of `ContainerRegistry` repositories by caching token (#1920)
+
+## Bug fix
+- Ensure `Update-PSResource` does not re-install dependency packages which already satisfy dependency criteria (#1919)
+- Retrieve non-anonymous access token when publishing to ACR (#1918)
+- Filter out path separators when passing in package names as a parameter for any cmdlet (#1916)
+- Respect `TrustRepository` parameter when using `-RequiredResource` with `Install-PSResource` (#1910)
+- Fix bug with 'PSModuleInfo' property deserialization when validating module manifest (#1909) 
+- Prevent users from setting ApiVersion to 'Unknown' in `Set-PSResourceRepository` and `Register-PSResourceRepository` (#1892)
+
 ## 1.2.0-preview4
 
 ## Bug fix

@@ -1,5 +1,19 @@
 # Preview Changelog
 
+## [1.2.0-preview5](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview4..v1.2.0-preview5) - 2025-12-05
+
+### New Features
+- Add `Reset-PSResourceRepository` cmdlet to recover from corrupted repository store (#1895)
+- Improve performance of `ContainerRegistry` repositories by caching token (#1920)
+
+## Bug fix
+- Ensure `Update-PSResource` does not re-install dependency packages which already satisfy dependency criteria (#1919)
+- Retrieve non-anonymous access token when publishing to ACR (#1918)
+- Filter out path separators when passing in package names as a parameter for any cmdlet (#1916)
+- Respect `TrustRepository` parameter when using `-RequiredResource` with `Install-PSResource` (#1910)
+- Fix bug with 'PSModuleInfo' property deserialization when validating module manifest (#1909) 
+- Prevent users from setting ApiVersion to 'Unknown' in `Set-PSResourceRepository` and `Register-PSResourceRepository` (#1892)
+
 ## [1.2.0-preview4](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview3..v1.2.0-preview4) - 2025-11-04
 
 ## Bug fix
