@@ -72,7 +72,6 @@
 - Filter out path separators when passing in package names as a parameter for any cmdlet (#1916)
 - Respect `TrustRepository` parameter when using `-RequiredResource` with `Install-PSResource` (#1910)
 - Fix bug with 'PSModuleInfo' property deserialization when validating module manifest (#1909) 
-- `Uninstall-PSResource` no longer fails silently when resource was not found or prerelease criteria not met (#1898)
 - Prevent users from setting ApiVersion to 'Unknown' in `Set-PSResourceRepository` and `Register-PSResourceRepository` (#1892)
 
 ## 1.2.0-preview4
