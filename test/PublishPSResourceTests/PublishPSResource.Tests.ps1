@@ -131,6 +131,21 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         }
     }
 
+    It "Publish a module with valid Author field without -SkipModuleManifestValidate" {
+        # This test verifies that the fix for runspace deserialization issue works correctly.
+        # Previously, PSModuleInfo.Author would return empty string when called via PowerShell.Create(),
+        # causing false positive "No author was provided" errors.
+        $version = "1.0.0"
+        $author = "TestAuthor"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module" -Author $author
+
+        # This should succeed without needing -SkipModuleManifestValidate
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2  -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
     It "Publish a module with -Path to the highest priority repo" {
         $version = "1.0.0"
         New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"

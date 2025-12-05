@@ -159,4 +159,10 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
         $res = Save-PSResource 'TestModuleWithDependencyE' -Repository $NuGetGalleryName -TrustRepository -PassThru
         $res.Length | Should -Be 4
     }
+
+    It "Not save module that has path separator in name" {
+        Save-PSResource -Name "/$testModuleName" -Repository $NuGetGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue -TrustRepository
+        $err.Count | Should -BeGreaterThan 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly 'ErrorFilteringNamesForUnsupportedWildcards,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource'
+    }
 }

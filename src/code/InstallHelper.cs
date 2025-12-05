@@ -587,6 +587,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                     }
                                 }
 
+                                string depPkgNameVersion = $"{depPkg.Name}{depPkg.Version.ToString()}";
+                                if (_packagesOnMachine.Contains(depPkgNameVersion) && !depPkg.IsPrerelease)
+                                {
+                                    // if a dependency package is already installed, do not install it again.
+                                    // to determine if the package version is already installed, _packagesOnMachine is used but it only contains name, version info, not version with prerelease info
+                                    // if the dependency package is found to be prerelease, it is safer to install it (and worse case it reinstalls)
+                                    _cmdletPassedIn.WriteVerbose($"Dependency '{depPkg.Name}' with version '{depPkg.Version}' is already installed.");
+                                    continue;
+                                }
+
                                 packagesHash = BeginPackageInstall(
                                             searchVersionType: VersionType.SpecificVersion,
                                             specificVersion: depVersion,

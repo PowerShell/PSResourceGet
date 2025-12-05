@@ -1,5 +1,22 @@
 # Preview Changelog
 
+## [1.2.0-preview4](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview3..v1.2.0-preview4) - 2025-11-04
+
+## Bug fix
+
+- Fix typos in numerous files (#1875 Thanks @SamErde!)
+- MAR fails to parse RequiredVersion for dependencies (#1876 Thanks @o-l-a-v!)
+- Get-InstalledPSResource -Path don't throw if no subdirectories were found (#1877 Thanks @o-l-a-v!)
+- Handle boolean correctly in RequiredResourceFile for prerelease key (#1843 Thanks @o-l-a-v!)
+- Fix CodeQL configuration (#1886)
+- Add cmdlet aliases: gres, usres, and svres (#1888)
+- Add warning when AuthenticodeCheck is used on non-Windows platforms (#1891)
+- Fix Compress-PSResource ignoring .gitkeep and other dotfiles (#1889)
+- Add CodeQL suppression for ContainerRegistryServerAPICalls (#1897)
+- Fix broken Install-PSResource test with warning condition incorrect (#1899)
+- Uninstall-PSResource should not fail silently when resource was not found or prerelease criteria not met (#1898)
+- Uninstall-PSResource should delete subdirectories without Access Denied error on OneDrive (#1860)
+
 ## [1.2.0-preview3](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview2..v1.2.0-preview3) - 2025-09-12
 
 ### New Features
