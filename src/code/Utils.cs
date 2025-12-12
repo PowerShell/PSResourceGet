@@ -1182,6 +1182,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         if (!string.IsNullOrEmpty(userContentPath))
                         {
                             psCmdlet.WriteVerbose($"User content path from Get-PSContentPath: {userContentPath}");
+                            InternalHooks.LastUserContentPathSource = "Get-PSContentPath";
+                            InternalHooks.LastUserContentPath = userContentPath;
                             return userContentPath;
                         }
                     }
@@ -1198,6 +1200,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             
             // Fallback to legacy location
             psCmdlet.WriteVerbose($"Using legacy location: {legacyPath}");
+            InternalHooks.LastUserContentPathSource = "Legacy";
+            InternalHooks.LastUserContentPath = legacyPath;
             return legacyPath;
         }
 
@@ -1215,6 +1219,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
             catch { 
                 // Fallback if dynamic access fails
+                psCmdlet.WriteWarning("Unable to determine PowerShell version from $PSVersionTable");
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -1253,7 +1258,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     Directory.CreateDirectory(localUserDir);
                 }
 
-                allUsersDir = Path.Combine("/usr", "local", "share", "powershell");
+                allUsersDir = Path.Combine("/", "usr", "local", "share", "powershell");
             }
         }
 
