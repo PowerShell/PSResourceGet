@@ -336,7 +336,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindName()");
+            //_cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindName()");
             // Make sure to include quotations around the package name
 
             // This should return the latest stable version or the latest prerelease version (respectively)
@@ -633,7 +633,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindVersion()");
+            //_cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindVersion()");
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true
             // Quotations around package name and version do not matter, same metadata gets returned.
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
@@ -674,7 +674,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             int count = GetCountFromResponse(response, out errRecord);
-            _cmdletPassedIn.WriteDebug($"Count from response is '{count}'");
+            //_cmdletPassedIn.WriteDebug($"Count from response is '{count}'");
 
             if (errRecord != null)
             {
@@ -788,13 +788,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string HttpRequestCall(string requestUrlV2, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCall()");
+            //_cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCall()");
             errRecord = null;
             string response = string.Empty;
 
             try
             {
-                _cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV2}'");
+               // _cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV2}'");
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
 
                 response = SendV2RequestAsync(request, _sessionClient).GetAwaiter().GetResult();
@@ -834,7 +834,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (string.IsNullOrEmpty(response))
             {
-                _cmdletPassedIn.WriteDebug("Response is empty");
+               // _cmdletPassedIn.WriteDebug("Response is empty");
             }
 
             return response;
@@ -845,13 +845,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private HttpContent HttpRequestCallForContent(string requestUrlV2, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCallForContent()");
+          //  _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCallForContent()");
             errRecord = null;
             HttpContent content = null;
 
             try
             {
-                _cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV2}'");
+                //_cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV2}'");
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
 
                 content = SendV2RequestForContentAsync(request, _sessionClient).GetAwaiter().GetResult();
@@ -883,7 +883,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (content == null || string.IsNullOrEmpty(content.ToString()))
             {
-                _cmdletPassedIn.WriteDebug("Response is empty");
+                //_cmdletPassedIn.WriteDebug("Response is empty");
             }
 
             return content;
@@ -1276,7 +1276,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, int skip, bool getOnlyLatest, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindVersionGlobbing()");
+            //_cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindVersionGlobbing()");
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
             // NormalizedVersion doesn't include trailing zeroes
@@ -1382,7 +1382,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallVersion()");
+            //_cmdletPassedIn.WriteDebug("In V2ServerAPICalls::InstallVersion()");
             string requestUrlV2;
 
             if (_isADORepo)
@@ -1483,7 +1483,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                     else
                     {
-                        _cmdletPassedIn.WriteDebug($"Property 'count' and 'd:Id' could not be found in response. This may indicate that the package could not be found");
+                        //_cmdletPassedIn.WriteDebug($"Property 'count' and 'd:Id' could not be found in response. This may indicate that the package could not be found");
                     }
                 }
             }
