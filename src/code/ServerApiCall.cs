@@ -10,6 +10,7 @@ using System.Net;
 using System.Text;
 using System.Runtime.ExceptionServices;
 using System.Management.Automation;
+using System.Threading.Tasks;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -117,6 +118,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Examples: Search "PowerShellGet" "2.2.5"
         /// </summary>
         public abstract FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord);
+
+        /// <summary>
+        /// Find method which allows for searching for single name with specific version.
+        /// Name: no wildcard support
+        /// Version: no wildcard support
+        /// Examples: Search "PowerShellGet" "2.2.5"
+        /// </summary>
+        public abstract Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type);
+
+
+        /// <summary>
+        /// Find method which allows for searching for single name with specific version.
+        /// Name: no wildcard support
+        /// Version: no wildcard support
+        /// Examples: Search "PowerShellGet" "2.2.5"
+        /// </summary>
+
+        public abstract Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest);
 
         /// <summary>
         /// Find method which allows for searching for single name with specific version.

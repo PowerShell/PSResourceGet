@@ -56,7 +56,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string _tmpPath;
         private NetworkCredential _networkCredential;
         private HashSet<string> _packagesOnMachine;
-        private static readonly ArrayPool<byte> _bufferPool = ArrayPool<byte>.Shared;
 
         #endregion
 
@@ -571,7 +570,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         if (parentPkgObj.Dependencies.Length > 0)
                         {
                             bool depFindFailed = false;
-                            // Get all dependency packages for Az, for each one
                             foreach (PSResourceInfo depPkg in findHelper.FindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository))
                             {
                                 Console.WriteLine($"~~~ entering foreach for for {depPkg.Name} ~~~");
@@ -809,6 +807,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!_reinstall)
             {
                 string currPkgNameVersion = $"{pkgToInstall.Name}{pkgToInstall.Version}";
+                // Use HashSet lookup instead of Contains for O(1) performance
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
                 {
                     _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
@@ -904,12 +903,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
-            _cmdletPassedIn.WriteDebug($" ** Finding dependency packages for (FindAllDependencies) '{pkgToInstall.Name}'");
+            _cmdletPassedIn.WriteDebug($" **Finding dependency packages for (FindAllDependencies) '{pkgToInstall.Name}'");
 
             // the last package added will be the parent package.  
             List<PSResourceInfo> allDependencies = findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
 
-            _cmdletPassedIn.WriteDebug($"** Retrieved all dep packages (FindAllDependencies) for '{pkgToInstall.Name}'");
+            _cmdletPassedIn.WriteDebug($"~~~ Retrieved all dep packages (FindAllDependencies) for '{pkgToInstall.Name}'");
 
             // allDependencies contains parent package as well
             foreach (PSResourceInfo pkg in allDependencies)
@@ -923,21 +922,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         // Concurrently Updates  
         private Hashtable InstallParentAndDependencyPackages(PSResourceInfo parentPkg, List<PSResourceInfo> allDependencies, ServerApiCall currentServer, string tempInstallPath, Hashtable packagesHash, Hashtable updatedPackagesHash, PSResourceInfo pkgToInstall)
         {
-            List<ErrorRecord> errors = new List<ErrorRecord>();
-            // If installing more than 5 packages, do so concurrently
+            List<ErrorRecord> errors = new List<ErrorRecord>(allDependencies.Count); // Pre-allocate based on expected size
+            // Use a lower threshold for better parallelism - 3 packages instead of processor count
+            const int PARALLEL_THRESHOLD = 3;
             int processorCount = Environment.ProcessorCount;
-            if (allDependencies.Count > processorCount)
+            if (allDependencies.Count > PARALLEL_THRESHOLD)
             {
                 // Set the maximum degree of parallelism to 32 (Invoke-Command has default of 32, that's where we got this number from)
                 
                 // If installing more than 5 packages, do so concurrently
                 // If the number of dependencies is very small (e.g., ≤ CPU cores), parallelism may add overhead instead of improving speed.
-                int maxDegreeOfParallelism = processorCount * 2;
+                int maxDegreeOfParallelism = processorCount * 4;
                 Parallel.ForEach(allDependencies, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, depPkg =>
                 {
                     var depPkgName = depPkg.Name;
                     var depPkgVersion = depPkg.Version.ToString();
-                    Console.WriteLine($"+++++++++++++=Processing number: {depPkg}, Thread ID: {Task.CurrentId}");
+                    // Console.WriteLine($"Processing number: {depPkg}, Thread ID: {Task.CurrentId}");
 
                     Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
                     if (installNameErrRecord != null)
@@ -1310,8 +1310,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
-        /// Extracts files from .nupkg with optimized bulk operations
-        /// Uses buffer pooling and parallel processing for better performance.
+        /// Extracts files from .nupkg
+        /// Similar functionality as System.IO.Compression.ZipFile.ExtractToDirectory,
+        /// but while ExtractToDirectory cannot overwrite files, this method can.
         /// </summary>
         private bool TryExtractToDirectory(string zipPath, string extractPath, out ErrorRecord error)
         {
@@ -1330,33 +1331,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 using (ZipArchive archive = ZipFile.OpenRead(zipPath))
                 {
-                    // Categorize files by type for optimal processing
-                    var manifestFiles = new List<ZipArchiveEntry>();
-                    var otherFiles = new List<ZipArchiveEntry>();
-
-                    foreach (var entry in archive.Entries.Where(e => e.CompressedLength > 0))
+                    foreach (ZipArchiveEntry entry in archive.Entries.Where(entry => entry.CompressedLength > 0))
                     {
-                        string ext = Path.GetExtension(entry.Name).ToLowerInvariant();
-                        
-                        if (ext == ".psd1" || ext == ".psm1" || ext == ".ps1")
-                            manifestFiles.Add(entry);
-                        else
-                            otherFiles.Add(entry);
-                    }
+                        // If a file has one or more parent directories.
+                        if (entry.FullName.Contains(Path.DirectorySeparatorChar) || entry.FullName.Contains(Path.AltDirectorySeparatorChar))
+                        {
+                            // Create the parent directories if they do not already exist
+                            var lastPathSeparatorIdx = entry.FullName.Contains(Path.DirectorySeparatorChar) ?
+                                entry.FullName.LastIndexOf(Path.DirectorySeparatorChar) : entry.FullName.LastIndexOf(Path.AltDirectorySeparatorChar);
+                            var parentDirs = entry.FullName.Substring(0, lastPathSeparatorIdx);
+                            var destinationDirectory = Path.Combine(extractPath, parentDirs);
+                            if (!Directory.Exists(destinationDirectory))
+                            {
+                                Directory.CreateDirectory(destinationDirectory);
+                            }
+                        }
 
-                    // Extract critical files first (manifests) sequentially
-                    foreach (var entry in manifestFiles)
-                    {
-                        ExtractEntryWithBufferPool(entry, extractPath);
-                    }
+                        // Gets the full path to ensure that relative segments are removed.
+                        string destinationPath = Path.GetFullPath(Path.Combine(extractPath, entry.FullName));
 
-                    // Extract other files in parallel
-                    if (otherFiles.Count > 0)
-                    {
-                        Parallel.ForEach(otherFiles, new ParallelOptions 
-                        { 
-                            MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1) // Reserve one core
-                        }, entry => ExtractEntryWithBufferPool(entry, extractPath));
+                        // Validate that the resolved output path starts with the resolved destination directory.
+                        // For example, if a zip file contains a file entry ..\sneaky-file, and the zip file is extracted to the directory c:\output,
+                        // then naively combining the paths would result in an output file path of c:\output\..\sneaky-file, which would cause the file to be written to c:\sneaky-file.
+                        if (destinationPath.StartsWith(extractPath, StringComparison.Ordinal))
+                        {
+                            entry.ExtractToFile(destinationPath, overwrite: true);
+                        }
                     }
                 }
             }
@@ -1372,52 +1372,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Extracts a single zip entry using buffer pooling for optimal performance
-        /// </summary>
-        private void ExtractEntryWithBufferPool(ZipArchiveEntry entry, string extractPath)
-        {
-            const int BUFFER_SIZE = 81920; // 80KB buffer
-            
-            // If a file has one or more parent directories.
-            if (entry.FullName.Contains(Path.DirectorySeparatorChar) || entry.FullName.Contains(Path.AltDirectorySeparatorChar))
-            {
-                // Create the parent directories if they do not already exist
-                var lastPathSeparatorIdx = entry.FullName.Contains(Path.DirectorySeparatorChar) ?
-                    entry.FullName.LastIndexOf(Path.DirectorySeparatorChar) : entry.FullName.LastIndexOf(Path.AltDirectorySeparatorChar);
-                var parentDirs = entry.FullName.Substring(0, lastPathSeparatorIdx);
-                var destinationDirectory = Path.Combine(extractPath, parentDirs);
-                if (!Directory.Exists(destinationDirectory))
-                {
-                    Directory.CreateDirectory(destinationDirectory);
-                }
-            }
-
-            // Gets the full path to ensure that relative segments are removed.
-            string destinationPath = Path.GetFullPath(Path.Combine(extractPath, entry.FullName));
-
-            // Security check for directory traversal - validate that the resolved output path starts with the resolved destination directory.
-            if (!destinationPath.StartsWith(extractPath, StringComparison.Ordinal))
-                return;
-            
-            byte[] buffer = _bufferPool.Rent(BUFFER_SIZE);
-            try
-            {
-                using var entryStream = entry.Open();
-                using var fileStream = File.Create(destinationPath);
-                
-                int bytesRead;
-                while ((bytesRead = entryStream.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    fileStream.Write(buffer, 0, bytesRead);
-                }
-            }
-            finally
-            {
-                _bufferPool.Return(buffer);
-            }
         }
 
         /// <summary>
