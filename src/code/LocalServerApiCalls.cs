@@ -263,7 +263,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string regexPattern = $"{packageName}" + @"(\.\d+){1,3}(?:[a-zA-Z0-9-.]+|.\d)?\.nupkg";
             _cmdletPassedIn.WriteDebug($"package file name pattern to be searched for is: {regexPattern}");
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
+            string[] foundFiles = Utils.EmptyStrArray;
+            try
+            {
+                foundFiles = Directory.GetFiles(Repository.Uri.LocalPath);
+            }
+            catch (Exception e)
+            {
+                _cmdletPassedIn.WriteWarning($"Unable to resolve repository source '{Repository.Uri.LocalPath}' due to exception: {e.Message}");
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "FileAccessFailure",
+                    ErrorCategory.ReadError,
+                    this);
+
+                return findResponse;
+            }
+
+            foreach (string path in foundFiles)
             {
                 string packageFullName = Path.GetFileName(path);
                 bool isMatch = Regex.IsMatch(packageFullName, regexPattern, RegexOptions.IgnoreCase);
@@ -333,7 +350,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<Hashtable> pkgsFound = new List<Hashtable>();
             errRecord = null;
 
-            Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: packageName, includePrerelease: includePrerelease);
+            Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: packageName, includePrerelease: includePrerelease, out errRecord);
+            if (errRecord != null)
+            {
+                // ErrorRecord errRecord is only set if directory access to retrieve files failed (i.e network error when accessing file share, incorrect directory path, etc), not if desired files within directory are not found since this is a wildcard scenario.
+                return findResponse;
+            }
 
             List<string> pkgNamesList = pkgVersionsFound.Keys.Cast<string>().ToList();
             foreach(string pkgFound in pkgNamesList)
@@ -382,7 +404,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string pkgPath = String.Empty;
             string actualPkgName = String.Empty;
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
+            string[] foundFiles = Utils.EmptyStrArray;
+            try
+            {
+                foundFiles = Directory.GetFiles(Repository.Uri.LocalPath);
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "FileAccessFailure",
+                    ErrorCategory.ReadError,
+                    this);
+
+                return findResponse;
+            }
+
+            foreach (string path in foundFiles)
             {
                 string packageFullName = Path.GetFileName(path);
                 bool isMatch = Regex.IsMatch(packageFullName, regexPattern, RegexOptions.IgnoreCase);
@@ -450,7 +488,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<Hashtable> pkgsFound = new List<Hashtable>();
             errRecord = null;
 
-            Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: String.Empty, includePrerelease: includePrerelease);
+            Hashtable pkgVersionsFound = GetMatchingFilesGivenNamePattern(packageNameWithWildcard: String.Empty, includePrerelease: includePrerelease, errRecord: out errRecord);
+            if (errRecord != null)
+            {
+                // ErrorRecord errRecord is only set if directory access to retrieve files failed (i.e network error when accessing file share, incorrect directory path, etc), not if desired files within directory are not found since this is a wildcard scenario.
+                return findResponse;
+            }
 
             List<string> pkgNamesList = pkgVersionsFound.Keys.Cast<string>().ToList();
             foreach(string pkgFound in pkgNamesList)
@@ -496,7 +539,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             NuGetVersion latestVersion = new NuGetVersion("0.0.0.0");
             String latestVersionPath = String.Empty;
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
+            string[] foundFiles = Utils.EmptyStrArray;
+            try
+            {
+                foundFiles = Directory.GetFiles(Repository.Uri.LocalPath);
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "FileAccessFailure",
+                    ErrorCategory.ReadError,
+                    this);
+
+                return fs;
+            }
+
+            foreach (string path in foundFiles)
             {
                 string packageFullName = Path.GetFileName(path);
 
@@ -581,7 +640,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WildcardPattern pkgNamePattern = new WildcardPattern($"{packageName}.{version}.nupkg*", WildcardOptions.IgnoreCase);
             String pkgVersionPath = String.Empty;
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
+            string[] foundFiles = Utils.EmptyStrArray;
+            try
+            {
+                foundFiles = Directory.GetFiles(Repository.Uri.LocalPath);
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "FileAccessFailure",
+                    ErrorCategory.ReadError,
+                    this);
+
+                return fs;
+            }
+
+            foreach (string path in foundFiles)
             {
                 string packageFullName = Path.GetFileName(path);
 
@@ -778,7 +853,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
             errRecord = null;
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
+            string[] foundFiles = Utils.EmptyStrArray;
+            try
+            {
+                foundFiles = Directory.GetFiles(Repository.Uri.LocalPath);
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "FileAccessFailure",
+                    ErrorCategory.ReadError,
+                    this);
+
+                return pkgVersionsFound;
+            }
+
+            foreach (string path in foundFiles)
             {
                 string packageFullName = Path.GetFileName(path);
 
@@ -809,9 +900,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// hashtable with those that match the name wildcard pattern and prerelease requirements provided.
         /// This helper method is called for FindAll(), FindTags(), FindNameGlobbing() scenarios.
         /// </summary>
-        private Hashtable GetMatchingFilesGivenNamePattern(string packageNameWithWildcard, bool includePrerelease)
+        private Hashtable GetMatchingFilesGivenNamePattern(string packageNameWithWildcard, bool includePrerelease, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::GetMatchingFilesGivenNamePattern()");
+            errRecord = null;
             bool isNameFilteringRequired = !String.IsNullOrEmpty(packageNameWithWildcard);
 
             // wildcard name possibilities: power*, *get, power*get
@@ -820,7 +912,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Regex rx = new Regex(@"\.\d+\.", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             Hashtable pkgVersionsFound = new Hashtable(StringComparer.OrdinalIgnoreCase);
 
-            foreach (string path in Directory.GetFiles(Repository.Uri.LocalPath))
+            string[] foundFiles = Utils.EmptyStrArray;
+            try
+            {
+                foundFiles = Directory.GetFiles(Repository.Uri.LocalPath);
+            }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "FileAccessFailure",
+                    ErrorCategory.ReadError,
+                    this);
+
+                return pkgVersionsFound;
+            }
+
+            foreach (string path in foundFiles)
             {
                 string packageFullName = Path.GetFileName(path);
                 MatchCollection matches = rx.Matches(packageFullName);
