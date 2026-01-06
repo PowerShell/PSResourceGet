@@ -24,15 +24,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private readonly PSCmdlet _cmdletPassedIn;
         private readonly FindResponseType _localServerFindResponseType = FindResponseType.ResponseHashtable;
         private readonly string _fileTypeKey = "filetype";
+        private readonly bool _writeWarnings = false;
 
         #endregion
 
         #region Constructor
 
-        public LocalServerAPICalls (PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential) : base (repository, networkCredential)
+        public LocalServerAPICalls (PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential, bool writeWarnings = false) : base (repository, networkCredential)
         {
             this.Repository = repository;
             _cmdletPassedIn = cmdletPassedIn;
+            _writeWarnings = writeWarnings;
         }
 
         #endregion
@@ -270,7 +272,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                _cmdletPassedIn.WriteWarning($"Unable to resolve repository source '{Repository.Uri.LocalPath}' due to exception: {e.Message}");
+                if (_writeWarnings)
+                {
+                    _cmdletPassedIn.WriteWarning($"Unable to resolve repository source '{Repository.Uri.LocalPath}' due to exception: {e.Message}");
+                }
+
                 errRecord = new ErrorRecord(
                     exception: e,
                     "FileAccessFailure",
