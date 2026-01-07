@@ -24,17 +24,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private readonly PSCmdlet _cmdletPassedIn;
         private readonly FindResponseType _localServerFindResponseType = FindResponseType.ResponseHashtable;
         private readonly string _fileTypeKey = "filetype";
-        private readonly bool _writeWarnings = false;
+        internal override bool WriteWarnings { get; set; }
 
         #endregion
 
         #region Constructor
 
-        public LocalServerAPICalls (PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential, bool writeWarnings = false) : base (repository, networkCredential)
+        public LocalServerAPICalls (PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential, bool writeWarnings = false) : base (repository, networkCredential, writeWarnings)
         {
             this.Repository = repository;
+            this.WriteWarnings = writeWarnings;
             _cmdletPassedIn = cmdletPassedIn;
-            _writeWarnings = writeWarnings;
         }
 
         #endregion
@@ -272,9 +272,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                if (_writeWarnings)
+                if (WriteWarnings)
                 {
-                    _cmdletPassedIn.WriteWarning($"Unable to resolve repository source '{Repository.Uri.LocalPath}' due to exception: {e.Message}");
+                    _cmdletPassedIn.WriteWarning($"Unable to resolve repository '{Repository.Name}' with source '{Repository.Uri.LocalPath}' due to exception: {e.Message}");
                 }
 
                 errRecord = new ErrorRecord(
@@ -417,6 +417,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
+                if (WriteWarnings)
+                {
+                    _cmdletPassedIn.WriteWarning($"Unable to resolve repository '{Repository.Name}' with source '{Repository.Uri.LocalPath}' due to exception: {e.Message}");
+                }
+
                 errRecord = new ErrorRecord(
                     exception: e,
                     "FileAccessFailure",
@@ -653,6 +658,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
+                if (WriteWarnings)
+                {
+                    _cmdletPassedIn.WriteWarning($"Unable to resolve repository '{Repository.Name}' with source '{Repository.Uri.LocalPath}' due to exception: {e.Message}");
+                }
+
                 errRecord = new ErrorRecord(
                     exception: e,
                     "FileAccessFailure",

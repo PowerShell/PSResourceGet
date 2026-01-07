@@ -18,11 +18,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         #region Members
 
         public abstract PSRepositoryInfo Repository { get; set; }
+        internal abstract bool WriteWarnings { get; set; }
         private HttpClient _sessionClient { get; set; }
 
         #endregion
 
         #region Constructor
+
+        public ServerApiCall(PSRepositoryInfo repository, NetworkCredential networkCredential, bool writeWarnings)
+            : this(repository, networkCredential)
+        {
+            this.WriteWarnings = writeWarnings;
+        }
+
 
         public ServerApiCall(PSRepositoryInfo repository, NetworkCredential networkCredential)
         {

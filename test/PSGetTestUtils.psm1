@@ -270,7 +270,16 @@ function Register-LocalRepos {
     }
     Register-PSResourceRepository @localRepoParams2
 
-    Write-Verbose "registered psgettestlocal, psgettestlocal2, psgettestlocal3, psgettestlocal4"
+    $path4 = "\\localhost\PSRepoLocal"
+    $localRepoParams2 = @{
+        Name = "psgettestlocal5"
+        Uri = $path4
+        Priority = 40
+        Trusted = $false
+    }
+    Register-PSResourceRepository @localRepoParams2
+
+    Write-Verbose "registered psgettestlocal, psgettestlocal2, psgettestlocal3, psgettestlocal4, psgettestlocal5"
 }
 
 function Register-LocalTestNupkgsRepo {
