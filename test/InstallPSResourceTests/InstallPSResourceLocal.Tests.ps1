@@ -298,8 +298,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $pkg.Version | Should -Be $nupkgVersion
     }
 
-    It "Install should not silently fail if network connection to local private repository cannot be established and remainder repositories should be searched"
-    {
+    It "Install should not silently fail if network connection to local private repository cannot be established and remainder repositories should be searched" {
         $privateRepo = Get-PSResourceRepository $localPrivateRepo
         $res = Install-PSResource -Name $testModuleName -TrustRepository -PassThru -WarningVariable WarningVar -WarningAction SilentlyContinue
         $WarningVar | Should -Not -BeNullOrEmpty
@@ -308,8 +307,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $res.Version | Should -Be "1.0.0"
     }
 
-        It "Install should not silently fail if network connection to local private repository cannot be established and package version was provided and remainder repositories should be searched"
-    {
+    It "Install should not silently fail if network connection to local private repository cannot be established and package version was provided and remainder repositories should be searched" {
         $privateRepo = Get-PSResourceRepository $localPrivateRepo
         $res = Install-PSResource -Name $testModuleName -Version "1.0.0" -TrustRepository -PassThru -WarningVariable WarningVar -WarningAction SilentlyContinue
         $WarningVar | Should -Not -BeNullOrEmpty
