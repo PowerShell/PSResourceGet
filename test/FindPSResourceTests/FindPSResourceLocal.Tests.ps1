@@ -353,7 +353,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $privateRepo = Get-PSResourceRepository $localPrivateRepo
         $res = Find-PSResource -Name $testModuleName -WarningVariable WarningVar -WarningAction SilentlyContinue
         $WarningVar | Should -Not -BeNullOrEmpty
-        $WarningVar[0] | Should -Contain $privateRepo.Uri.LocalPath
+        $WarningVar[0] | Should -Match "*$($privateRepo.Uri.LocalPath)*"
         $res.Name | Should -Contain $testModuleName
         $res.Version | Should -Be "1.0.0"
     }
@@ -362,7 +362,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $privateRepo = Get-PSResourceRepository $localPrivateRepo
         $res = Find-PSResource -Name $testModuleName -Version "1.0.0" -WarningVariable WarningVar -WarningAction SilentlyContinue
         $WarningVar | Should -Not -BeNullOrEmpty
-        $WarningVar[0] | Should -Contain $privateRepo.Uri.LocalPath
+        $WarningVar[0] | Should -Match "*$($privateRepo.Uri.LocalPath)*"
         $res.Name | Should -Contain $testModuleName
         $res.Version | Should -Be "1.0.0"
     }

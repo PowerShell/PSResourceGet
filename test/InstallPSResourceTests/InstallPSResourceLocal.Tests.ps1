@@ -302,7 +302,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $privateRepo = Get-PSResourceRepository $localPrivateRepo
         $res = Install-PSResource -Name $testModuleName -TrustRepository -PassThru -WarningVariable WarningVar -WarningAction SilentlyContinue
         $WarningVar | Should -Not -BeNullOrEmpty
-        $WarningVar[0] | Should -Contain $privateRepo.Uri.LocalPath
+        $WarningVar[0] | Should -Match "*$($privateRepo.Uri.LocalPath)*"
         $res.Name | Should -Contain $testModuleName
         $res.Version | Should -Be "1.0.0"
     }
@@ -311,7 +311,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $privateRepo = Get-PSResourceRepository $localPrivateRepo
         $res = Install-PSResource -Name $testModuleName -Version "1.0.0" -TrustRepository -PassThru -WarningVariable WarningVar -WarningAction SilentlyContinue
         $WarningVar | Should -Not -BeNullOrEmpty
-        $WarningVar[0] | Should -Contain $privateRepo.Uri.LocalPath
+        $WarningVar[0] | Should -Match "*$($privateRepo.Uri.LocalPath)*"
         $res.Name | Should -Contain $testModuleName
         $res.Version | Should -Be "1.0.0"
     }
