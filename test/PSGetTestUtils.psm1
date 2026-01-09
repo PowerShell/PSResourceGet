@@ -274,7 +274,7 @@ function Register-LocalRepos {
     $localRepoParams2 = @{
         Name = "psgettestlocal5"
         Uri = $path4
-        Priority = 40
+        Priority = 30
         Trusted = $false
     }
     Register-PSResourceRepository @localRepoParams2
