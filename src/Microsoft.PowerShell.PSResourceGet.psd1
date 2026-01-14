@@ -50,7 +50,7 @@
         'usres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'preview5'
+            Prerelease   = 'rc1'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -60,6 +60,11 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.2.0-rc1
+
+## Bug fix
+- `WhatIf` parameter should respect provided value instead of simply checking presence (#1925)
+
 ## 1.2.0-preview5
 
 ### New Features
