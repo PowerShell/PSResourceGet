@@ -342,7 +342,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 allPkgsInstalled.AddRange(installedPkgs);
             }
 
-            if (!_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf") && _pkgNamesToInstall.Count > 0)
+            if ((!_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf") || (SwitchParameter)_cmdletPassedIn.MyInvocation.BoundParameters["WhatIf"] == false) && _pkgNamesToInstall.Count > 0)
             {
                 string repositoryWording = repositoryNamesToSearch.Count > 1 ? "registered repositories" : "repository";
                 _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -624,7 +624,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     // If -WhatIf is passed in, early out.
-                    if (_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf"))
+                    if (_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf") && (SwitchParameter)_cmdletPassedIn.MyInvocation.BoundParameters["WhatIf"] == true)
                     {
                         return pkgsSuccessfullyInstalled;
                     }

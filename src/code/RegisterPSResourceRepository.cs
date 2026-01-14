@@ -186,17 +186,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case PSGalleryParameterSet:
-                    try
+                    if (PSGallery)
                     {
-                        items.Add(PSGalleryParameterSetHelper(Priority, Trusted));
-                    }
-                    catch (Exception e)
-                    {
-                        ThrowTerminatingError(new ErrorRecord(
-                            new PSInvalidOperationException(e.Message),
-                            "ErrorInPSGalleryParameterSet",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                        try
+                        {
+                            items.Add(PSGalleryParameterSetHelper(Priority, Trusted));
+                        }
+                        catch (Exception e)
+                        {
+                            ThrowTerminatingError(new ErrorRecord(
+                                new PSInvalidOperationException(e.Message),
+                                "ErrorInPSGalleryParameterSet",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                        }
                     }
                     break;
 
