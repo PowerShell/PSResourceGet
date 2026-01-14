@@ -1,5 +1,10 @@
 # Preview Changelog
 
+## [1.2.0-rc1](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview5..v1.2.0-rc1) - 2026-01-14
+
+## Bug fix
+- `WhatIf` parameter should respect provided value instead of simply checking presence (#1925)
+
 ## [1.2.0-preview5](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview4..v1.2.0-preview5) - 2025-12-05
 
 ### New Features
