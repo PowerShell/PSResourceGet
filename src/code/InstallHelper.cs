@@ -56,6 +56,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string _tmpPath;
         private NetworkCredential _networkCredential;
         private HashSet<string> _packagesOnMachine;
+        private FindHelper _findHelper;
 
         #endregion
 
@@ -67,6 +68,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cancellationToken = source.Token;
             _cmdletPassedIn = cmdletPassedIn;
             _networkCredential = networkCredential;
+
+            _findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
         }
 
         /// <summary>
@@ -511,6 +514,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             FindHelper findHelper)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackages()");
+            
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new();
 
             // Install parent package to the temp directory,
@@ -562,76 +566,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     Hashtable parentPkgInfo = packagesHash[parentPackage] as Hashtable;
                     PSResourceInfo parentPkgObj = parentPkgInfo["psResourceInfoPkg"] as PSResourceInfo;
-
-                    if (!skipDependencyCheck)
-                    {
-                        Console.WriteLine($"~~~Finding Dependencies for {parentPkgObj.Name}~~~");
-                        // Get the dependencies from the installed package.
-                        if (parentPkgObj.Dependencies.Length > 0)
-                        {
-                            bool depFindFailed = false;
-                            foreach (PSResourceInfo depPkg in findHelper.FindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository))
-                            {
-                                Console.WriteLine($"~~~ entering foreach for for {depPkg.Name} ~~~");
-                                if (depPkg == null)
-                                {
-                                    depFindFailed = true;
-                                    continue;
-                                }
-
-                                if (String.Equals(depPkg.Name, parentPkgObj.Name, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    Console.WriteLine($"~~~ depPkg is the parent pkg ~~~");
-                                    continue;
-                                }
-
-                                NuGetVersion depVersion = null;
-                                if (depPkg.AdditionalMetadata.ContainsKey("NormalizedVersion"))
-                                {
-                                    if (!NuGetVersion.TryParse(depPkg.AdditionalMetadata["NormalizedVersion"] as string, out depVersion))
-                                    {
-                                        NuGetVersion.TryParse(depPkg.Version.ToString(), out depVersion);
-                                    }
-                                }
-
-                                string depPkgNameVersion = $"{depPkg.Name}{depPkg.Version.ToString()}";
-                                Console.WriteLine($"~~~ depPkgNameVersion is ${depPkgNameVersion} ~~~");
-                                if (_packagesOnMachine.Contains(depPkgNameVersion) && !depPkg.IsPrerelease)
-                                {
-                                    // if a dependency package is already installed, do not install it again.
-                                    // to determine if the package version is already installed, _packagesOnMachine is used but it only contains name, version info, not version with prerelease info
-                                    // if the dependency package is found to be prerelease, it is safer to install it (and worse case it reinstalls)
-                                    _cmdletPassedIn.WriteVerbose($"Dependency '{depPkg.Name}' with version '{depPkg.Version}' is already installed.");
-                                    continue;
-                                }
-
-                                Console.WriteLine($"~~~ begin install ${depPkg.Name} ~~~");
-                                packagesHash = BeginPackageInstall(
-                                            searchVersionType: VersionType.SpecificVersion,
-                                            specificVersion: depVersion,
-                                            versionRange: null,
-                                            pkgNameToInstall: depPkg.Name,
-                                            repository: repository,
-                                            currentServer: currentServer,
-                                            currentResponseUtil: currentResponseUtil,
-                                            tempInstallPath: tempInstallPath,
-                                            skipDependencyCheck: skipDependencyCheck,
-                                            packagesHash: packagesHash,
-                                            errRecord: out ErrorRecord installPkgErrRecord);
-
-                                if (installPkgErrRecord != null)
-                                {
-                                    _cmdletPassedIn.WriteError(installPkgErrRecord);
-                                    continue;
-                                }
-                            }
-
-                            if (depFindFailed)
-                            {
-                                continue;
-                            }
-                        }
-                    }
 
                     // If -WhatIf is passed in, early out.
                     if (_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf"))
@@ -864,15 +798,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 // Concurrently Updates
                 // Find all dependencies
-                string pkgName = pkgToInstall.Name;
                 if (!skipDependencyCheck)
                 {
-                    List<PSResourceInfo> allDependencies = FindAllDependencies(currentServer, currentResponseUtil, pkgToInstall, repository);
-
-                    return InstallParentAndDependencyPackages(pkgToInstall, allDependencies, currentServer, tempInstallPath, packagesHash, updatedPackagesHash, pkgToInstall);
+                    // concurrency updates 
+                    List<PSResourceInfo> parentAndDeps = _findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
+                    // List returned only includes dependencies, so we'll add the parent pkg to this list to pass on to installation method
+                    parentAndDeps.Add(pkgToInstall);
+                    
+                    return InstallParentAndDependencyPackages(parentAndDeps, currentServer, tempInstallPath, packagesHash, updatedPackagesHash, pkgToInstall);
                 }
                 else {
-
+                    // If we don't install dependencies, we're only installing the parent pkg so we can short circut and simply install the parent pkg. 
                     // TODO:  check this version and prerelease combo
                     Stream responseStream = currentServer.InstallPackage(pkgToInstall.Name, pkgToInstall.Version.ToString(), true, out ErrorRecord installNameErrRecord);
 
@@ -894,46 +830,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return updatedPackagesHash;
         }
 
-        // Concurrency Updates
-        private List<PSResourceInfo> FindAllDependencies(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo pkgToInstall, PSRepositoryInfo repository)
-        {
-            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V3)
-            {
-                _cmdletPassedIn.WriteWarning("Installing dependencies is not currently supported for V3 server protocol repositories. The package will be installed without installing dependencies.");
-            }
-
-            var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
-            _cmdletPassedIn.WriteDebug($" **Finding dependency packages for (FindAllDependencies) '{pkgToInstall.Name}'");
-
-            // the last package added will be the parent package.  
-            List<PSResourceInfo> allDependencies = findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
-
-            _cmdletPassedIn.WriteDebug($"~~~ Retrieved all dep packages (FindAllDependencies) for '{pkgToInstall.Name}'");
-
-            // allDependencies contains parent package as well
-            foreach (PSResourceInfo pkg in allDependencies)
-            {
-                // Console.WriteLine($"{pkg.Name}: {pkg.Version}");
-            }
-
-            return allDependencies;
-        }
-
         // Concurrently Updates  
-        private Hashtable InstallParentAndDependencyPackages(PSResourceInfo parentPkg, List<PSResourceInfo> allDependencies, ServerApiCall currentServer, string tempInstallPath, Hashtable packagesHash, Hashtable updatedPackagesHash, PSResourceInfo pkgToInstall)
+        private Hashtable InstallParentAndDependencyPackages(List<PSResourceInfo> parentAndDeps, ServerApiCall currentServer, string tempInstallPath, Hashtable packagesHash, Hashtable updatedPackagesHash, PSResourceInfo pkgToInstall)
         {
-            List<ErrorRecord> errors = new List<ErrorRecord>(allDependencies.Count); // Pre-allocate based on expected size
-            // Use a lower threshold for better parallelism - 3 packages instead of processor count
-            const int PARALLEL_THRESHOLD = 3;
+            List<ErrorRecord> errors = new List<ErrorRecord>(); 
+
+            // TODO: figure out a good threshold and parallel count
             int processorCount = Environment.ProcessorCount;
-            if (allDependencies.Count > PARALLEL_THRESHOLD)
+            if (parentAndDeps.Count > processorCount)
             {
-                // Set the maximum degree of parallelism to 32 (Invoke-Command has default of 32, that's where we got this number from)
+                // Set the maximum degree of parallelism to 32? (Invoke-Command has default of 32, that's where we got this number from)
                 
-                // If installing more than 5 packages, do so concurrently
+                // If installing more than 3 packages, do so concurrently
                 // If the number of dependencies is very small (e.g., ≤ CPU cores), parallelism may add overhead instead of improving speed.
                 int maxDegreeOfParallelism = processorCount * 4;
-                Parallel.ForEach(allDependencies, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, depPkg =>
+                Parallel.ForEach(parentAndDeps, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, depPkg =>
                 {
                     var depPkgName = depPkg.Name;
                     var depPkgVersion = depPkg.Version.ToString();
@@ -966,31 +877,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return packagesHash;
                 }
 
-                // Install parent package
-                Stream responseStream = currentServer.InstallPackage(parentPkg.Name, parentPkg.Version.ToString(), true, out ErrorRecord installNameErrRecord);
-                if (installNameErrRecord != null)
-                {
-                    _cmdletPassedIn.WriteError(installNameErrRecord);
-                    return packagesHash;
-                }
-
-                ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
-                bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, parentPkg.Name, parentPkg.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
-                    TryInstallToTempPath(responseStream, tempInstallPath, parentPkg.Name, parentPkg.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out tempInstallErrRecord);
-                if (!installedToTempPathSuccessfully)
-                {
-                    _cmdletPassedIn.WriteError(tempSaveErrRecord ?? tempInstallErrRecord);
-                    return packagesHash;
-                }
-
                 return updatedPackagesHash;
             }
             else
             {
                 // Install the good old fashioned way
-                // Make sure to install dependencies first, then install parent pkg
-                allDependencies.Add(parentPkg);
-                foreach (var pkgToBeInstalled in allDependencies)
+                foreach (var pkgToBeInstalled in parentAndDeps)
                 {
                     var pkgToInstallName = pkgToBeInstalled.Name;
                     var pkgToInstallVersion = pkgToBeInstalled.Version.ToString();

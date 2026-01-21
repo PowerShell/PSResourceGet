@@ -156,6 +156,12 @@ namespace Microsoft.PowerShell.PSResourceGet
             return new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResult.ToArray(), responseType: containerRegistryFindResponseType);
         }
 
+
+        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type)
+        {
+            return null;    
+        }
+
         /// <summary>
         /// Find method which allows for searching for single name and tag and returns latest version.
         /// Name: no wildcard support

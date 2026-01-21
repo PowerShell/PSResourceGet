@@ -398,6 +398,72 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
+        /// Find method which allows for searching for single name and returns latest version.
+        /// Name: no wildcard support
+        /// Examples: Search "PowerShellGet"
+        /// API call:
+        /// - No prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
+        /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
+        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease depending on user preference)
+        /// </summary>
+        public override async Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type)
+        {
+            //_cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindNameAsync()");
+            // Make sure to include quotations around the package name
+
+            // This should return the latest stable version or the latest prerelease version (respectively)
+            // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
+            // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
+
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+            { "$inlinecount", "allpages" },
+            { "id", $"'{packageName}'" },
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            if (!_isJFrogRepo) {
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
+            }
+
+            filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion eq true" : "IsLatestVersion eq true");
+            if (type != ResourceType.None) {
+            filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
+            }
+
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+            string response;
+            try
+            {
+            response = await HttpRequestCallAsync(requestUrlV2);
+            }
+            catch (Exception e)
+            {
+            // usually this is for errors in calling the V2 server, but for ADO V2 this error will include package not found errors which we want to deliver in a standard message
+            if (_isADORepo && e is ResourceNotFoundException)
+            {
+                throw new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'. For ADO feed, if the package is in an upstream feed make sure you are authenticated to the upstream feed.", e);
+            }
+
+            throw;
+            }
+
+            int count = GetCountFromResponse(response, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                throw errRecord.Exception;
+            }
+
+            if (count == 0)
+            {
+            throw new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'.");
+            }
+
+            return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+        }
+
+        /// <summary>
         /// Find method which allows for searching for single name and tag and returns latest version.
         /// Name: no wildcard support
         /// Examples: Search "PowerShellGet" -Tag "Provider"
@@ -966,10 +1032,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-            //_cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV2}'");
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
+                //_cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV2}'");
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
 
-            content = await SendV2RequestForContentAsync(request, _sessionClient);
+                content = await SendV2RequestForContentAsync(request, _sessionClient);
             }
             catch (HttpRequestException)
             {
@@ -1536,7 +1602,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         public override async Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest)
         {
-            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindVersionGlobbing()");
+            //_cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindVersionGlobbing()");
             List<string> responses = new List<string>();
             int skip = 0;
 
@@ -1565,7 +1631,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 while (count > 0)
                 {
-                    _cmdletPassedIn.WriteDebug($"Count is '{count}'");
+                    //_cmdletPassedIn.WriteDebug($"Count is '{count}'");
                     // skip 100
                     skip += 100;
                     var tmpResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, out errRecord);
@@ -1762,7 +1828,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 throw new Exception($"No content was returned by repository '{Repository.Name}'");
             }
 
-            return await response.ReadAsStreamAsync();
+            var retResponse = await response.ReadAsStreamAsync();
+
+            return retResponse;
         }
 
         private string GetTypeFilterForRequest(ResourceType type) {

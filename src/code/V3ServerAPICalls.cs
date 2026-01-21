@@ -165,6 +165,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return FindNameHelper(packageName, tags: Utils.EmptyStrArray, includePrerelease, type, out errRecord);
         }
 
+        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type)
+        {
+            return null;    
+        }
+
         /// <summary>
         /// Find method which allows for searching for single name and specified tag(s) and returns latest version.
         /// Name: no wildcard support

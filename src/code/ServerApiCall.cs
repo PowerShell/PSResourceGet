@@ -83,6 +83,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public abstract FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord);
 
         /// <summary>
+        /// Find method which allows for searching for package by single name and returns latest version.
+        /// Name: no wildcard support
+        /// Examples: Search "PowerShellGet"
+        /// </summary>
+        public abstract Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type);
+
+        /// <summary>
         /// Find method which allows for searching for package by single name and tag and returns latest version.
         /// Name: no wildcard support
         /// Examples: Search "PowerShellGet" -Tag "provider"
