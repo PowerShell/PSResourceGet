@@ -6,6 +6,7 @@ using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -531,7 +532,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // and value as a Hashtable of specific package info:
                     //     packageName, { version = "", isScript = "", isModule = "", pkg = "", etc. }
                     // Install parent package to the temp directory.
-                    Hashtable packagesHash = BeginPackageInstall(
+                    ConcurrentDictionary<string, Hashtable> packagesHash = BeginPackageInstall(
                                                         searchVersionType: _versionType,
                                                         specificVersion: _nugetVersion,
                                                         versionRange: _versionRange,
@@ -541,7 +542,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                                         currentResponseUtil: currentResponseUtil,
                                                         tempInstallPath: tempInstallPath,
                                                         skipDependencyCheck: skipDependencyCheck,
-                                                        packagesHash: new Hashtable(StringComparer.InvariantCultureIgnoreCase),
+                                                        packagesHash: new ConcurrentDictionary<string, Hashtable>(StringComparer.InvariantCultureIgnoreCase),
                                                         errRecord: out ErrorRecord errRecord);
 
                     // At this point all packages are installed to temp path.
@@ -617,7 +618,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Installs a single package to the temporary path.
         /// </summary>
-        private Hashtable BeginPackageInstall(
+        private ConcurrentDictionary<string, Hashtable> BeginPackageInstall(
             VersionType searchVersionType,
             NuGetVersion specificVersion,
             VersionRange versionRange,
@@ -627,7 +628,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ResponseUtil currentResponseUtil,
             string tempInstallPath,
             bool skipDependencyCheck,
-            Hashtable packagesHash,
+            ConcurrentDictionary<string, Hashtable> packagesHash,
             out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackage()");
@@ -759,14 +760,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
 
-            Hashtable updatedPackagesHash = packagesHash;
+            ConcurrentDictionary<string, Hashtable> updatedPackagesHash = packagesHash;
 
             // -WhatIf processing.
             if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
             {
                 if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
                 {
-                    updatedPackagesHash.Add(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
                     {
                         { "isModule", "" },
                         { "isScript", "" },
@@ -782,7 +783,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
                 {
-                    updatedPackagesHash.Add(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
                     {
                         { "isModule", "" },
                         { "isScript", "" },
@@ -804,7 +805,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     List<PSResourceInfo> parentAndDeps = _findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
                     // List returned only includes dependencies, so we'll add the parent pkg to this list to pass on to installation method
                     parentAndDeps.Add(pkgToInstall);
-                    
+
+                    _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackage(), found all dependencies");
+
                     return InstallParentAndDependencyPackages(parentAndDeps, currentServer, tempInstallPath, packagesHash, updatedPackagesHash, pkgToInstall);
                 }
                 else {
@@ -831,16 +834,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         // Concurrently Updates  
-        private Hashtable InstallParentAndDependencyPackages(List<PSResourceInfo> parentAndDeps, ServerApiCall currentServer, string tempInstallPath, Hashtable packagesHash, Hashtable updatedPackagesHash, PSResourceInfo pkgToInstall)
+        private ConcurrentDictionary<string, Hashtable> InstallParentAndDependencyPackages(List<PSResourceInfo> parentAndDeps, ServerApiCall currentServer, string tempInstallPath, ConcurrentDictionary<string, Hashtable> packagesHash, ConcurrentDictionary<string, Hashtable> updatedPackagesHash, PSResourceInfo pkgToInstall)
         {
-            List<ErrorRecord> errors = new List<ErrorRecord>(); 
+            List<ErrorRecord> errors = new List<ErrorRecord>();
 
+            int azaccounts = 0;
             // TODO: figure out a good threshold and parallel count
             int processorCount = Environment.ProcessorCount;
             if (parentAndDeps.Count > processorCount)
             {
                 // Set the maximum degree of parallelism to 32? (Invoke-Command has default of 32, that's where we got this number from)
-                
                 // If installing more than 3 packages, do so concurrently
                 // If the number of dependencies is very small (e.g., ≤ CPU cores), parallelism may add overhead instead of improving speed.
                 int maxDegreeOfParallelism = processorCount * 4;
@@ -967,8 +970,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string pkgName,
             string normalizedPkgVersion,
             PSResourceInfo pkgToInstall,
-            Hashtable packagesHash,
-            out Hashtable updatedPackagesHash,
+            ConcurrentDictionary<string, Hashtable> packagesHash,
+            out ConcurrentDictionary<string, Hashtable> updatedPackagesHash,
             out ErrorRecord error)
         {
             //_cmdletPassedIn.WriteDebug("In InstallHelper::TryInstallToTempPath()");
@@ -1108,7 +1111,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (!updatedPackagesHash.ContainsKey(pkgName))
                 {
                     // Add pkg info to hashtable.
-                    updatedPackagesHash.Add(pkgName, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    updatedPackagesHash.TryAdd(pkgName, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
                     {
                         { "isModule", isModule },
                         { "isScript", isScript },
@@ -1145,8 +1148,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string pkgName,
             string normalizedPkgVersion,
             PSResourceInfo pkgToInstall,
-            Hashtable packagesHash,
-            out Hashtable updatedPackagesHash,
+            ConcurrentDictionary<string, Hashtable> packagesHash,
+            out ConcurrentDictionary<string, Hashtable> updatedPackagesHash,
             out ErrorRecord error)
         {
            // _cmdletPassedIn.WriteDebug("In InstallHelper::TrySaveNupkgToTempPath()");
@@ -1173,7 +1176,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (!updatedPackagesHash.ContainsKey(pkgName))
                 {
                     // Add pkg info to hashtable.
-                    updatedPackagesHash.Add(pkgName, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    updatedPackagesHash.TryAdd(pkgName, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
                     {
                         { "isModule", "" },
                         { "isScript", "" },
@@ -1269,7 +1272,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Moves package files/directories from the temp install path into the final install path location.
         /// </summary>
-        private bool TryMoveInstallContent(string tempInstallPath, ScopeType scope, Hashtable packagesHash)
+        private bool TryMoveInstallContent(string tempInstallPath, ScopeType scope, ConcurrentDictionary<string, Hashtable> packagesHash)
         {
             //_cmdletPassedIn.WriteDebug("In InstallHelper::TryMoveInstallContent()");
             foreach (string pkgName in packagesHash.Keys)

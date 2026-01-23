@@ -48,7 +48,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         // Creates a new instance of depPkgsFound each time FindDependencyPackages() is called.
         // This will eventually return the PSResourceInfo object to the main cmdlet class.
-        private ConcurrentDictionary<PSResourceInfo, bool> depPkgsFound;
+        private ConcurrentDictionary<string, PSResourceInfo> depPkgsFound;
         
         // Contains the latest found version of a particular package.
         private ConcurrentDictionary<string, PSResourceInfo> _knownLatestPkgVersion;
@@ -761,7 +761,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 parentPkgs.Add(foundPkg);
                                 TryAddToPackagesFound(foundPkg);
-                                _cmdletPassedIn.WriteDebug($"Found package '{foundPkg.Name}' version '{foundPkg.Version}'");
+                               // _cmdletPassedIn.WriteDebug($"Found package '{foundPkg.Name}' version '{foundPkg.Version}'");
 
                                 yield return foundPkg;
                             }
@@ -1127,7 +1127,34 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 addedToHash = true;
             }
 
-            _cmdletPassedIn.WriteDebug($"Found package -- '{foundPkgName}' version '{foundPkgVersion}'");
+            //_cmdletPassedIn.WriteDebug($"Found package -- '{foundPkgName}' version '{foundPkgVersion}'");
+
+            return addedToHash;
+        }
+
+        private bool TryAddToKnownLatestPkgVersion(PSResourceInfo foundPkg)
+        {
+            // This handles prerelease versions as well.
+            bool addedToHash = false;
+            string foundPkgName = foundPkg.Name;
+            string foundPkgVersion = FormatPkgVersionString(foundPkg);
+
+            if (_knownLatestPkgVersion.ContainsKey(foundPkgName))
+            {
+                _knownLatestPkgVersion.TryGetValue(foundPkgName, out PSResourceInfo oldPkgVersion);
+
+                _knownLatestPkgVersion.TryUpdate(foundPkgName, foundPkg, oldPkgVersion);
+
+                addedToHash = true;
+                
+            }
+            else
+            {
+                _knownLatestPkgVersion.TryAdd(foundPkg.Name, foundPkg);
+                addedToHash = true;
+            }
+
+            //_cmdletPassedIn.WriteDebug($"Found package -- '{foundPkgName}' version '{foundPkgVersion}'");
 
             return addedToHash;
         }
@@ -1140,7 +1167,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 fullPkgVersion += $"-{pkg.Prerelease}";
             }
-            _cmdletPassedIn.WriteDebug($"Formatted full package version is: '{fullPkgVersion}'");
+           // _cmdletPassedIn.WriteDebug($"Formatted full package version is: '{fullPkgVersion}'");
 
             return fullPkgVersion;
         }
@@ -1151,13 +1178,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         internal IEnumerable<PSResourceInfo> FindDependencyPackages(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository)
         {
-            depPkgsFound = new ConcurrentDictionary<PSResourceInfo, bool>();
-            _cmdletPassedIn.WriteDebug($"In FindDependencyPackages {currentPkg.Name}");            
+            depPkgsFound = new ConcurrentDictionary<string, PSResourceInfo>();
+            //_cmdletPassedIn.WriteDebug($"In FindDependencyPackages {currentPkg.Name}");            
             FindDependencyPackagesHelper(currentServer, currentResponseUtil, currentPkg, repository); 
 
-            _cmdletPassedIn.WriteDebug("In FindDependencyPackages 2"); 
+           // _cmdletPassedIn.WriteDebug("In FindDependencyPackages 2"); 
 
-            return depPkgsFound.Keys.ToList();
+            return depPkgsFound.Values.ToList();
         }
 
         // Method 2 
@@ -1167,7 +1194,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (currentPkg.Dependencies.Length > 0)
             {
                 // If finding more than 3 packages, do so concurrently
-                const int PARALLEL_THRESHOLD = 3;
+                const int PARALLEL_THRESHOLD = 5; // Trottle limit from user, defaults to 5;  other tools?
                 int processorCount = Environment.ProcessorCount;  // 8
                 int maxDegreeOfParallelism = processorCount * 4;
                 if (currentPkg.Dependencies.Length > PARALLEL_THRESHOLD)
@@ -1178,7 +1205,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errors);
 
                     });
-
+                    // todo: what is perf if parallel.ForEach is always run?
                     // todo: write any errors here
                 }
                 else
@@ -1204,15 +1231,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Case 1: No upper bound, eg: "*" or "(1.0.0, )"
                 if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedDepPkg))
                 {
-                    // 1) Check if the latest version is cached
-                    // if a package is already cached, its dependencies will have been cached as well.
-                    // But if for some reason it wasn't added to depPkgs, add it now
-                    depPkg = cachedDepPkg;
-                    if (!depPkgsFound.ContainsKey(depPkg))
-                    {
-                        depPkgsFound.TryAdd(depPkg, true);
-                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
-                    }
+
+                    //// 1) Check if the latest version is cached
+                    //// if a package is already cached, its dependencies will have been cached as well.
+                    //// But if for some reason it wasn't added to depPkgs, add it now
+                    //depPkg = cachedDepPkg;
+                    //if (!depPkgsFound.ContainsKey(depPkg))
+                    //{
+                    //    depPkgsFound.TryAdd(depPkg, true);
+                    //    FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                    //}
                 }
                 else
                 {
@@ -1232,17 +1260,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // write error
                     }
 
-                    if (dep.VersionRange.Satisfies(cachedPkgVersion))
+                    // The cached package does not satisfy the version range, look for one that does.
+                    if (!dep.VersionRange.Satisfies(cachedPkgVersion))
                     {
-                        // if a package is already cached, its dependencies will have been cached as well.
-                        // But if for some reason it wasn't added to depPkgs, add it now
-                        depPkg = cachedDepPkg;
-                        if (!depPkgsFound.ContainsKey(depPkg))
-                        {
-                            depPkgsFound.TryAdd(depPkg, true);
-                            FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
-                        }
+                        //// if a package is already cached, its dependencies will have been cached as well.
+                        //// But if for some reason it wasn't added to depPkgs, add it now
+                        //depPkg = cachedDepPkg;
+                        //if (!depPkgsFound.ContainsKey(depPkg))
+                        //{
+                        //    depPkgsFound.TryAdd(depPkg, true);
+                        //   FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                        //}
+                        depPkg = FindDependencyWithSpecificVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errors);
                     }
+
                 }
                 else
                 {
@@ -1261,16 +1292,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // write error
                     }
 
-                    if (dep.VersionRange.Satisfies(cachedPkgVersion))
+                    if (!dep.VersionRange.Satisfies(cachedPkgVersion))
                     {
-                        // if a package is already cached, its dependencies will have been cached as well.
-                        // But if for some reason it wasn't added to depPkgs, add it now
-                        depPkg = cachedRangePkg;
-                        if (!depPkgsFound.ContainsKey(depPkg))
-                        {
-                            depPkgsFound.TryAdd(depPkg, true);
-                            FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
-                        }
+                        //// if a package is already cached, its dependencies will have been cached as well.
+                        //// But if for some reason it wasn't added to depPkgs, add it now
+                        //depPkg = cachedRangePkg;
+                        //if (!depPkgsFound.ContainsKey(depPkg))
+                        //{
+                        //    depPkgsFound.TryAdd(depPkg, true);
+                        //    FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                        //}
+                        depPkg = FindDependencyWithUpperBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errors);
+
                     }
                 }
                 else
@@ -1323,12 +1356,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 else
                 {
                     depPkg = currentResult.returnedObject;
-                    if (!depPkgsFound.ContainsKey(depPkg))
+                    TryAddToKnownLatestPkgVersion(depPkg);
+
+
+                    string pkgVersion = FormatPkgVersionString(depPkg);
+                    string key = $"{depPkg.Name}{pkgVersion}";
+                    if (!depPkgsFound.ContainsKey(key))
                     {
                         // Add pkg to collection of packages found then find dependencies
                         // depPkgsFound creates a new instance of depPkgsFound each time FindDependencyPackages() is called.
                         // This will eventually return the PSResourceInfo object to the main cmdlet class.
-                        depPkgsFound.TryAdd(depPkg, true);
+                        depPkgsFound.TryAdd(key, depPkg);
                         FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
                     }
                 }
@@ -1378,12 +1416,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 else
                 {
                     depPkg = currentResult.returnedObject;
-                    if (!depPkgsFound.ContainsKey(depPkg))
+                    TryAddToKnownLatestPkgVersion(depPkg);
+
+                    string pkgVersion = FormatPkgVersionString(depPkg);
+                    string key = $"{depPkg.Name}{pkgVersion}";
+                    if (!depPkgsFound.ContainsKey(key))
                     {
                         // Add pkg to collection of packages found then find dependencies
                         // depPkgsFound creates a new instance of depPkgsFound each time FindDependencyPackages() is called.
                         // This will eventually return the PSResourceInfo object to the main cmdlet class.
-                        depPkgsFound.TryAdd(depPkg, true);
+                        depPkgsFound.TryAdd(key, depPkg);
                         FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
                     }
                 }
@@ -1440,12 +1482,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 else
                 {
                     depPkg = currentResult.returnedObject;
-                    if (!depPkgsFound.ContainsKey(depPkg))
+
+                    TryAddToKnownLatestPkgVersion(depPkg);
+
+                    string pkgVersion = FormatPkgVersionString(depPkg);
+                    string key = $"{depPkg.Name}{pkgVersion}";
+                    if (!depPkgsFound.ContainsKey(key))
                     {
                         // Add pkg to collection of packages found then find dependencies
                         // depPkgsFound creates a new instance of depPkgsFound each time FindDependencyPackages() is called.
                         // This will eventually return the PSResourceInfo object to the main cmdlet class.
-                        depPkgsFound.TryAdd(depPkg, true);
+                        depPkgsFound.TryAdd(key, depPkg);
                         FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
                     }
                 }
