@@ -13,6 +13,7 @@ using System.Xml;
 using System.Net;
 using System.Management.Automation;
 using System.Runtime.ExceptionServices;
+using System.Threading.Tasks;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -39,6 +40,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Overridden Methods
 
+        public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type)
+        {
+            return null;    
+        }
+
+        public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest)
+        {
+            return null;    
+        }
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
         /// Examples: Search -Repository PSGallery
@@ -107,6 +117,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindName()");
             return FindNameHelper(packageName, Utils.EmptyStrArray, includePrerelease, type, out errRecord);
+        }
+
+        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type)
+        {
+            return null;    
         }
 
         /// <summary>

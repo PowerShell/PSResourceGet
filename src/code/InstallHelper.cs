@@ -2,10 +2,13 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
@@ -15,6 +18,7 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -53,6 +57,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string _tmpPath;
         private NetworkCredential _networkCredential;
         private HashSet<string> _packagesOnMachine;
+        private FindHelper _findHelper;
 
         #endregion
 
@@ -64,6 +69,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cancellationToken = source.Token;
             _cmdletPassedIn = cmdletPassedIn;
             _networkCredential = networkCredential;
+
+            _findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
         }
 
         /// <summary>
@@ -396,7 +403,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string moduleManifestVersion,
             string scriptPath)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::MoveFilesIntoInstallPath()");
+            //_cmdletPassedIn.WriteDebug("In InstallHelper::MoveFilesIntoInstallPath()");
             // Creating the proper installation path depending on whether pkg is a module or script
             var newPathParent = isModule ? Path.Combine(installPath, pkgInfo.Name) : installPath;
             var finalModuleVersionDir = isModule ? Path.Combine(installPath, pkgInfo.Name, moduleManifestVersion) : installPath;
@@ -405,32 +412,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var tempModuleVersionDir = (!isModule || isLocalRepo) ? dirNameVersion
                 : Path.Combine(tempInstallPath, pkgInfo.Name, newVersion);
 
-            _cmdletPassedIn.WriteVerbose($"Installation source path is: '{tempModuleVersionDir}'");
-            _cmdletPassedIn.WriteVerbose($"Installation destination path is: '{finalModuleVersionDir}'");
+           // _cmdletPassedIn.WriteVerbose($"Installation source path is: '{tempModuleVersionDir}'");
+           // _cmdletPassedIn.WriteVerbose($"Installation destination path is: '{finalModuleVersionDir}'");
 
             if (isModule)
             {
                 // If new path does not exist
                 if (!Directory.Exists(newPathParent))
                 {
-                    _cmdletPassedIn.WriteVerbose($"Attempting to move '{tempModuleVersionDir}' to '{finalModuleVersionDir}'");
+             //       _cmdletPassedIn.WriteVerbose($"Attempting to move '{tempModuleVersionDir}' to '{finalModuleVersionDir}'");
                     Directory.CreateDirectory(newPathParent);
                     Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
                 }
                 else
                 {
-                    _cmdletPassedIn.WriteVerbose($"Temporary module version directory is: '{tempModuleVersionDir}'");
+               //     _cmdletPassedIn.WriteVerbose($"Temporary module version directory is: '{tempModuleVersionDir}'");
 
                     if (Directory.Exists(finalModuleVersionDir))
                     {
                         // Delete the directory path before replacing it with the new module.
                         // If deletion fails (usually due to binary file in use), then attempt restore so that the currently
                         // installed module is not corrupted.
-                        _cmdletPassedIn.WriteVerbose($"Attempting to delete with restore on failure. '{finalModuleVersionDir}'");
+                        //_cmdletPassedIn.WriteVerbose($"Attempting to delete with restore on failure. '{finalModuleVersionDir}'");
                         Utils.DeleteDirectoryWithRestore(finalModuleVersionDir);
                     }
 
-                    _cmdletPassedIn.WriteVerbose($"Attempting to move '{tempModuleVersionDir}' to '{finalModuleVersionDir}'");
+               //     _cmdletPassedIn.WriteVerbose($"Attempting to move '{tempModuleVersionDir}' to '{finalModuleVersionDir}'");
                     Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
                 }
             }
@@ -456,27 +463,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (!Directory.Exists(scriptInfoFolderPath))
 
                     {
-                        _cmdletPassedIn.WriteVerbose($"Created '{scriptInfoFolderPath}' path for scripts");
+  //                      _cmdletPassedIn.WriteVerbose($"Created '{scriptInfoFolderPath}' path for scripts");
                         Directory.CreateDirectory(scriptInfoFolderPath);
                     }
 
                     // Need to delete old xml files because there can only be 1 per script
-                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: '{1}'", scriptXmlFilePath, File.Exists(scriptXmlFilePath)));
+   //                 _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: '{1}'", scriptXmlFilePath, File.Exists(scriptXmlFilePath)));
                     if (File.Exists(scriptXmlFilePath))
                     {
-                        _cmdletPassedIn.WriteVerbose("Deleting script metadata XML");
+     //                   _cmdletPassedIn.WriteVerbose("Deleting script metadata XML");
                         File.Delete(Path.Combine(scriptInfoFolderPath, scriptXML));
 
                     }
 
-                    _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML)));
+  //                  _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML)));
                     Utils.MoveFiles(Path.Combine(dirNameVersion, scriptXML), Path.Combine(installPath, "InstalledScriptInfos", scriptXML));
 
                     // Need to delete old script file, if that exists
-                    _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt))));
+  //                  _cmdletPassedIn.WriteVerbose(string.Format("Checking if path '{0}' exists: ", File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt))));
                     if (File.Exists(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)))
                     {
-                        _cmdletPassedIn.WriteVerbose("Deleting script file");
+  //                      _cmdletPassedIn.WriteVerbose("Deleting script file");
                         File.Delete(Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
                     }
                 }
@@ -489,7 +496,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                 }
 
-                _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)));
+ //               _cmdletPassedIn.WriteVerbose(string.Format("Moving '{0}' to '{1}'", scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt)));
                 Utils.MoveFiles(scriptPath, Path.Combine(finalModuleVersionDir, pkgInfo.Name + PSScriptFileExt));
             }
         }
@@ -508,6 +515,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             FindHelper findHelper)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackages()");
+            
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new();
 
             // Install parent package to the temp directory,
@@ -524,7 +532,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // and value as a Hashtable of specific package info:
                     //     packageName, { version = "", isScript = "", isModule = "", pkg = "", etc. }
                     // Install parent package to the temp directory.
-                    Hashtable packagesHash = BeginPackageInstall(
+                    ConcurrentDictionary<string, Hashtable> packagesHash = BeginPackageInstall(
                                                         searchVersionType: _versionType,
                                                         specificVersion: _nugetVersion,
                                                         versionRange: _versionRange,
@@ -533,10 +541,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                                         currentServer: currentServer,
                                                         currentResponseUtil: currentResponseUtil,
                                                         tempInstallPath: tempInstallPath,
-                                                        packagesHash: new Hashtable(StringComparer.InvariantCultureIgnoreCase),
+                                                        skipDependencyCheck: skipDependencyCheck,
+                                                        packagesHash: new ConcurrentDictionary<string, Hashtable>(StringComparer.InvariantCultureIgnoreCase),
                                                         errRecord: out ErrorRecord errRecord);
 
-                    // At this point parent package is installed to temp path.
+                    // At this point all packages are installed to temp path.
                     if (errRecord != null)
                     {
                         if (errRecord.FullyQualifiedErrorId.Equals("PackageNotFound"))
@@ -558,70 +567,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     Hashtable parentPkgInfo = packagesHash[parentPackage] as Hashtable;
                     PSResourceInfo parentPkgObj = parentPkgInfo["psResourceInfoPkg"] as PSResourceInfo;
-
-                    if (!skipDependencyCheck)
-                    {
-                        // Get the dependencies from the installed package.
-                        if (parentPkgObj.Dependencies.Length > 0)
-                        {
-                            bool depFindFailed = false;
-                            foreach (PSResourceInfo depPkg in findHelper.FindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository))
-                            {
-                                if (depPkg == null)
-                                {
-                                    depFindFailed = true;
-                                    continue;
-                                }
-
-                                if (String.Equals(depPkg.Name, parentPkgObj.Name, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    continue;
-                                }
-
-                                NuGetVersion depVersion = null;
-                                if (depPkg.AdditionalMetadata.ContainsKey("NormalizedVersion"))
-                                {
-                                    if (!NuGetVersion.TryParse(depPkg.AdditionalMetadata["NormalizedVersion"] as string, out depVersion))
-                                    {
-                                        NuGetVersion.TryParse(depPkg.Version.ToString(), out depVersion);
-                                    }
-                                }
-
-                                string depPkgNameVersion = $"{depPkg.Name}{depPkg.Version.ToString()}";
-                                if (_packagesOnMachine.Contains(depPkgNameVersion) && !depPkg.IsPrerelease)
-                                {
-                                    // if a dependency package is already installed, do not install it again.
-                                    // to determine if the package version is already installed, _packagesOnMachine is used but it only contains name, version info, not version with prerelease info
-                                    // if the dependency package is found to be prerelease, it is safer to install it (and worse case it reinstalls)
-                                    _cmdletPassedIn.WriteVerbose($"Dependency '{depPkg.Name}' with version '{depPkg.Version}' is already installed.");
-                                    continue;
-                                }
-
-                                packagesHash = BeginPackageInstall(
-                                            searchVersionType: VersionType.SpecificVersion,
-                                            specificVersion: depVersion,
-                                            versionRange: null,
-                                            pkgNameToInstall: depPkg.Name,
-                                            repository: repository,
-                                            currentServer: currentServer,
-                                            currentResponseUtil: currentResponseUtil,
-                                            tempInstallPath: tempInstallPath,
-                                            packagesHash: packagesHash,
-                                            errRecord: out ErrorRecord installPkgErrRecord);
-
-                                if (installPkgErrRecord != null)
-                                {
-                                    _cmdletPassedIn.WriteError(installPkgErrRecord);
-                                    continue;
-                                }
-                            }
-
-                            if (depFindFailed)
-                            {
-                                continue;
-                            }
-                        }
-                    }
 
                     // If -WhatIf is passed in, early out.
                     if (_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf") && (SwitchParameter)_cmdletPassedIn.MyInvocation.BoundParameters["WhatIf"] == true)
@@ -673,7 +618,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Installs a single package to the temporary path.
         /// </summary>
-        private Hashtable BeginPackageInstall(
+        private ConcurrentDictionary<string, Hashtable> BeginPackageInstall(
             VersionType searchVersionType,
             NuGetVersion specificVersion,
             VersionRange versionRange,
@@ -682,13 +627,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
             string tempInstallPath,
-            Hashtable packagesHash,
+            bool skipDependencyCheck,
+            ConcurrentDictionary<string, Hashtable> packagesHash,
             out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackage()");
             FindResults responses = null;
             errRecord = null;
 
+            // Find the parent package that needs to be installed
             switch (searchVersionType)
             {
                 case VersionType.VersionRange:
@@ -717,6 +664,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 default:
                     // VersionType.NoVersion
                     responses = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ErrorRecord findNameErrRecord);
+
                     if (findNameErrRecord != null)
                     {
                         errRecord = findNameErrRecord;
@@ -726,6 +674,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
             }
 
+            // Convert parent package to PSResourceInfo
             PSResourceInfo pkgToInstall = null;
             foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
             {
@@ -789,9 +738,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
+            // TODO:  can use cache for this
             if (!_reinstall)
             {
                 string currPkgNameVersion = $"{pkgToInstall.Name}{pkgToInstall.Version}";
+                // Use HashSet lookup instead of Contains for O(1) performance
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
                 {
                     _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
@@ -809,14 +760,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
 
-            Hashtable updatedPackagesHash = packagesHash;
+            ConcurrentDictionary<string, Hashtable> updatedPackagesHash = packagesHash;
 
             // -WhatIf processing.
             if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
             {
                 if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
                 {
-                    updatedPackagesHash.Add(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
                     {
                         { "isModule", "" },
                         { "isScript", "" },
@@ -832,7 +783,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
                 {
-                    updatedPackagesHash.Add(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
                     {
                         { "isModule", "" },
                         { "isScript", "" },
@@ -846,25 +797,118 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                // Download the package.
-                string pkgName = pkgToInstall.Name;
-                Stream responseStream = currentServer.InstallPackage(pkgName, pkgVersion, _prerelease, out ErrorRecord installNameErrRecord);
-                if (installNameErrRecord != null)
+                // Concurrently Updates
+                // Find all dependencies
+                if (!skipDependencyCheck)
                 {
-                    errRecord = installNameErrRecord;
-                    return packagesHash;
+                    // concurrency updates 
+                    List<PSResourceInfo> parentAndDeps = _findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
+                    // List returned only includes dependencies, so we'll add the parent pkg to this list to pass on to installation method
+                    parentAndDeps.Add(pkgToInstall);
+
+                    _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackage(), found all dependencies");
+
+                    return InstallParentAndDependencyPackages(parentAndDeps, currentServer, tempInstallPath, packagesHash, updatedPackagesHash, pkgToInstall);
                 }
+                else {
+                    // If we don't install dependencies, we're only installing the parent pkg so we can short circut and simply install the parent pkg. 
+                    // TODO:  check this version and prerelease combo
+                    Stream responseStream = currentServer.InstallPackage(pkgToInstall.Name, pkgToInstall.Version.ToString(), true, out ErrorRecord installNameErrRecord);
 
-                bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :
-                    TryInstallToTempPath(responseStream, tempInstallPath, pkgName, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord);
+                    if (installNameErrRecord != null)
+                    {
+                        errRecord = installNameErrRecord;
+                        return packagesHash;
+                    }
 
-                if (!installedToTempPathSuccessfully)
-                {
-                    return packagesHash;
+                    bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgToInstall.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :
+                        TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgToInstall.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord);
+                    if (!installedToTempPathSuccessfully)
+                    {
+                        return packagesHash;
+                    }
                 }
             }
 
             return updatedPackagesHash;
+        }
+
+        // Concurrently Updates  
+        private ConcurrentDictionary<string, Hashtable> InstallParentAndDependencyPackages(List<PSResourceInfo> parentAndDeps, ServerApiCall currentServer, string tempInstallPath, ConcurrentDictionary<string, Hashtable> packagesHash, ConcurrentDictionary<string, Hashtable> updatedPackagesHash, PSResourceInfo pkgToInstall)
+        {
+            List<ErrorRecord> errors = new List<ErrorRecord>();
+
+            int azaccounts = 0;
+            // TODO: figure out a good threshold and parallel count
+            int processorCount = Environment.ProcessorCount;
+            if (parentAndDeps.Count > processorCount)
+            {
+                // Set the maximum degree of parallelism to 32? (Invoke-Command has default of 32, that's where we got this number from)
+                // If installing more than 3 packages, do so concurrently
+                // If the number of dependencies is very small (e.g., ≤ CPU cores), parallelism may add overhead instead of improving speed.
+                int maxDegreeOfParallelism = processorCount * 4;
+                Parallel.ForEach(parentAndDeps, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, depPkg =>
+                {
+                    var depPkgName = depPkg.Name;
+                    var depPkgVersion = depPkg.Version.ToString();
+                    // Console.WriteLine($"Processing number: {depPkg}, Thread ID: {Task.CurrentId}");
+
+                    Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
+                    if (installNameErrRecord != null)
+                    {
+                        errors.Add(installNameErrRecord);
+                    }
+
+                    ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
+                    bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
+                        TryInstallToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out tempInstallErrRecord);
+
+                    if (!installedToTempPathSuccessfully)
+                    {
+                        errors.Add(tempSaveErrRecord ?? tempInstallErrRecord);
+                    }
+                });
+
+                if (errors.Count > 0)
+                {
+                    // Write out all errors collected from Parallel.ForEach
+                    foreach (var err in errors)
+                    {
+                        _cmdletPassedIn.WriteError(err);
+                    }
+
+                    return packagesHash;
+                }
+
+                return updatedPackagesHash;
+            }
+            else
+            {
+                // Install the good old fashioned way
+                foreach (var pkgToBeInstalled in parentAndDeps)
+                {
+                    var pkgToInstallName = pkgToBeInstalled.Name;
+                    var pkgToInstallVersion = pkgToBeInstalled.Version.ToString();
+                    Stream responseStream = currentServer.InstallPackage(pkgToInstallName, pkgToInstallVersion, true, out ErrorRecord installNameErrRecord);
+                    if (installNameErrRecord != null)
+                    {
+                        _cmdletPassedIn.WriteError(installNameErrRecord);
+                        return packagesHash;
+                    }
+
+                    ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
+                    bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
+                        TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, out tempInstallErrRecord);
+
+                    if (!installedToTempPathSuccessfully)
+                    {
+                        _cmdletPassedIn.WriteError(tempSaveErrRecord ?? tempInstallErrRecord);
+                        return packagesHash;
+                    }
+                }
+
+                return updatedPackagesHash;
+            }
         }
 
         /// <summary>
@@ -926,11 +970,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string pkgName,
             string normalizedPkgVersion,
             PSResourceInfo pkgToInstall,
-            Hashtable packagesHash,
-            out Hashtable updatedPackagesHash,
+            ConcurrentDictionary<string, Hashtable> packagesHash,
+            out ConcurrentDictionary<string, Hashtable> updatedPackagesHash,
             out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::TryInstallToTempPath()");
+            //_cmdletPassedIn.WriteDebug("In InstallHelper::TryInstallToTempPath()");
             error = null;
             updatedPackagesHash = packagesHash;
             try
@@ -1031,7 +1075,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         foreach (ErrorRecord parseError in parseScriptFileErrors)
                         {
-                            _cmdletPassedIn.WriteError(parseError);
+                           // _cmdletPassedIn.WriteError(parseError);
                         }
 
                         error = new ErrorRecord(
@@ -1048,7 +1092,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // This package is not a PowerShell package (eg a resource from the NuGet Gallery).
                     installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
 
-                    _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
+                    //_cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
                     isModule = true;
                 }
 
@@ -1067,7 +1111,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (!updatedPackagesHash.ContainsKey(pkgName))
                 {
                     // Add pkg info to hashtable.
-                    updatedPackagesHash.Add(pkgName, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    updatedPackagesHash.TryAdd(pkgName, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
                     {
                         { "isModule", isModule },
                         { "isScript", isScript },
@@ -1104,11 +1148,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string pkgName,
             string normalizedPkgVersion,
             PSResourceInfo pkgToInstall,
-            Hashtable packagesHash,
-            out Hashtable updatedPackagesHash,
+            ConcurrentDictionary<string, Hashtable> packagesHash,
+            out ConcurrentDictionary<string, Hashtable> updatedPackagesHash,
             out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::TrySaveNupkgToTempPath()");
+           // _cmdletPassedIn.WriteDebug("In InstallHelper::TrySaveNupkgToTempPath()");
             error = null;
             updatedPackagesHash = packagesHash;
 
@@ -1132,7 +1176,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (!updatedPackagesHash.ContainsKey(pkgName))
                 {
                     // Add pkg info to hashtable.
-                    updatedPackagesHash.Add(pkgName, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    updatedPackagesHash.TryAdd(pkgName, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
                     {
                         { "isModule", "" },
                         { "isScript", "" },
@@ -1228,9 +1272,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Moves package files/directories from the temp install path into the final install path location.
         /// </summary>
-        private bool TryMoveInstallContent(string tempInstallPath, ScopeType scope, Hashtable packagesHash)
+        private bool TryMoveInstallContent(string tempInstallPath, ScopeType scope, ConcurrentDictionary<string, Hashtable> packagesHash)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::TryMoveInstallContent()");
+            //_cmdletPassedIn.WriteDebug("In InstallHelper::TryMoveInstallContent()");
             foreach (string pkgName in packagesHash.Keys)
             {
                 Hashtable pkgInfo = packagesHash[pkgName] as Hashtable;
@@ -1255,7 +1299,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         moduleManifestVersion: pkgVersion,
                         scriptPath);
 
-                    _cmdletPassedIn.WriteVerbose($"Successfully installed package '{pkgName}' to location '{installPath}'");
+                    //_cmdletPassedIn.WriteVerbose($"Successfully installed package '{pkgName}' to location '{installPath}'");
 
                     if (!_savePkg && isScript)
                     {
@@ -1274,20 +1318,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (!String.IsNullOrEmpty(envPATHVarValue) && !envPATHVarValue.Contains(installPath) && !envPATHVarValue.Contains(installPathwithBackSlash))
                         {
-                            _cmdletPassedIn.WriteWarning(String.Format(ScriptPATHWarning, scope, installPath));
+                            //_cmdletPassedIn.WriteWarning(String.Format(ScriptPATHWarning, scope, installPath));
                         }
                     }
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
-                    _cmdletPassedIn.WriteError(new ErrorRecord(
+                    /*_cmdletPassedIn.WriteError(new ErrorRecord(
                         new PSInvalidOperationException(
                             message: $"Unable to successfully install package '{pkgName}': '{e.Message}'",
                             innerException: e),
                         "InstallPackageFailed",
                         ErrorCategory.InvalidOperation,
                         _cmdletPassedIn));
-
+                    */
                     return false;
                 }
             }
@@ -1300,7 +1344,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool CallAcceptLicense(PSResourceInfo p, string moduleManifest, string tempInstallPath, string newVersion, out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::CallAcceptLicense()");
+            //_cmdletPassedIn.WriteDebug("In InstallHelper::CallAcceptLicense()");
             error = null;
             var requireLicenseAcceptance = false;
 
@@ -1404,7 +1448,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool DetectClobber(string pkgName, Hashtable parsedMetadataHashtable, out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::DetectClobber()");
+            //_cmdletPassedIn.WriteDebug("In InstallHelper::DetectClobber()");
             error = null;
             bool foundClobber = false;
 
@@ -1468,7 +1512,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool CreateMetadataXMLFile(string dirNameVersion, string installPath, PSResourceInfo pkg, bool isModule, out ErrorRecord error)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::CreateMetadataXMLFile()");
+            //_cmdletPassedIn.WriteDebug("In InstallHelper::CreateMetadataXMLFile()");
             error = null;
             bool success = true;
             // Script will have a metadata file similar to:  "TestScript_InstalledScriptInfo.xml"
@@ -1498,7 +1542,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private void DeleteExtraneousFiles(string packageName, string dirNameVersion)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::DeleteExtraneousFiles()");
+           // _cmdletPassedIn.WriteDebug("In InstallHelper::DeleteExtraneousFiles()");
             // Deleting .nupkg SHA file, .nuspec, and .nupkg after unpacking the module
             // since we download as .zip for HTTP calls, we shouldn't have .nupkg* files
             // var nupkgSHAToDelete = Path.Combine(dirNameVersion, pkgIdString + ".nupkg.sha512");
@@ -1511,22 +1555,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (File.Exists(nuspecToDelete))
             {
-                _cmdletPassedIn.WriteDebug($"Deleting '{nuspecToDelete}'");
+                //_cmdletPassedIn.WriteDebug($"Deleting '{nuspecToDelete}'");
                 File.Delete(nuspecToDelete);
             }
             if (File.Exists(contentTypesToDelete))
             {
-                _cmdletPassedIn.WriteDebug($"Deleting '{contentTypesToDelete}'");
+                //_cmdletPassedIn.WriteDebug($"Deleting '{contentTypesToDelete}'");
                 File.Delete(contentTypesToDelete);
             }
             if (Directory.Exists(relsDirToDelete))
             {
-                _cmdletPassedIn.WriteDebug($"Deleting '{relsDirToDelete}'");
+                //_cmdletPassedIn.WriteDebug($"Deleting '{relsDirToDelete}'");
                 Utils.DeleteDirectory(relsDirToDelete);
             }
             if (Directory.Exists(packageDirToDelete))
             {
-                _cmdletPassedIn.WriteDebug($"Deleting '{packageDirToDelete}'");
+                //_cmdletPassedIn.WriteDebug($"Deleting '{packageDirToDelete}'");
                 Utils.DeleteDirectory(packageDirToDelete);
             }
         }

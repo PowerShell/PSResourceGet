@@ -48,6 +48,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Overridden Methods
 
+        public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type)
+        {
+            return null;    
+        }
+
+        public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest)
+        {
+            return null;    
+        }
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
         /// Examples: Search -Repository MyNuGetServer
@@ -181,6 +190,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = HttpRequestCall(requestUrl, out errRecord);
 
             return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
+        }
+
+        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type)
+        {
+            return null;    
         }
 
         /// <summary>

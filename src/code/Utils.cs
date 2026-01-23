@@ -1342,37 +1342,85 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             out Hashtable dataFileInfo,
             out Exception error)
         {
+            dataFileInfo = null;
+            error = null;
             try
             {
                 if (filePath is null)
                 {
                     throw new PSArgumentNullException(nameof(filePath));
                 }
-
                 string contents = System.IO.File.ReadAllText(filePath);
-                var scriptBlock = System.Management.Automation.ScriptBlock.Create(contents);
 
-                // Ensure that the content script block is safe to convert into a PSDataFile Hashtable.
-                // This will throw for unsafe content.
-                scriptBlock.CheckRestrictedLanguage(
-                    allowedCommands: allowedCommands,
-                    allowedVariables: allowedVariables,
-                    allowEnvironmentVariables: allowEnvironmentVariables);
+                // Parallel.ForEach calls into this method.
+                // Each thread needs its own runspace created to provide a separate environment for operations to run independently.
+                Runspace runspace = RunspaceFactory.CreateRunspace();
+                runspace.Open();
+                runspace.SessionStateProxy.LanguageMode = PSLanguageMode.ConstrainedLanguage;
 
-                // Convert contents into PSDataFile Hashtable by executing content as script.
-                object result = scriptBlock.InvokeReturnAsIs();
-                if (result is PSObject psObject)
+                // Set the created runspace as the default for the current thread
+                Runspace.DefaultRunspace = runspace;
+
+                using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
-                    result = psObject.BaseObject;
-                }
+                    pwsh.Runspace = runspace;
 
-                dataFileInfo = (Hashtable)result;
-                error = null;
-                return true;
+                    var cmd = new Command(
+                        command: contents,
+                        isScript: true,
+                        useLocalScope: true);
+                    cmd.MergeMyResults(
+                        myResult: PipelineResultTypes.Error | PipelineResultTypes.Warning | PipelineResultTypes.Verbose | PipelineResultTypes.Debug | PipelineResultTypes.Information,
+                        toResult: PipelineResultTypes.Output);
+                    pwsh.Commands.AddCommand(cmd);
+
+
+                    try
+                    {
+                        // Invoke the pipeline and retrieve the results
+                        var results = pwsh.Invoke();
+
+                        if (results[0] is PSObject pwshObj)
+                        {
+                            switch (pwshObj.BaseObject)
+                            {
+                                case ErrorRecord err:
+                                    //_cmdletPassedIn.WriteError(error);
+                                    break;
+
+                                case WarningRecord warning:
+                                    //cmdlet.WriteWarning(warning.Message);
+                                    break;
+
+                                case VerboseRecord verbose:
+                                    //cmdlet.WriteVerbose(verbose.Message);
+                                    break;
+
+                                case DebugRecord debug:
+                                    //cmdlet.WriteDebug(debug.Message);
+                                    break;
+
+                                case InformationRecord info:
+                                    //cmdlet.WriteInformation(info);
+                                    break;
+
+                                case Hashtable result:
+                                    dataFileInfo = result;
+                                    return true;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        error = ex;
+                    }
+                }
+                runspace.Close();
+                
+                return false;
             }
             catch (Exception ex)
             {
-                dataFileInfo = null;
                 error = ex;
                 return false;
             }
