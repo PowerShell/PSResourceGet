@@ -1,0 +1,250 @@
+stages:
+- stage: PrepForEV2
+  displayName: 'Copy and prep all files needed for EV2 stage'
+  jobs:
+  - job: CopyEV2FilesToArtifact
+    displayName: 'Copy EV2 Files to Artifact'
+    pool:
+      type: linux
+    variables:
+    - name: ob_outputDirectory
+      value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+    - name: repoRoot
+      value: '$(Build.SourcesDirectory)/PSResourceGet'
+    - name: ev2ServiceGroupRootFolder
+      value: '$(Build.SourcesDirectory)/PSResourceGet/.pipelines/EV2Specs/ServiceGroupRoot'
+    - name: ev2SourceFilesFolder
+      value: '$(Build.SourcesDirectory)/PSResourceGet/.pipelines/EV2Specs/ServiceGroupRoot/SourceFiles'
+    - group: 'SecretManagementAcr'
+    # - name: ob_sdl_credscan_suppressionsFile
+    #   value: $(Build.SourcesDirectory)\PowerShell\.config\suppress.json
+    steps:
+    - checkout: self ## the global setting on lfs didn't work
+      lfs: false
+      env:
+        ob_restore_phase: true
+
+    - download: PSResourceGetBuild
+      artifact: 'drop_stagebuild_nupkg'
+      displayName: 'Download artifact containing .nupkg file from PSResourceGetBuild pipeline'
+      env:
+        ob_restore_phase: true
+
+    - pwsh: |
+        New-Item -Path '$(ev2SourceFilesFolder)' -ItemType Directory
+        $sourceFilesFolderExists = Test-Path -Path '$(ev2SourceFilesFolder)'
+        Write-Verbose -Verbose "Ev2 parameters folder exists: $sourceFilesFolderExists"
+      displayName: 'Create SourceFiles folder under EV2Specs/ServiceGroupRoot folder'
+      env:
+        ob_restore_phase: true
+
+    - task: CopyFiles@2
+      inputs:
+        SourceFolder: '$(Pipeline.Workspace)/PSResourceGetBuild/drop_stagebuild_nupkg/PSResourceGet/signed/PublishedNupkg'
+        Contents: '*.nupkg'
+        TargetFolder: $(ev2SourceFilesFolder)
+      env:
+        ob_restore_phase: true
+
+    - pwsh: |
+        $nupkgFile = Get-ChildItem -Path '$(ev2SourceFilesFolder)' -Filter "*.nupkg" -Recurse | Select-Object -First 1
+        $nupkgFileName = $nupkgFile.Name
+        $nupkgFilePath = $nupkgFile.FullName
+
+        Write-Verbose -Verbose ".nupkg file $nupkgFileName found at $nupkgFilePath"
+
+        $moduleName = "Microsoft.PowerShell.PSResourceGet"
+        $trimmedFileName = $nupkgFileName.Trim(".nupkg")
+        $moduleVersion = $trimmedFileName.Split("$moduleName.", [System.StringSplitOptions]::RemoveEmptyEntries)
+
+        Write-Host "##vso[task.setvariable variable=moduleName;isOutput=true]$moduleName"
+        Write-Host "##vso[task.setvariable variable=moduleVersion;isOutput=true]$moduleVersion"
+
+        Write-Verbose -Verbose "Module to publish info: name '$moduleName' Version '$moduleVersion'"
+      displayName: 'Ensure PSResource .nupkg file is present and extract module name and version'
+      name: setModuleInfoStep
+      env:
+        ob_restore_phase: true
+
+    - pwsh: |
+        Get-ChildItem Env: | Out-String -Stream | write-Verbose -Verbose
+      displayName: 'Capture Environment Variables'
+      env:
+        ob_restore_phase: true
+
+    - pwsh: |
+        Get-ChildItem '$(Build.SourcesDirectory)' -Recurse | Out-String -Stream | write-Verbose -Verbose
+      displayName: 'Capture BuildDirectory'
+      env:
+        ob_restore_phase: true
+
+    - pwsh: |
+        Get-ChildItem '$(Pipeline.Workspace)' -Recurse | Out-String -Stream | write-Verbose -Verbose
+      displayName: 'Capture Workspace'
+      env:
+        ob_restore_phase: true
+
+    - pwsh: |
+        $pathToJsonFile = Join-Path -Path '$(ev2ServiceGroupRootFolder)' -ChildPath 'RolloutSpec.json'
+        # $pathToJsonFile = Join-Path -Path '$(repoRoot)/.pipelines/EV2Specs/ServiceGroupRoot' -ChildPath 'RolloutSpec.json'
+        $content = Get-Content -Path $pathToJsonFile | ConvertFrom-Json
+        $content.RolloutMetadata.Notification.Email.To = '$(email_address)'
+        Remove-Item -Path $pathToJsonFile
+        $content | ConvertTo-Json -Depth 4 | Out-File $pathToJsonFile
+      displayName: 'Replace values in RolloutSpecPath.json'
+      env:
+        ob_restore_phase: true
+
+    - pwsh: |
+        $moduleResourceName = '$(setModuleInfoStep.moduleName)'
+        $moduleResourceVersion = '$(setModuleInfoStep.moduleVersion)'
+        $pathToJsonFile = Join-Path -Path '$(ev2ServiceGroupRootFolder)' -ChildPath 'PSResourceGetReleaseMAR.Rollout.json'
+        $content = Get-Content -Path $pathToJsonFile | ConvertFrom-Json
+
+        $envVarArrayLen = $content.shellExtensions.launch.environmentVariables.Length
+
+        for ($i=0; $i -lt $envVarArrayLen; $i++)
+        {
+          $name = $($content.shellExtensions.launch.environmentVariables[$i].name)
+          if ($name -eq "NUPKG_PATH")
+          {
+            $content.shellExtensions.launch.environmentVariables[$i].reference.path = "SourceFiles/$moduleResourceName.$moduleResourceVersion.nupkg"
+            Write-Verbose -Verbose "Nupkg Path: $($content.shellExtensions.launch.environmentVariables[$i].reference.path)"
+          }
+          elseif ($name -eq "PSRESOURCE_NAME")
+          {
+            $content.shellExtensions.launch.environmentVariables[$i].value = $moduleResourceName
+            Write-Verbose -Verbose "PSResource Name: $($content.shellExtensions.launch.environmentVariables[$i].value)"
+          }
+          elseif ($name -eq "PSRESOURCE_VERSION")
+          {
+            $content.shellExtensions.launch.environmentVariables[$i].value = $moduleResourceVersion
+            Write-Verbose -Verbose "PSResource Version: $($content.shellExtensions.launch.environmentVariables[$i].value)"
+          }
+          elseif ($name -eq "DESTINATION_ACR_NAME")
+          {
+            $content.shellExtensions.launch.environmentVariables[$i].value = '$(acr_name)'
+            Write-Verbose -Verbose "ACR Name: $($content.shellExtensions.launch.environmentVariables[$i].value)"
+          }
+          elseif ($name -eq "DESTINATION_ACR_URI")
+          {
+            $content.shellExtensions.launch.environmentVariables[$i].value = '$(acr_uri)'
+            Write-Verbose -Verbose "ACR URI: $($content.shellExtensions.launch.environmentVariables[$i].value)"
+          }
+          elseif ($name -eq "MI_CLIENTID")
+          {
+            $content.shellExtensions.launch.environmentVariables[$i].value = '$(managed_identity_clientid)'
+            Write-Verbose -Verbose "MI Client ID: $($content.shellExtensions.launch.environmentVariables[$i].value)"
+          }
+        }
+
+        $identityString = "/subscriptions/$(acr_subscription)/resourcegroups/$(acr_resource_group)/providers/Microsoft.ManagedIdentity/userAssignedIdentities/$(managed_identity_name)"
+        $content.shellExtensions.launch.identity.userAssignedIdentities[0] = $identityString
+
+        Remove-Item -Path $pathToJsonFile
+        $content | ConvertTo-Json -Depth 6 | Out-File $pathToJsonFile
+      displayName: 'Replace values in PSResourceGetReleaseMAR.Rollout.json file'
+      env:
+        ob_restore_phase: true
+
+    - pwsh: |
+        $pathToJsonFile = Join-Path -Path '$(ev2ServiceGroupRootFolder)' -ChildPath 'ServiceModel.json'
+        $content = Get-Content -Path $pathToJsonFile | ConvertFrom-Json
+        $content.serviceMetadata.serviceIdentifier = '$(service_identifier)'
+
+        Remove-Item -Path $pathToJsonFile
+        $content | ConvertTo-Json -Depth 9 | Out-File $pathToJsonFile
+      displayName: 'Replace values in ServiceModel.json'
+      env:
+        ob_restore_phase: true
+
+    - pwsh: |
+        $pathToJsonFile = Join-Path -Path '$(ev2ServiceGroupRootFolder)' -ChildPath 'ServiceGroupSpecification.json'
+        $content = Get-Content -Path $pathToJsonFile | ConvertFrom-Json
+        $content.ownerGroupObjectId = '$(owner_group_id)'
+        $content.ownerGroupContactEmail = '$(owner_group_contact_email)'
+
+        Remove-Item -Path $pathToJsonFile
+        $content | ConvertTo-Json -Depth 1 | Out-File $pathToJsonFile
+      displayName: 'Replace values in ServiceGroupSpecification.json'
+      env:
+        ob_restore_phase: true
+
+    - pwsh: |
+        $pathToJsonFile = Join-Path -Path '$(ev2ServiceGroupRootFolder)' -ChildPath 'ServiceSpecification.json'
+        $content = Get-Content -Path $pathToJsonFile | ConvertFrom-Json
+        $content.identifier = '$(service_identifier)'
+        $content.ownerGroupContactEmail = '$(owner_group_contact_email)'
+
+        Remove-Item -Path $pathToJsonFile
+        $content | ConvertTo-Json -Depth 1 | Out-File $pathToJsonFile
+      displayName: 'Replace values in ServiceSpecification.json'
+      env:
+        ob_restore_phase: true
+
+    - pwsh: |
+        $pathToJsonFile = Join-Path -Path '$(ev2ServiceGroupRootFolder)' -ChildPath 'ConfigServiceGroup.json'
+        $content = Get-Content -Path $pathToJsonFile | ConvertFrom-Json
+        $content.Settings.tenantid = '$(tenant_id)'
+        $content.Settings.subscription.backFilledSubscriptionId = '$(acr_subscription)'
+        $content.Settings.subscription.backFilledSubscriptionName = '$(acr_subscription_name)'
+        $content.Settings.azureResourceGroup = '$(acr_resource_group)'
+
+        Remove-Item -Path $pathToJsonFile
+        $content | ConvertTo-Json -Depth 2 | Out-File $pathToJsonFile
+      displayName: 'Replace values in ConfigServiceGroup.json'
+      env:
+        ob_restore_phase: true
+
+    - task: onebranch.pipeline.signing@1
+      inputs:
+        command: 'sign'
+        signing_profile: internal_azure_service
+        files_to_sign: '*.ps1'
+        search_root: '$(repoRoot)/.pipelines/EV2Specs/ServiceGroupRoot/Shell/Run'
+      displayName: Sign Run.ps1
+  
+    - pwsh: |
+        # folder to tar (ie /Run) must have: Run.ps1 and any other folders/files you want extracted
+        $srcPath = Join-Path '$(repoRoot)/.pipelines/EV2Specs/ServiceGroupRoot' -ChildPath 'Shell'
+        $pathToRunTarFile = Join-Path '$(repoRoot)/.pipelines/EV2Specs/ServiceGroupRoot/Shell' -ChildPath "Run.tar"
+        tar -cvf $pathToRunTarFile -C $srcPath ./Run
+      displayName: 'Create archive for the shell extension'
+
+    - task: CopyFiles@2
+      inputs:
+        SourceFolder: '$(repoRoot)/.pipelines'
+        Contents: 'EV2Specs/**'
+        TargetFolder: $(ob_outputDirectory)
+
+- stage: 'Prod_Managed_SDP'
+  displayName: 'Prod Managed SDP release of package to MAR with EV2'
+  dependsOn:
+  - PrepForEV2
+  variables:
+    - name: ob_release_environment
+      value: "Production"
+    - name: repoRoot
+      value: $(Build.SourcesDirectory)
+  jobs:
+  - job: Prod_ReleaseJob
+    templateContext:
+      inputs:
+        - input: pipelineArtifact
+          artifactName: drop_PrepForEV2_CopyEv2FilesToArtifact
+    displayName: Publish to MAR
+    pool:
+      type: release
+
+    steps:
+    - task: vsrm-ev2.ev2-rollout.ev2-rollout-task.Ev2RARollout@2
+      inputs:
+        EndpointProviderType: ApprovalService
+        ApprovalServiceEnvironment: Production
+        TaskAction: RegisterAndRollout
+        SkipRegistrationIfExists: true
+        ServiceRootPath: '$(Pipeline.Workspace)/EV2Specs/ServiceGroupRoot'
+        RolloutSpecPath: '$(Pipeline.Workspace)/EV2Specs/ServiceGroupRoot/RolloutSpec.json'
+        StageMapName: 'Microsoft.Azure.SDP.Standard'
+        Select: 'regions(EastUS)'
+      displayName: 'Ev2 Managed SDP Rollout'
