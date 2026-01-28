@@ -86,7 +86,6 @@ stages:
 
     - pwsh: |
         $pathToJsonFile = Join-Path -Path '$(ev2ServiceGroupRootFolder)' -ChildPath 'RolloutSpec.json'
-        # $pathToJsonFile = Join-Path -Path '$(repoRoot)/.pipelines/EV2Specs/ServiceGroupRoot' -ChildPath 'RolloutSpec.json'
         $content = Get-Content -Path $pathToJsonFile | ConvertFrom-Json
         $content.RolloutMetadata.Notification.Email.To = '$(email_address)'
         Remove-Item -Path $pathToJsonFile
