@@ -1,5 +1,10 @@
 # Preview Changelog
 
+## [1.2.0-rc2](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-rc1..v1.2.0-rc2) - 2026-02-05
+
+## Bug fix
+- For packages that depend on a specific version, use an exact version instead of a version range. (#1937)
+
 ## [1.2.0-rc1](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview5..v1.2.0-rc1) - 2026-01-14
 
 ## Bug fix
