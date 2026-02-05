@@ -234,6 +234,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         return;
                     }
+
+                    if (versionRange.MinVersion != null && versionRange.MaxVersion != null && versionRange.MinVersion.OriginalVersion.Equals(versionRange.MaxVersion.OriginalVersion))
+                    {
+                        nugetVersion = versionRange.MaxVersion;
+                        versionType = VersionType.SpecificVersion;
+                    }
                 }
                 else
                 {

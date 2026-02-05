@@ -1171,6 +1171,70 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             }
                         }
                     }
+                    else if(dep.VersionRange.MaxVersion != null && dep.VersionRange.MinVersion != null && dep.VersionRange.MaxVersion.OriginalVersion.Equals(dep.VersionRange.MinVersion.OriginalVersion))
+                    {
+                        string depPkgVersion = dep.VersionRange.MaxVersion.OriginalVersion; 
+                        FindResults responses = currentServer.FindVersion(dep.Name, version: dep.VersionRange.MaxVersion.OriginalVersion, _type, out ErrorRecord errRecord);
+                        if (errRecord != null)
+                        {
+                            if (errRecord.Exception is ResourceNotFoundException)
+                            {
+                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                            }
+                            else
+                            {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
+                            yield return null;
+                            continue;
+                        }
+
+                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
+                        if (currentResult == null)
+                        {
+                            // This scenario may occur when the package version requested is unlisted.
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version '{depPkgVersion}' could not be found in repository '{repository.Name}'"),
+                                "DependencyPackageNotFound",
+                                ErrorCategory.ObjectNotFound,
+                                this));
+                            yield return null;
+                            continue;
+                        }
+
+                        if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version '{depPkgVersion}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                                "DependencyPackageNotFound",
+                                ErrorCategory.ObjectNotFound,
+                                this));
+                            yield return null;
+                            continue;
+                        }
+
+                        depPkg = currentResult.returnedObject;
+
+                        if (!_packagesFound.ContainsKey(depPkg.Name))
+                        {
+                            foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                            {
+                                yield return depRes;
+                            }
+                        }
+                        else
+                        {
+                            List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
+                            // _packagesFound has depPkg.name in it, but the version is not the same
+                            if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
+                            {
+                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                                {
+                                    yield return depRes;
+                                }
+                            }
+                        }
+                    }
                     else
                     {
                         FindResults responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, out ErrorRecord errRecord);
