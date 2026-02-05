@@ -32,7 +32,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     AfterEach {
         Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", `
             "TestFindModule", "ClobberTestModule1", "ClobberTestModule2", "PackageManagement", "TestTestScript", `
-            "TestModuleWithDependency", "TestModuleWithPrereleaseDep", "PrereleaseModule" -SkipDependencyCheck -ErrorAction SilentlyContinue
+            "TestModuleWithDependency", "TestModuleWithPrereleaseDep", "PrereleaseModule", "test-nugetversion-parent", "test-nugetversion" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -615,6 +615,21 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $res = Get-InstalledPSResource $moduleName
         $res | Should -Not -BeNullOrEmpty
         $res.Version | Should -Be $version
+    }
+
+    It "Install resource that takes a dependency on package with specific version" {
+        $moduleName = 'test-nugetversion-parent'
+        $version = '4.0.0'
+        $depPkgName = 'test-nugetversion'
+        $depPkgVer = '5.0.1'
+
+        Install-PSResource -Name $moduleName -Version $version -Repository $PSGalleryName -TrustRepository
+        $res = Get-InstalledPSResource $moduleName
+        $res.Name | Should -Be $moduleName
+        $res.Version | Should -Be $version
+        $depRes = Get-InstalledPSResource $depPkgName
+        $depRes.Name | Should -Be $depPkgName
+        $depRes.Version | Should -Be $depPkgVer
     }
 }
 
