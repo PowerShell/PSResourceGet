@@ -50,7 +50,7 @@
         'usres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'rc2'
+            Prerelease   = 'rc3'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -60,6 +60,11 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.2.0-rc3
+
+## Bug fix
+- Packages that depend on a specific version should search for the dependency with NormalizedVersion (#1941)
+
 ## 1.2.0-rc2
 
 ## Bug fix
