@@ -1207,17 +1207,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             out string localUserDir,
             out string allUsersDir)
         {
-            // Get PowerShell engine version from $PSVersionTable.PSVersion
-            Version psVersion = new Version(5, 1);
-            try 
-            { 
-                dynamic psVersionObj = (psCmdlet.SessionState.PSVariable.GetValue("PSVersionTable") as Hashtable)?["PSVersion"];
-                if (psVersionObj != null) psVersion = new Version((int)psVersionObj.Major, (int)psVersionObj.Minor);
-            }
-            catch { 
-                // Fallback if dynamic access fails
-                psCmdlet.WriteWarning("Unable to determine PowerShell version from $PSVersionTable");
-            }
+            // Get PowerShell engine version from $PSVersionTable.PSVersion (automatic variable, always available)
+            dynamic psVersionObj = (psCmdlet.SessionState.PSVariable.GetValue("PSVersionTable") as Hashtable)["PSVersion"];
+            Version psVersion = new Version((int)psVersionObj.Major, (int)psVersionObj.Minor);
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
