@@ -638,6 +638,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Quotations around package name and version do not matter, same metadata gets returned.
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
 
+            // version passed in must be a valid NuGet version
+            if (!NuGetVersion.TryParse(version, out NuGetVersion nugetVersion))
+            {
+                errRecord = new ErrorRecord(
+                    new ArgumentException($"Version '{version}' cannot be converted to a valid NuGet version."),
+                    "InvalidVersionFormat",
+                    ErrorCategory.InvalidArgument,
+                    this);
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+            }
+
             var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
                 { "$inlinecount", "allpages" },
                 { "id", $"'{packageName}'" },
@@ -650,7 +661,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 filterBuilder.AddCriterion($"Id eq '{packageName}'");
             }
 
-            filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
+            // a NormalizedVersion is required for the query filter
+            filterBuilder.AddCriterion($"NormalizedVersion eq '{nugetVersion.ToNormalizedString()}'");
             if (type != ResourceType.None) {
                 filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
             }

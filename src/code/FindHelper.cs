@@ -1174,7 +1174,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     else if(dep.VersionRange.MaxVersion != null && dep.VersionRange.MinVersion != null && dep.VersionRange.MaxVersion.OriginalVersion.Equals(dep.VersionRange.MinVersion.OriginalVersion))
                     {
                         string depPkgVersion = dep.VersionRange.MaxVersion.OriginalVersion; 
-                        FindResults responses = currentServer.FindVersion(dep.Name, version: dep.VersionRange.MaxVersion.OriginalVersion, _type, out ErrorRecord errRecord);
+                        FindResults responses = currentServer.FindVersion(dep.Name, version: dep.VersionRange.MaxVersion.ToNormalizedString(), _type, out ErrorRecord errRecord);
                         if (errRecord != null)
                         {
                             if (errRecord.Exception is ResourceNotFoundException)

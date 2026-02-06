@@ -32,7 +32,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     AfterEach {
         Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", `
             "TestFindModule", "ClobberTestModule1", "ClobberTestModule2", "PackageManagement", "TestTestScript", `
-            "TestModuleWithDependency", "TestModuleWithPrereleaseDep", "PrereleaseModule", "test-nugetversion-parent", "test-nugetversion" -SkipDependencyCheck -ErrorAction SilentlyContinue
+            "TestModuleWithDependency", "TestModuleWithPrereleaseDep", "PrereleaseModule", "test-nugetversion-parent", "test-nugetversion", "test-pkg-normalized-dependency" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -631,6 +631,22 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $depRes.Name | Should -Be $depPkgName
         $depRes.Version | Should -Be $depPkgVer
     }
+
+    It "Install resource that takes a dependency on package with specific version with differing normalized and semver versions" {
+        $moduleName = 'test-pkg-normalized-dependency'
+        $version = '3.9.2'
+        $depPkgName1 = "PowerShellGet"
+        $depPkgName2 = "PackageManagement"
+
+        Install-PSResource -Name $moduleName -Prerelease -Repository $PSGalleryName -TrustRepository
+        $res = Get-InstalledPSResource $moduleName
+        $res.Name | Should -Be $moduleName
+        $res.Version | Should -Be $version
+
+        $depRes = Get-InstalledPSResource $depPkgName1, $depPkgName2
+        $depRes.Name | Should -Contain $depPkgName1
+        $depRes.Name | Should -Contain $depPkgName2
+    }    
 }
 
 Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'ManualValidationOnly' {
