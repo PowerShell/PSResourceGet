@@ -1,5 +1,10 @@
 # Preview Changelog
 
+## [1.2.0-rc3](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-rc2..v1.2.0-rc3) - 2026-02-06
+
+## Bug fix
+- Packages that depend on a specific version should search for the dependency with NormalizedVersion (#1941)
+
 ## [1.2.0-rc2](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-rc1..v1.2.0-rc2) - 2026-02-05
 
 ## Bug fix
