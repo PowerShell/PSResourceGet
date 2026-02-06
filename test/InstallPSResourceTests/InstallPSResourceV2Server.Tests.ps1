@@ -32,7 +32,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     AfterEach {
         Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", `
             "TestFindModule", "ClobberTestModule1", "ClobberTestModule2", "PackageManagement", "TestTestScript", `
-            "TestModuleWithDependency", "TestModuleWithPrereleaseDep", "PrereleaseModule", "test-nugetversion-parent", "test-nugetversion" -SkipDependencyCheck -ErrorAction SilentlyContinue
+            "TestModuleWithDependency", "TestModuleWithPrereleaseDep", "PrereleaseModule", "test-nugetversion-parent", "test-nugetversion", "test-pkg-normalized-dependency" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -638,7 +638,8 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $depPkgName1 = "PowerShellGet"
         $depPkgName2 = "PackageManagement"
 
-        $res = Install-PSResource -Name $moduleName -Prerelease -Repository $PSGalleryName -TrustRepository -PassThru
+        Install-PSResource -Name $moduleName -Prerelease -Repository $PSGalleryName -TrustRepository
+        $res = Get-InstalledPSResource $moduleName
         $res.Name | Should -Be $moduleName
         $res.Version | Should -Be $version
 
