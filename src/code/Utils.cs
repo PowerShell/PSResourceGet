@@ -1160,29 +1160,26 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         private readonly static Version PSVersion7_7 = new Version(7, 7);
 
         /// <summary>
-        /// Gets the user content directory path using PowerShell's Get-PSContentPath cmdlet.
-        /// Falls back to legacy path if the cmdlet is not available or PowerShell version is below 7.7.0.
+        /// Gets the user content directory path using PowerShell's $PSUserContentPath variable.
+        /// Falls back to legacy path if the variable is not available or PowerShell version is below 7.7.0.
         /// </summary>
         private static string GetUserContentPath(PSCmdlet psCmdlet, Version psVersion, string legacyPath)
         {
 
-            // Only use Get-PSContentPath cmdlet if PowerShell version is 7.7.0 or greater (when PSContentPath feature is available)
+            // Only use PSContentPath features if PowerShell version is 7.7.0 or greater (when PSContentPath feature is available)
             if (psVersion >= PSVersion7_7)
             {
-                // Try to use PowerShell's Get-PSContentPath cmdlet in the current runspace
-                // This cmdlet is only available if experimental feature PSContentPath is enabled
+                // Try to get the readonly $PSUserContentPath variable (PowerShell 7.7+ with PSContentPath enabled)
                 try
                 {
-                    var results = psCmdlet.InvokeCommand.InvokeScript("Get-PSContentPath");
-                    
-                    if (results != null && results.Count > 0)
+                    var contentPathVar = psCmdlet.SessionState.PSVariable.GetValue("PSUserContentPath");
+                    if (contentPathVar != null)
                     {
-                        // Get-PSContentPath returns a PSObject, extract the path string
-                        string userContentPath = results[0]?.ToString();
+                        string userContentPath = contentPathVar.ToString();
                         if (!string.IsNullOrEmpty(userContentPath))
                         {
-                            psCmdlet.WriteVerbose($"User content path from Get-PSContentPath: {userContentPath}");
-                            InternalHooks.LastUserContentPathSource = "Get-PSContentPath";
+                            psCmdlet.WriteVerbose($"User content path from $PSUserContentPath variable: {userContentPath}");
+                            InternalHooks.LastUserContentPathSource = "$PSUserContentPath";
                             InternalHooks.LastUserContentPath = userContentPath;
                             return userContentPath;
                         }
@@ -1190,7 +1187,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
                 catch (Exception ex)
                 {
-                    psCmdlet.WriteVerbose($"Get-PSContentPath cmdlet not available: {ex.Message}");
+                    psCmdlet.WriteVerbose($"$PSUserContentPath variable not available: {ex.Message}");
                 }
             }
             else
