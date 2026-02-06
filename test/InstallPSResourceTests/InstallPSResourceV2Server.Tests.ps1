@@ -631,6 +631,21 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $depRes.Name | Should -Be $depPkgName
         $depRes.Version | Should -Be $depPkgVer
     }
+
+    It "Install resource that takes a dependency on package with specific version with differing normalized and semver versions" {
+        $moduleName = 'test-pkg-normalized-dependency'
+        $version = '3.9.2'
+        $depPkgName1 = "PowerShellGet"
+        $depPkgName2 = "PackageManagement"
+
+        $res = Install-PSResource -Name $moduleName -Prerelease -Repository $PSGalleryName -TrustRepository -PassThru
+        $res.Name | Should -Be $moduleName
+        $res.Version | Should -Be $version
+
+        $depRes = Get-InstalledPSResource $depPkgName1, $depPkgName2
+        $depRes.Name | Should -Contain $depPkgName1
+        $depRes.Name | Should -Contain $depPkgName2
+    }    
 }
 
 Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'ManualValidationOnly' {
