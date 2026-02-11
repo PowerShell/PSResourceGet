@@ -79,6 +79,12 @@
           "description": "The name of the repository from where the resources are acquired.",
           "type": "string"
         },
+        "trustedRepository": {
+          "title": "Trusted Repository",
+          "description": "Indicates whether the repository is a trusted repository and installation should continue without prompting.",
+          "type": "boolean",
+          "default": false
+        },
         "resources": {
           "title": "Resources",
           "description": "The list of resources to manage.",

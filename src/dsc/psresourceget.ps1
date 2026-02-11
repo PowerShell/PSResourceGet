@@ -46,27 +46,27 @@ class PSResource {
         $retValue = $true
 
         if ($this.name -ne $other.name) {
-            Write-Trace -message "Name mismatch: $($this.name) vs $($other.name)" -level warn
+            Write-Trace -message "Name mismatch: $($this.name) vs $($other.name)" -level trace
             $retValue = $false
         }
         elseif ($null -ne $this.version -and $null -ne $other.version -and -not (SatisfiesVersion -version $this.version -versionRange $other.version)) {
-            Write-Trace -message "Version mismatch: $($this.version) vs $($other.version)" -level warn
+            Write-Trace -message "Version mismatch: $($this.version) vs $($other.version)" -level trace
             $retValue = $false
         }
         elseif ($null -ne $this.scope -and $this.scope -ne $other.scope) {
-            Write-Trace -message "Scope mismatch: $($this.scope) vs $($other.scope)" -level warn
+            Write-Trace -message "Scope mismatch: $($this.scope) vs $($other.scope)" -level trace
             $retValue = $false
         }
         elseif ($null -ne $this.repositoryName -and $this.repositoryName -ne $other.repositoryName) {
-            Write-Trace -message "Repository mismatch: $($this.repositoryName) vs $($other.repositoryName)" -level warn
+            Write-Trace -message "Repository mismatch: $($this.repositoryName) vs $($other.repositoryName)" -level trace
             $retValue = $false
         }
         elseif ($null -ne $this.preRelease -and $this.preRelease -ne $other.preRelease) {
-            Write-Trace -message "PreRelease mismatch: $($this.preRelease) vs $($other.preRelease)" -level warn
+            Write-Trace -message "PreRelease mismatch: $($this.preRelease) vs $($other.preRelease)" -level trace
             $retValue = $false
         }
         elseif ($this._exist -ne $other._exist) {
-            Write-Trace -message "_exist mismatch: $($this._exist) vs $($other._exist)" -level warn
+            Write-Trace -message "_exist mismatch: $($this._exist) vs $($other._exist)" -level trace
             $retValue = $false
         }
 
@@ -78,29 +78,31 @@ class PSResource {
     }
 
     [string] ToJsonForTest() {
-        return ($this | Select-Object -ExcludeProperty version, preRelease, repositoryName, scope | ConvertTo-Json -Compress)
+        return ($this | ConvertTo-Json -Compress -Depth 5)
     }
 }
 
 class PSResourceList {
     [string]$repositoryName
     [PSResource[]]$resources
+    [bool]$trustedRepository
     [bool]$_exist
     [bool]$_inDesiredState
 
-    PSResourceList([string]$repositoryName, [PSResource[]]$resources) {
+    PSResourceList([string]$repositoryName, [PSResource[]]$resources, [bool]$trustedRepository) {
         $this.repositoryName = $repositoryName
         $this.resources = $resources
+        $this.trustedRepository = $trustedRepository
     }
 
     [bool] IsInDesiredState([PSResourceList] $other) {
         if ($this.repositoryName -ne $other.repositoryName) {
-            Write-Trace -message "RepositoryName mismatch: $($this.repositoryName) vs $($other.repositoryName)" -level warn
+            Write-Trace -message "RepositoryName mismatch: $($this.repositoryName) vs $($other.repositoryName)" -level trace
             return $false
         }
 
         if ($null -ne $this.resources -and $this.resources.Count -ne $other.resources.Count) {
-            Write-Trace -message "Resources count mismatch: $($this.resources.Count) vs $($other.resources.Count)" -level warn
+            Write-Trace -message "Resources count mismatch: $($this.resources.Count) vs $($other.resources.Count)" -level trace
             return $false
         }
 
@@ -113,8 +115,12 @@ class PSResourceList {
                 }
             }
 
-            if (-not $found) {
-                Write-Trace -message "Resource mismatch for: $($otherResource.name)" -level warn
+            if ($found) {
+                Write-Trace -message "Resource match found for: $($otherResource.name)" -level trace
+                break
+            }
+            else {
+                Write-Trace -message "Resource mismatch for: $($otherResource.name)" -level trace
                 return $false
             }
         }
@@ -123,7 +129,7 @@ class PSResourceList {
     }
 
     [string] ToJson() {
-        $resourceJson = if ($this.resources) {($this.resources | ForEach-Object { $_.ToJson() }) -join ',' } else {''}
+        $resourceJson = if ($this.resources) { ($this.resources | ForEach-Object { $_.ToJson() }) -join ',' } else { '' }
         $resourceJson = "[$resourceJson]"
         $jsonString = "{'repositoryName': '$($this.repositoryName)','resources': $resourceJson}"
         $jsonString = $jsonString -replace "'", '"'
@@ -131,7 +137,7 @@ class PSResourceList {
     }
 
     [string] ToJsonForTest() {
-        return ($this | Select-Object -ExcludeProperty resources | ConvertTo-Json -Compress)
+        return ($this | ConvertTo-Json -Compress -Depth 5)
     }
 }
 
@@ -188,7 +194,7 @@ function Write-Trace {
         $level.ToLower() = $message
     } | ConvertTo-Json -Compress
 
-    if($env:SKIP_TRACE) {
+    if ($env:SKIP_TRACE) {
         $host.ui.WriteVerboseLine($trace)
     }
     else {
@@ -219,7 +225,7 @@ function ConvertInputToPSResource(
     [PSCustomObject]$inputObj,
     [string]$repositoryName = $null
 ) {
-    $scope = if ($inputObj.Scope) { [Scope]$inputObj.Scope } else { [Scope]::CurrentUser }
+    $scope = if ($inputObj.Scope) { [Scope]$inputObj.Scope } else { [Scope]"CurrentUser" }
 
     return [PSResource]::new(
         $inputObj.Name,
@@ -248,7 +254,14 @@ function GetPSResourceList {
         }
     }
 
-    $inputPSResourceList = [PSResourceList]::new($inputObj.repositoryName, $inputResources)
+    $repositoryState = Get-PSResourceRepository -Name $inputObj.repositoryName -ErrorAction SilentlyContinue
+
+    if (-not $repositoryState) {
+        Write-Trace -message "Repository not found: $($inputObj.repositoryName). Returning PSResourceList with _exist = false." -level info
+        return [PSResourceList]::new($inputObj.repositoryName, $inputResources, $false)
+    }
+
+    $inputPSResourceList = [PSResourceList]::new($inputObj.repositoryName, $inputResources, $repositoryState.Trusted)
 
     $allPSResources = @()
 
@@ -261,7 +274,7 @@ function GetPSResourceList {
         [PSResource]::new(
             $_.Name,
             $_.Prerelease ? $_.Version.ToString() + "-" + $_.Prerelease : $_.Version.ToString(),
-            [Scope]::CurrentUser,
+            [Scope]"CurrentUser",
             $_.Repository,
             $_.PreRelease
         )
@@ -279,27 +292,12 @@ function GetPSResourceList {
 
     $resourcesExist = @()
 
-    ##Add-Type -AssemblyName "$PSScriptRoot/dependencies/NuGet.Versioning.dll"
-
     foreach ($resource in $allPSResources) {
         foreach ($inputResource in $inputResources) {
             if ($resource.Name -eq $inputResource.Name) {
                 if ($inputResource.Version) {
                     # Use the NuGet.Versioning package if available, otherwise do a simple comparison
                     try {
-                        # $versionRange = [NuGet.Versioning.VersionRange]::Parse($inputResource.Version)
-
-                        # $resourceVersion = if ($resource.PreRelease) {
-                        #     [NuGet.Versioning.NuGetVersion]::Parse($resource.Version.ToString() + "-" + $resource.PreRelease)
-                        # }
-                        # else {
-                        #     [NuGet.Versioning.NuGetVersion]::Parse($resource.Version.ToString())
-                        # }
-
-                        # if ($versionRange.Satisfies($resourceVersion)) {
-                        #     $resourcesExist += $resource
-                        # }
-
                         if (SatisfiesVersion -version $resource.Version -versionRange $inputResource.Version) {
                             $resourcesExist += $resource
                         }
@@ -316,7 +314,7 @@ function GetPSResourceList {
     }
 
     ## For get operation we only need the first resource that exists, which is always the latest for currentUser
-    PopulatePSResourceListObjectByRepository -resourcesExist $resourcesExist -inputResources $inputResources -repositoryName $inputPSResourceList.RepositoryName
+    PopulatePSResourceListObjectByRepository -resourcesExist $resourcesExist -inputResources $inputResources -repositoryName $inputPSResourceList.RepositoryName -trustedRepository $inputPSResourceList.trustedRepository
 }
 
 function GetOperation {
@@ -369,34 +367,36 @@ function TestPSResourceList {
         [PSCustomObject]$inputObj
     )
 
-    $inputResources = ConvertInputToPSResource -inputObj $inputObj.resources -repositoryName $inputObj.repositoryName
-    $inputPSResourceList = [PSResourceList]::new($inputObj.repositoryName, $inputResources)
+    $inputResources = @()
+    $inputResources += $inputObj.resources | ForEach-Object { ConvertInputToPSResource -inputObj $_ -repositoryName $inputObj.repositoryName }
+
+    $repositoryState = Get-PSResourceRepository -Name $inputObj.repositoryName -ErrorAction SilentlyContinue
+
+    if (-not $repositoryState) {
+        Write-Trace -message "Repository not found: $($inputObj.repositoryName). Returning PSResourceList with _inDesiredState = false." -level info
+        $retValue = [PSResourceList]::new($inputObj.repositoryName, $inputResources, $false)
+        $retValue._inDesiredState = $false
+        return $retValue.ToJsonForTest()
+        '["repositoryName", "resources"]'
+    }
+
+    $inputPSResourceList = [PSResourceList]::new($inputObj.repositoryName, $inputResources, $repositoryState.Trusted)
 
     $currentState = GetPSResourceList -inputObj $inputObj
     $inDesiredState = $currentState.IsInDesiredState($inputPSResourceList)
 
-    if ($inDesiredState) {
-        Write-Trace -message "PSResourceList is in desired state." -level info
-    }
-    else {
-        Write-Trace -message "PSResourceList is NOT in desired state." -level warn
-    }
-
     $currentState._inDesiredState = $inDesiredState
 
-    ## TODO confirm the output format
-
-    if ($inDesiredState)
-    {
-        $outputJson = [PSCustomObject]@{
-            desiredState = '$desiredstate$'
-            actualState = '$currentState$'
-            inDesiredState = $inDesiredState
-            differingProperties = @()
-        } | ConvertTo-Json -Compress
-
-        $outputJson = $outputJson -replace '\$desiredstate\$', $inputPSResourceList.ToJsonForTest()
-        $outputJson = $outputJson -replace '\$currentState\$', $currentState.ToJsonForTest()
+    if ($inDesiredState) {
+        Write-Trace -message "PSResourceList is in desired state." -level info
+        $currentState.ToJsonForTest()
+        ## Return empty array as we are in desired state and there are no differing properties
+        '[]'
+    }
+    else {
+        Write-Trace -message "PSResourceList is NOT in desired state." -level info
+        $inputPSResourceList.ToJsonForTest()
+        '["resources"]'
     }
 }
 
@@ -425,7 +425,7 @@ function ExportOperation {
             $rep = Get-PSResourceRepository -ErrorAction SilentlyContinue
 
             if (-not $rep) {
-                Write-Trace -message "No repositories found. Returning empty array." -level info
+                Write-Trace -message "No repositories found. Returning empty array." -level trace
                 return @()
             }
 
@@ -438,7 +438,6 @@ function ExportOperation {
                     $_.ApiVersion
                 ).ToJson()
             }
-
         }
 
         'repositorylist' { throw [System.NotImplementedException]::new("Get operation is not implemented for RepositoryList resource.") }
@@ -457,23 +456,21 @@ function SetPSResourceList {
         $inputObj
     )
 
-    $inputResources = ConvertInputToPSResource -inputObj $inputObj
-    $inputPSResourceList = [PSResourceList]::new($inputObj.repositoryName, $inputResources)
-
     $repositoryName = $inputObj.repositoryName
     $resourcesToUninstall = @()
     $resourcesToInstall = [System.Collections.Generic.Dictionary[string, psobject]]::new()
 
-    Add-Type -AssemblyName "$PSScriptRoot/dependencies/NuGet.Versioning.dll"
+    $resourcesChanged = $false
 
     $inputObj.resources | ForEach-Object {
         $resource = $_
         $name = $resource.name
         $version = $resource.version
+        $scope = $resource.scope ?? "CurrentUser"
 
         $getSplat = @{
-            Name   = $name
-            Scope  = $scope
+            Name        = $name
+            Scope       = $scope
             ErrorAction = 'SilentlyContinue'
         }
 
@@ -484,26 +481,46 @@ function SetPSResourceList {
             Get-PSResource @getSplat
         }
 
-        # uninstall all resources that do not satisfy the version range and install the ones that do
-        $existingResources | ForEach-Object {
-            $versionRange = [NuGet.Versioning.VersionRange]::Parse($version)
-            $resourceVersion = [NuGet.Versioning.NuGetVersion]::Parse($_.Version.ToString())
-            if (-not $versionRange.Satisfies($resourceVersion)) {
-                if ($resource._exist) {
-                    #$resourcesToInstall += $resource
-                    $key = $resource.Name.ToLowerInvariant() + '-' + $resource.Version.ToLowerInvariant()
-                    if (-not $resourcesToInstall.ContainsKey($key)) {
-                        $resourcesToInstall[$key] = $resource
+        if (-not $existingResources) {
+            # No existing resources found, add to install list if _exist is true or not specified
+            if ($resource._exist -ne $false) {
+                $key = $name.ToLowerInvariant() + '-' + ($version ?? 'latest').ToLowerInvariant()
+                if (-not $resourcesToInstall.ContainsKey($key)) {
+                    $resourcesToInstall[$key] = $resource
+                }
+            }
+            # If _exist is false and resource doesn't exist, nothing to do (already in desired state)
+        }
+        else {
+            # Existing resources found
+            if ($resource._exist -eq $false) {
+                # User wants resource removed - uninstall all existing versions
+                $resourcesToUninstall += $existingResources
+            }
+            elseif ($version) {
+                # Version specified - check if any existing version satisfies the range
+                $satisfyingResource = $null
+                foreach ($existing in $existingResources) {
+                    $versionRange = [NuGet.Versioning.VersionRange]::Parse($version)
+                    $resourceVersion = [NuGet.Versioning.NuGetVersion]::Parse($existing.Version.ToString())
+                    if ($versionRange.Satisfies($resourceVersion)) {
+                        $satisfyingResource = $existing
+                        break
                     }
                 }
 
-                $resourcesToUninstall += $_
-            }
-            else {
-                if (-not $resource._exist) {
-                    $resourcesToUninstall += $_
+                if (-not $satisfyingResource) {
+                    # No existing version satisfies the range - install desired version
+                    $key = $name.ToLowerInvariant() + '-' + $version.ToLowerInvariant()
+                    if (-not $resourcesToInstall.ContainsKey($key)) {
+                        $resourcesToInstall[$key] = $resource
+                    }
+                    # Uninstall versions that don't satisfy the range
+                    $resourcesToUninstall += $existingResources
                 }
+                # If a satisfying version exists, resource is in desired state
             }
+            # If no version specified and _exist is true/not specified, any existing version is acceptable
         }
     }
 
@@ -512,13 +529,36 @@ function SetPSResourceList {
         $resourcesToUninstall | ForEach-Object {
             Uninstall-PSResource -Name $_.Name -Scope $scope -ErrorAction Stop
         }
+        $resourcesChanged = $true
     }
 
     if ($resourcesToInstall.Count -gt 0) {
+        $psRepository = Get-PSResourceRepository -Name $repositoryName -ErrorAction Stop
+
+        if (-not $psRepository) {
+            Write-Trace -level error -message "Repository '$repositoryName' not found. Cannot install resources."
+            return
+        }
+
+        if (-not $psRepository.Trusted -and -not $inputObj.trustedRepository) {
+            Write-Trace -level error -message "Repository '$repositoryName' is not trusted. Cannot install resources."
+            return
+        }
+
         Write-Trace -message "Installing resources: $($resourcesToInstall.Values | ForEach-Object { " $($_.Name) -- $($_.Version) " })"
         $resourcesToInstall.Values | ForEach-Object {
-            Install-PSResource -Name $_.Name -Version $_.Version -Scope $scope -Repository $repositoryName -ErrorAction Stop
+            Install-PSResource -Name $_.Name -Version $_.Version -Scope $scope -Repository $repositoryName -ErrorAction Stop -TrustRepository:$inputObj.trustedRepository
         }
+
+        $resourcesChanged = $true
+    }
+
+    (GetPSResourceList -inputObj $inputObj).ToJson()
+    if ($resourcesChanged) {
+        '["resources"]'
+    }
+    else {
+        '[]'
     }
 }
 
@@ -526,15 +566,6 @@ function SetOperation {
     param(
         [string]$ResourceType
     )
-
-    <# TODO
-    // for test and set everything
-              // 2 json lines
-                // state == current state of object
-                // diff == array of properties that are different
-
-            // for other operations, DONOT return _inDesiredState
-    #>
 
     $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
 
@@ -546,7 +577,7 @@ function SetOperation {
 
             $splatt = @{}
 
-            foreach($property in $properties) {
+            foreach ($property in $properties) {
                 if ($null -ne $inputObj.PSObject.Properties[$property]) {
                     if ($property -eq 'repositoryType') {
                         $splatt['ApiVersion'] = $inputObj.$property
@@ -581,11 +612,9 @@ function SetOperation {
 }
 
 function DeleteOperation {
-     param(
+    param(
         [string]$ResourceType
     )
-
-    ## todo: delete for PSresourceList
 
     $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
     switch ($ResourceType) {
@@ -617,7 +646,8 @@ function PopulatePSResourceListObjectByRepository {
     param (
         $resourcesExist,
         $inputResources,
-        $repositoryName
+        $repositoryName,
+        $trustedRepository
     )
 
     $resources = @()
@@ -641,11 +671,12 @@ function PopulatePSResourceListObjectByRepository {
         }
     }
 
-     $psresourceListObj =
-            [PSResourceList]::new(
-                $repositoryName,
-                $resources
-            )
+    $psresourceListObj =
+    [PSResourceList]::new(
+        $repositoryName,
+        $resources,
+        $trustedRepository
+    )
 
     return $psresourceListObj
 }
@@ -662,7 +693,7 @@ function PopulatePSResourceListObject {
         return [PSResource]::new(
             $_.Name,
             $_.Version,
-            [Scope]::AllUsers,
+            [Scope]"AllUsers",
             $_.Repository,
             $_.PreRelease ? $true : $false
         )
@@ -672,7 +703,7 @@ function PopulatePSResourceListObject {
         return [PSResource]::new(
             $_.Name,
             $_.Version,
-            [Scope]::CurrentUser,
+            [Scope]"CurrentUser",
             $_.Repository,
             $_.PreRelease ? $true : $false
         )
@@ -681,9 +712,10 @@ function PopulatePSResourceListObject {
     $repoGrps = $allPSResources | Group-Object -Property repositoryName
 
     $repoGrps | ForEach-Object {
+        $repositoryTrust = Get-PSResourceRepository -Name $_.Name -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Trusted ?? $false
         $repoName = $_.Name
         $resources = $_.Group
-        [PSResourceList]::new($repoName, $resources).ToJson()
+        [PSResourceList]::new($repoName, $resources, $repositoryTrust).ToJson()
     }
 }
 
