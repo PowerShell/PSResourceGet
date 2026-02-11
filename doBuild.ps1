@@ -47,6 +47,12 @@ function DoBuild
     Write-Verbose -Verbose -Message "Copying PSResourceRepository.admx to '$BuildOutPath'"
     Copy-Item -Path "${SrcPath}/PSResourceRepository.admx" -Dest "$BuildOutPath" -Force
 
+    Write-Verbose -Verbose -Message "Copying psresourceget.ps1 to '$BuildOutPath'"
+    Copy-Item -Path "${SrcPath}/dsc/psresourceget.ps1" -Dest "$BuildOutPath" -Force
+
+    Write-Verbose -Verbose -Message "Copying resource manifests to '$BuildOutPath'"
+    Copy-Item -Path "${SrcPath}/dsc/*.resource.json" -Dest "$BuildOutPath" -Force
+
     # Build and place binaries
     if ( Test-Path "${SrcPath}/code" ) {
         Write-Verbose -Verbose -Message "Building assembly and copying to '$BuildOutPath'"

@@ -1,0 +1,156 @@
+{
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "description": "Manage PowerShell repositories using PSResourceGet.",
+    "tags": [
+        "linux",
+        "windows",
+        "macos",
+        "powershell",
+        "nuget"
+    ],
+    "type": "Microsoft.PowerShell.PSResourceGet/Repository",
+    "version": "0.0.1",
+    "get": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$Input | ./psresourceget.ps1 -resourcetype 'repository' -operation 'get'"
+        ],
+        "input": "stdin"
+    },
+    "set": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$Input | ./psresourceget.ps1 -resourcetype 'repository' -operation set"
+        ],
+        "input": "stdin"
+    },
+    "delete": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$Input | ./psresourceget.ps1 -resourcetype 'repository' -operation delete"
+        ],
+        "input": "stdin"
+    },
+    "export": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "./psresourceget.ps1 -resourcetype 'repository' -operation export"
+        ],
+        "input": "stdin"
+    },
+    "schema": {
+        "embedded": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "Repository",
+            "description": "A PowerShell Resource repository from where to acquire the resources.",
+            "type": "object",
+            "additionalProperties": false,
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "_exist": {
+                                "const": false
+                            }
+                        }
+                    },
+                    "then": {
+                        "required": [
+                            "name"
+                        ]
+                    },
+                    "else": {
+                        "required": [
+                            "name",
+                            "uri"
+                        ]
+                    }
+                }
+            ],
+            "properties": {
+                "name": {
+                    "title": "Name",
+                    "description": "The name of the repository.",
+                    "type": "string"
+                },
+                "uri": {
+                    "title": "URI",
+                    "description": "The URI of the repository.",
+                    "type": "string",
+                    "format": "uri"
+                },
+                "trusted": {
+                    "title": "Trusted",
+                    "description": "Indicates whether the repository is trusted.",
+                    "type": "boolean"
+                },
+                "priority": {
+                    "title": "Priority",
+                    "description": "The priority of the repository. Lower numbers indicate higher priority.",
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                },
+                "repositoryType": {
+                    "title": "Repository Type",
+                    "description": "The type of the repository.",
+                    "$ref": "#/$defs/RepositoryType"
+                },
+                "_exist": {
+                    "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json"
+                }
+            },
+            "$defs": {
+                "RepositoryType": {
+                    "type": "string",
+                    "title": "Repository Type",
+                    "description": "The type of the repository. Can be 'Unknown', 'V2', 'V3', 'Local', 'NugetServer', or 'ContainerRegistry'.",
+                    "enum": [
+                        "Unknown",
+                        "V2",
+                        "V3",
+                        "Local",
+                        "NugetServer",
+                        "ContainerRegistry"
+                    ]
+                },
+                "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "$id": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json",
+                    "title": "Instance should exist",
+                    "description": "Indicates whether the DSC resource instance should exist.",
+                    "type": "boolean",
+                    "default": true,
+                    "enum": [
+                        false,
+                        true
+                    ]
+                }
+            }
+        }
+    }
+}

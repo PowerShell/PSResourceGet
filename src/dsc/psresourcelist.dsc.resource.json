@@ -1,0 +1,177 @@
+{
+  "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+  "description": "Manage PowerShell resources using PSResourceGet.",
+  "tags": [
+    "linux",
+    "windows",
+    "macos",
+    "powershell",
+    "nuget"
+  ],
+  "type": "Microsoft.PowerShell.PSResourceGet/PSResourceList",
+  "version": "0.0.1",
+  "get": {
+    "executable": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NonInteractive",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation 'get'"
+    ],
+    "input": "stdin"
+  },
+  "set": {
+    "executable": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NonInteractive",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation set"
+    ],
+    "input": "stdin",
+    "return": "stateAndDiff"
+  },
+  "export": {
+    "executable": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NonInteractive",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "./psresourceget.ps1 -resourcetype 'psresourcelist' -operation export"
+    ],
+    "input": "stdin"
+  },
+  "test": {
+    "executable": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NonInteractive",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation test"
+    ],
+    "input": "stdin",
+    "return": "stateAndDiff"
+  },
+  "schema": {
+    "embedded": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "PSResourceList",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repositoryName"
+      ],
+      "properties": {
+        "repositoryName": {
+          "title": "Repository Name",
+          "description": "The name of the repository from where the resources are acquired.",
+          "type": "string"
+        },
+        "resources": {
+          "title": "Resources",
+          "description": "The list of resources to manage.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PSResource"
+          },
+          "minItems": 0
+        },
+        "_exist": {
+          "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json"
+        },
+        "_inDesiredState": {
+          "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json"
+        }
+      },
+      "$defs": {
+        "Scope": {
+          "type": "string",
+          "title": "Scope",
+          "description": "Scope of the resource installation.",
+          "enum": [
+            "CurrentUser",
+            "AllUsers"
+          ]
+        },
+        "PSResource": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "description": "The name of the resource.",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "description": "The version range of the resource.",
+              "type": "string",
+              "pattern": "^(\\[|\\()\\s*\\d+(\\.\\d+){0,2}(-[0-9A-Za-z-.]+)?\\s*(,\\s*(\\d+(\\.\\d+){0,2}(-[0-9A-Za-z-.]+)?)?\\s*(\\]|\\)))?$"
+            },
+            "scope": {
+              "title": "Scope",
+              "description": "The scope of the resource. Can be 'CurrentUser' or 'AllUsers'.",
+              "$ref": "#/$defs/Scope"
+            },
+            "repositoryName": {
+              "title": "Repository Name",
+              "description": "The name of the repository from where the resource is acquired.",
+              "type": "string"
+            },
+            "preRelease": {
+              "title": "Pre-Release version",
+              "description": "Indicates whether to include pre-release versions of the resource.",
+              "type": "boolean",
+              "default": false
+            },
+            "_exist": {
+              "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json"
+            },
+            "_inDesiredState": {
+              "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json"
+            }
+          }
+        },
+        "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json",
+          "title": "Instance should exist",
+          "description": "Indicates whether the DSC resource instance should exist.",
+          "type": "boolean",
+          "default": true,
+          "enum": [
+            false,
+            true
+          ]
+        },
+        "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json",
+          "title": "Instance is in desired state",
+          "description": "Indicates whether the DSC resource instance is in the desired state.",
+          "type": "boolean",
+          "default": true,
+          "enum": [
+            false,
+            true
+          ]
+        }
+      }
+    }
+  }
+}
