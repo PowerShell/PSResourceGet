@@ -31,6 +31,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         #region Members
 
         public override PSRepositoryInfo Repository { get; set; }
+        internal override bool WriteWarnings { get; set; }
         public String Registry { get; set; }
         private readonly PSCmdlet _cmdletPassedIn;
         private HttpClient _sessionClient { get; set; }

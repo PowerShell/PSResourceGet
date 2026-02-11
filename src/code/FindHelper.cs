@@ -206,7 +206,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
                 _networkCredential = currentRepository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
 
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
+                bool shouldReportErrorForEachRepo = !suppressErrors && !_repositoryNameContainsWildcard;
+                bool shouldWriteWarningsForRepo = !shouldReportErrorForEachRepo; // Only write warnings for a repository if we are not writing errors for each repository.
+
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential, writeWarnings: shouldWriteWarningsForRepo);
                 if (currentServer == null)
                 {
                     // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
@@ -222,7 +225,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 ResponseUtil currentResponseUtil = ResponseUtilFactory.GetResponseUtil(currentRepository);
                 _cmdletPassedIn.WriteDebug($"Searching through repository '{currentRepository.Name}'");
 
-                bool shouldReportErrorForEachRepo = !suppressErrors && !_repositoryNameContainsWildcard;
                 foreach (PSResourceInfo currentPkg in SearchByNames(currentServer, currentResponseUtil, currentRepository, shouldReportErrorForEachRepo))
                 {
                     if (currentPkg == null)
