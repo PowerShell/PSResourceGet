@@ -1,0 +1,11 @@
+{
+  "$schema": "https://ev2schema.azure.net/schemas/2020-01-01/rolloutParameters.json",
+  "contentVersion": "1.0.0.0",
+  "subscriptions": [
+    {
+      "name": "SubscriptionProvisioning",
+      "displayName": "__BACKFILLED_SUBSCRIPTION_NAME__",
+      "backfilledSubscriptionId": "__BACKFILLED_SUBSCRIPTION_ID__"
+    }
+  ]
+}

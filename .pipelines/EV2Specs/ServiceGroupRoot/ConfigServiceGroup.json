@@ -1,0 +1,12 @@
+{
+  "Settings": {
+    "tenantid": "00000000-0000-0000-0000-000000000000",
+    "environment": "Prod",
+    "subscription": {
+      "backFilledSubscriptionId": "00000000-0000-0000-0000-000000000000",
+      "backFilledSubscriptionName": "default",
+      "subscriptionkey": "SubKey-Prod-PSResourceGetMAR"
+    },
+    "azureResourceGroup": "default"
+  }
+}

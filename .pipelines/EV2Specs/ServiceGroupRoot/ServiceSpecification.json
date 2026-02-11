@@ -1,0 +1,9 @@
+{
+  "$schema": "https://ev2schema.azure.net/schemas/2020-01-01/serviceSpecification.json",
+  "providerType": "ServiceTree",
+  "identifier": "00000000-0000-0000-0000-000000000000",
+  "description": "PowerShell Core service for deployments.",
+  "ownerGroupContactEmail": "default",
+  "policyCheckEnabled": true,
+  "contentVersion": "1.0.0.0"
+}
