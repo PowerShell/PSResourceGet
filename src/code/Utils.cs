@@ -1349,8 +1349,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     throw new PSArgumentNullException(nameof(filePath));
                 }
 
-                string contents = System.IO.File.ReadAllText(filePath);
-                var scriptBlock = System.Management.Automation.ScriptBlock.Create(contents);
+                string contents = File.ReadAllText(filePath);
+                var scriptBlock = ScriptBlock.Create(contents);
 
                 // Ensure that the content script block is safe to convert into a PSDataFile Hashtable.
                 // This will throw for unsafe content.
