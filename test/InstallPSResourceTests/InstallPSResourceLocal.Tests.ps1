@@ -16,6 +16,7 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
     BeforeAll {
         $localRepo = "psgettestlocal"
         $localUNCRepo = "psgettestlocal3"
+        $localPrivateRepo = "psgettestlocal5"
         $localNupkgRepo = "localNupkgRepo"
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
@@ -295,5 +296,23 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         $pkg = Get-InstalledPSResource $nupkgName
         $pkg.Name | Should -Be $nupkgName
         $pkg.Version | Should -Be $nupkgVersion
+    }
+
+    It "Install should not silently fail if network connection to local private repository cannot be established and remainder repositories should be searched" {
+        $privateRepo = Get-PSResourceRepository $localPrivateRepo
+        $res = Install-PSResource -Name $testModuleName -TrustRepository -PassThru -WarningVariable WarningVar -WarningAction SilentlyContinue
+        $WarningVar | Should -Not -BeNullOrEmpty
+        $WarningVar[0] | Should -Match "$($privateRepo.Uri.LocalPath)"
+        $res.Name | Should -Contain $testModuleName
+        $res.Version | Should -Be "1.0.0"
+    }
+
+    It "Install should not silently fail if network connection to local private repository cannot be established and package version was provided and remainder repositories should be searched" {
+        $privateRepo = Get-PSResourceRepository $localPrivateRepo
+        $res = Install-PSResource -Name $testModuleName -Version "1.0.0" -TrustRepository -PassThru -WarningVariable WarningVar -WarningAction SilentlyContinue
+        $WarningVar | Should -Not -BeNullOrEmpty
+        $WarningVar[0] | Should -Match "$($privateRepo.Uri.LocalPath)"
+        $res.Name | Should -Contain $testModuleName
+        $res.Version | Should -Be "1.0.0"
     }
 }
