@@ -22,6 +22,7 @@ using Azure.Core;
 using Azure.Identity;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Xml;
 
@@ -1055,14 +1056,14 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             GetStandardPlatformPaths(
                psCmdlet,
-               out string myDocumentsPath,
+               out string psUserContentPath,
                out string programFilesPath);
 
             List<string> resourcePaths = new List<string>();
             if (scope is null || scope.Value is ScopeType.CurrentUser)
             {
-                resourcePaths.Add(Path.Combine(myDocumentsPath, "Modules"));
-                resourcePaths.Add(Path.Combine(myDocumentsPath, "Scripts"));
+                resourcePaths.Add(Path.Combine(psUserContentPath, "Modules"));
+                resourcePaths.Add(Path.Combine(psUserContentPath, "Scripts"));
             }
 
             if (scope.Value is ScopeType.AllUsers)
@@ -1162,28 +1163,97 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         }
 
         private readonly static Version PSVersion6 = new Version(6, 0);
+        private readonly static Version PSVersion7_7 = new Version(7, 7);
+
+        /// <summary>
+        /// Gets the user content directory path using PowerShell's $PSUserContentPath variable.
+        /// Falls back to legacy path if the variable is not available or PowerShell version is below 7.7.0.
+        /// </summary>
+        private static string GetUserContentPath(PSCmdlet psCmdlet, Version psVersion, string legacyPath)
+        {
+
+            // Only use PSContentPath features if PowerShell version is 7.7.0 or greater (when PSContentPath feature is available)
+            if (psVersion >= PSVersion7_7)
+            {
+                // Try to get the readonly $PSUserContentPath variable (PowerShell 7.7+ with PSContentPath enabled)
+                try
+                {
+                    var contentPathVar = psCmdlet.SessionState.PSVariable.GetValue("PSUserContentPath");
+                    if (contentPathVar != null)
+                    {
+                        string userContentPath = contentPathVar.ToString();
+                        if (!string.IsNullOrEmpty(userContentPath))
+                        {
+                            psCmdlet.WriteVerbose($"User content path from $PSUserContentPath variable: {userContentPath}");
+                            InternalHooks.LastUserContentPathSource = "$PSUserContentPath";
+                            InternalHooks.LastUserContentPath = userContentPath;
+                            return userContentPath;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    psCmdlet.WriteVerbose($"$PSUserContentPath variable not available: {ex.Message}");
+                }
+            }
+            else
+            {
+                psCmdlet.WriteVerbose($"PowerShell version {psVersion} is below 7.7.0, using legacy location");
+            }
+            
+            // Fallback to legacy location
+            psCmdlet.WriteVerbose($"Using legacy location: {legacyPath}");
+            InternalHooks.LastUserContentPathSource = "Legacy";
+            InternalHooks.LastUserContentPath = legacyPath;
+            return legacyPath;
+        }
+
         private static void GetStandardPlatformPaths(
             PSCmdlet psCmdlet,
             out string localUserDir,
             out string allUsersDir)
         {
+            // Get PowerShell engine version from $PSVersionTable.PSVersion (automatic variable, always available)
+            dynamic psVersionObj = (psCmdlet.SessionState.PSVariable.GetValue("PSVersionTable") as Hashtable)["PSVersion"];
+            Version psVersion = new Version((int)psVersionObj.Major, (int)psVersionObj.Minor);
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                string powerShellType = (psCmdlet.Host.Version >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
-                localUserDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), powerShellType);
+                string powerShellType = (psVersion >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
+                
+                // Windows PowerShell doesn't support experimental features or PSContentPath
+                if (powerShellType == "WindowsPowerShell")
+                {
+                    // Use legacy Documents folder for Windows PowerShell
+                    localUserDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), powerShellType);
+                    psCmdlet.WriteVerbose($"Using Windows PowerShell Documents folder: {localUserDir}");
+                }
+                else
+                {
+                    string legacyPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                        powerShellType
+                    );
+                    
+                    localUserDir = GetUserContentPath(psCmdlet, psVersion, legacyPath);
+                }
+                
                 allUsersDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), powerShellType);
             }
             else
             {
                 // paths are the same for both Linux and macOS
-                localUserDir = Path.Combine(GetHomeOrCreateTempHome(), ".local", "share", "powershell");
-                // Create the default data directory if it doesn't exist.
+                string legacyPath = Path.Combine(GetHomeOrCreateTempHome(), ".local", "share", "powershell");
+                
+                localUserDir = GetUserContentPath(psCmdlet, psVersion, legacyPath);
+                
+                // Create the default data directory if it doesn't exist
                 if (!Directory.Exists(localUserDir))
                 {
                     Directory.CreateDirectory(localUserDir);
                 }
 
-                allUsersDir = System.IO.Path.Combine("/usr", "local", "share", "powershell");
+                allUsersDir = Path.Combine("/", "usr", "local", "share", "powershell");
             }
         }
 
