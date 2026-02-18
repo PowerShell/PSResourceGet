@@ -969,9 +969,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSResourceInfo pkgToInstall,
             ConcurrentDictionary<string, Hashtable> packagesHash,
             out ConcurrentDictionary<string, Hashtable> updatedPackagesHash,
-            out List<ErrorRecord> errors)
+            out ErrorRecord error)
         {
-            errors = new List<ErrorRecord>();
+            error = null;
             updatedPackagesHash = packagesHash;
             try
             {
@@ -986,9 +986,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var tempDirNameVersion = Path.Combine(tempInstallPath, pkgName, pkgVersion);
                 Directory.CreateDirectory(tempDirNameVersion);
 
-                if (!TryExtractToDirectory(pathToFile, tempDirNameVersion, out ErrorRecord err))
+                if (!TryExtractToDirectory(pathToFile, tempDirNameVersion, out error))
                 {
-                    errors.Add(err);
                     return false;
                 }
 
@@ -1010,9 +1009,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     pkgName,
                     tempDirNameVersion,
                     _cmdletPassedIn,
-                    out ErrorRecord authenticodeError))
+                    out error))
                 {
-                    errors.Add(authenticodeError);
                     return false;
                 }
 
@@ -1023,41 +1021,39 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (!File.Exists(moduleManifest))
                     {
-                        errors.Add(new ErrorRecord(
+                        error = new ErrorRecord(
                             new ArgumentException("Package '{pkgName}' could not be installed: Module manifest file: {moduleManifest} does not exist. This is not a valid PowerShell module."),
                             "PSDataFileNotExistError",
                             ErrorCategory.ReadError,
-                            _cmdletPassedIn));
+                            _cmdletPassedIn);
 
-                        return false;
-                    }
+                            return false;
+                        }
 
                     if (!Utils.TryReadManifestFile(
                         manifestFilePath: moduleManifest,
                         manifestInfo: out Hashtable parsedMetadataHashtable,
                         error: out Exception manifestReadError))
                     {
-                        errors.Add(new ErrorRecord(
+                        error = new ErrorRecord(
                             manifestReadError,
                             "ManifestFileReadParseError",
                             ErrorCategory.ReadError,
-                            _cmdletPassedIn));
+                            _cmdletPassedIn);
 
-                        return false;
+                            return false;
                     }
 
                     // Accept License verification
-                    if (!CallAcceptLicense(pkgToInstall, moduleManifest, tempInstallPath, pkgVersion, out ErrorRecord licenseError))
+                    if (!CallAcceptLicense(pkgToInstall, moduleManifest, tempInstallPath, pkgVersion, out error))
                     {
-                        errors.Add(licenseError);
                         _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
                         return false;
                     }
 
                     // If NoClobber is specified, ensure command clobbering does not happen
-                    if (_noClobber && DetectClobber(pkgName, parsedMetadataHashtable, out ErrorRecord clobberError))
+                    if (_noClobber && DetectClobber(pkgName, parsedMetadataHashtable, out error))
                     {
-                        errors.Add(clobberError);
                         _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
                         return false;
                     }
@@ -1073,11 +1069,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         out ErrorRecord[] parseScriptFileErrors,
                         out string[] _))
                     {
-                        foreach (ErrorRecord parseError in parseScriptFileErrors)
-                        {
-                            errors.Add(parseError);
-                        }
-
+                        error = parseScriptFileErrors.FirstOrDefault();
                         return false;
                     }
                 }
@@ -1086,8 +1078,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // This package is not a PowerShell package (eg a resource from the NuGet Gallery).
                     installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
 
-                    //_cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
-                    isModule = true;
+                        //_cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
+                        isModule = true;
                 }
 
                 installPath = _savePkg ? _pathsToInstallPkg.First() : installPath;
@@ -1096,9 +1088,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (_includeXml)
                 {
-                    if (!CreateMetadataXMLFile(tempDirNameVersion, installPath, pkgToInstall, isModule, out ErrorRecord xmlError))
+                    if (!CreateMetadataXMLFile(tempDirNameVersion, installPath, pkgToInstall, isModule, out error))
                     {
-                        errors.Add(xmlError);
                         return false;
                     }
                 }
@@ -1122,13 +1113,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                errors.Add(new ErrorRecord(
+                error = new ErrorRecord(
                     new PSInvalidOperationException(
                     message: $"Unable to successfully install package '{pkgName}': '{e.Message}' to temporary installation path.",
                     innerException: e),
                     "InstallPackageFailed",
                     ErrorCategory.InvalidOperation,
-                    _cmdletPassedIn));
+                    _cmdletPassedIn);
 
                 return false;
             }
@@ -1317,7 +1308,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     _cmdletPassedIn.WriteError(new ErrorRecord(
                         new PSInvalidOperationException(

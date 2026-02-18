@@ -989,7 +989,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private async Task<string> HttpRequestCallAsync(string requestUrlV2)
         {
-            // TODO: Async methods cannot have out ref, so need to handle errorRecords a different way.
+            // TODO: Async methods cannot have out ref, so currently handling errorRecords as thrown exceptions.
             string response = string.Empty;
 
             try
@@ -998,46 +998,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 response = await SendV2RequestAsync(request, _sessionClient);
             }
-            catch (ResourceNotFoundException e)
+            catch (ResourceNotFoundException)
             {
-                // errRecord = new ErrorRecord(
-                //     exception: e,
-                //     "ResourceNotFound",
-                //     ErrorCategory.InvalidResult,
-                //     this);
+                throw new ResourceNotFoundException($"Failure when attempting to make request for '${requestUrlV2}'");
             }
-            catch (UnauthorizedException e)
+            catch (UnauthorizedException)
             {
-                // errRecord = new ErrorRecord(
-                //     exception: e,
-                //     "UnauthorizedRequest",
-                //     ErrorCategory.InvalidResult,
-                //     this);
+                throw new UnauthorizedException($"Failure when attempting to make request for '${requestUrlV2}'");
             }
-            catch (HttpRequestException e)
+            catch (HttpRequestException)
             {
-                // errRecord = new ErrorRecord(
-                //     exception: e,
-                //     "HttpRequestCallFailure",
-                //     ErrorCategory.ConnectionError,
-                //     this);
+                throw new HttpRequestException($"Failure when attempting to make request for '${requestUrlV2}'");
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                // errRecord = new ErrorRecord(
-                //     exception: e,
-                //     "HttpRequestCallFailure",
-                //     ErrorCategory.ConnectionError,
-                //     this);
+                throw new Exception($"Failure when attempting to make request for '${requestUrlV2}'");
             }
 
             if (string.IsNullOrEmpty(response))
             {
-            //    errRecord = new ErrorRecord(
-            //         new ArgumentException("Response is null or empty."),
-            //         "ResponseIsNullOrEmpty",
-            //         ErrorCategory.InvalidResult,
-            //         this);
+                throw new ArgumentException($"Response returned is null or empty. Request made: '${requestUrlV2}'");
             }
 
             return response;
@@ -1061,32 +1041,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (HttpRequestException)
             {
-                // errRecord = new ErrorRecord(
-                //     exception: e,
-                //     "HttpRequestFailure",
-                //     ErrorCategory.ConnectionError,
-                //     this);
+                throw new HttpRequestException($"Failure when attempting to make request for content with '${requestUrlV2}'");
             }
             catch (ArgumentNullException)
             {
-                // errRecord = new ErrorRecord(
-                //     exception: e,
-                //     "HttpRequestFailure",
-                //     ErrorCategory.InvalidData,
-                //     this);
+                throw new ArgumentNullException($"Failure when attempting to make request for content with '${requestUrlV2}'");
             }
             catch (InvalidOperationException)
             {
-                // errRecord = new ErrorRecord(
-                //     exception: e,
-                //     "HttpRequestFailure",
-                //     ErrorCategory.InvalidOperation,
-                //     this);
+                throw new InvalidOperationException($"Failure when attempting to make request for content with '${requestUrlV2}'");
             }
 
             if (content == null || string.IsNullOrEmpty(content.ToString()))
             {
-            //_cmdletPassedIn.WriteDebug("Response is empty");
+                throw new ArgumentException($"Response returned is null or empty. Request for content made: '${requestUrlV2}'");
             }
 
             return content;
