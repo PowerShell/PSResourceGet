@@ -1,5 +1,20 @@
 # Preview Changelog
 
+## [1.2.0-rc3](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-rc2..v1.2.0-rc3) - 2026-02-06
+
+## Bug fix
+- Packages that depend on a specific version should search for the dependency with NormalizedVersion (#1941)
+
+## [1.2.0-rc2](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-rc1..v1.2.0-rc2) - 2026-02-05
+
+## Bug fix
+- For packages that depend on a specific version, use an exact version instead of a version range. (#1937)
+
+## [1.2.0-rc1](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview5..v1.2.0-rc1) - 2026-01-14
+
+## Bug fix
+- `WhatIf` parameter should respect provided value instead of simply checking presence (#1925)
+
 ## [1.2.0-preview5](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview4..v1.2.0-preview5) - 2025-12-05
 
 ### New Features

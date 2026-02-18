@@ -446,6 +446,17 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res.Name | Should -Contain 'test_unlisted'
         $res.Name | Should -Contain 'test_notunlisted'
     }
+
+    It "Find resource that takes a dependency on package with specific version" {
+        $moduleName = 'test-nugetversion-parent'
+        $version = '4.0.0'
+        $depPkgName = 'test-nugetversion'
+
+        $res = Find-PSResource -Name $moduleName -Version $version -Repository $PSGalleryName -IncludeDependencies
+        $res.Count | Should -Be 2
+        $res.Name | Should -Contain $moduleName
+        $res.Name | Should -Contain $depPkgName
+    }
 }
 
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidationOnly' {

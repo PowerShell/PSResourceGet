@@ -85,6 +85,12 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $res.Priority | Should -Be 50
     }
 
+    It "register repository with PSGallery switch parameter value of false (PSGalleryParameterSet)" {
+        Unregister-PSResourceRepository -Name $PSGalleryName
+        $res = Register-PSResourceRepository -PSGallery:$false -PassThru
+        $res  | Should -BeNullOrEmpty
+    }
+
     It "register repository with PSGallery, Trusted parameters (PSGalleryParameterSet)" {
         Unregister-PSResourceRepository -Name $PSGalleryName
         $res = Register-PSResourceRepository -PSGallery -Trusted -PassThru
