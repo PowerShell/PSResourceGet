@@ -761,7 +761,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 parentPkgs.Add(foundPkg);
                                 TryAddToPackagesFound(foundPkg);
-                               // _cmdletPassedIn.WriteDebug($"Found package '{foundPkg.Name}' version '{foundPkg.Version}'");
 
                                 yield return foundPkg;
                             }
@@ -990,7 +989,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
-                            
                             ConcurrentDictionary<string, Task<FindResults>> cachedNetworkCalls = new ConcurrentDictionary<string, Task<FindResults>>();
                             Task<FindResults> response = null;
                             if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2) {       
@@ -998,14 +996,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false));
                                 
                                 responses = response.GetAwaiter().GetResult();
-
                             }
                             else {         
                                responses = currentServer.FindVersionGlobbing(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, out errRecord);    
-                                
                             }
-
-                            
                         }
                         else
                         {
@@ -1127,8 +1121,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 addedToHash = true;
             }
 
-            //_cmdletPassedIn.WriteDebug($"Found package -- '{foundPkgName}' version '{foundPkgVersion}'");
-
             return addedToHash;
         }
 
@@ -1142,11 +1134,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (_knownLatestPkgVersion.ContainsKey(foundPkgName))
             {
                 _knownLatestPkgVersion.TryGetValue(foundPkgName, out PSResourceInfo oldPkgVersion);
-
                 _knownLatestPkgVersion.TryUpdate(foundPkgName, foundPkg, oldPkgVersion);
-
                 addedToHash = true;
-                
             }
             else
             {
@@ -1154,20 +1143,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 addedToHash = true;
             }
 
-            //_cmdletPassedIn.WriteDebug($"Found package -- '{foundPkgName}' version '{foundPkgVersion}'");
-
             return addedToHash;
         }
 
         private string FormatPkgVersionString(PSResourceInfo pkg)
         {
             string fullPkgVersion = pkg.Version.ToString();
-
             if (!string.IsNullOrWhiteSpace(pkg.Prerelease))
             {
                 fullPkgVersion += $"-{pkg.Prerelease}";
             }
-           // _cmdletPassedIn.WriteDebug($"Formatted full package version is: '{fullPkgVersion}'");
 
             return fullPkgVersion;
         }
@@ -1179,10 +1164,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         internal IEnumerable<PSResourceInfo> FindDependencyPackages(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository)
         {
             depPkgsFound = new ConcurrentDictionary<string, PSResourceInfo>();
-            //_cmdletPassedIn.WriteDebug($"In FindDependencyPackages {currentPkg.Name}");            
+            _cmdletPassedIn.WriteDebug($"In FindHelper::FindDependencyPackages() - {currentPkg.Name}");            
             FindDependencyPackagesHelper(currentServer, currentResponseUtil, currentPkg, repository); 
-
-           // _cmdletPassedIn.WriteDebug("In FindDependencyPackages 2"); 
 
             return depPkgsFound.Values.ToList();
         }
@@ -1193,20 +1176,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<ErrorRecord> errors = new List<ErrorRecord>();
             if (currentPkg.Dependencies.Length > 0)
             {
-                // If finding more than 3 packages, do so concurrently
-                const int PARALLEL_THRESHOLD = 5; // Trottle limit from user, defaults to 5;  other tools?
-                int processorCount = Environment.ProcessorCount;  // 8
+                // If finding more than 5 packages, do so concurrently
+                const int PARALLEL_THRESHOLD = 5; // TODO: Trottle limit from user, defaults to 5; 
+                int processorCount = Environment.ProcessorCount;
                 int maxDegreeOfParallelism = processorCount * 4;
                 if (currentPkg.Dependencies.Length > PARALLEL_THRESHOLD)
                 {
                     Parallel.ForEach(currentPkg.Dependencies, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, dep =>
                     {
-                        // Console.WriteLine($"FindDependencyPackages Processing number: {dep}, Thread ID: {Task.CurrentId}");
                         FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errors);
-
                     });
-                    // todo: what is perf if parallel.ForEach is always run?
-                    // todo: write any errors here
+                    // TODO: what is perf if parallel.ForEach is always run?
                 }
                 else
                 {
@@ -1214,8 +1194,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errors);
                     }
-
-                    // todo write out errors here
+                }
+                foreach (ErrorRecord error in errors)
+                {
+                    _cmdletPassedIn.WriteError(error);
                 }
             }
         }
@@ -1224,96 +1206,52 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private void FindDependencyPackageVersion(Dependency dep, ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository, List<ErrorRecord> errors)
         {
             PSResourceInfo depPkg = null;
-            //ErrorRecord errRecord = null;
 
             if (dep.VersionRange.Equals(VersionRange.All) || !dep.VersionRange.HasUpperBound)
             {
                 // Case 1: No upper bound, eg: "*" or "(1.0.0, )"
+                // Check if the latest version is cached
                 if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedDepPkg))
                 {
-
-                    //// 1) Check if the latest version is cached
-                    //// if a package is already cached, its dependencies will have been cached as well.
-                    //// But if for some reason it wasn't added to depPkgs, add it now
-                    //depPkg = cachedDepPkg;
-                    //if (!depPkgsFound.ContainsKey(depPkg))
-                    //{
-                    //    depPkgsFound.TryAdd(depPkg, true);
-                    //    FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
-                    //}
+                    depPkg = cachedDepPkg;
                 }
                 else
                 {
-                    // 2) Find this version from the server
+                    // Find this version from the server
                     depPkg = FindDependencyWithLowerBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errors);
                 }
-
             }
             else if (dep.VersionRange.MinVersion.Equals(dep.VersionRange.MaxVersion))
             {
                 // Case 2: Exact package version, eg: "1.0.0" or "[1.0.0, 1.0.0]"
-                if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedDepPkg))
+                // Check if the latest version is cached, and if this latest version is the version we're looking for
+                if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedRangePkg) &&
+                    NuGetVersion.TryParse(cachedRangePkg.Version?.ToString(), out NuGetVersion cachedPkgVersion) &&
+                    dep.VersionRange.Satisfies(cachedPkgVersion))
                 {
-                    // 1) Check if the latest version is cached, and if this latest version is the version we're looking for
-                    if (!NuGetVersion.TryParse(cachedDepPkg.Version.ToString(), out NuGetVersion cachedPkgVersion))
-                    {
-                        // write error
-                    }
-
-                    // The cached package does not satisfy the version range, look for one that does.
-                    if (!dep.VersionRange.Satisfies(cachedPkgVersion))
-                    {
-                        //// if a package is already cached, its dependencies will have been cached as well.
-                        //// But if for some reason it wasn't added to depPkgs, add it now
-                        //depPkg = cachedDepPkg;
-                        //if (!depPkgsFound.ContainsKey(depPkg))
-                        //{
-                        //    depPkgsFound.TryAdd(depPkg, true);
-                        //   FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
-                        //}
-                        depPkg = FindDependencyWithSpecificVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errors);
-                    }
-
+                    depPkg = cachedRangePkg;
                 }
                 else
                 {
-                    // 2) Find this version from the server
                     depPkg = FindDependencyWithSpecificVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errors);
                 }
             }
             else
-            {
+            {                
                 // Case 3: Version range with an upper bound, eg: "(1.0.0, 3.0.0)"
-                if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedRangePkg))
-                {   
-                    // 1) Check if the latest version is cached, and if this latest version is the version we're looking for
-                    if (!NuGetVersion.TryParse(cachedRangePkg.Version.ToString(), out NuGetVersion cachedPkgVersion))
-                    {
-                        // write error
-                    }
-
-                    if (!dep.VersionRange.Satisfies(cachedPkgVersion))
-                    {
-                        //// if a package is already cached, its dependencies will have been cached as well.
-                        //// But if for some reason it wasn't added to depPkgs, add it now
-                        //depPkg = cachedRangePkg;
-                        //if (!depPkgsFound.ContainsKey(depPkg))
-                        //{
-                        //    depPkgsFound.TryAdd(depPkg, true);
-                        //    FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
-                        //}
-                        depPkg = FindDependencyWithUpperBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errors);
-
-                    }
+                // Check if the latest version is cached, and if this latest version is the version we're looking for
+                if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedRangePkg) &&
+                    NuGetVersion.TryParse(cachedRangePkg.Version?.ToString(), out NuGetVersion cachedPkgVersion) &&
+                    dep.VersionRange.Satisfies(cachedPkgVersion))
+                {
+                    depPkg = cachedRangePkg;
                 }
                 else
                 {
                     depPkg = FindDependencyWithUpperBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errors);
-                }  
+                }
             }
         }
-
-
 
         // Method 4
         private PSResourceInfo FindDependencyWithSpecificVersion(Dependency dep, ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository, List<ErrorRecord> errors)
@@ -1325,7 +1263,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2)
             {
-                // See if the network call we're making is already caced, if not, call FindNameAsync() and cache results
+                // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
                 string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
                 response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type));
                 
@@ -1340,7 +1278,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Error handling and Convert to PSResource object
             if (errRecord != null)
             {
-                errors = ProcessErrorRecord(errRecord, errors);
+                errors.Add(new ErrorRecord(
+                    new ResourceNotFoundException($"Dependency package could not be found: '{errRecord.Exception.Message}'"),
+                    "DependencyPackageNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
             else
             {
@@ -1348,16 +1290,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (currentResult == null || currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
                     errors.Add(new ErrorRecord(
-                    new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception),
-                    "DependencyPackageNotFound",
-                    ErrorCategory.ObjectNotFound,
-                    this));
+                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                        "DependencyPackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this));
                 }
                 else
                 {
                     depPkg = currentResult.returnedObject;
                     TryAddToKnownLatestPkgVersion(depPkg);
-
 
                     string pkgVersion = FormatPkgVersionString(depPkg);
                     string key = $"{depPkg.Name}{pkgVersion}";
@@ -1385,7 +1326,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             
             if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2)
             {
-                // See if the network call we're making is already caced, if not, call FindNameAsync() and cache results
+                // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
                 string key = $"{dep.Name}|*|{_type}";
                 response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindNameAsync(dep.Name, includePrerelease: true, _type));
                 
@@ -1396,11 +1337,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 responses = currentServer.FindName(dep.Name, includePrerelease: true, _type, out errRecord);
             }
 
-
             // Error handling and Convert to PSResource object
             if (errRecord != null)
             {
-                errors = ProcessErrorRecord(errRecord, errors);
+                errors.Add(new ErrorRecord(
+                    new ResourceNotFoundException($"Dependency package could not be found: '{errRecord.Exception.Message}'"),
+                    "DependencyPackageNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
             else
             {
@@ -1408,10 +1352,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (currentResult == null || currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
                     errors.Add(new ErrorRecord(
-                    new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception),
-                    "DependencyPackageNotFound",
-                    ErrorCategory.ObjectNotFound,
-                    this));
+                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                        "DependencyPackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this));
                 }
                 else
                 {
@@ -1434,13 +1378,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return depPkg;
         }
 
-
-
-
         // Method 6
         private PSResourceInfo FindDependencyWithUpperBound(Dependency dep, ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository, List<ErrorRecord> errors)
         {
-
             PSResourceInfo depPkg = null;
             ErrorRecord errRecord = null;
             FindResults responses = null;
@@ -1462,11 +1402,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, out errRecord);
             }
 
-
             // Error handling and Convert to PSResource object
             if (errRecord != null)
             {
-                errors = ProcessErrorRecord(errRecord, errors);
+                errors.Add(new ErrorRecord(
+                    new ResourceNotFoundException($"Dependency package could not be found: '{errRecord.Exception.Message}'"),
+                    "DependencyPackageNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
             else
             {
@@ -1474,10 +1417,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (currentResult == null || currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
                     errors.Add(new ErrorRecord(
-                    new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception),
-                    "DependencyPackageNotFound",
-                    ErrorCategory.ObjectNotFound,
-                    this));
+                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                        "DependencyPackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this));
                 }
                 else
                 {
@@ -1499,51 +1442,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             
             return depPkg;
-        }
-
-        private List<ErrorRecord> ProcessErrorRecord(ErrorRecord errRecord, List<ErrorRecord> errors)
-        {
-            if (errRecord.Exception is ResourceNotFoundException)
-            {
-                errors.Add(new ErrorRecord(
-                new ResourceNotFoundException($"Dependency package could not be found: '{errRecord.Exception.Message}'"),
-                "DependencyPackageNotFound",
-                ErrorCategory.ObjectNotFound,
-                    this));
-            }
-            else
-            {
-                errors.Add(new ErrorRecord(
-                new ResourceNotFoundException($"Dependency package could not be found: '{errRecord.Exception.Message}'"),
-                "DependencyPackageNotFound",
-                    ErrorCategory.ObjectNotFound,
-                    this));
-            }
-
-            return errors;
-        }
-
-        private List<ErrorRecord> ProcessPSResourceResult(PSResourceResult currentResult, List<ErrorRecord> errors)
-        {
-            if (currentResult == null)
-            {
-                // This scenario may occur when the package version requested is unlisted.
-                errors.Add(new ErrorRecord(
-                    new ResourceNotFoundException($"Dependency package with name '{currentResult.returnedObject.Name}' could not be found in repository '{currentResult.returnedObject.Repository}'."),
-                    "DependencyPackageNotFound",
-                    ErrorCategory.ObjectNotFound,
-                    this));
-            }
-            else if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
-            {
-                errors.Add(new ErrorRecord(
-                    new ResourceNotFoundException($"Dependency package with name '{currentResult.returnedObject.Name}' could not be found in repository '{currentResult.returnedObject.Repository}'", currentResult.exception),
-                    "DependencyPackageNotFound",
-                    ErrorCategory.ObjectNotFound,
-                    this));
-            }
-
-            return errors;
         }
 
     #endregion

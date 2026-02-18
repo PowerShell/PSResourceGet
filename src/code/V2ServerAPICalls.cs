@@ -336,7 +336,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
-            //_cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindName()");
+            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindName()");
             // Make sure to include quotations around the package name
 
             // This should return the latest stable version or the latest prerelease version (respectively)
@@ -408,6 +408,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override async Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type)
         {
+            // TODO: pass all debug output into a list that can be written to console later.
             //_cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindNameAsync()");
             // Make sure to include quotations around the package name
 
@@ -416,48 +417,62 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
 
             var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
-            { "$inlinecount", "allpages" },
-            { "id", $"'{packageName}'" },
-            });
+                { "$inlinecount", "allpages" },
+                { "id", $"'{packageName}'" },
+                });
             var filterBuilder = queryBuilder.FilterBuilder;
 
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
             // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
             if (!_isJFrogRepo) {
-            filterBuilder.AddCriterion($"Id eq '{packageName}'");
+                filterBuilder.AddCriterion($"Id eq '{packageName}'");
             }
 
             filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion eq true" : "IsLatestVersion eq true");
             if (type != ResourceType.None) {
-            filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
+                filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
             }
 
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response;
             try
             {
-            response = await HttpRequestCallAsync(requestUrlV2);
+                response = await HttpRequestCallAsync(requestUrlV2, ErrorRecord errRecord);
+                if (errRecord != null)
+                {
+                    throw new Exception(errRecord.Exception?.Message ?? "HTTP request failed.", errRecord.Exception);
+                }
             }
             catch (Exception e)
             {
-            // usually this is for errors in calling the V2 server, but for ADO V2 this error will include package not found errors which we want to deliver in a standard message
-            if (_isADORepo && e is ResourceNotFoundException)
-            {
-                throw new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'. For ADO feed, if the package is in an upstream feed make sure you are authenticated to the upstream feed.", e);
-            }
-
-            throw;
+                // usually this is for errors in calling the V2 server, but for ADO V2 this error will include package not found errors which we want to deliver in a standard message
+                if (_isADORepo && e is ResourceNotFoundException)
+                {
+                    throw new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'. For ADO feed, if the package is in an upstream feed make sure you are authenticated to the upstream feed.", e);
+                }
+                else if (e is UnauthorizedException)
+                {
+                    throw new UnauthorizedException($"Package with name '{packageName}' could not be retrieved from repository '{Repository.Name}'.", e);
+                }
+                else if (e is HttpRequestException)
+                {
+                    throw new HttpRequestException($"Package with name '{packageName}' could not be retrieved from repository '{Repository.Name}'.", e);
+                }
+                else
+                {
+                    throw new Exception($"Package with name '{packageName}' could not be retrieved from repository '{Repository.Name}'.", e);
+                }
             }
 
             int count = GetCountFromResponse(response, out ErrorRecord errRecord);
             if (errRecord != null)
             {
-                throw errRecord.Exception;
+                throw new Exception($"Error retrieving count from response for package '{packageName}' from repository '{Repository.Name}'.", errRecord.Exception);
             }
 
             if (count == 0)
             {
-            throw new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'.");
+                throw new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'.");
             }
 
             return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -699,7 +714,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord)
         {
-            //_cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindVersion()");
+            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::FindVersion()");
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true
             // Quotations around package name and version do not matter, same metadata gets returned.
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
@@ -740,7 +755,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             int count = GetCountFromResponse(response, out errRecord);
-            //_cmdletPassedIn.WriteDebug($"Count from response is '{count}'");
+            _cmdletPassedIn.WriteDebug($"Count from response is '{count}'");
 
             if (errRecord != null)
             {
@@ -798,16 +813,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     throw new ResourceNotFoundException($"Package with name '{packageName}' and version '{version}' could not be found in repository '{Repository.Name}'. For ADO feed, if the package is in an upstream feed make sure you are authenticated to the upstream feed.", e);
                 }
-
-                throw;
+                else if (e is UnauthorizedException)
+                {
+                    throw new UnauthorizedException($"Package with name '{packageName}' could not be retrieved from repository '{Repository.Name}'.", e);
+                }
+                else if (e is HttpRequestException)
+                {
+                    throw new HttpRequestException($"Package with name '{packageName}' could not be retrieved from repository '{Repository.Name}'.", e);
+                }
+                else
+                {
+                    throw new Exception($"Package with name '{packageName}' could not be retrieved from repository '{Repository.Name}'.", e);
+                }
             }
 
             int count = GetCountFromResponse(response, out ErrorRecord errRecord);
-            //_cmdletPassedIn.WriteDebug($"Count from response is '{count}'");
-
             if (errRecord != null)
             {
-                throw errRecord.Exception;
+                throw new Exception($"Error retrieving count from response for package '{packageName}' from repository '{Repository.Name}'.", errRecord.Exception);
             }
 
             if (count == 0)
@@ -904,7 +927,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return results;
             }
 
-            //results = InstallVersion(packageName, packageVersion, out errRecord);
             results = InstallVersionAsync(packageName, packageVersion).GetAwaiter().GetResult();
             return results;
         }
@@ -914,13 +936,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string HttpRequestCall(string requestUrlV2, out ErrorRecord errRecord)
         {
-            //_cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCall()");
+            _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCall()");
             errRecord = null;
             string response = string.Empty;
 
             try
             {
-               // _cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV2}'");
+                _cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV2}'");
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
 
                 response = SendV2RequestAsync(request, _sessionClient).GetAwaiter().GetResult();
@@ -960,7 +982,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (string.IsNullOrEmpty(response))
             {
-               // _cmdletPassedIn.WriteDebug("Response is empty");
+                _cmdletPassedIn.WriteDebug("Response is empty");
             }
 
             return response;
@@ -971,33 +993,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private async Task<string> HttpRequestCallAsync(string requestUrlV2)
         {
-            //_cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCall()");
+            // TODO: Async methods cannot have out ref, so need to handle errorRecords a different way.
             string response = string.Empty;
 
             try
             {
-               // _cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV2}'");
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
 
                 response = await SendV2RequestAsync(request, _sessionClient);
             }
-            catch (ResourceNotFoundException)
+            catch (ResourceNotFoundException e)
             {
-            //     errRecord = new ErrorRecord(
-            //         exception: e,
-            //         "ResourceNotFound",
-            //         ErrorCategory.InvalidResult,
-            //         this);
+                // errRecord = new ErrorRecord(
+                //     exception: e,
+                //     "ResourceNotFound",
+                //     ErrorCategory.InvalidResult,
+                //     this);
             }
-            catch (UnauthorizedException)
+            catch (UnauthorizedException e)
             {
-            //     errRecord = new ErrorRecord(
-            //         exception: e,
-            //         "UnauthorizedRequest",
-            //         ErrorCategory.InvalidResult,
-            //         this);
+                // errRecord = new ErrorRecord(
+                //     exception: e,
+                //     "UnauthorizedRequest",
+                //     ErrorCategory.InvalidResult,
+                //     this);
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException e)
             {
                 // errRecord = new ErrorRecord(
                 //     exception: e,
@@ -1005,7 +1026,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 //     ErrorCategory.ConnectionError,
                 //     this);
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 // errRecord = new ErrorRecord(
                 //     exception: e,
@@ -1016,7 +1037,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (string.IsNullOrEmpty(response))
             {
-               // _cmdletPassedIn.WriteDebug("Response is empty");
+            //    errRecord = new ErrorRecord(
+            //         new ArgumentException("Response is null or empty."),
+            //         "ResponseIsNullOrEmpty",
+            //         ErrorCategory.InvalidResult,
+            //         this);
             }
 
             return response;
@@ -1027,7 +1052,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private async Task<HttpContent> HttpRequestCallForContentAsync(string requestUrlV2)
         {
-          //  _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCallForContentAsync()");
+            // TODO: Async methods cannot have out ref, so need to handle errorRecords a different way.
+            //  _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCallForContentAsync()");
             HttpContent content = null;
 
             try
@@ -1607,10 +1633,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             int skip = 0;
 
             var initialResponse = await FindVersionGlobbingAsync(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest);
-            // if (errRecord != null)
-            // {
-            //     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-            // }
 
             int initialCount = GetCountFromResponse(initialResponse, out ErrorRecord errRecord);
             if (errRecord != null)
@@ -1806,22 +1828,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (_isADORepo)
             {
-            // eg: https://pkgs.dev.azure.com/<org>/<project>/_packaging/<feed>/nuget/v2?id=test_module&version=5.0.0
-            requestUrlV2 = $"{Repository.Uri}?id={packageName.ToLower()}&version={version}";
+                // eg: https://pkgs.dev.azure.com/<org>/<project>/_packaging/<feed>/nuget/v2?id=test_module&version=5.0.0
+                requestUrlV2 = $"{Repository.Uri}?id={packageName.ToLower()}&version={version}";
             }
             else if (_isJFrogRepo)
             {
-            // eg: https://<project>.jfrog.io/artifactory/api/nuget/<feed>/Download/test_module/5.0.0
-            requestUrlV2 = $"{Repository.Uri}/Download/{packageName}/{version}";
+                // eg: https://<project>.jfrog.io/artifactory/api/nuget/<feed>/Download/test_module/5.0.0
+                requestUrlV2 = $"{Repository.Uri}/Download/{packageName}/{version}";
             }
             else
             {
-            requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
+                requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
             }
 
-
             var response = await HttpRequestCallForContentAsync(requestUrlV2);
-
 
             if (response is null)
             {
@@ -1895,7 +1915,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                     else
                     {
-                        //_cmdletPassedIn.WriteDebug($"Property 'count' and 'd:Id' could not be found in response. This may indicate that the package could not be found");
+                        errRecord = new ErrorRecord(
+                            new PSArgumentException("Property 'count' and 'd:Id' could not be found in response. This may indicate that the package could not be found"),
+                            "GetCountFromResponseFailure",
+                            ErrorCategory.InvalidData,
+                            this);
                     }
                 }
             }

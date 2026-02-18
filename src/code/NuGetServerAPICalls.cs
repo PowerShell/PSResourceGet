@@ -50,12 +50,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type)
         {
-            return null;    
+            throw new NotImplementedException();
         }
 
         public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest)
         {
-            return null;    
+            throw new NotImplementedException();
         }
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
@@ -194,7 +194,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type)
         {
-            return null;    
+            throw new NotImplementedException();
         }
 
         /// <summary>
