@@ -437,11 +437,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response;
             try
             {
-                response = await HttpRequestCallAsync(requestUrlV2, ErrorRecord errRecord);
-                if (errRecord != null)
-                {
-                    throw new Exception(errRecord.Exception?.Message ?? "HTTP request failed.", errRecord.Exception);
-                }
+                response = await HttpRequestCallAsync(requestUrlV2);
             }
             catch (Exception e)
             {
