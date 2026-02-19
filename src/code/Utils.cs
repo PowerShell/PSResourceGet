@@ -1359,7 +1359,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 runspace.SessionStateProxy.LanguageMode = PSLanguageMode.ConstrainedLanguage;
 
                 // Set the created runspace as the default for the current thread
-                Runspace.DefaultRunspace = runspace;
+                //Runspace.DefaultRunspace = runspace;
 
                 using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
