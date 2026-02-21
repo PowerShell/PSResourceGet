@@ -1195,7 +1195,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             //  c. A string array of module names
             //  d. A single string module name
 
-            var dependenciesHash = new Hashtable();
+            var dependenciesHash = new Hashtable(StringComparer.OrdinalIgnoreCase);
             foreach (var reqModule in requiredModules)
             {
                 if (LanguagePrimitives.TryConvertTo<Hashtable>(reqModule, out Hashtable moduleHash))
@@ -1228,21 +1228,135 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            var externalModuleDeps = parsedMetadataHash.ContainsKey("ExternalModuleDependencies") ?
-                        parsedMetadataHash["ExternalModuleDependencies"] : null;
-
-            if (externalModuleDeps != null && LanguagePrimitives.TryConvertTo<string[]>(externalModuleDeps, out string[] externalModuleNames))
+            var externalModuleNames = GetExternalModuleDependencies(parsedMetadataHash);
+            foreach (var extModName in externalModuleNames)
             {
-                foreach (var extModName in externalModuleNames)
+                if (dependenciesHash.ContainsKey(extModName))
                 {
-                    if (dependenciesHash.ContainsKey(extModName))
-                    {
-                        dependenciesHash.Remove(extModName);
-                    }
+                    dependenciesHash.Remove(extModName);
                 }
             }
 
             return dependenciesHash;
+        }
+
+        private static string[] GetExternalModuleDependencies(Hashtable parsedMetadataHash)
+        {
+            if (parsedMetadataHash == null)
+            {
+                return Array.Empty<string>();
+            }
+
+            var externalModules = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            AddExternalModuleDependencies(parsedMetadataHash, externalModules);
+
+            if (TryGetHashtableValue(parsedMetadataHash, "PrivateData", out Hashtable privateData) &&
+                TryGetHashtableValue(privateData, "PSData", out Hashtable psData))
+            {
+                AddExternalModuleDependencies(psData, externalModules);
+            }
+
+            return externalModules.ToArray();
+        }
+
+        private static void AddExternalModuleDependencies(Hashtable container, HashSet<string> externalModules)
+        {
+            if (container == null || externalModules == null ||
+                !TryGetValue(container, "ExternalModuleDependencies", out object externalModuleDeps))
+            {
+                return;
+            }
+
+            if (externalModuleDeps == null)
+            {
+                return;
+            }
+
+            if (LanguagePrimitives.TryConvertTo<string[]>(externalModuleDeps, out string[] externalModuleNames) && externalModuleNames != null)
+            {
+                foreach (var name in externalModuleNames)
+                {
+                    if (!string.IsNullOrWhiteSpace(name))
+                    {
+                        externalModules.Add(name.Trim());
+                    }
+                }
+
+                return;
+            }
+
+            if (LanguagePrimitives.TryConvertTo<string>(externalModuleDeps, out string externalModuleName) &&
+                !string.IsNullOrWhiteSpace(externalModuleName))
+            {
+                externalModules.Add(externalModuleName.Trim());
+            }
+        }
+
+        private static bool TryGetHashtableValue(Hashtable source, string key, out Hashtable value)
+        {
+            value = null;
+            if (!TryGetValue(source, key, out object rawValue) || rawValue == null)
+            {
+                return false;
+            }
+
+            if (rawValue is PSObject psObject && psObject.BaseObject != null)
+            {
+                rawValue = psObject.BaseObject;
+            }
+
+            if (rawValue is Hashtable hashtable)
+            {
+                value = hashtable;
+                return true;
+            }
+
+            if (rawValue is IDictionary dictionary)
+            {
+                var converted = new Hashtable(StringComparer.OrdinalIgnoreCase);
+                foreach (DictionaryEntry entry in dictionary)
+                {
+                    converted[entry.Key] = entry.Value;
+                }
+
+                value = converted;
+                return true;
+            }
+
+            if (LanguagePrimitives.TryConvertTo<Hashtable>(rawValue, out Hashtable parsed) && parsed != null)
+            {
+                value = parsed;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetValue(Hashtable source, string key, out object value)
+        {
+            value = null;
+            if (source == null || string.IsNullOrWhiteSpace(key))
+            {
+                return false;
+            }
+
+            if (source.ContainsKey(key))
+            {
+                value = source[key];
+                return true;
+            }
+
+            foreach (DictionaryEntry entry in source)
+            {
+                if (entry.Key is string entryKey &&
+                    string.Equals(entryKey, key, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = entry.Value;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private bool CheckDependenciesExist(Hashtable dependencies, string repositoryName, NetworkCredential networkCredential)

@@ -311,6 +311,41 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         {Publish-PSResource -Path $script:PublishModuleBase -ErrorAction Stop} | Should -Throw -ErrorId "DependencyNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 
+    It "Publish a module with ExternalModuleDependencies that are not published" {
+        $version = "1.0.0"
+        $externalModuleName = "PackageManagement"
+        $manifestPath = Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1"
+        $moduleFilePath = Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psm1"
+
+        @'
+function Test-PublishedFunction {
+    Write-Output "OK"
+}
+'@ | Out-File -FilePath $moduleFilePath
+
+        @"
+@{
+    RootModule = '$script:PublishModuleName.psm1'
+    ModuleVersion = '$version'
+    Author = 'None'
+    Description = '$script:PublishModuleName module'
+    GUID = '6f703037-3e95-4dcf-b06c-916f2867cce7'
+    FunctionsToExport = @('Test-PublishedFunction')
+    RequiredModules = @('$externalModuleName')
+    PrivateData = @{
+        PSData = @{
+            ExternalModuleDependencies = @('$externalModuleName')
+        }
+    }
+}
+"@ | Out-File -FilePath $manifestPath
+
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2
+
+        $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
+        (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+    }
+
     It "Publish a module with -SkipDependenciesCheck" {
         $version = "1.0.0"
         $dependencyVersion = "2.0.0"
