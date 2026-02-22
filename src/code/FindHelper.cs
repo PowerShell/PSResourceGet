@@ -1221,9 +1221,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     depPkg = FindDependencyWithLowerBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errors);
                 }
             }
-            else if (dep.VersionRange.MinVersion.Equals(dep.VersionRange.MaxVersion))
+            else if (dep.VersionRange.HasLowerBound && dep.VersionRange.MinVersion.Equals(dep.VersionRange.MaxVersion))
             {
                 // Case 2: Exact package version, eg: "1.0.0" or "[1.0.0, 1.0.0]"
+                // Note:  need to check if VersionRange has lower bound because if it does not, MinVersion will be null
                 // Check if the latest version is cached, and if this latest version is the version we're looking for
                 if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedRangePkg) &&
                     NuGetVersion.TryParse(cachedRangePkg.Version?.ToString(), out NuGetVersion cachedPkgVersion) &&
