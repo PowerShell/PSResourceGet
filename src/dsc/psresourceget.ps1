@@ -39,7 +39,6 @@ class PSResource {
     PSResource([string]$name) {
         $this.name = $name
         $this._exist = $false
-        $this._inDesiredState = $true
     }
 
     [bool] IsInDesiredState([PSResource] $other) {
@@ -68,6 +67,19 @@ class PSResource {
         elseif ($this._exist -ne $other._exist) {
             Write-Trace -message "_exist mismatch: $($this._exist) vs $($other._exist)" -level trace
             $retValue = $false
+        }
+
+        $psResourceSplat = @{
+            Name           = $this.name
+            Version        = $this.version
+        }
+
+        Get-PSResource @psResourceSplat | Where-Object {
+            ($null -eq $this.scope -or $_.Scope -eq $this.scope) -and
+            ($null -eq $this.repositoryName -or $_.Repository -eq $this.repositoryName)
+        } | Select-Object -First 1 | ForEach-Object {
+            Write-Trace -message "Matching resource found: Name=$($_.Name), Version=$($_.Version), Scope=$($_.Scope), Repository=$($_.Repository), PreRelease=$($_.PreRelease)" -level trace
+            $this._exist = $true
         }
 
         return $retValue
@@ -451,6 +463,35 @@ function ExportOperation {
     }
 }
 
+filter Where-PSResource {
+    param(
+        [string]$name,
+        [string]$version,
+        [Scope]$scope,
+        [string]$repositoryName
+    )
+
+    process {
+        $nameMatch = if ($name) { $_.Name -eq $name } else { $true }
+        $versionMatch = if ($_.Version) {
+            try {
+                SatisfiesVersion -version $_.Version -versionRange $version
+            }
+            catch {
+                $_.Version.ToString() -eq $version
+            }
+        }
+        else { $true }
+        $scopeMatch = if ($_.Scope) { $_.Scope -eq $scope } else { $true }
+        $repositoryMatch = if ($_.Repository) { $_.Repository -eq $repositoryName } else { $true }
+
+        if ($nameMatch -and $versionMatch -and $scopeMatch -and $repositoryMatch) {
+            Write-Trace -message "Resource matches filter criteria: Name=$($_.Name), Version=$($_.Version), Scope=$($_.Scope), Repository=$($_.Repository)" -level trace
+            $_
+        }
+    }
+}
+
 function SetPSResourceList {
     param(
         $inputObj
@@ -462,66 +503,78 @@ function SetPSResourceList {
 
     $resourcesChanged = $false
 
+    $currentState = GetPSResourceList -inputObj $inputObj
+
     $inputObj.resources | ForEach-Object {
-        $resource = $_
+        $resource = ConvertInputToPSResource -inputObj $_ -repositoryName $repositoryName
         $name = $resource.name
         $version = $resource.version
         $scope = $resource.scope ?? "CurrentUser"
 
-        $getSplat = @{
-            Name        = $name
-            Scope       = $scope
-            ErrorAction = 'SilentlyContinue'
-        }
+        # Resource should not exist - uninstall if it does
+        $currentState.resources | Where-PSResource -name $name -version $version -scope $scope -repositoryName $repositoryName | ForEach-Object {
+            Write-Trace -message "Resource marked for uninstall: $($_.Name) version $($_.Version)" -level info
 
-        $existingResources = if ($repositoryName) {
-            Get-PSResource @getSplat | Where-Object { $_.Repository -eq $repositoryName }
-        }
-        else {
-            Get-PSResource @getSplat
-        }
+            if (-not $resource._exist -or -not $inputObj._exist) {
+                Write-Trace -message "Resource $($resource.name) has _exist set to false and exists in current state. Adding to uninstall list." -level info
+                $resourcesToUninstall += $_
+            }
 
-        if (-not $existingResources) {
-            # No existing resources found, add to install list if _exist is true or not specified
-            if ($resource._exist -ne $false) {
-                $key = $name.ToLowerInvariant() + '-' + ($version ?? 'latest').ToLowerInvariant()
-                if (-not $resourcesToInstall.ContainsKey($key)) {
+            if ($resource._exist -and $inputObj._exist) {
+                Write-Trace -message "Resource $name has _exist set to true and exists in current state. Checking if it is in desired state." -level info
+                if ($resource.IsInDesiredState($_)) {
+                    Write-Trace -message "Resource $name is in desired state. No action needed." -level info
+                }
+                else {
+                    Write-Trace -message "Resource $name is NOT in desired state. Adding to install list." -level info
+                    $key = $name.ToLowerInvariant() + '-' + ($version ?? 'latest').ToLowerInvariant()
                     $resourcesToInstall[$key] = $resource
                 }
             }
-            # If _exist is false and resource doesn't exist, nothing to do (already in desired state)
         }
-        else {
-            # Existing resources found
-            if ($resource._exist -eq $false) {
-                # User wants resource removed - uninstall all existing versions
-                $resourcesToUninstall += $existingResources
-            }
-            elseif ($version) {
-                # Version specified - check if any existing version satisfies the range
-                $satisfyingResource = $null
-                foreach ($existing in $existingResources) {
-                    $versionRange = [NuGet.Versioning.VersionRange]::Parse($version)
-                    $resourceVersion = [NuGet.Versioning.NuGetVersion]::Parse($existing.Version.ToString())
-                    if ($versionRange.Satisfies($resourceVersion)) {
-                        $satisfyingResource = $existing
-                        break
-                    }
-                }
 
-                if (-not $satisfyingResource) {
-                    # No existing version satisfies the range - install desired version
-                    $key = $name.ToLowerInvariant() + '-' + $version.ToLowerInvariant()
-                    if (-not $resourcesToInstall.ContainsKey($key)) {
-                        $resourcesToInstall[$key] = $resource
-                    }
-                    # Uninstall versions that don't satisfy the range
-                    $resourcesToUninstall += $existingResources
-                }
-                # If a satisfying version exists, resource is in desired state
-            }
-            # If no version specified and _exist is true/not specified, any existing version is acceptable
-        }
+        # if (-not $existingResources) {
+        #     # No existing resources found, add to install list if _exist is true or not specified
+        #     if ($resource._exist -ne $false) {
+        #         $key = $name.ToLowerInvariant() + '-' + ($version ?? 'latest').ToLowerInvariant()
+        #         if (-not $resourcesToInstall.ContainsKey($key)) {
+        #             $resourcesToInstall[$key] = $resource
+        #         }
+        #     }
+        #     # If _exist is false and resource doesn't exist, nothing to do (already in desired state)
+        # }
+        # else {
+        #     # Existing resources found
+        #     if ($resource._exist -eq $false) {
+        #         # User wants resource removed - uninstall all existing versions
+        #         $resourcesToUninstall += $existingResources
+        #     }
+        #     elseif ($version) {
+        #         # Version specified - check if any existing version satisfies the range
+        #         $satisfyingResource = $null
+        #         foreach ($existing in $existingResources) {
+        #             $versionRange = [NuGet.Versioning.VersionRange]::Parse($version)
+        #             $resourceVersion = [NuGet.Versioning.NuGetVersion]::Parse($existing.Version.ToString())
+        #             if ($versionRange.Satisfies($resourceVersion)) {
+        #                 $satisfyingResource = $existing
+        #                 break
+        #             }
+        #         }
+
+        #         if (-not $satisfyingResource) {
+        #             # No existing version satisfies the range - install desired version
+        #             $key = $name.ToLowerInvariant() + '-' + $version.ToLowerInvariant()
+        #             if (-not $resourcesToInstall.ContainsKey($key)) {
+        #                 $resourcesToInstall[$key] = $resource
+        #             }
+        #             # Uninstall versions that don't satisfy the range
+        #             $resourcesToUninstall += $existingResources
+        #         }
+        #         # If a satisfying version exists, resource is in desired state
+        #     }
+        #     # If no version specified and _exist is true/not specified, any existing version is acceptable
+        # }
+
     }
 
     if ($resourcesToUninstall.Count -gt 0) {
