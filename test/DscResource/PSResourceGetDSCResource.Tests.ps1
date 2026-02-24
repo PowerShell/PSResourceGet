@@ -1,33 +1,51 @@
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
+function SetupDsc {
+    $script:DSC_ROOT = $env:DSC_ROOT
+    if (-not (Test-Path -Path $script:DSC_ROOT)) {
+        throw "DSC_ROOT environment variable is not set or path does not exist."
+    }
+
+    $env:PATH += ";$script:DSC_ROOT"
+
+    # Ensure DSC v3 is available
+    if (-not (Get-Command -name dsc -CommandType Application -ErrorAction SilentlyContinue)) {
+        throw "DSC v3 is not installed"
+    }
+
+    $script:dscExe = Get-Command -name dsc -CommandType Application | Select-Object -First 1
+}
+
+function SetupTestRepos {
+    $script:localRepo = "psgettestlocal"
+    $script:testModuleName = "test_local_mod"
+    $script:testModuleName2 = "test_local_mod2"
+    $script:testModuleName3 = "Test_Local_Mod3"
+    Get-NewPSResourceRepositoryFile
+    Register-LocalRepos
+
+    New-TestModule -moduleName $script:testModuleName -repoName $script:localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
+    New-TestModule -moduleName $script:testModuleName -repoName $script:localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags @()
+    New-TestModule -moduleName $script:testModuleName2 -repoName $script:localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags @()
+    New-TestModule -moduleName $script:testModuleName3 -repoName $script:localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
+}
+
 Describe "DSC resource schema tests" -tags 'CI' {
     BeforeAll {
-        $DSC_ROOT = $env:DSC_ROOT
-        if (-not (Test-Path -Path $DSC_ROOT)) {
-            throw "DSC_ROOT environment variable is not set or path does not exist."
-        }
-
-        $env:PATH += ";$DSC_ROOT"
-
-        # Ensure DSC v3 is available
-        if (-not (Get-Command -name dsc -CommandType Application -ErrorAction SilentlyContinue)) {
-            throw "DSC v3 is not installed"
-        }
-
-        $dscExe = Get-Command -name dsc -CommandType Application | Select-Object -First 1
+        SetupDsc
     }
 
     It 'DSC v3 resources can be found' {
-        $repoResource = & $dscExe resource list Microsoft.PowerShell.PSResourceGet/Repository -o json | convertfrom-json  | select-object -ExpandProperty type
+        $repoResource = & $script:dscExe resource list Microsoft.PowerShell.PSResourceGet/Repository -o json | convertfrom-json  | select-object -ExpandProperty type
         $repoResource | Should -BeExactly 'Microsoft.PowerShell.PSResourceGet/Repository'
 
-        $pkgResource = & $dscExe resource list Microsoft.PowerShell.PSResourceGet/PSResourceList -o json | convertfrom-json  | select-object -ExpandProperty type
+        $pkgResource = & $script:dscExe resource list Microsoft.PowerShell.PSResourceGet/PSResourceList -o json | convertfrom-json  | select-object -ExpandProperty type
         $pkgResource | Should -BeExactly 'Microsoft.PowerShell.PSResourceGet/PSResourceList'
     }
 
     It 'Repository resource has expected properties' {
-        $repoResource = & $dscExe resource schema --resource Microsoft.PowerShell.PSResourceGet/Repository -o json | convertfrom-json | select-object -first 1
+        $repoResource = & $script:dscExe resource schema --resource Microsoft.PowerShell.PSResourceGet/Repository -o json | convertfrom-json | select-object -first 1
         $repoResource.properties.name.title | Should -BeExactly 'Name'
         $repoResource.properties.uri.title | Should -BeExactly 'URI'
         $repoResource.properties.trusted.title | Should -BeExactly 'Trusted'
@@ -37,7 +55,7 @@ Describe "DSC resource schema tests" -tags 'CI' {
     }
 
     It 'PSResourceList resource has expected properties' {
-        $psresourceListResource = & $dscExe resource schema --resource Microsoft.PowerShell.PSResourceGet/PSResourceList -o json | convertfrom-json | select-object -first 1
+        $psresourceListResource = & $script:dscExe resource schema --resource Microsoft.PowerShell.PSResourceGet/PSResourceList -o json | convertfrom-json | select-object -first 1
         $psresourceListResource.properties.repositoryName.title | Should -BeExactly 'Repository Name'
         $psresourceListResource.properties.trustedRepository.title | Should -BeExactly 'Trusted Repository'
         $psresourceListResource.properties.resources.title | Should -BeExactly 'Resources'
@@ -49,20 +67,6 @@ Describe "DSC resource schema tests" -tags 'CI' {
 
 Describe 'Repository Resource Tests' -Tags 'CI' {
     BeforeAll {
-        $DSC_ROOT = $env:DSC_ROOT
-        if (-not (Test-Path -Path $DSC_ROOT)) {
-            throw "DSC_ROOT environment variable is not set or path does not exist."
-        }
-
-        $env:PATH += ";$DSC_ROOT"
-
-        # Ensure DSC v3 is available
-        if (-not (Get-Command -name dsc -CommandType Application -ErrorAction SilentlyContinue)) {
-            throw "DSC v3 is not installed"
-        }
-
-        $dscExe = Get-Command -name dsc -CommandType Application | Select-Object -First 1
-
         # Register a test repository to ensure DSC can access repositories
         Register-PSResourceRepository -Name 'TestRepo' -uri 'https://www.doesnotexist.com' -ErrorAction SilentlyContinue -APIVersion Local
     }
@@ -80,7 +84,7 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
 
         $resourceInput = $repoParams | ConvertTo-Json -Depth 5
 
-        $getResult = & $dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/Repository --input $resourceInput -o json | ConvertFrom-Json
+        $getResult = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/Repository --input $resourceInput -o json | ConvertFrom-Json
 
         $getResult.actualState.name | Should -BeExactly 'TestRepo'
         $getResult.actualState.uri | Should -BeExactly 'https://www.doesnotexist.com/'
@@ -102,7 +106,7 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
         $resourceInput = $repoParams | ConvertTo-Json -Depth 5
 
         try {
-            & $dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/Repository --input $resourceInput
+            & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/Repository --input $resourceInput
 
             $repo = Get-PSResourceRepository -Name 'TestRepo2' -ErrorAction SilentlyContinue
             $repo.Name | Should -BeExactly 'TestRepo2'
@@ -129,7 +133,7 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
 
         $resourceInput = $repoParams | ConvertTo-Json -Depth 5
 
-        & $dscExe resource delete --resource Microsoft.PowerShell.PSResourceGet/Repository --input $resourceInput
+        & $script:dscExe resource delete --resource Microsoft.PowerShell.PSResourceGet/Repository --input $resourceInput
 
         $repo = Get-PSResourceRepository -Name 'TestRepoToDelete' -ErrorAction SilentlyContinue
         $repo | Should -BeNullOrEmpty
@@ -138,33 +142,8 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
 
 Describe "PSResourceList Resource Tests" -Tags 'CI' {
     BeforeAll {
-        $DSC_ROOT = $env:DSC_ROOT
-        if (-not (Test-Path -Path $DSC_ROOT)) {
-            throw "DSC_ROOT environment variable is not set or path does not exist."
-        }
-
-        $env:PATH += ";$DSC_ROOT"
-
-        # Ensure DSC v3 is available
-        if (-not (Get-Command -name dsc -CommandType Application -ErrorAction SilentlyContinue)) {
-            throw "DSC v3 is not installed"
-        }
-
-        $dscExe = Get-Command -name dsc -CommandType Application | Select-Object -First 1
-
-        $localRepo = "psgettestlocal"
-        $testModuleName = "test_local_mod"
-        $testModuleName2 = "test_local_mod2"
-        $testModuleName3 = "Test_Local_Mod3"
-        Get-NewPSResourceRepositoryFile
-        Register-LocalRepos
-
-        $localRepoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
-
-        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
-        New-TestModule -moduleName $testModuleName -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags @()
-        New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags @()
-        New-TestModule -moduleName $testModuleName3 -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
+        SetupDsc
+        SetupTestRepos
     }
     AfterAll {
         # Clean up the test repository
@@ -179,7 +158,7 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
 
         $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
 
-        $getResult = & $dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $getResult = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
 
         $getResult.actualState.repositoryName | Should -BeExactly $localRepo
         $getResult.actualState.resources.Count | Should -Be 0
@@ -201,108 +180,94 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
         }
 
         ## Setup expected state by ensuring the modules are not installed
-        Uninstall-PSResource -name $TestmoduleName -ErrorAction SilentlyContinue
-        Uninstall-PSResource -name $testModuleName2 -ErrorAction SilentlyContinue
+        Uninstall-PSResource -name $script:testModuleName -ErrorAction SilentlyContinue
+        Uninstall-PSResource -name $script:testModuleName2 -ErrorAction SilentlyContinue
 
         $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
-        $getResult = & $dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
-        $getResult.actualState.repositoryName | Should -BeExactly $localRepo
+        $getResult = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $getResult.actualState.repositoryName | Should -BeExactly $script:localRepo
         $getResult.actualState.resources.Count | Should -Be 2
-        $getResult.actualState.resources[0].name | Should -BeExactly $testModuleName
+        $getResult.actualState.resources[0].name | Should -BeExactly $script:testModuleName
         $getResult.actualState.resources[0]._exist | Should -BeFalse
-        $getResult.actualState.resources[1].name | Should -BeExactly $testModuleName2
+        $getResult.actualState.resources[1].name | Should -BeExactly $script:testModuleName2
         $getResult.actualState.resources[1]._exist | Should -BeFalse
     }
 
     It 'Can set a PSResourceList resource instance with resources' {
         $psResourceListParams = @{
-            repositoryName = $localRepo
+            repositoryName = $script:localRepo
             trustedRepository = $true
             resources      = @(
                 @{
-                    name    = $testModuleName
+                    name    = $script:testModuleName
                     version = '5.0.0'
                 },
                 @{
-                    name    = $testModuleName2
+                    name    = $script:testModuleName2
                     version = '5.0.0'
                 }
             )
         }
 
-        Uninstall-PSResource -name $TestmoduleName -ErrorAction SilentlyContinue
-        Uninstall-PSResource -name $testModuleName2 -ErrorAction SilentlyContinue
+        Uninstall-PSResource -name $script:testModuleName -ErrorAction SilentlyContinue
+        Uninstall-PSResource -name $script:testModuleName2 -ErrorAction SilentlyContinue
 
         $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
-        $setResult = & $dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
-        $setResult.afterState.repositoryName | Should -BeExactly $localRepo
+        $setResult = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $setResult.afterState.repositoryName | Should -BeExactly $script:localRepo
         $setResult.afterState.resources.Count | Should -Be 2
-        $setResult.afterState.resources[0].name | Should -BeExactly $testModuleName
+        $setResult.afterState.resources[0].name | Should -BeExactly $script:testModuleName
         $setResult.afterState.resources[0].version | Should -BeExactly '5.0.0'
-        $setResult.afterState.resources[1].name | Should -BeExactly $testModuleName2
+        $setResult.afterState.resources[1].name | Should -BeExactly $script:testModuleName2
         $setResult.afterState.resources[1].version | Should -BeExactly '5.0.0'
     }
 
     It 'Can test a PSResourceList resource instance with resources' {
         $psResourceListParams = @{
-            repositoryName = $localRepo
+            repositoryName = $script:localRepo
             resources      = @(
                 @{
-                    name    = $testModuleName
+                    name    = $script:testModuleName
                     version = '5.0.0'
                 },
                 @{
-                    name    = $testModuleName2
+                    name    = $script:testModuleName2
                     version = '5.0.0'
                 }
             )
         }
 
-        Install-PSResource -name $TestmoduleName -version '5.0.0' -Repository $localRepo -ErrorAction SilentlyContinue -Reinstall -TrustRepository
-        Install-PSResource -name $testModuleName2 -version '5.0.0' -Repository $localRepo -ErrorAction SilentlyContinue -Reinstall -TrustRepository
+        Install-PSResource -name $script:testModuleName -version '5.0.0' -Repository $script:localRepo -ErrorAction SilentlyContinue -Reinstall -TrustRepository
+        Install-PSResource -name $script:testModuleName2 -version '5.0.0' -Repository $script:localRepo -ErrorAction SilentlyContinue -Reinstall -TrustRepository
 
         $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
-        $testResult = & $dscExe resource test --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $testResult = & $script:dscExe resource test --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
         $testResult.inDesiredState | Should -BeTrue
     }
 
     It 'Can test a PSResourceList resource instance that is not in desired state' {
         $psResourceListParams = @{
-            repositoryName = $localRepo
+            repositoryName = $script:localRepo
             resources      = @(
                 @{
-                    name    = $testModuleName
+                    name    = $script:testModuleName
                     version = '9.0.0'
                 },
                 @{
-                    name    = $testModuleName2
+                    name    = $script:testModuleName2
                     version = '9.0.0'
                 }
             )
         }
 
         $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
-        $testResult = & $dscExe resource test --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $testResult = & $script:dscExe resource test --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
         $testResult.inDesiredState | Should -BeFalse
     }
 }
 
 Describe 'E2E tests for Repository resource' -Tags 'CI' {
     BeforeAll {
-        $DSC_ROOT = $env:DSC_ROOT
-        if (-not (Test-Path -Path $DSC_ROOT)) {
-            throw "DSC_ROOT environment variable is not set or path does not exist."
-        }
-
-        $env:PATH += ";$DSC_ROOT"
-
-        # Ensure DSC v3 is available
-        if (-not (Get-Command -name dsc -CommandType Application -ErrorAction SilentlyContinue)) {
-            throw "DSC v3 is not installed"
-        }
-
-        $dscExe = Get-Command -name dsc -CommandType Application | Select-Object -First 1
-
         Get-PSResourceRepository -Name 'TestRepository' -ErrorAction SilentlyContinue | Unregister-PSResourceRepository -ErrorAction SilentlyContinue
     }
 
@@ -346,4 +311,32 @@ Describe 'E2E tests for Repository resource' -Tags 'CI' {
         $repo = Get-PSResourceRepository -Name 'TestRepository' -ErrorAction SilentlyContinue
         $repo | Should -BeNullOrEmpty
     }
+}
+
+Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
+    BeforeAll {
+        SetupDsc
+    }
+
+    It 'Can Install testmodule99' {
+        Uninstall-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue
+
+        $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourgetlist.install.dsc.yaml'
+        & $script:dscExe config set -f $configPath
+
+        $psresource = Get-PSResource -Name 'testmodule99'
+        $psresource.Name | Should -Be 'testmodule99'
+        $psresource.Version | Should -Be '0.0.93'
+    }
+
+    It 'Can Uninstall testmodule99' {
+        Install-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Repository PSGallery -Reinstall -TrustRepository
+
+        $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourgetlist.uninstall.dsc.yaml'
+        & $script:dscExe config set -f $configPath
+
+        $psresource = Get-PSResource -Name 'testmodule99'
+        $psresource | Should -BeNullOrEmpty
+    }
+
 }
