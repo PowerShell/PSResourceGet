@@ -319,24 +319,72 @@ Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
     }
 
     It 'Can Install testmodule99' {
-        Uninstall-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue
+        $mod = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Version '0.0.93'
+        if ($mod) {
+           $mod | Uninstall-PSResource -ErrorAction SilentlyContinue
+        }
 
-        $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourgetlist.install.dsc.yaml'
+        $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.install.dsc.yaml'
         & $script:dscExe config set -f $configPath
 
-        $psresource = Get-PSResource -Name 'testmodule99'
+        $psresource = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Version '0.0.93'
         $psresource.Name | Should -Be 'testmodule99'
         $psresource.Version | Should -Be '0.0.93'
     }
 
     It 'Can Uninstall testmodule99' {
-        Install-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Repository PSGallery -Reinstall -TrustRepository
+        Install-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Repository PSGallery -Reinstall -TrustRepository -Version '0.0.93'
 
-        $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourgetlist.uninstall.dsc.yaml'
+        $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.uninstall.dsc.yaml'
         & $script:dscExe config set -f $configPath
 
-        $psresource = Get-PSResource -Name 'testmodule99'
+        $psresource = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Version '0.0.93'
         $psresource | Should -BeNullOrEmpty
     }
 
+    It 'Can export PSResourceList with testmodule99' {
+        Install-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Repository PSGallery -Reinstall -TrustRepository -Version '0.0.93'
+
+        $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.export.dsc.yaml'
+        $out = & $script:dscExe config export -f $configPath -o json | ConvertFrom-Json
+
+        $psResourceList = $out.resources.properties | Where-Object { $_.repositoryName -eq 'PSGallery' }
+        $psResourceList | Should -Not -BeNullOrEmpty
+        $psResourceList.repositoryName | Should -BeExactly 'PSGallery'
+        $psResourceList.resources.Count | Should -BeGreaterThan 0
+        $psResourceList.resources.name | Should -Contain 'testmodule99'
+    }
+
+    It 'Can Install module with dependency via PSResourceList' {
+        $modulelist = @('TestModuleWithDependencyA', 'TestModuleWithDependencyB', 'TestModuleWithDependencyC', 'TestModuleWithDependencyD', 'TestModuleWithDependencyE')
+        $mods = Get-PSResource -Name $modulelist -ErrorAction SilentlyContinue
+        if ($mods) {
+            $mods | Uninstall-PSResource -ErrorAction SilentlyContinue
+        }
+
+        $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.moddeps.install.dsc.yaml'
+        & $script:dscExe config set -f $configPath
+
+        $psresource = Get-PSResource -Name $modulelist -ErrorAction SilentlyContinue
+        $psresource | Should -HaveCount 5
+    }
+
+    It 'Can install modules with prerelease versions via PSResourceList' {
+        $mod = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue
+        if ($mod) {
+           $mod | Uninstall-PSResource -ErrorAction SilentlyContinue
+        }
+
+        $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.prerelease.install.dsc.yaml'
+        & $script:dscExe config set -f $configPath
+
+        $psresource = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue
+        $psresource | Should -HaveCount 2
+
+        $psresource | ForEach-Object {
+            $version = if ($_.prerelease) { "$($_.Version)" + '.' + "$($_.PreRelease)" } else { $_.Version.ToString() }
+
+            $version | Should -BeIn @("101.0.99.beta1", "0.0.93")
+        }
+    }
 }

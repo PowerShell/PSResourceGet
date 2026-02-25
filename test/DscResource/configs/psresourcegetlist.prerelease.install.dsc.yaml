@@ -1,0 +1,16 @@
+$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+resources:
+- name: Install testmodule99 stable and prerelease
+  type: Microsoft.PowerShell.PSResourceGet/PSResourceList
+  properties:
+    repositoryName: PSGallery
+    trustedRepository: true
+    resources:
+    - name: testmodule99
+      version: '[[0.0.93,)'
+      _exist: true
+      preRelease: true
+    - name: testmodule99
+      version: '[[100.0.99,)'
+      _exist: true
+      preRelease: true
