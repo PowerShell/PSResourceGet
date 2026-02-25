@@ -7,5 +7,3 @@ resources:
     trustedRepository: true
     resources:
     - name: testmodule99
-      version: 0.0.93
-      _exist: true
