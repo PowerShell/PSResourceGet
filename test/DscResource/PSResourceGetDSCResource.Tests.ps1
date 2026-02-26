@@ -387,4 +387,25 @@ Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
             $version | Should -BeIn @("101.0.99.beta1", "0.0.93")
         }
     }
+
+    It 'Can install modules with one existing other not' {
+        $mod = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue
+        if ($mod) {
+           $mod | Uninstall-PSResource -ErrorAction SilentlyContinue
+        }
+
+        Install-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Repository PSGallery -Reinstall -TrustRepository -Version '0.0.93'
+
+        $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.oneexisting.install.dsc.yaml'
+        & $script:dscExe config set -f $configPath
+
+        $psresource = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue
+        $psresource | Should -HaveCount 2
+
+        $psresource | ForEach-Object {
+            $version = if ($_.prerelease) { "$($_.Version)" + '.' + "$($_.PreRelease)" } else { $_.Version.ToString() }
+
+            $version | Should -BeIn @("101.0.99.beta1", "0.0.93")
+        }
+    }
 }
