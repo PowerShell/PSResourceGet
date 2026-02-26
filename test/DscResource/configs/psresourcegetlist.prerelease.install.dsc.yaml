@@ -9,8 +9,9 @@ resources:
     - name: testmodule99
       version: '[[0.0.93,)'
       _exist: true
-      preRelease: true
+      preRelease: false
     - name: testmodule99
       version: '[[100.0.99,)'
       _exist: true
       preRelease: true
+

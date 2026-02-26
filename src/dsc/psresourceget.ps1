@@ -467,35 +467,6 @@ function ExportOperation {
     }
 }
 
-filter Where-PSResource {
-    param(
-        [string]$name,
-        [string]$version,
-        [Scope]$scope,
-        [string]$repositoryName
-    )
-
-    process {
-        $nameMatch = if ($name) { $_.Name -eq $name } else { $true }
-        $versionMatch = if ($_.Version) {
-            try {
-                SatisfiesVersion -version $_.Version -versionRange $version
-            }
-            catch {
-                $_.Version.ToString() -eq $version
-            }
-        }
-        else { $true }
-        $scopeMatch = if ($_.Scope) { $_.Scope -eq $scope } else { $true }
-        $repositoryMatch = if ($_.Repository) { $_.Repository -eq $repositoryName } else { $true }
-
-        if ($nameMatch -and $versionMatch -and $scopeMatch -and $repositoryMatch) {
-            Write-Trace -message "Resource matches filter criteria: Name=$($_.Name), Version=$($_.Version), Scope=$($_.Scope), Repository=$($_.Repository)" -level trace
-            $_
-        }
-    }
-}
-
 function SetPSResourceList {
     param(
         $inputObj
@@ -516,7 +487,7 @@ function SetPSResourceList {
         $scope = if ($resourceDesiredState.scope) { $resourceDesiredState.scope } else { "CurrentUser" }
 
         # Resource should not exist - uninstall if it does
-        $currentState.resources | Where-PSResource -name $name -version $version -scope $scope -repositoryName $repositoryName | ForEach-Object {
+        $currentState.resources | ForEach-Object {
 
             $isInDesiredState = $_.IsInDesiredState($resourceDesiredState)
 
@@ -564,7 +535,8 @@ function SetPSResourceList {
 
         Write-Trace -message "Installing resources: $($resourcesToInstall.Values | ForEach-Object { " $($_.Name) -- $($_.Version) " })"
         $resourcesToInstall.Values | ForEach-Object {
-            Install-PSResource -Name $_.Name -Version $_.Version -Scope $scope -Repository $repositoryName -ErrorAction Stop -TrustRepository:$inputObj.trustedRepository
+            $usePrerelease = if ($_.preRelease) { $true } else { $false }
+            Install-PSResource -Name $_.Name -Version $_.Version -Scope $scope -Repository $repositoryName -ErrorAction Stop -TrustRepository:$inputObj.trustedRepository -Prerelease:$usePrerelease -Reinstall
         }
 
         $resourcesChanged = $true
