@@ -44,22 +44,25 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
     }
 
     It "Install specific module resource by name" {
-        Install-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
+        $DebugPreference = 'Continue'
+        Install-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -Verbose -Debug
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Install specific script resource by name" {
-        Install-PSResource -Name $testScriptName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
+        $DebugPreference = 'Continue'
+        Install-PSResource -Name $testScriptName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -Verbose -Debug
         $pkg = Get-InstalledPSResource $testScriptName
         $pkg.Name | Should -Be $testScriptName
         $pkg.Version | Should -Be "3.5.0"
     }
 
     It "Install multiple resources by name" {
+        $DebugPreference = 'Continue'
         $pkgNames = @($testModuleName, $testModuleName2)
-        Install-PSResource -Name $pkgNames -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
+        Install-PSResource -Name $pkgNames -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -debug -verbose
         $pkg = Get-InstalledPSResource $pkgNames
         $pkg.Name | Should -Be $pkgNames
     }
@@ -88,14 +91,16 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
     }
 
     It "Should install resource given name and exact range inclusive [1.0.0, 5.0.0]" {
-        Install-PSResource -Name $testModuleName -Version "[1.0.0, 5.0.0]" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
+        $DebugPreference = 'Continue'
+        Install-PSResource -Name $testModuleName -Version "[1.0.0, 5.0.0]" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -Debug -Verbose
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Should install resource given name and exact range exclusive (1.0.0, 5.0.0)" {
-        Install-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
+        $DebugPreference = 'Continue'
+        Install-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -Verbose -Debug
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "3.0.0"
@@ -116,7 +121,8 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
     }
 
     It "Install resource when given Name, Version '*', should install the latest version" {
-        Install-PSResource -Name $testModuleName -Version "*" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
+        $DebugPreference = 'Continue'
+        Install-PSResource -Name $testModuleName -Version "*" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -Verbose -Debug
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
