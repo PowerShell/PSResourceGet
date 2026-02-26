@@ -1291,7 +1291,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (currentResult == null || currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
                     errors.Add(new ErrorRecord(
-                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception ?? new ItemNotFoundException()),
                         "DependencyPackageNotFound",
                         ErrorCategory.ObjectNotFound,
                         this));
@@ -1353,7 +1353,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (currentResult == null || currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
                     errors.Add(new ErrorRecord(
-                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception ?? new ItemNotFoundException()),
                         "DependencyPackageNotFound",
                         ErrorCategory.ObjectNotFound,
                         this));
@@ -1418,7 +1418,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (currentResult == null || currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
                     errors.Add(new ErrorRecord(
-                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception ?? new ItemNotFoundException()),
                         "DependencyPackageNotFound",
                         ErrorCategory.ObjectNotFound,
                         this));
