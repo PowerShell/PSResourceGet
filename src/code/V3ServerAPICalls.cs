@@ -842,6 +842,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return Utils.EmptyStrArray;
             }
 
+            if (responses == null)
+            {
+                _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedPackageEntriesFromRegistrationsResource() - responses null");
+            }
+            else
+            {
+                _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedPackageEntriesFromRegistrationsResource() - responses NOT null");
+            }
+
             return responses;
         }
 
@@ -1323,6 +1332,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedResponse() - Exiting");
+
             return versionedResponseArr;
         }
 
@@ -1343,10 +1354,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return latestVersionFirst;
             }
 
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForSearch() - 2");
+
             string firstResponse = versionedResponses[0];
             string lastResponse = versionedResponses[versionResponsesCount - 1];
             NuGetVersion firstPkgVersion;
             NuGetVersion lastPkgVersion;
+
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForSearch() - 3");
 
             try
             {
@@ -1377,6 +1392,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return latestVersionFirst;
                     }
                 }
+                
+                _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForSearch() - 4");
 
                 using (JsonDocument lastResponseJson = JsonDocument.Parse(lastResponse))
                 {
@@ -1405,6 +1422,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return latestVersionFirst;
                     }
                 }
+
+                _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForSearch() - 5");
 
                 if (firstPkgVersion < lastPkgVersion)
                 {
