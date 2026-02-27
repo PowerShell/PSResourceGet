@@ -162,7 +162,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindName()");
-            return FindNameHelper(packageName, tags: Utils.EmptyStrArray, includePrerelease, type, out errRecord);
+            var res = FindNameHelper(packageName, tags: Utils.EmptyStrArray, includePrerelease, type, out errRecord);
+            _cmdletPassedIn.WriteDebug($"returned back to FindName()");
+            
+            return res;
+
         }
 
         public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type)
@@ -179,7 +183,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameWithTag()");
-            return FindNameHelper(packageName, tags, includePrerelease, type, out errRecord);
+            var res = FindNameHelper(packageName, tags, includePrerelease, type, out errRecord);
+
+            _cmdletPassedIn.WriteDebug($"returned back to FIndNamewithtag");
+
+            return res;
         }
 
         /// <summary>
@@ -511,10 +519,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool isTagMatch = true;
             foreach (string response in versionedResponses)
             {
+                 _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameHelper():: response");
+                 if (response == null)
+                {
+                     _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameHelper():: response is NULL");
+                }
+                else
+                {
+                    _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameHelper():: response is NOT null");        
+                }
+
                 try
                 {
                     using (JsonDocument pkgVersionEntry = JsonDocument.Parse(response))
                     {
+                        _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameHelper():: using 1");
                         JsonElement rootDom = pkgVersionEntry.RootElement;
                         if (!rootDom.TryGetProperty(versionName, out JsonElement pkgVersionElement))
                         {
@@ -537,14 +556,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                         }
 
+                         _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameHelper():: nuget parse version");
+
                         if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
                         {
                             _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
                             if (!pkgVersion.IsPrerelease || includePrerelease)
                             {
+                                _cmdletPassedIn.WriteDebug($"entered if statement");
                                 // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
                                 latestVersionResponse = response;
                                 isTagMatch = IsRequiredTagSatisfied(tagsItem, tags, out errRecord);
+                                _cmdletPassedIn.WriteDebug($"right before break");
 
                                 break;
                             }
@@ -563,6 +586,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
+            _cmdletPassedIn.WriteDebug($"FindNameHelper line 581");
+
             if (String.IsNullOrEmpty(latestVersionResponse))
             {
                 errRecord = new ErrorRecord(
@@ -573,6 +598,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
+
+            _cmdletPassedIn.WriteDebug($"Right before tag match");
 
             // Check and write error for tags matching requirement. If no tags were required the isTagMatch variable will be true.
             if (!isTagMatch)
@@ -588,6 +615,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
+            
+            _cmdletPassedIn.WriteDebug($"return results");
 
             return new FindResults(stringResponse: new string[] { latestVersionResponse }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
