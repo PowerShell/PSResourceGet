@@ -19,7 +19,7 @@
       "-ExecutionPolicy",
       "Bypass",
       "-Command",
-      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation 'get'"
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation get; exit $LASTEXITCODE"
     ],
     "input": "stdin"
   },
@@ -32,7 +32,7 @@
       "-ExecutionPolicy",
       "Bypass",
       "-Command",
-      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation set"
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation set; exit $LASTEXITCODE"
     ],
     "input": "stdin",
     "return": "stateAndDiff"
@@ -46,7 +46,7 @@
       "-ExecutionPolicy",
       "Bypass",
       "-Command",
-      "./psresourceget.ps1 -resourcetype 'psresourcelist' -operation export"
+      "./psresourceget.ps1 -resourcetype 'psresourcelist' -operation export; exit $LASTEXITCODE"
     ],
     "input": "stdin"
   },
@@ -59,10 +59,25 @@
       "-ExecutionPolicy",
       "Bypass",
       "-Command",
-      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation test"
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation test; exit $LASTEXITCODE"
     ],
     "input": "stdin",
     "return": "stateAndDiff"
+  },
+  "exitCodes": {
+    "0": "Success",
+    "1": "Error",
+    "2": "Repository not found (during set operation)",
+    "3": "Repository not trusted (during set operation)",
+    "4": "Could not install one or more resources (during set operation)",
+    "5": "Unknown resource type",
+    "6": "Resource is not implemented",
+    "7": "Test operation is not implemented for the resource",
+    "8": "Export operation is not implemented for the resource",
+    "9": "Get operation is not implemented for the resource",
+    "10": "Set operation is not implemented for the resource",
+    "11": "Delete operation is not implemented for the resource",
+    "12": "Unknown operation"
   },
   "schema": {
     "embedded": {
