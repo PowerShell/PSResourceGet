@@ -409,3 +409,30 @@ Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
         }
     }
 }
+
+Describe "Error code tests" -Tags 'CI' {
+
+    BeforeAll {
+        SetupDsc
+
+        $mod = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue
+        if ($mod) {
+           $mod | Uninstall-PSResource -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'Repository not found should return error code 2' {
+        $out = & $script:dscExe config set -f (Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.error.norepo.dsc.yaml') 2>&1
+        $out[-1] | Should -BeLike "*Repository not found (during set operation)*"
+    }
+
+    It 'Repository not trusted should return error code 3' {
+        $out = & $script:dscExe config set -f (Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.error.install.untrustedrepo.dsc.yaml') 2>&1
+        $out[-1] | Should -BeLike "*Repository not trusted (during set operation)*"
+    }
+
+    It 'Resource not found should return error code 4' {
+        $out = & $script:dscExe config set -f (Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.error.noresource.dsc.yaml') 2>&1
+        $out[-1] | Should -BeLike '*Could not install one or more resources (during set operation)*'
+    }
+}

@@ -273,8 +273,13 @@ function GetPSResourceList {
     $repositoryState = Get-PSResourceRepository -Name $inputObj.repositoryName -ErrorAction SilentlyContinue
 
     if (-not $repositoryState) {
-        Write-Trace -message "Repository not found: $($inputObj.repositoryName). Returning PSResourceList with _exist = false." -level info
-        return [PSResourceList]::new($inputObj.repositoryName, $inputResources, $false)
+        Write-Trace -message "Repository not found: $($inputObj.repositoryName)" -level info
+        $emptyResources = @()
+        $emptyResources += $inputResources | ForEach-Object {
+            [PSResource]::new($_.Name)
+        }
+
+        return [PSResourceList]::new($inputObj.repositoryName, $emptyResources, $false)
     }
 
     $inputPSResourceList = [PSResourceList]::new($inputObj.repositoryName, $inputResources, $repositoryState.Trusted)
@@ -368,13 +373,21 @@ function GetOperation {
             return ( $ret.ToJson() )
         }
 
-        'repositorylist' { throw [System.NotImplementedException]::new("Get operation is not implemented for RepositoryList resource.") }
-        'psresource' { throw [System.NotImplementedException]::new("Get operation is not implemented for PSResource resource.") }
+        'repositorylist' {
+            Write-Trace -level error -message "Get operation is not implemented for RepositoryList resource."
+            exit 6
+        }
+        'psresource' {
+            Write-Trace -level error -message "Get operation is not implemented for PSResource resource."
+            exit 6
+        }
         'psresourcelist' {
             (GetPSResourceList -inputObj $inputObj).ToJson()
         }
-
-        default { throw "Unknown ResourceType: $ResourceType" }
+        default {
+            Write-Trace -level error -message "Unknown ResourceType: $ResourceType"
+            exit 6
+        }
     }
 }
 
@@ -392,7 +405,7 @@ function TestPSResourceList {
         Write-Trace -message "Repository not found: $($inputObj.repositoryName). Returning PSResourceList with _inDesiredState = false." -level info
         $retValue = [PSResourceList]::new($inputObj.repositoryName, $inputResources, $false)
         $retValue._inDesiredState = $false
-        return $retValue.ToJsonForTest()
+        $retValue.ToJsonForTest()
         '["repositoryName", "resources"]'
     }
 
@@ -424,14 +437,26 @@ function TestOperation {
     $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
 
     switch ($ResourceType) {
-        'repository' { throw [System.NotImplementedException]::new("Test operation is not implemented for RepositoryList resource.") }
-        'repositorylist' { throw [System.NotImplementedException]::new("Test operation is not implemented for RepositoryList resource.") }
-        'psresource' { throw [System.NotImplementedException]::new("Test operation is not implemented for PSResource resource.") }
+        'repository' {
+            Write-Trace -level error -message "Test operation is not implemented for Repository resource."
+            exit 7
+        }
+        'repositorylist' {
+            Write-Trace -level error -message "Test operation is not implemented for RepositoryList resource."
+            exit 7
+        }
+        'psresource' {
+            Write-Trace -level error -message "Test operation is not implemented for PSResource resource."
+            exit 7
+        }
         'psresourcelist' {
             TestPSResourceList -inputObj $inputObj
         }
 
-        default { throw "Unknown ResourceType: $ResourceType" }
+        default {
+            Write-Trace -level error -message "Unknown ResourceType: $ResourceType"
+            exit 5
+        }
     }
 }
 
@@ -456,14 +481,23 @@ function ExportOperation {
             }
         }
 
-        'repositorylist' { throw [System.NotImplementedException]::new("Get operation is not implemented for RepositoryList resource.") }
-        'psresource' { throw [System.NotImplementedException]::new("Get operation is not implemented for PSResource resource.") }
+        'repositorylist' {
+            Write-Trace -level error -message "Get operation is not implemented for RepositoryList resource."
+            exit 8
+        }
+        'psresource' {
+            Write-Trace -level error -message "Export operation is not implemented for PSResource resource."
+            exit 8
+        }
         'psresourcelist' {
             $currentUserPSResources = Get-PSResource
             $allUsersPSResources = Get-PSResource -Scope AllUsers
             PopulatePSResourceListObject -allUsersPSResources $allUsersPSResources -currentUserPSResources $currentUserPSResources
         }
-        default { throw "Unknown ResourceType: $ResourceType" }
+        default {
+            Write-Trace -level error -message "Unknown ResourceType: $ResourceType"
+            exit 5
+        }
     }
 }
 
@@ -521,22 +555,40 @@ function SetPSResourceList {
     }
 
     if ($resourcesToInstall.Count -gt 0) {
-        $psRepository = Get-PSResourceRepository -Name $repositoryName -ErrorAction Stop
+        $psRepository = Get-PSResourceRepository -Name $repositoryName -ErrorAction SilentlyContinue
 
         if (-not $psRepository) {
             Write-Trace -level error -message "Repository '$repositoryName' not found. Cannot install resources."
-            return
+            exit 2
         }
 
         if (-not $psRepository.Trusted -and -not $inputObj.trustedRepository) {
             Write-Trace -level error -message "Repository '$repositoryName' is not trusted. Cannot install resources."
-            return
+            exit 3
         }
 
         Write-Trace -message "Installing resources: $($resourcesToInstall.Values | ForEach-Object { " $($_.Name) -- $($_.Version) " })"
         $resourcesToInstall.Values | ForEach-Object {
             $usePrerelease = if ($_.preRelease) { $true } else { $false }
-            Install-PSResource -Name $_.Name -Version $_.Version -Scope $scope -Repository $repositoryName -ErrorAction Stop -TrustRepository:$inputObj.trustedRepository -Prerelease:$usePrerelease -Reinstall
+
+            $installErrors = @()
+
+            $name = $_.Name
+            $version = $_.Version
+
+            try {
+                Install-PSResource -Name $_.Name -Version $_.Version -Scope $scope -Repository $repositoryName -ErrorAction Stop -TrustRepository:$inputObj.trustedRepository -Prerelease:$usePrerelease -Reinstall
+            }
+            catch {
+                Write-Trace -level error -message "Failed to install resource '$name' with version '$version'. Error: $($_.Exception.Message)"
+                $installErrors += $_.Exception.Message
+            }
+
+            if ($installErrors.Count -gt 0) {
+                Write-Trace -level error -message "One or more errors occurred while installing resource '$name' with version '$version': $($installErrors -join '; ')"
+                Write-Trace -level trace -message "Exiting with error code 4 due to installation failure."
+                exit 4
+            }
         }
 
         $resourcesChanged = $true
@@ -593,10 +645,19 @@ function SetOperation {
             return GetOperation -ResourceType $ResourceType
         }
 
-        'repositorylist' { throw [System.NotImplementedException]::new("Set operation is not implemented for RepositoryList resource.") }
-        'psresource' { throw [System.NotImplementedException]::new("Set operation is not implemented for PSResource resource.") }
+        'repositorylist' {
+            Write-Trace -level error -message "Set operation is not implemented for RepositoryList resource."
+            exit 10
+        }
+        'psresource' {
+            Write-Trace -level error -message "Set operation is not implemented for PSResource resource."
+            exit 11
+        }
         'psresourcelist' { return SetPSResourceList -inputObj $inputObj }
-        default { throw "Unknown ResourceType: $ResourceType" }
+        default {
+            Write-Trace -level error -message "Unknown ResourceType: $ResourceType"
+            exit 5
+        }
     }
 }
 
@@ -623,11 +684,22 @@ function DeleteOperation {
 
             return GetOperation -ResourceType $ResourceType
         }
-
-        'repositorylist' { throw [System.NotImplementedException]::new("Delete operation is not implemented for RepositoryList resource.") }
-        'psresource' { throw [System.NotImplementedException]::new("Delete operation is not implemented for PSResource resource.") }
-        'psresourcelist' { throw [System.NotImplementedException]::new("Delete operation is not implemented for PSResourceList resource.") }
-        default { throw "Unknown ResourceType: $ResourceType" }
+        'repositorylist' {
+            Write-Trace -level error -message "Delete operation is not implemented for RepositoryList resource."
+            exit 11
+        }
+        'psresource' {
+            Write-Trace -level error -message "Delete operation is not implemented for PSResource resource."
+            exit 11
+        }
+        'psresourcelist' {
+            Write-Trace -level error -message "Delete operation is not implemented for PSResourceList resource."
+            exit 11
+        }
+        default {
+            Write-Trace -level error -message "Unknown ResourceType: $ResourceType"
+            exit 5
+        }
     }
 }
 
@@ -714,5 +786,8 @@ switch ($Operation.ToLower()) {
     'test' { return (TestOperation -ResourceType $ResourceType) }
     'export' { return (ExportOperation -ResourceType $ResourceType) }
     'delete' { return (DeleteOperation -ResourceType $ResourceType) }
-    default { throw "Unknown Operation: $Operation" }
+    default {
+        Write-Trace -level error -message "Unknown Operation: $Operation"
+        exit 12
+    }
 }
