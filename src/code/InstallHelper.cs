@@ -14,6 +14,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Management.Automation;
+using System.Management.Automation.Language;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
@@ -676,10 +677,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
             }
 
+            _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - 679");
             // Convert parent package to PSResourceInfo
             PSResourceInfo pkgToInstall = null;
             foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
             {
+                if (currentResult == null)
+                {
+                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - currentResult is null");
+                    continue;
+                }
+                else
+                {
+                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - currentResult is not null");
+                }
+
                 if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
                     errRecord = new ErrorRecord(
@@ -714,6 +726,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
+            _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - after for loop 729");
+
             if (pkgToInstall == null)
             {
                 return packagesHash;
@@ -731,6 +745,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     pkgVersion += $"-{pkgToInstall.Prerelease}";
                 }
             }
+            _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 748");
 
             // For most repositories/providers the server will use the normalized version, which pkgVersion originally reflects
             // However, for container registries the version must exactly match what was in the artifact manifest and then reflected in PSResourceInfo.Version.ToString()
@@ -739,6 +754,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 pkgVersion = String.IsNullOrEmpty(pkgToInstall.Prerelease) ? pkgToInstall.Version.ToString() : $"{pkgToInstall.Version.ToString()}-{pkgToInstall.Prerelease}";
             }
 
+            _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 757");
+            
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             // TODO:  can use cache for this
             if (!_reinstall)
@@ -763,6 +780,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
 
             ConcurrentDictionary<string, Hashtable> updatedPackagesHash = packagesHash;
+
+            _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 784");
 
             // -WhatIf processing.
             if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
@@ -799,10 +818,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
+                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 821");
                 // Concurrent updates
                 // Find all dependencies
                 if (!skipDependencyCheck)
                 {
+                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 826");
                     // concurrency updates 
                     List<PSResourceInfo> parentAndDeps = _findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
                     // List returned only includes dependencies, so we'll add the parent pkg to this list to pass on to installation method
