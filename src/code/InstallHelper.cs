@@ -665,6 +665,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // VersionType.NoVersion
                     responses = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ErrorRecord findNameErrRecord);
 
+                    _cmdletPassedIn.WriteDebug($"returned back to BeginPackageInstall()");
+
                     if (findNameErrRecord != null)
                     {
                         errRecord = findNameErrRecord;
