@@ -823,81 +823,47 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
   
             // -WhatIf processing.
-            if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
-            {
-                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 789");
+            // if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
+            // {
 
-                if (updatedPackagesHash == null)
-                {
-                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - updatedpackageshash is null");
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - updatedpackageshash is not null");
-                }
 
-                if (pkgToInstall == null)
-                {
-                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - packageToInstall is null");
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - packageToInstall is not null");
-                }
-
-                if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
-                {
+            //     if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
+            //     {
                     
-                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 784");
-                    updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
-                    {
-                        { "isModule", "" },
-                        { "isScript", "" },
-                        { "psResourceInfoPkg", pkgToInstall },
-                        { "tempDirNameVersionPath", tempInstallPath },
-                        { "pkgVersion", "" },
-                        { "scriptPath", ""  },
-                        { "installPath", "" }
-                    });
-                }
-            }
-            else if (!_cmdletPassedIn.ShouldProcess($"Package to install: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
-            {
-                if (updatedPackagesHash == null)
-                {
-                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - updatedpackageshash is null 2");
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - updatedpackageshash is not null 2");
-                }
-
-                if (pkgToInstall == null)
-                {
-                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - packageToInstall is null 2");
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - packageToInstall is not null 2");
-                }
+            //         _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 784");
+            //         updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+            //         {
+            //             { "isModule", "" },
+            //             { "isScript", "" },
+            //             { "psResourceInfoPkg", pkgToInstall },
+            //             { "tempDirNameVersionPath", tempInstallPath },
+            //             { "pkgVersion", "" },
+            //             { "scriptPath", ""  },
+            //             { "installPath", "" }
+            //         });
+            //     }
+            // }
+            // else if (!_cmdletPassedIn.ShouldProcess($"Package to install: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
+            // {
+              
 
 
-                if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
-                {
-                    updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
-                    {
-                        { "isModule", "" },
-                        { "isScript", "" },
-                        { "psResourceInfoPkg", pkgToInstall },
-                        { "tempDirNameVersionPath", tempInstallPath },
-                        { "pkgVersion", "" },
-                        { "scriptPath", ""  },
-                        { "installPath", "" }
-                    });
-                }
-            }
-            else
-            {
+            //     if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
+            //     {
+            //         updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+            //         {
+            //             { "isModule", "" },
+            //             { "isScript", "" },
+            //             { "psResourceInfoPkg", pkgToInstall },
+            //             { "tempDirNameVersionPath", tempInstallPath },
+            //             { "pkgVersion", "" },
+            //             { "scriptPath", ""  },
+            //             { "installPath", "" }
+            //         });
+            //     }
+            // }
+            //else
+            //{
                 _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 821");
                 // Concurrent updates
                 // Find all dependencies
@@ -931,7 +897,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return packagesHash;
                     }
                 }
-            }
+            //}
 
             return updatedPackagesHash;
         }
