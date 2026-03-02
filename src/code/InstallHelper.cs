@@ -782,7 +782,46 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ConcurrentDictionary<string, Hashtable> updatedPackagesHash = packagesHash;
 
             _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 784");
+            
+            if (!_savePkg)
+            {
+                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 788");                
 
+            }
+            else
+            {
+                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 793");
+            }
+  
+            if (pkgToInstall == null)
+            {
+                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - packageToInstall is null 798");
+            }
+            else
+            {
+                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - packageToInstall is not null 802");
+            }
+
+
+            if (string.IsNullOrEmpty(pkgToInstall.Name))
+            {
+                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() -pkgtoinstall name is null or empty 808");
+            }
+            else
+            {
+                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - pkgtoinstall is available 812 ");
+            }
+
+
+            if (string.IsNullOrEmpty(pkgVersion))
+            {
+                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() -pkgVersion name is null or empty 818");
+            }
+            else
+            {
+                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - pkgVersion is available 822 ");
+            }
+  
             // -WhatIf processing.
             if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
             {
