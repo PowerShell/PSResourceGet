@@ -735,7 +735,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private Stream InstallName(string packageName, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallName()");
-            return InstallHelper(packageName, version: null, out errRecord);
+            var inst = InstallHelper(packageName, version: null, out errRecord);
+
+            _cmdletPassedIn.WriteDebug("Returning from V3ServerAPICalls::InstallName()");
+
+            return inst;
         }
 
         /// <summary>
@@ -759,7 +763,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            return InstallHelper(packageName, requiredVersion, out errRecord);
+            var inst = InstallHelper(packageName, requiredVersion, out errRecord);
+            _cmdletPassedIn.WriteDebug("Returning from V3ServerAPICalls::InstallVersion()");
+
+            return inst;
         }
 
         /// <summary>
@@ -830,6 +837,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallHelper() before checking if content is null");
+
             if (content is null)
             {
                 errRecord = new ErrorRecord(
@@ -840,6 +849,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return null;
             }
+            _cmdletPassedIn.WriteDebug("Exiting method V3ServerAPICalls::InstallHelper()");
 
             return content.ReadAsStreamAsync().Result;
         }
@@ -1693,6 +1703,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 _cmdletPassedIn.WriteDebug("Response is empty");
             }
+            
+            _cmdletPassedIn.WriteDebug($"Returning from HttpRequestCallForContent");
 
             return content;
         }
