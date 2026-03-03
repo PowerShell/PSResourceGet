@@ -128,5 +128,12 @@ Describe "Test MAR Repository Registration" -tags 'CI' {
             $res.Name | Should -Be "Az.Accounts"
             $res.Repository | Should -Be $MARName
         }
+
+        It 'Find-PSResource fallback to PSGallery if module not in MAR' {
+            $res = Find-PSResource -Name "Pscx"
+            $res | Should -Not -BeNullOrEmpty
+            $res.Name | Should -Be "Pscx"
+            $res.Repository | Should -Be $PSGalleryName
+        }
     }
 }
