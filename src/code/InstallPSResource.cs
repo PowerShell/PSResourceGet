@@ -487,9 +487,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                     }
 
-                    if (pkgParams.Scope == ScopeType.AllUsers)
+                    if (pkgParams.Scope.HasValue && pkgParams.Scope.Value == ScopeType.AllUsers)
                     {
-                        _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, pkgParams.Scope);
+                        _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, pkgParams.Scope.Value);
                     }
 
                     pkgVersion = pkgInstallInfo["version"] == null ? String.Empty : pkgInstallInfo["version"].ToString();
@@ -565,6 +565,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this));
             }
 
+            // When reqResourceParams is provided (via -RequiredResource), use its properties
+            // instead of the cmdlet-level parameters. Only use the property if it was explicitly set (not null).
+            bool acceptLicense = reqResourceParams?.AcceptLicense ?? AcceptLicense;
+            bool quiet = reqResourceParams?.Quiet ?? Quiet;
+            bool reinstall = reqResourceParams?.Reinstall ?? Reinstall;
+            bool trustRepository = reqResourceParams?.TrustRepository ?? TrustRepository;
+            bool noClobber = reqResourceParams?.NoClobber ?? NoClobber;
+            bool skipDependencyCheck = reqResourceParams?.SkipDependencyCheck ?? SkipDependencyCheck;
+            ScopeType scope = reqResourceParams?.Scope ?? Scope;
+
             IEnumerable<PSResourceInfo> installedPkgs = _installHelper.BeginInstallPackages(
                 names: pkgNames,
                 versionRange: versionRange,
@@ -573,19 +583,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 versionString: Version,
                 prerelease: pkgPrerelease,
                 repository: pkgRepository,
-                acceptLicense: AcceptLicense,
-                quiet: Quiet,
-                reinstall: Reinstall,
+                acceptLicense: acceptLicense,
+                quiet: quiet,
+                reinstall: reinstall,
                 force: false,
-                trustRepository: TrustRepository,
-                noClobber: NoClobber,
+                trustRepository: trustRepository,
+                noClobber: noClobber,
                 asNupkg: false,
                 includeXml: true,
-                skipDependencyCheck: SkipDependencyCheck,
+                skipDependencyCheck: skipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg,
-                scope: Scope,
+                scope: scope,
                 tmpPath: _tmpPath,
                 pkgsInstalled: _packagesOnMachine);
 

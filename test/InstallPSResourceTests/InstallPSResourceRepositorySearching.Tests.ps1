@@ -137,4 +137,12 @@ Describe 'Test Install-PSResource for searching and looping through repositories
         $err | Should -HaveCount 0
         $warningVar | Should -Not -BeNullOrEmpty
     }
+
+    It "install resources from repository should respect WhatIf value of false" {
+        # Package "test_module" exists in the following repositories (in this order): localRepo, PSGallery, NuGetGallery
+        $res = Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -SkipDependencyCheck -PassThru -WhatIf:$false
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be $testModuleName
+        $res.Repository | Should -Be $PSGalleryName
+    }
 }

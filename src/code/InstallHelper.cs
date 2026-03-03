@@ -342,7 +342,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 allPkgsInstalled.AddRange(installedPkgs);
             }
 
-            if (!_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf") && _pkgNamesToInstall.Count > 0)
+            if ((!_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf") || (SwitchParameter)_cmdletPassedIn.MyInvocation.BoundParameters["WhatIf"] == false) && _pkgNamesToInstall.Count > 0)
             {
                 string repositoryWording = repositoryNamesToSearch.Count > 1 ? "registered repositories" : "repository";
                 _cmdletPassedIn.WriteError(new ErrorRecord(
@@ -587,6 +587,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                     }
                                 }
 
+                                string depPkgNameVersion = $"{depPkg.Name}{depPkg.Version.ToString()}";
+                                if (_packagesOnMachine.Contains(depPkgNameVersion) && !depPkg.IsPrerelease)
+                                {
+                                    // if a dependency package is already installed, do not install it again.
+                                    // to determine if the package version is already installed, _packagesOnMachine is used but it only contains name, version info, not version with prerelease info
+                                    // if the dependency package is found to be prerelease, it is safer to install it (and worse case it reinstalls)
+                                    _cmdletPassedIn.WriteVerbose($"Dependency '{depPkg.Name}' with version '{depPkg.Version}' is already installed.");
+                                    continue;
+                                }
+
                                 packagesHash = BeginPackageInstall(
                                             searchVersionType: VersionType.SpecificVersion,
                                             specificVersion: depVersion,
@@ -614,7 +624,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     // If -WhatIf is passed in, early out.
-                    if (_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf"))
+                    if (_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf") && (SwitchParameter)_cmdletPassedIn.MyInvocation.BoundParameters["WhatIf"] == true)
                     {
                         return pkgsSuccessfullyInstalled;
                     }

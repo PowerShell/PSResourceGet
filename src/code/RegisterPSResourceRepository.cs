@@ -91,6 +91,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Specifies the Api version of the repository to be set.
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
+        [ValidateSet("V2", "V3", "Local", "NugetServer", "ContainerRegistry")]
         public PSRepositoryInfo.APIVersion ApiVersion { get; set; }
 
         /// <summary>
@@ -185,17 +186,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case PSGalleryParameterSet:
-                    try
+                    if (PSGallery)
                     {
-                        items.Add(PSGalleryParameterSetHelper(Priority, Trusted));
-                    }
-                    catch (Exception e)
-                    {
-                        ThrowTerminatingError(new ErrorRecord(
-                            new PSInvalidOperationException(e.Message),
-                            "ErrorInPSGalleryParameterSet",
-                            ErrorCategory.InvalidArgument,
-                            this));
+                        try
+                        {
+                            items.Add(PSGalleryParameterSetHelper(Priority, Trusted));
+                        }
+                        catch (Exception e)
+                        {
+                            ThrowTerminatingError(new ErrorRecord(
+                                new PSInvalidOperationException(e.Message),
+                                "ErrorInPSGalleryParameterSet",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                        }
                     }
                     break;
 

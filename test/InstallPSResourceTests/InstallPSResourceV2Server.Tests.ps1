@@ -32,7 +32,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     AfterEach {
         Uninstall-PSResource "test_module", "test_module2", "test_script", "TestModule99", "testModuleWithlicense", `
             "TestFindModule", "ClobberTestModule1", "ClobberTestModule2", "PackageManagement", "TestTestScript", `
-            "TestModuleWithDependency", "TestModuleWithPrereleaseDep", "PrereleaseModule" -SkipDependencyCheck -ErrorAction SilentlyContinue
+            "TestModuleWithDependency", "TestModuleWithPrereleaseDep", "PrereleaseModule", "test-nugetversion-parent", "test-nugetversion", "test-pkg-normalized-dependency" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -428,6 +428,19 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         (Get-InstalledPSResource -Name 'TestModule99').'Prerelease' | Should -Be 'beta2'
     }
 
+    It "Install module using -RequiredResource with TrustRepository in hashtable" {
+        # This test verifies that TrustRepository specified in -RequiredResource hashtable is respected
+        Install-PSResource -RequiredResource @{
+            'TestModule99' = @{
+                'repository' = 'PSGallery'
+                'trustrepository' = 'true'
+            }
+        }
+        $res = Get-InstalledPSResource -Name 'TestModule99'
+        $res.Name | Should -Be 'TestModule99'
+        $res.Version | Should -Be '0.0.93'
+    }
+
     It "Install modules using -RequiredResource with JSON string" {
         $rrJSON = "{
            'test_module': {
@@ -553,6 +566,14 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
     }
 
+    # Test that AuthenticodeCheck parameter displays warning on non-Windows
+    It "Install with AuthenticodeCheck on non-Windows should display warning" -Skip:(Get-IsWindows) {
+        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -AuthenticodeCheck -WarningVariable warn -WarningAction SilentlyContinue
+        $warn[0] | Should -Match "Authenticode check cannot be performed on Linux or MacOS"
+        $res = Get-InstalledPSResource $testModuleName
+        $res.Name | Should -Be $testModuleName
+    }
+
     # Unix test for installing scripts
     It "Install script resource - Unix only" -Skip:(Get-IsWindows) {
         # previously installing pester on Unix was throwing an error due to how the environment PATH variable was being gotten.
@@ -594,6 +615,37 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $res | Should -Not -BeNullOrEmpty
         $res.Version | Should -Be $version
     }
+
+    It "Install resource that takes a dependency on package with specific version" {
+        $moduleName = 'test-nugetversion-parent'
+        $version = '4.0.0'
+        $depPkgName = 'test-nugetversion'
+        $depPkgVer = '5.0.1'
+
+        Install-PSResource -Name $moduleName -Version $version -Repository $PSGalleryName -TrustRepository
+        $res = Get-InstalledPSResource $moduleName
+        $res.Name | Should -Be $moduleName
+        $res.Version | Should -Be $version
+        $depRes = Get-InstalledPSResource $depPkgName
+        $depRes.Name | Should -Be $depPkgName
+        $depRes.Version | Should -Be $depPkgVer
+    }
+
+    It "Install resource that takes a dependency on package with specific version with differing normalized and semver versions" {
+        $moduleName = 'test-pkg-normalized-dependency'
+        $version = '3.9.2'
+        $depPkgName1 = "PowerShellGet"
+        $depPkgName2 = "PackageManagement"
+
+        Install-PSResource -Name $moduleName -Prerelease -Repository $PSGalleryName -TrustRepository
+        $res = Get-InstalledPSResource $moduleName
+        $res.Name | Should -Be $moduleName
+        $res.Version | Should -Be $version
+
+        $depRes = Get-InstalledPSResource $depPkgName1, $depPkgName2
+        $depRes.Name | Should -Contain $depPkgName1
+        $depRes.Name | Should -Contain $depPkgName2
+    }    
 }
 
 Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'ManualValidationOnly' {

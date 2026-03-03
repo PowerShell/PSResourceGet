@@ -54,6 +54,8 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         const string containerRegistryRepositoryListTemplate = "https://{0}/v2/_catalog"; // 0 - registry
 
+        private string _cachedContainterRegistryToken = null;
+
         #endregion
 
         #region Constructor
@@ -67,6 +69,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 Credentials = networkCredential
             };
+
+            _cachedContainterRegistryToken = null;
 
             _sessionClient = new HttpClient(handler);
             _sessionClient.Timeout = TimeSpan.FromMinutes(10);
@@ -328,7 +332,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return null;
             }
 
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false, out errRecord);
             if (errRecord != null)
             {
                 return null;
@@ -376,13 +380,19 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// If no credential provided at registration then, check if the ACR endpoint can be accessed without a token. If not, try using Azure.Identity to get the az access token, then ACR refresh token and then ACR access token.
         /// Note: Access token can be empty if the repository is unauthenticated
         /// </summary>
-        internal string GetContainerRegistryAccessToken(bool needCatalogAccess, out ErrorRecord errRecord)
+        internal string GetContainerRegistryAccessToken(bool needCatalogAccess, bool isPushOperation, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessToken()");
             string accessToken = string.Empty;
             string containerRegistryAccessToken = string.Empty;
             string tenantID = string.Empty;
             errRecord = null;
+            
+            if (!string.IsNullOrEmpty(_cachedContainterRegistryToken))
+            {
+                _cmdletPassedIn.WriteVerbose("Using cached container registry access token.");
+                return _cachedContainterRegistryToken;
+            }
 
             PSCredentialInfo repositoryCredentialInfo = Repository.CredentialInfo;
             if (repositoryCredentialInfo != null)
@@ -398,7 +408,10 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             else
             {
-                bool isRepositoryUnauthenticated = IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), needCatalogAccess, out errRecord, out accessToken);
+                // A container registry repository is determined to be unauthenticated if it allows anonymous pull access. However, push operations always require authentication.
+                bool isRepositoryUnauthenticated = isPushOperation ? false : IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), needCatalogAccess, out errRecord, out accessToken);
+                _cmdletPassedIn.WriteInformation($"Value of isRepositoryUnauthenticated: {isRepositoryUnauthenticated}", new string[] { "PSRGContainerRegistryUnauthenticatedCheck" });
+
                 _cmdletPassedIn.WriteDebug($"Is repository unauthenticated: {isRepositoryUnauthenticated}");
 
                 if (errRecord != null)
@@ -444,6 +457,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 return null;
             }
+
+            _cmdletPassedIn.WriteVerbose("Container registry access token retrieved.");
+            _cachedContainterRegistryToken = containerRegistryAccessToken;
 
             return containerRegistryAccessToken;
         }
@@ -739,7 +755,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 using (JsonDocument metadataJSONDoc = JsonDocument.Parse(serverPkgInfo.Metadata))
                 {
-                    string pkgVersionString = String.Empty; 
+                    string pkgVersionString = String.Empty;
                     JsonElement rootDom = metadataJSONDoc.RootElement;
 
                     if (rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement))
@@ -1014,6 +1030,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                         return null;
                     }
 
+                    // codeql[cs/sensitive-data-transmission] This is expected PSResourceGet behavior to create the content of the request which is only transmitted to the server, not the user. This information is also not exposed back to the user via error or verbose messaging.
                     request.Content = new StringContent(content);
                     request.Content.Headers.Clear();
                     if (contentHeaders != null)
@@ -1316,7 +1333,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             // Get access token (includes refresh tokens)
             _cmdletPassedIn.WriteVerbose($"Get access token for container registry server.");
-            var containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, out errRecord);
+            var containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: true, out errRecord);
             if (errRecord != null)
             {
                 return false;
@@ -1781,7 +1798,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string packageNameLowercase = packageName.ToLower();
 
             string packageNameForFind = PrependMARPrefix(packageNameLowercase);
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false,out errRecord);
             if (errRecord != null)
             {
                 return emptyHashResponses;
@@ -1893,7 +1910,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindPackages()");
             errRecord = null;
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: true, out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: true, isPushOperation: false, out errRecord);
             if (errRecord != null)
             {
                 return emptyResponseResults;
