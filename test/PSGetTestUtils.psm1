@@ -19,6 +19,9 @@ $script:IsCoreCLR = $PSVersionTable.ContainsKey('PSEdition') -and $PSVersionTabl
 $script:PSGalleryName = 'PSGallery'
 $script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 
+$script:MARName = 'MAR'
+$script:MARLocation = 'https://mcr.microsoft.com'
+
 $script:NuGetGalleryName = 'NuGetGallery'
 $script:NuGetGalleryLocation = 'https://api.nuget.org/v3/index.json'
 
@@ -153,6 +156,16 @@ function Get-PSGalleryName
 function Get-PSGalleryLocation {
     return $script:PSGalleryLocation
 }
+
+function Get-MARName
+{
+    return $script:MARName
+}
+
+function Get-MARLocation {
+    return $script:MARLocation
+}
+
 function Get-NewTestDirs {
     Param(
         [string[]]
