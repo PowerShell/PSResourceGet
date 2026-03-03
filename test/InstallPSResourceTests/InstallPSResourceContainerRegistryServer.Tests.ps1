@@ -166,7 +166,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $Version = "(1.0.0.0)"
         { Install-PSResource -Name $testModuleName -Version $Version -Repository $ACRRepoName -TrustRepository -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction Ignore
         $res | Should -BeNullOrEmpty
     }
 

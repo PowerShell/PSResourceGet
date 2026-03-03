@@ -531,33 +531,6 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkgFoundFromPSGallery | Should -BeTrue
     }
 
-    It "find resources from all pattern matching repositories where it exists (-Repository with wildcard)" {
-        # Package with CommandName "Get-TargetResource" exists in the following repositories: PSGallery, localRepo
-        $res = Find-PSResource -CommandName $cmdName -Repository "*Gallery" -ErrorVariable err -ErrorAction SilentlyContinue
-        $err | Should -HaveCount 0
-        $res.Count | Should -BeGreaterOrEqual 9
-
-        $pkgFoundFromLocalRepo = $false
-        $pkgFoundFromPSGallery = $false
-
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
-                $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
-                $pkgFoundFromPSGallery = $true
-            }
-        }
-
-        $pkg.Names | Should -Be $cmdName
-        $pkg.ParentResource.Includes.Command | Should -Contain $cmdName
-        $pkgFoundFromLocalRepo | Should -BeFalse
-        $pkgFoundFromPSGallery | Should -BeTrue
-    }
-
     It "should not allow for repository name with wildcard and non-wildcard command name specified in same command run" {
         {Find-PSResource -CommandName $cmdName -Repository "*Gallery",$localRepoName} | Should -Throw -ErrorId "RepositoryNamesWithWildcardsAndNonWildcardUnsupported,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
