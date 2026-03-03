@@ -154,7 +154,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
 
     It "Save module as a nupkg" {
         Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -Path $SaveDir -AsNupkg -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ "test_module.1.0.0.nupkg"
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ "test_module.1.0.0.0.nupkg"
         $pkgDir | Should -Not -BeNullOrEmpty
     }
 

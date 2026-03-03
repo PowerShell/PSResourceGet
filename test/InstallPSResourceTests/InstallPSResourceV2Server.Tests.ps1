@@ -662,7 +662,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'ManualValidati
     }
 
     AfterEach {
-        Uninstall-PSResource $testModuleName, $testModuleName2 -ErrorAction SilentlyContinue
+        Uninstall-PSResource $testModuleName, $testModuleName2 -ErrorAction SilentlyContinue -SkipDependencyCheck
     }
 
     AfterAll {

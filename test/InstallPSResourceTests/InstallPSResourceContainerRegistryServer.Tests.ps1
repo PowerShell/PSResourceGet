@@ -369,7 +369,7 @@ Describe 'Test Install-PSResource for MAR Repository' -tags 'CI' {
         }
         finally {
             if ($pkg) {
-                Uninstall-PSResource -Name "Az.Accounts" -Version "3.0.4"
+                Uninstall-PSResource -Name "Az.Accounts" -Version "3.0.4" -SkipDependencyCheck
             }
         }
     }
