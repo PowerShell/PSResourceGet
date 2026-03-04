@@ -590,15 +590,6 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 }
 
 Describe 'Test Publish-PSResource for MAR Repository' -tags 'CI' {
-    BeforeAll {
-        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", "azure-powershell/");
-        Register-PSResourceRepository -Name "MAR" -Uri "https://mcr.microsoft.com" -ApiVersion "ContainerRegistry"
-    }
-
-    AfterAll {
-        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", $null);
-        Unregister-PSResourceRepository -Name "MAR"
-    }
 
     It "Should find resource given specific Name, Version null" {
         $fileName = "NonExistent.psd1"

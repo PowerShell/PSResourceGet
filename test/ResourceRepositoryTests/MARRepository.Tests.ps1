@@ -77,7 +77,7 @@ Describe "Test MAR Repository Registration" -tags 'CI' {
 
     Context "Reset repository store includes MAR" {
         It "Reset-PSResourceRepository should register MAR alongside PSGallery" {
-            Reset-PSResourceRepository -Force
+            Reset-PSResourceRepository
             $res = Get-PSResourceRepository -Name $MARName
             $res | Should -Not -BeNullOrEmpty
             $res.Name | Should -Be $MARName
@@ -95,7 +95,7 @@ Describe "Test MAR Repository Registration" -tags 'CI' {
             $res = Get-PSResourceRepository -Name $MARName -ErrorAction SilentlyContinue
             $res | Should -BeNullOrEmpty
 
-            Reset-PSResourceRepository -Force
+            Reset-PSResourceRepository
             $res = Get-PSResourceRepository -Name $MARName
             $res | Should -Not -BeNullOrEmpty
             $res.Name | Should -Be $MARName
@@ -107,7 +107,7 @@ Describe "Test MAR Repository Registration" -tags 'CI' {
         It "Reset-PSResourceRepository should restore both PSGallery and MAR" {
             Unregister-PSResourceRepository -Name $MARName
             Unregister-PSResourceRepository -Name $PSGalleryName
-            Reset-PSResourceRepository -Force
+            Reset-PSResourceRepository
 
             $mar = Get-PSResourceRepository -Name $MARName
             $mar | Should -Not -BeNullOrEmpty
