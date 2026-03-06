@@ -1618,7 +1618,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (initialCount == 0)
             {
-                throw new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'.");
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
             responses.Add(initialResponse);
