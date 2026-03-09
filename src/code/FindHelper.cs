@@ -1175,7 +1175,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         // Method 2 
         internal void FindDependencyPackagesHelper(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository)
         {
-            List<ErrorRecord> errors = new List<ErrorRecord>();
+            ConcurrentBag<ErrorRecord> errors = new ConcurrentBag<ErrorRecord>();
             if (currentPkg.Dependencies.Length > 0)
             {
                 // If finding more than 5 packages, do so concurrently
@@ -1205,23 +1205,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         // Method 3
-        private void FindDependencyPackageVersion(Dependency dep, ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository, List<ErrorRecord> errors)
+        private void FindDependencyPackageVersion(Dependency dep, ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository, ConcurrentBag<ErrorRecord> errors)
         {
             PSResourceInfo depPkg = null;
 
             if (dep.VersionRange.Equals(VersionRange.All) || !dep.VersionRange.HasUpperBound)
             {
-                // Case 1: No upper bound, eg: "*" or "(1.0.0, )"
-                // Check if the latest version is cached
-                if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedDepPkg))
-                {
-                    depPkg = cachedDepPkg;
-                }
-                else
-                {
-                    // Find this version from the server
-                    depPkg = FindDependencyWithLowerBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errors);
-                }
+                    // Case 1: No upper bound, eg: "*" or "(1.0.0, )"
+                    // Check if the latest version is cached
+                    if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedDepPkg))
+                    {
+                        depPkg = cachedDepPkg;
+                    }
+                    else
+                    {
+                        // Find this version from the server
+                        depPkg = FindDependencyWithLowerBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errors);
+                    }
             }
             else if (dep.VersionRange.HasLowerBound && dep.VersionRange.MinVersion.Equals(dep.VersionRange.MaxVersion))
             {
@@ -1257,7 +1257,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         // Method 4
-        private PSResourceInfo FindDependencyWithSpecificVersion(Dependency dep, ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository, List<ErrorRecord> errors)
+        private PSResourceInfo FindDependencyWithSpecificVersion(Dependency dep, ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository, ConcurrentBag<ErrorRecord> errors)
         {
             PSResourceInfo depPkg = null;
             ErrorRecord errRecord = null;
@@ -1320,7 +1320,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         // Method 5
-        private PSResourceInfo FindDependencyWithLowerBound(Dependency dep, ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository, List<ErrorRecord> errors) 
+        private PSResourceInfo FindDependencyWithLowerBound(Dependency dep, ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository, ConcurrentBag<ErrorRecord> errors) 
         {
             PSResourceInfo depPkg = null;
             FindResults responses = null;
@@ -1383,7 +1383,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         // Method 6
-        private PSResourceInfo FindDependencyWithUpperBound(Dependency dep, ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository, List<ErrorRecord> errors)
+        private PSResourceInfo FindDependencyWithUpperBound(Dependency dep, ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository, ConcurrentBag<ErrorRecord> errors)
         {
             PSResourceInfo depPkg = null;
             ErrorRecord errRecord = null;

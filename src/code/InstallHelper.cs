@@ -904,7 +904,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private ConcurrentDictionary<string, Hashtable> InstallParentAndDependencyPackages(List<PSResourceInfo> parentAndDeps, ServerApiCall currentServer, string tempInstallPath, ConcurrentDictionary<string, Hashtable> packagesHash, ConcurrentDictionary<string, Hashtable> updatedPackagesHash, PSResourceInfo pkgToInstall)
         {
-            List<ErrorRecord> errors = new List<ErrorRecord>();
+            ConcurrentBag<ErrorRecord> errors = new ConcurrentBag<ErrorRecord>();
 
             // TODO: figure out a good threshold and parallel count
             int processorCount = Environment.ProcessorCount;
