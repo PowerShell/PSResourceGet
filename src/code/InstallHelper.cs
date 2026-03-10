@@ -911,6 +911,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private ConcurrentDictionary<string, Hashtable> InstallParentAndDependencyPackages(List<PSResourceInfo> parentAndDeps, ServerApiCall currentServer, string tempInstallPath, ConcurrentDictionary<string, Hashtable> packagesHash, ConcurrentDictionary<string, Hashtable> updatedPackagesHash, PSResourceInfo pkgToInstall)
         {
+            string warning = string.Empty;
             ConcurrentBag<ErrorRecord> errors = new ConcurrentBag<ErrorRecord>();
 
             // TODO: figure out a good threshold and parallel count
@@ -934,7 +935,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
                     bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
-                        TryInstallToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out tempInstallErrRecord);
+                        TryInstallToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out warning, out tempInstallErrRecord);
 
                     if (!installedToTempPathSuccessfully)
                     {
@@ -950,6 +951,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         _cmdletPassedIn.WriteError(err);
                     }
 
+                    return packagesHash;
+                }
+                if (string.IsNullOrEmpty(warning))
+                {
+                    _cmdletPassedIn.WriteWarning(warning);
                     return packagesHash;
                 }
 
@@ -971,11 +977,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
                     bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
-                        TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, out tempInstallErrRecord);
+                        TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, out warning, out tempInstallErrRecord);
 
                     if (!installedToTempPathSuccessfully)
                     {
                         _cmdletPassedIn.WriteError(tempSaveErrRecord ?? tempInstallErrRecord);
+                        return packagesHash;
+                    }
+                    if (!string.IsNullOrEmpty(warning))
+                    {
+                        _cmdletPassedIn.WriteWarning(warning);
                         return packagesHash;
                     }
                 }
