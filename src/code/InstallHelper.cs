@@ -544,6 +544,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                                         tempInstallPath: tempInstallPath,
                                                         skipDependencyCheck: skipDependencyCheck,
                                                         packagesHash: new ConcurrentDictionary<string, Hashtable>(StringComparer.InvariantCultureIgnoreCase),
+                                                        warning: out string warning,
                                                         errRecord: out ErrorRecord errRecord);
 
                     // At this point all packages are installed to temp path.
@@ -559,6 +560,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
 
                         continue;
+                    }
+                    if (warning != null)
+                    {
+                        _cmdletPassedIn.WriteWarning(warning);
                     }
 
                     if (packagesHash.Count == 0)
@@ -630,10 +635,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string tempInstallPath,
             bool skipDependencyCheck,
             ConcurrentDictionary<string, Hashtable> packagesHash,
+            out string warning,
             out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackage()");
             FindResults responses = null;
+            warning = null;
             errRecord = null;
 
             // Find the parent package that needs to be installed
@@ -891,7 +898,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
 
                     bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgToInstall.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :
-                        TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgToInstall.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord);
+                        TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgToInstall.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out warning, out errRecord);
                     if (!installedToTempPathSuccessfully)
                     {
                         return packagesHash;
@@ -1038,8 +1045,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSResourceInfo pkgToInstall,
             ConcurrentDictionary<string, Hashtable> packagesHash,
             out ConcurrentDictionary<string, Hashtable> updatedPackagesHash,
+            out string warning,
             out ErrorRecord error)
         {
+            warning = null;
             error = null;
             updatedPackagesHash = packagesHash;
             try
@@ -1078,6 +1087,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     pkgName,
                     tempDirNameVersion,
                     _cmdletPassedIn,
+                    out warning,
                     out error))
                 {
                     return false;

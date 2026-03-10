@@ -2246,14 +2246,16 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             string pkgName,
             string tempDirNameVersion,
             PSCmdlet cmdletPassedIn,
+            out string warning,
             out ErrorRecord errorRecord)
         {
+            warning = string.Empty;
             errorRecord = null;
 
             // Because authenticode and catalog verifications are only applicable on Windows, we allow all packages by default to be installed on unix systems.
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                cmdletPassedIn.WriteWarning("Authenticode check cannot be performed on Linux or MacOS.");
+                warning = "Authenticode check cannot be performed on Linux or MacOS.";
                 return true;
             }
 
@@ -2262,16 +2264,16 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             try
             {
                 string[] listOfExtensions = { "*.ps1", "*.psd1", "*.psm1", "*.mof", "*.cat", "*.ps1xml" };
-                authenticodeSignatures = cmdletPassedIn.InvokeCommand.InvokeScript(
-                    script: @"param (
-                                      [string] $tempDirNameVersion,
-                                      [string[]] $listOfExtensions
-                                 )
-                                 Get-ChildItem $tempDirNameVersion -Recurse -Include $listOfExtensions | Get-AuthenticodeSignature -ErrorAction SilentlyContinue",
-                    useNewScope: true,
-                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
-                    input: null,
-                    args: new object[] { tempDirNameVersion, listOfExtensions });
+                using (var pwsh = System.Management.Automation.PowerShell.Create(RunspaceMode.CurrentRunspace))
+                {
+                    authenticodeSignatures = pwsh.AddCommand("Get-ChildItem")
+                        .AddParameter("Path", tempDirNameVersion)
+                        .AddParameter("Recurse")
+                        .AddParameter("Include", listOfExtensions)
+                        .AddCommand("Get-AuthenticodeSignature")
+                        .AddParameter("ErrorAction", "SilentlyContinue")
+                        .Invoke();
+                }
             }
             catch (Exception e)
             {
