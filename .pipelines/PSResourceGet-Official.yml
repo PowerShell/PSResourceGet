@@ -234,11 +234,20 @@ extends:
             Import-Module -Name Microsoft.PowerShell.PSResourceGet -Force
 
             Set-Location "$(signOutPath)\Microsoft.PowerShell.PSResourceGet"
-            $null = New-Item -ItemType Directory -Path "$(signOutPath)\PublishedNupkg" -Force
+            $publishPath = Join-Path $(signOutPath) -ChildPath 'PublishedNupkg'
 
-            Register-PSResourceRepository -Name 'localRepo' -Uri "$(signOutPath)\PublishedNupkg"
+            $null = New-Item -ItemType Directory -Path $publishPath -Force
+
+            Register-PSResourceRepository -Name 'localRepo' -Uri $publishPath
             Publish-PSResource -Path "$(signOutPath)\Microsoft.PowerShell.PSResourceGet" -Repository 'localRepo' -Verbose
+            Write-Output "##vso[task.setvariable variable=publishPath;isOutput=true]$publishPath"
           displayName: Create nupkg for publishing
+
+        - pwsh: |
+            Set-Location '$(publishPath)'
+            Write-Host "Contents of signOutPath:"
+            Get-ChildItem '$(publishPath)' -Recurse
+          displayName: Find Nupkg Pre Signing
 
         - task: onebranch.pipeline.signing@1
           displayName: Sign nupkg
@@ -246,13 +255,13 @@ extends:
             command: 'sign'
             signing_profile: external_distribution
             files_to_sign: '**\*.nupkg'
-            search_root: "$(signOutPath)\PublishedNupkg"
+            search_root: '$(publishPath)'
 
         - pwsh: |
-            Set-Location "$(signOutPath)\PublishedNupkg"
+            Set-Location '$(publishPath)'
             Write-Host "Contents of signOutPath:"
-            Get-ChildItem "$(signOutPath)" -Recurse
-          displayName: Find Nupkg
+            Get-ChildItem '$(publishPath)' -Recurse
+          displayName: Find Nupkg Post Signing
 
         - task: CopyFiles@2
           displayName: "Copy nupkg to ob_outputDirectory - '$(ob_outputDirectory)'"
