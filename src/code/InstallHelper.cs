@@ -977,13 +977,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     var pkgToInstallName = pkgToBeInstalled.Name;
                     var pkgToInstallVersion = Utils.GetNormalizedVersionString(pkgToBeInstalled.Version.ToString(), pkgToBeInstalled.Prerelease);
+                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage - not going through concurrency");
                     Stream responseStream = currentServer.InstallPackage(pkgToInstallName, pkgToInstallVersion, true, out ErrorRecord installNameErrRecord);
                     _cmdletPassedIn.WriteDebug("In BeginInstallPackage 981");
 
                     if (installNameErrRecord != null)
                     {
                         _cmdletPassedIn.WriteDebug("In BeginInstallPackage 985");
-                        _cmdletPassedIn.WriteError(installNameErrRecord);
+                        //_cmdletPassedIn.WriteError(installNameErrRecord);  // todo revert this
                         return packagesHash;
                     }
                     _cmdletPassedIn.WriteDebug("In BeginInstallPackage 988");
