@@ -570,7 +570,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     # Test that AuthenticodeCheck parameter displays warning on non-Windows
     It "Install with AuthenticodeCheck on non-Windows should display warning" -Skip:(Get-IsWindows) {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -AuthenticodeCheck -WarningVariable warn -WarningAction SilentlyContinue -Verbose -Debug
-        Write-Host $warn[0] -ForegroundColor Green
+        Write-Verbose "warning:::: $($warn[0])" -ForegroundColor Green
         $warn[0] | Should -Match "Authenticode check cannot be performed on Linux or MacOS"
         
         $res = Get-InstalledPSResource $testModuleName
