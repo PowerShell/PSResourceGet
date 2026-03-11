@@ -209,8 +209,6 @@ extends:
           type: windows
         steps:
         - checkout: self
-          env:
-            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
         - pwsh: |
             if (-not (Test-Path $(repoRoot)/.config/tsaoptions.json)) {
@@ -218,24 +216,18 @@ extends:
               throw "tsaoptions.json does not exist under $(repoRoot)/.config"
             }
           displayName: Test if tsaoptions.json exists
-          env:
-            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
         - task: DownloadPipelineArtifact@2
           displayName: 'Download build files'
           inputs:
             targetPath: $(signOutPath)
             artifact: drop_stagebuild_jobbuild
-          env:
-            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
         - pwsh: |
             Set-Location "$(signOutPath)"
             Write-Host "Contents of signOutPath:"
             Get-ChildItem $(signOutPath) -Recurse
           displayName: Capture artifacts directory structure
-          env:
-            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
         - pwsh: |
             # This need to be done before set-location so the module from PSHome is loaded
@@ -250,16 +242,12 @@ extends:
             Publish-PSResource -Path "$(signOutPath)\Microsoft.PowerShell.PSResourceGet" -Repository 'localRepo' -Verbose
             Write-Output "##vso[task.setvariable variable=publishPath]$publishPath"
           displayName: Create nupkg for publishing
-          env:
-            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
         - pwsh: |
             Set-Location '$(publishPath)'
             Write-Host "Contents of signOutPath:"
             Get-ChildItem '$(publishPath)' -Recurse
           displayName: Find Nupkg Pre Signing
-          env:
-            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
         - task: onebranch.pipeline.signing@1
           displayName: Sign nupkg
