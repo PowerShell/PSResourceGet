@@ -207,7 +207,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
 
-                bool isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+                bool isAllowed = true;
+                if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                {
+                    isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+                }
 
                 if (!isAllowed)
                 {
@@ -395,7 +399,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
 
-                bool isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+                bool isAllowed = true;
+
+                if (OperatingSystem.IsWindows())
+                {
+                    isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+                }
 
                 if (!isAllowed)
                 {
@@ -602,7 +611,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
 
-                bool isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+
+                bool isAllowed = true;
+                if (OperatingSystem.IsWindows())
+                {
+                    isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+                }
 
                 if (!isAllowed)
                 {
@@ -735,7 +749,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         _cmdletPassedIn.WriteDebug("No version specified, package name is '*'");
                         // Example: Find-PSResource -Name "*"
 
-                        // Note: Just for resources from V2 servers, specifically PSGallery, if the resource is unlisted and was requested non-explicitly 
+                        // Note: Just for resources from V2 servers, specifically PSGallery, if the resource is unlisted and was requested non-explicitly
                         // (i.e requested name has wildcard) the resource should not be returned and ResponseUtil.ConvertToPSResourceResult() call needs to be informed of this.
                         // In all other cases, return the resource regardless of whether it was requested explicitly or not.
                         bool isResourceRequestedWithWildcard = isV2Resource;
@@ -785,7 +799,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az*" -Tag "Storage"
                         _cmdletPassedIn.WriteDebug("No version specified, package name contains a wildcard.");
 
-                        // Note: Just for resources from V2 servers, specifically PSGallery, if the resource is unlisted and was requested non-explicitly 
+                        // Note: Just for resources from V2 servers, specifically PSGallery, if the resource is unlisted and was requested non-explicitly
                         // (i.e requested name has wildcard) the resource should not be returned and ResponseUtil.ConvertToPSResourceResult() call needs to be informed of this.
                         // In all other cases, return the resource regardless of whether it was requested explicitly or not.
                         bool isResourceRequestedWithWildcard = isV2Resource;
