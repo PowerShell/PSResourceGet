@@ -895,12 +895,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // TODO:  check this version and prerelease combo
                     Stream responseStream = currentServer.InstallPackage(pkgToInstall.Name, pkgToInstall.Version.ToString(), true, out ErrorRecord installNameErrRecord);
 
+                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage 898");
+
                     if (installNameErrRecord != null)
                     {
+                        _cmdletPassedIn.WriteDebug("In BeginInstallPackage 902");
                         errRecord = installNameErrRecord;
                         return packagesHash;
                     }
-
+                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage 905");
                     bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgToInstall.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :
                         TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgToInstall.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out warning, out errRecord);
                     if (!installedToTempPathSuccessfully)
@@ -932,11 +935,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     var depPkgVersion = depPkg.Version.ToString();
 
                     Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
+                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage 938");
+
                     if (installNameErrRecord != null)
                     {
+                        _cmdletPassedIn.WriteDebug("In BeginInstallPackage 942");
                         errors.Add(installNameErrRecord);
                     }
-
+                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage 945");
                     ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
                     bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
                         TryInstallToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out warning, out tempInstallErrRecord);
@@ -972,11 +978,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     var pkgToInstallName = pkgToBeInstalled.Name;
                     var pkgToInstallVersion = Utils.GetNormalizedVersionString(pkgToBeInstalled.Version.ToString(), pkgToBeInstalled.Prerelease);
                     Stream responseStream = currentServer.InstallPackage(pkgToInstallName, pkgToInstallVersion, true, out ErrorRecord installNameErrRecord);
+                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage 981");
+
                     if (installNameErrRecord != null)
                     {
+                        _cmdletPassedIn.WriteDebug("In BeginInstallPackage 985");
                         _cmdletPassedIn.WriteError(installNameErrRecord);
                         return packagesHash;
                     }
+                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage 988");
 
                     ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
                     bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :

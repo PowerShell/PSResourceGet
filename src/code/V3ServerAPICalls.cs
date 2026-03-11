@@ -349,6 +349,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             results = InstallVersion(packageName, packageVersion, out errRecord);
+
+            _cmdletPassedIn.WriteDebug("Returning from V3ServerAPICalls::InstallPackage()");
+
             return results;
         }
 
