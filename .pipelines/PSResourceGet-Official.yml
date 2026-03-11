@@ -240,7 +240,7 @@ extends:
 
             Register-PSResourceRepository -Name 'localRepo' -Uri $publishPath
             Publish-PSResource -Path "$(signOutPath)\Microsoft.PowerShell.PSResourceGet" -Repository 'localRepo' -Verbose
-            Write-Output "##vso[task.setvariable variable=publishPath]$publishPath"
+            Write-Output "##vso[task.setvariable variable=publishPath;isOutput=true]$publishPath"
           displayName: Create nupkg for publishing
 
         - pwsh: |
@@ -266,7 +266,7 @@ extends:
         - task: CopyFiles@2
           displayName: "Copy nupkg to ob_outputDirectory - '$(ob_outputDirectory)'"
           inputs:
-            Contents: $(publishPath)\Microsoft.PowerShell.PSResourceGet.*.nupkg
+            Contents: $(signOutPath)\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg
             TargetFolder: $(ob_outputDirectory)
 
         - pwsh: |
