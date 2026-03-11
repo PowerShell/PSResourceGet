@@ -112,20 +112,8 @@ function DoBuild
                 'NuGet.Protocol'
                 'NuGet.Versioning'
                 'OrasProject.Oras'
-                'System.Buffers'
-                'System.Diagnostics.DiagnosticSource'
-                'System.IO.FileSystem.AccessControl'
                 'System.Memory.Data'
-                'System.Memory'
-                'System.Numerics.Vectors'
-                'System.Runtime.CompilerServices.Unsafe'
-                'System.Security.AccessControl'
                 'System.Security.Cryptography.ProtectedData'
-                'System.Security.Principal.Windows'
-                'System.Text.Encodings.Web'
-                'System.Text.Json'
-                'System.Threading.Tasks.Extensions'
-                'System.ValueTuple'
             )
 
             $buildSuccess = $true
