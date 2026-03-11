@@ -344,6 +344,33 @@ function Test-PublishedFunction {
 
         $expectedPath = Join-Path -Path $script:repositoryPath2 -ChildPath "$script:PublishModuleName.$version.nupkg"
         (Get-ChildItem $script:repositoryPath2).FullName | Should -Be $expectedPath
+
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $package = [System.IO.Compression.ZipFile]::OpenRead($expectedPath)
+        try {
+            $nuspecEntry = $package.Entries | Where-Object FullName -like '*.nuspec' | Select-Object -First 1
+            $nuspecEntry | Should -Not -BeNullOrEmpty
+
+            $reader = [System.IO.StreamReader]::new($nuspecEntry.Open())
+            try {
+                $nuspecXml = [xml]$reader.ReadToEnd()
+            }
+            finally {
+                $reader.Dispose()
+            }
+        }
+        finally {
+            $package.Dispose()
+        }
+
+        $namespaceManager = [System.Xml.XmlNamespaceManager]::new($nuspecXml.NameTable)
+        $namespaceManager.AddNamespace('ns', 'http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd')
+        $dependencyIds = @(
+            $nuspecXml.SelectNodes('//ns:package/ns:metadata/ns:dependencies/ns:dependency', $namespaceManager) |
+                ForEach-Object { $_.Attributes['id'].Value }
+        )
+
+        $dependencyIds | Should -Not -Contain $externalModuleName
     }
 
     It "Publish a module with -SkipDependenciesCheck" {
