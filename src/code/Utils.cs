@@ -1426,7 +1426,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         return false;
                     }
                 }
-                
+
                 // Check for any errors from Test-ModuleManifest
                 if (pwsh.HadErrors)
                 {
@@ -1653,7 +1653,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
             catch (Exception e)
             {
-                throw e;
+                throw new PSInvalidOperationException(
+                    $"An error occurred while attempting to delete the directory at path {dirPath} with restore. Error: {e.Message}",
+                    e);
             }
             finally
             {
@@ -1684,7 +1686,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             if (!Directory.Exists(dirPath))
             {
-                throw new Exception($"Path '{dirPath}' that was attempting to be deleted does not exist.");
+                throw new PSInvalidOperationException($"Path '{dirPath}' that was attempting to be deleted does not exist.");
             }
 
             // Remove read only file attributes first
@@ -1721,10 +1723,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         if (ex.Message.Contains("The directory is not empty") && psVersion.StartsWith("5"))
                         {
                             // there is a known bug with WindowsPowerShell and OneDrive based module paths, where .NET Directory.Delete() will throw a 'The directory is not empty.' error.
-                            throw new Exception(string.Format("Cannot uninstall module with OneDrive based path on Windows PowerShell due to .NET issue. Try installing and uninstalling using PowerShell 7+ if using OneDrive."), ex);
+                            throw new PSInvalidOperationException("Cannot uninstall module with OneDrive based path on Windows PowerShell due to .NET issue. Try installing and uninstalling using PowerShell 7+ if using OneDrive.", ex);
                         }
 
-                        throw new Exception(string.Format("Access denied to path while deleting path {0}", dirPath), ex);
+                        throw new PSInvalidOperationException(string.Format("Access denied to path while deleting path {0}", dirPath), ex);
                     }
                     else
                     {

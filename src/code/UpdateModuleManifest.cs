@@ -604,7 +604,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 parsedMetadata["Prerelease"] = Prerelease;
             }
 
-            if (RequireLicenseAcceptance != null && RequireLicenseAcceptance.IsPresent)
+            if (RequireLicenseAcceptance.IsPresent)
             {
                 parsedMetadata["RequireLicenseAcceptance"] = RequireLicenseAcceptance;
             }
@@ -953,7 +953,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 prerelease = Prerelease;
             }
 
-            if (RequireLicenseAcceptance != null && RequireLicenseAcceptance.IsPresent)
+            if (RequireLicenseAcceptance.IsPresent)
             {
                 requireLicenseAcceptance = RequireLicenseAcceptance;
             }
