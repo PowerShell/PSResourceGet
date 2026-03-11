@@ -935,14 +935,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     var depPkgVersion = depPkg.Version.ToString();
 
                     Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
-                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage 938");
+                    //_cmdletPassedIn.WriteDebug("In BeginInstallPackage 938");
 
                     if (installNameErrRecord != null)
                     {
-                        _cmdletPassedIn.WriteDebug("In BeginInstallPackage 942");
+                      //  _cmdletPassedIn.WriteDebug("In BeginInstallPackage 942");
                         errors.Add(installNameErrRecord);
                     }
-                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage 945");
+                   // _cmdletPassedIn.WriteDebug("In BeginInstallPackage 945");
                     ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
                     bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
                         TryInstallToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out warning, out tempInstallErrRecord);
