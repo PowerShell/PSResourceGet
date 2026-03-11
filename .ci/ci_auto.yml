@@ -69,7 +69,7 @@ stages:
         Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
         #
         # Build for net472 framework
-        $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net472'
+        $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net8.0'
       displayName: Build module
 
     - pwsh: |
