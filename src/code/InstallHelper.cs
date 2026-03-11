@@ -956,7 +956,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (string.IsNullOrEmpty(warning))
                 {
                     _cmdletPassedIn.WriteWarning(warning);
-                    return packagesHash;
                 }
 
                 return updatedPackagesHash;
@@ -987,7 +986,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (!string.IsNullOrEmpty(warning))
                     {
                         _cmdletPassedIn.WriteWarning(warning);
-                        return packagesHash;
                     }
                 }
 
