@@ -173,6 +173,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 skipDependencyCheck: skipDependencyCheck,
                 scope: scope ?? ScopeType.CurrentUser);
 
+            _cmdletPassedIn.WriteVerbose("Returning from BeginInstallpackages");
             return installedPkgs;
         }
 
@@ -341,11 +342,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 repositoryNamesToSearch.Add(repoName);
 
+                _cmdletPassedIn.WriteVerbose("InstallHelper line 345");
                 List<PSResourceInfo> installedPkgs = InstallPackages(_pkgNamesToInstall.ToArray(), currentRepository, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
                 foreach (PSResourceInfo pkg in installedPkgs)
                 {
                     _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                 }
+                _cmdletPassedIn.WriteVerbose("InstallHelper line 351");
 
                 allPkgsInstalled.AddRange(installedPkgs);
             }
@@ -359,6 +362,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ErrorCategory.InvalidData,
                     _cmdletPassedIn));
             }
+            _cmdletPassedIn.WriteVerbose("InstallHelper line 365");
 
             return allPkgsInstalled;
         }

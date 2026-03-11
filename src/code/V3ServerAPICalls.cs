@@ -754,6 +754,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallVersion()");
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
+                _cmdletPassedIn.WriteDebug("InstallVersion - could not parse version");
+                if (string.IsNullOrEmpty(version))
+                {
+                    _cmdletPassedIn.WriteDebug("version is null or empty");
+                }
                 errRecord = new ErrorRecord(
                     new ArgumentException($"Version {version} to be installed is not a valid NuGet version."),
                     "InstallVersionFailure",
@@ -762,6 +767,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return null;
             }
+            _cmdletPassedIn.WriteDebug("InstallVersion 765");
 
             var inst = InstallHelper(packageName, requiredVersion, out errRecord);
             _cmdletPassedIn.WriteDebug("Returning from V3ServerAPICalls::InstallVersion()");
