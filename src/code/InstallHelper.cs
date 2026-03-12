@@ -924,7 +924,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // TODO: figure out a good threshold and parallel count
             int processorCount = Environment.ProcessorCount;
             _cmdletPassedIn.WriteDebug($"parentAndDeps.Count is {parentAndDeps.Count}, processor count is: {processorCount}");
-            if (parentAndDeps.Count > processorCount)
+            if (parentAndDeps.Count > 0)
             {
                  _cmdletPassedIn.WriteDebug($"parentAndDeps.Count is greater than processor count");
                 // Set the maximum degree of parallelism to 32? (Invoke-Command has default of 32, that's where we got this number from)
@@ -937,12 +937,34 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     var depPkgVersion = depPkg.Version.ToString();
 
                     Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
+
+                    var nullresp = false;
+                    if (responseStream == null)
+                    {
+                        nullresp = true;
+                    }
+
+                    // if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2)
+                    // {
+                    //     // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
+                    //     string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
+                    //     response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type));
+                        
+                    //     responses = response.GetAwaiter().GetResult();
+                    // }
+                    // else
+                    // {
+                    //     responses = currentServer.FindVersion(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, out errRecord);
+                    // }
+
+
+
                     //_cmdletPassedIn.WriteDebug("In BeginInstallPackage 938");
 
                     if (installNameErrRecord != null)
                     {
                       //  _cmdletPassedIn.WriteDebug("In BeginInstallPackage 942");
-                        errors.Add(installNameErrRecord);
+                        //errors.Add(installNameErrRecord);
                     }
                    // _cmdletPassedIn.WriteDebug("In BeginInstallPackage 945");
                     ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
@@ -951,7 +973,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (!installedToTempPathSuccessfully)
                     {
-                        errors.Add(tempSaveErrRecord ?? tempInstallErrRecord);
+                        //errors.Add(tempSaveErrRecord ?? tempInstallErrRecord);
                     }
                 });
 
@@ -965,7 +987,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     return packagesHash;
                 }
-                if (string.IsNullOrEmpty(warning))
+                if (!string.IsNullOrEmpty(warning))
                 {
                     _cmdletPassedIn.WriteWarning(warning);
                 }
@@ -1081,6 +1103,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
                 using var fs = File.Create(pathToFile);
+                if (responseStream == null)
+                {
+                    throw new InvalidOperationException("responseStream is null");
+                }
                 responseStream.Seek(0, System.IO.SeekOrigin.Begin);
                 responseStream.CopyTo(fs);
                 fs.Close();

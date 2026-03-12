@@ -1333,7 +1333,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 out resourceInfo,
                 out error);
         }
-
         private static bool TryReadPSDataFile(
             string filePath,
             string[] allowedVariables,
@@ -1354,84 +1353,70 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                 // Parallel.ForEach calls into this method.
                 // Each thread needs its own runspace created to provide a separate environment for operations to run independently.
-                // The runspace must be disposed when done and DefaultRunspace must be set/restored per-thread
-                // to prevent cross-contamination when thread-pool threads are reused across tests.
                 Runspace runspace = RunspaceFactory.CreateRunspace();
                 runspace.Open();
                 runspace.SessionStateProxy.LanguageMode = PSLanguageMode.ConstrainedLanguage;
 
-                // Save and set the default runspace for the current thread to prevent
-                // stale DefaultRunspace from a prior operation on this reused thread-pool thread.
-                Runspace previousDefaultRunspace = Runspace.DefaultRunspace;
-                try
+                // Set the created runspace as the default for the current thread
+                //Runspace.DefaultRunspace = runspace;
+
+                using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
-                    Runspace.DefaultRunspace = runspace;
+                    pwsh.Runspace = runspace;
 
-                    using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+                    var cmd = new Command(
+                        command: contents,
+                        isScript: true,
+                        useLocalScope: true);
+                    cmd.MergeMyResults(
+                        myResult: PipelineResultTypes.Error | PipelineResultTypes.Warning | PipelineResultTypes.Verbose | PipelineResultTypes.Debug | PipelineResultTypes.Information,
+                        toResult: PipelineResultTypes.Output);
+                    pwsh.Commands.AddCommand(cmd);
+
+
+                    try
                     {
-                        pwsh.Runspace = runspace;
+                        // Invoke the pipeline and retrieve the results
+                        var results = pwsh.Invoke();
 
-                        var cmd = new Command(
-                            command: contents,
-                            isScript: true,
-                            useLocalScope: true);
-                        cmd.MergeMyResults(
-                            myResult: PipelineResultTypes.Error | PipelineResultTypes.Warning | PipelineResultTypes.Verbose | PipelineResultTypes.Debug | PipelineResultTypes.Information,
-                            toResult: PipelineResultTypes.Output);
-                        pwsh.Commands.AddCommand(cmd);
-
-                        try
+                        if (results[0] is PSObject pwshObj)
                         {
-                            // Invoke the pipeline and retrieve the results
-                            var results = pwsh.Invoke();
-
-                            if (results[0] is PSObject pwshObj)
+                            switch (pwshObj.BaseObject)
                             {
-                                switch (pwshObj.BaseObject)
-                                {
-                                    case ErrorRecord err:
-                                        //_cmdletPassedIn.WriteError(error);
-                                        break;
+                                case ErrorRecord err:
+                                    //_cmdletPassedIn.WriteError(error);
+                                    break;
 
-                                    case WarningRecord warning:
-                                        //cmdlet.WriteWarning(warning.Message);
-                                        break;
+                                case WarningRecord warning:
+                                    //cmdlet.WriteWarning(warning.Message);
+                                    break;
 
-                                    case VerboseRecord verbose:
-                                        //cmdlet.WriteVerbose(verbose.Message);
-                                        break;
+                                case VerboseRecord verbose:
+                                    //cmdlet.WriteVerbose(verbose.Message);
+                                    break;
 
-                                    case DebugRecord debug:
-                                        //cmdlet.WriteDebug(debug.Message);
-                                        break;
+                                case DebugRecord debug:
+                                    //cmdlet.WriteDebug(debug.Message);
+                                    break;
 
-                                    case InformationRecord info:
-                                        //cmdlet.WriteInformation(info);
-                                        break;
+                                case InformationRecord info:
+                                    //cmdlet.WriteInformation(info);
+                                    break;
 
-                                    case Hashtable result:
-                                        dataFileInfo = result;
-                                        return true;
-                                }
+                                case Hashtable result:
+                                    dataFileInfo = result;
+                                    return true;
                             }
                         }
-                        catch (Exception ex)
-                        {
-                            error = ex;
-                        }
                     }
-                    // Return false to indicate "we couldn't parse a valid Hashtable from this .psd1 file." 
-                    // The only success path is the 'case Hashtable result' branch above which does return true.
-                    return false;
+                    catch (Exception ex)
+                    {
+                        error = ex;
+                    }
                 }
-                finally
-                {
-                    // Always restore the previous default runspace and close/dispose
-                    // the per-thread runspace, even on success (return true) or exception paths.
-                    Runspace.DefaultRunspace = previousDefaultRunspace;
-                    runspace.Close();
-                    runspace.Dispose();
-                }
+                runspace.Close();
+                
+                return false;
             }
             catch (Exception ex)
             {
