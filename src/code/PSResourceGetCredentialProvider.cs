@@ -53,7 +53,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             // Return cached credential if still valid
             if (!string.IsNullOrEmpty(_cachedCredential.RefreshToken) && DateTimeOffset.UtcNow < _tokenExpiry)
             {
-                _cmdletPassedIn.WriteVerbose("Using cached ORAS credential.");
+                Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "Using cached ORAS credential.");
                 return _cachedCredential;
             }
 
@@ -64,7 +64,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             if (repositoryCredentialInfo != null)
             {
                 // Path 1: Credential from SecretsManagement vault
-                _cmdletPassedIn.WriteVerbose("Retrieving access token from SecretManagement vault.");
+                Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "Retrieving access token from SecretManagement vault.");
                 aadAccessToken = Utils.GetContainerRegistryAccessTokenFromSecretManagement(
                     _repository.Name,
                     repositoryCredentialInfo,
@@ -72,7 +72,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                 if (string.IsNullOrEmpty(aadAccessToken))
                 {
-                    _cmdletPassedIn.WriteWarning("Failed to retrieve access token from SecretManagement vault.");
+                    Utils.WriteWarningOnCmdlet(_cmdletPassedIn, "Failed to retrieve access token from SecretManagement vault.");
                     return new Credential();
                 }
 
@@ -81,13 +81,13 @@ namespace Microsoft.PowerShell.PSResourceGet
             else
             {
                 // Path 2: Azure Identity via existing Utils helper
-                _cmdletPassedIn.WriteVerbose("Acquiring AAD access token via Utils.GetAzAccessToken.");
+                Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "Acquiring AAD access token via Utils.GetAzAccessToken.");
                 aadAccessToken = Utils.GetAzAccessToken(_cmdletPassedIn);
 
                 if (string.IsNullOrEmpty(aadAccessToken))
                 {
                     // If Azure Identity fails, return empty credential for anonymous access
-                    _cmdletPassedIn.WriteVerbose("No AAD token available; attempting anonymous access.");
+                    Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "No AAD token available; attempting anonymous access.");
                     return new Credential();
                 }
 
@@ -95,14 +95,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             // Exchange AAD access token for ACR refresh token via OAuth2 exchange endpoint
-            _cmdletPassedIn.WriteVerbose("Exchanging AAD access token for ACR refresh token.");
+            Utils.WriteVerboseOnCmdlet(_cmdletPassedIn, "Exchanging AAD access token for ACR refresh token.");
             try
             {
                 string refreshToken = await ExchangeForAcrRefreshTokenAsync(aadAccessToken, tenantId, cancellationToken).ConfigureAwait(false);
 
                 if (string.IsNullOrEmpty(refreshToken))
                 {
-                    _cmdletPassedIn.WriteWarning("Failed to obtain ACR refresh token from exchange.");
+                    Utils.WriteWarningOnCmdlet(_cmdletPassedIn, "Failed to obtain ACR refresh token from exchange.");
                     return new Credential();
                 }
 
@@ -112,7 +112,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception ex)
             {
-                _cmdletPassedIn.WriteWarning($"Failed to exchange AAD token for ACR refresh token: {ex.Message}");
+                Utils.WriteWarningOnCmdlet(_cmdletPassedIn, $"Failed to exchange AAD token for ACR refresh token: {ex.Message}");
                 return new Credential();
             }
         }
