@@ -1459,6 +1459,22 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             catch { }
         }
 
+        public static void WriteWarningOnCmdlet(
+            PSCmdlet cmdlet,
+            string message)
+        {
+            try
+            {
+                cmdlet.InvokeCommand.InvokeScript(
+                    script: $"param ([string] $message) Write-Warning -Message $message",
+                    useNewScope: true,
+                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
+                    input: null,
+                    args: new object[] { message });
+            }
+            catch { }
+        }
+
         /// <summary>
         /// Convert a json string into a hashtable object.
         /// This uses custom script to perform the PSObject -> Hashtable
