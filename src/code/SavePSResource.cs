@@ -313,16 +313,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 tmpPath: _tmpPath,
                 pkgsInstalled: new HashSet<string>(StringComparer.InvariantCultureIgnoreCase));
 
-            WriteVerbose("Returned from BeginPackages in Save");
-
             if (PassThru)
             {
                 foreach (PSResourceInfo pkg in installedPkgs)
                 {
-                    if (pkg == null)
-                    {
-                        WriteVerbose("pkg is null");
-                    }
                     WriteObject(pkg);
                 }
             }

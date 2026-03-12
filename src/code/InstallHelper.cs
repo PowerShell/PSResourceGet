@@ -967,7 +967,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (!installedToTempPathSuccessfully)
                     {
-                        //errors.Add(tempSaveErrRecord ?? tempInstallErrRecord);
+                        errors.Add(tempSaveErrRecord ?? tempInstallErrRecord);
                     }
                 });
 
