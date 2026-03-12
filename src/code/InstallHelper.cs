@@ -924,7 +924,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // TODO: figure out a good threshold and parallel count
             int processorCount = Environment.ProcessorCount;
             _cmdletPassedIn.WriteDebug($"parentAndDeps.Count is {parentAndDeps.Count}, processor count is: {processorCount}");
-            if (parentAndDeps.Count > 0)
+            if (parentAndDeps.Count > processorCount)
             {
                  _cmdletPassedIn.WriteDebug($"parentAndDeps.Count is greater than processor count");
                 // Set the maximum degree of parallelism to 32? (Invoke-Command has default of 32, that's where we got this number from)
@@ -937,12 +937,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     var depPkgVersion = depPkg.Version.ToString();
 
                     Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
-
-                    var nullresp = false;
-                    if (responseStream == null)
-                    {
-                        nullresp = true;
-                    }
 
                     // if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2)
                     // {
@@ -1103,10 +1097,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
                 using var fs = File.Create(pathToFile);
-                if (responseStream == null)
-                {
-                    throw new InvalidOperationException("responseStream is null");
-                }
+                // if (responseStream == null)
+                // {
+                //     throw new InvalidOperationException("responseStream is null");
+                // }
                 responseStream.Seek(0, System.IO.SeekOrigin.Begin);
                 responseStream.CopyTo(fs);
                 fs.Close();
