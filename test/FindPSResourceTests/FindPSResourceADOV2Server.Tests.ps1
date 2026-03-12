@@ -267,3 +267,4 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
     }
 }
+#
