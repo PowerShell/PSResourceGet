@@ -1338,7 +1338,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             else
             {
                 responses = currentServer.FindName(dep.Name, includePrerelease: true, _type, out errRecord);
-                _cmdletPassedIn.WriteDebug($"returned back to FindDependencyWithLowerBound() line 1341");
             }
 
             // Error handling and Convert to PSResource object
