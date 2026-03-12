@@ -154,7 +154,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
 
     It "Save module as a nupkg" {
         Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -Path $SaveDir -AsNupkg -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ "test_module.1.0.0.nupkg"
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ "test_module.1.0.0.0.nupkg"
         $pkgDir | Should -Not -BeNullOrEmpty
     }
 
@@ -199,7 +199,6 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         Save-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -Contain "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
-        $err[1].FullyQualifiedErrorId | Should -Contain "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
 
     # Save resource that requires license

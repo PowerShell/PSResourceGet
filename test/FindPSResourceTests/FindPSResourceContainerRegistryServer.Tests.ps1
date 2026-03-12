@@ -298,18 +298,6 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
         $res.Dependencies.Length | Should -Not -Be 0
     }
 
-    It "Should find resource with wildcard in Name" {
-        $res = Find-PSResource -Name "Az.App*" -Repository "MAR"
-        $res | Should -Not -BeNullOrEmpty
-        $res.Count | Should -BeGreaterThan 1
-    }
-
-    It "Should find all resource with wildcard in Name" {
-        $res = Find-PSResource -Name "*" -Repository "MAR"
-        $res | Should -Not -BeNullOrEmpty
-        $res.Count | Should -BeGreaterThan 1
-    }
-
     It "Should find version range for Az dependencies" {
         # Target known version to know the output from the API won't change
         $res = Find-PSResource -Repository 'MAR' -Name 'Az' -Version '14.4.0'

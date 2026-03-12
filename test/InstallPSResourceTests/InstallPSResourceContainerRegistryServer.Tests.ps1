@@ -166,7 +166,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $Version = "(1.0.0.0)"
         { Install-PSResource -Name $testModuleName -Version $Version -Repository $ACRRepoName -TrustRepository -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction Ignore
         $res | Should -BeNullOrEmpty
     }
 
@@ -369,7 +369,7 @@ Describe 'Test Install-PSResource for MAR Repository' -tags 'CI' {
         }
         finally {
             if ($pkg) {
-                Uninstall-PSResource -Name "Az.Accounts" -Version "3.0.4"
+                Uninstall-PSResource -Name "Az.Accounts" -Version "3.0.4" -SkipDependencyCheck
             }
         }
     }

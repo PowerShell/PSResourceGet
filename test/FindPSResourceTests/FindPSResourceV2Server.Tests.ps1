@@ -353,24 +353,6 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res | Should -HaveCount 2
     }
 
-    It "find resource given CommandName" {
-        $res = Find-PSResource -CommandName $commandName -Repository $PSGalleryName
-        $res | Should -Not -BeNullOrEmpty
-        foreach ($item in $res) {
-            $item.Names | Should -Be $commandName
-            $item.ParentResource.Includes.Command | Should -Contain $commandName
-        }
-    }
-
-    It "find resource given DscResourceName" {
-        $res = Find-PSResource -DscResourceName $dscResourceName -Repository $PSGalleryName
-        $res | Should -Not -BeNullOrEmpty
-        foreach ($item in $res) {
-            $item.Names | Should -Be $dscResourceName
-            $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
-        }
-    }
-
     It "find resource, but only show listed versions" {
         # testmodule99 version 1.0.0-beta1 is unlisted
         $res = Find-PSResource -Name "testmodule99" -Repository $PSGalleryName

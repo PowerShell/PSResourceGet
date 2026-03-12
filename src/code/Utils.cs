@@ -1333,7 +1333,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 out resourceInfo,
                 out error);
         }
-
         private static bool TryReadPSDataFile(
             string filePath,
             string[] allowedVariables,
@@ -1342,37 +1341,97 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             out Hashtable dataFileInfo,
             out Exception error)
         {
+            dataFileInfo = null;
+            error = null;
             try
             {
                 if (filePath is null)
                 {
                     throw new PSArgumentNullException(nameof(filePath));
                 }
-
                 string contents = System.IO.File.ReadAllText(filePath);
-                var scriptBlock = System.Management.Automation.ScriptBlock.Create(contents);
 
-                // Ensure that the content script block is safe to convert into a PSDataFile Hashtable.
-                // This will throw for unsafe content.
-                scriptBlock.CheckRestrictedLanguage(
-                    allowedCommands: allowedCommands,
-                    allowedVariables: allowedVariables,
-                    allowEnvironmentVariables: allowEnvironmentVariables);
+                // Parallel.ForEach calls into this method.
+                // Each thread needs its own runspace created to provide a separate environment for operations to run independently.
+                Runspace runspace = RunspaceFactory.CreateRunspace();
+                runspace.Open();
+                runspace.SessionStateProxy.LanguageMode = PSLanguageMode.ConstrainedLanguage;
 
-                // Convert contents into PSDataFile Hashtable by executing content as script.
-                object result = scriptBlock.InvokeReturnAsIs();
-                if (result is PSObject psObject)
+                // Save and set the default runspace for the current thread to prevent
+                // stale DefaultRunspace from a prior operation on this reused thread-pool thread.
+                Runspace previousDefaultRunspace = Runspace.DefaultRunspace;
+                try
                 {
-                    result = psObject.BaseObject;
-                }
+                    Runspace.DefaultRunspace = runspace;
 
-                dataFileInfo = (Hashtable)result;
-                error = null;
-                return true;
+                    using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+                    {
+                        pwsh.Runspace = runspace;
+
+                        var cmd = new Command(
+                            command: contents,
+                            isScript: true,
+                            useLocalScope: true);
+                        cmd.MergeMyResults(
+                            myResult: PipelineResultTypes.Error | PipelineResultTypes.Warning | PipelineResultTypes.Verbose | PipelineResultTypes.Debug | PipelineResultTypes.Information,
+                            toResult: PipelineResultTypes.Output);
+                        pwsh.Commands.AddCommand(cmd);
+
+                        try
+                        {
+                            // Invoke the pipeline and retrieve the results
+                            var results = pwsh.Invoke();
+
+                            if (results[0] is PSObject pwshObj)
+                            {
+                                switch (pwshObj.BaseObject)
+                                {
+                                    case ErrorRecord err:
+                                        //_cmdletPassedIn.WriteError(error);
+                                        break;
+
+                                    case WarningRecord warning:
+                                        //cmdlet.WriteWarning(warning.Message);
+                                        break;
+
+                                    case VerboseRecord verbose:
+                                        //cmdlet.WriteVerbose(verbose.Message);
+                                        break;
+
+                                    case DebugRecord debug:
+                                        //cmdlet.WriteDebug(debug.Message);
+                                        break;
+
+                                    case InformationRecord info:
+                                        //cmdlet.WriteInformation(info);
+                                        break;
+
+                                    case Hashtable result:
+                                        dataFileInfo = result;
+                                        return true;
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            error = ex;
+                        }
+                    }
+                    // Return false to indicate "we couldn't parse a valid Hashtable from this .psd1 file." 
+                    // The only success path is the 'case Hashtable result' branch above which does return true.
+                    return false;
+                }
+                finally
+                {
+                    // Always restore the previous default runspace and close/dispose
+                    // the per-thread runspace, even on success (return true) or exception paths.
+                    Runspace.DefaultRunspace = previousDefaultRunspace;
+                    runspace.Close();
+                    runspace.Dispose();
+                }
             }
             catch (Exception ex)
             {
-                dataFileInfo = null;
                 error = ex;
                 return false;
             }
@@ -2184,14 +2243,16 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             string pkgName,
             string tempDirNameVersion,
             PSCmdlet cmdletPassedIn,
+            out string warning,
             out ErrorRecord errorRecord)
         {
+            warning = string.Empty;
             errorRecord = null;
 
             // Because authenticode and catalog verifications are only applicable on Windows, we allow all packages by default to be installed on unix systems.
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                cmdletPassedIn.WriteWarning("Authenticode check cannot be performed on Linux or MacOS.");
+                warning = "Authenticode check cannot be performed on Linux or MacOS.";
                 return true;
             }
 
@@ -2200,16 +2261,16 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             try
             {
                 string[] listOfExtensions = { "*.ps1", "*.psd1", "*.psm1", "*.mof", "*.cat", "*.ps1xml" };
-                authenticodeSignatures = cmdletPassedIn.InvokeCommand.InvokeScript(
-                    script: @"param (
-                                      [string] $tempDirNameVersion,
-                                      [string[]] $listOfExtensions
-                                 )
-                                 Get-ChildItem $tempDirNameVersion -Recurse -Include $listOfExtensions | Get-AuthenticodeSignature -ErrorAction SilentlyContinue",
-                    useNewScope: true,
-                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
-                    input: null,
-                    args: new object[] { tempDirNameVersion, listOfExtensions });
+                using (var pwsh = System.Management.Automation.PowerShell.Create(RunspaceMode.CurrentRunspace))
+                {
+                    authenticodeSignatures = pwsh.AddCommand("Get-ChildItem")
+                        .AddParameter("Path", tempDirNameVersion)
+                        .AddParameter("Recurse")
+                        .AddParameter("Include", listOfExtensions)
+                        .AddCommand("Get-AuthenticodeSignature")
+                        .AddParameter("ErrorAction", "SilentlyContinue")
+                        .Invoke();
+                }
             }
             catch (Exception e)
             {
