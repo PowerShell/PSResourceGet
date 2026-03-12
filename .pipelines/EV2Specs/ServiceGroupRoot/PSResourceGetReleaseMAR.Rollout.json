@@ -1,0 +1,60 @@
+{
+  "$schema": "https://ev2schema.azure.net/schemas/2020-01-01/rolloutParameters.json",
+  "contentVersion": "1.0.0.0",
+  "shellExtensions": [
+    {
+      "name": "Run",
+      "type": "Run",
+      "properties": {
+        "maxExecutionTime": "PT2H"
+      },
+      "package": {
+        "reference": {
+          "path": "Shell/Run.tar"
+        }
+      },
+      "launch": {
+        "command": [
+          "/bin/bash",
+          "-c",
+          "pwsh ./Run/Run.ps1"
+        ],
+        "environmentVariables": [
+          {
+            "name": "NUPKG_PATH",
+            "reference":
+            {
+                "path": "default"
+            }
+          },
+          {
+            "name": "PSRESOURCE_NAME",
+            "value": "default"
+          },
+          {
+            "name": "PSRESOURCE_VERSION",
+            "value": "default"
+          },
+          {
+            "name": "DESTINATION_ACR_NAME",
+            "value": "default"
+          },
+          {
+            "name": "DESTINATION_ACR_URI",
+            "value": "default"
+          },
+          {
+            "name": "MI_CLIENTID",
+            "value": "default"
+          }
+        ],
+        "identity": {
+          "type": "userAssigned",
+          "userAssignedIdentities": [
+            "default"
+          ]
+        }
+      }
+    }
+  ]
+}

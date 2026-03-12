@@ -1,0 +1,33 @@
+{
+  "$schema": "https://ev2schema.azure.net/schemas/2020-04-01/RegionAgnosticRolloutSpecification.json",
+  "contentVersion": "1.0.0.0",
+  "rolloutMetadata": {
+    "serviceModelPath": "ServiceModel.json",
+    "ScopeBindingsPath": "ScopeBindings.json",
+    "name": "Microsoft.Azure.PSCore.PSResourceGet",
+    "rolloutType": "Major",
+    "buildSource": {
+      "parameters": {
+        "versionFile": "buildver.txt"
+      }
+    },
+    "configuration": {
+      "serviceGroupScope": {
+        "specPath": "ConfigServiceGroup.json"
+      }
+    },
+    "Notification": {
+      "Email": {
+        "To": "default"
+      }
+    }
+  },
+  "orchestratedSteps": [
+    {
+      "name": "PSResourceGetMARRelease",
+      "targetType": "ServiceResourceDefinition",
+      "targetName": "PSResourceGetMARReleaseShell",
+      "actions": ["Shell/Run"]
+    }
+  ]
+}

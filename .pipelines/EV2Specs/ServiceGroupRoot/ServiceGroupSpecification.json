@@ -1,0 +1,7 @@
+{
+    "name": "Microsoft.Azure.PSCore.PSResourceGet",
+    "description": "PSResourceGet Publish to MAR",
+    "ownerGroupObjectId": "00000000-0000-0000-0000-000000000000",
+    "ownerGroupContactEmail": "default",
+    "contentVersion": "1.0.0.0"
+}
