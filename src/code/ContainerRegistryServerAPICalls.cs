@@ -4,23 +4,28 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using NuGet.Versioning;
+using OrasProject.Oras;
+using OrasProject.Oras.Content;
+using OrasProject.Oras.Oci;
+using OrasProject.Oras.Registry;
+using OrasProject.Oras.Registry.Remote;
+using OrasProject.Oras.Registry.Remote.Auth;
+using OrasRegistry = OrasProject.Oras.Registry.Remote.Registry;
+using OrasRepository = OrasProject.Oras.Registry.Remote.Repository;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
@@ -33,28 +38,15 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override PSRepositoryInfo Repository { get; set; }
         public String Registry { get; set; }
         private readonly PSCmdlet _cmdletPassedIn;
-        private HttpClient _sessionClient { get; set; }
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[] { };
         private static FindResponseType containerRegistryFindResponseType = FindResponseType.ResponseString;
         private static readonly FindResults emptyResponseResults = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
 
-        const string containerRegistryRefreshTokenTemplate = "grant_type=access_token&service={0}&tenant={1}&access_token={2}"; // 0 - registry, 1 - tenant, 2 - access token
-        const string containerRegistryAccessTokenTemplate = "grant_type=refresh_token&service={0}&scope=repository:*:*&scope=registry:catalog:*&refresh_token={1}"; // 0 - registry, 1 - refresh token
-        const string containerRegistryOAuthExchangeUrlTemplate = "https://{0}/oauth2/exchange"; // 0 - registry
-        const string containerRegistryOAuthTokenUrlTemplate = "https://{0}/oauth2/token"; // 0 - registry
-        const string containerRegistryManifestUrlTemplate = "https://{0}/v2/{1}/manifests/{2}"; // 0 - registry, 1 - repo(modulename), 2 - tag(version)
-        const string containerRegistryBlobDownloadUrlTemplate = "https://{0}/v2/{1}/blobs/{2}"; // 0 - registry, 1 - repo(modulename), 2 - layer digest
-        const string containerRegistryFindImageVersionUrlTemplate = "https://{0}/v2/{1}/tags/list"; // 0 - registry, 1 - repo(modulename)
-        const string containerRegistryStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads/"; // 0 - registry, 1 - packagename
-        const string containerRegistryEndUploadTemplate = "https://{0}{1}&digest=sha256:{2}"; // 0 - registry, 1 - location, 2 - digest
-        const string defaultScope = "&scope=repository:*:*&scope=registry:catalog:*";
-        const string catalogScope = "&scope=registry:catalog:*";
-        const string grantTypeTemplate = "grant_type=access_token&service={0}{1}"; // 0 - registry, 1 - scope
-        const string authUrlTemplate = "{0}?service={1}{2}"; // 0 - realm, 1 - service, 2 - scope
-
-        const string containerRegistryRepositoryListTemplate = "https://{0}/v2/_catalog"; // 0 - registry
-
-        private string _cachedContainterRegistryToken = null;
+        // ORAS SDK objects
+        private readonly HttpClient _httpClient;
+        private readonly IClient _orasClient;
+        private readonly ICredentialProvider _credentialProvider;
+        private readonly IMemoryCache _memoryCache;
 
         #endregion
 
@@ -65,16 +57,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             Repository = repository;
             Registry = Repository.Uri.Host;
             _cmdletPassedIn = cmdletPassedIn;
-            HttpClientHandler handler = new HttpClientHandler()
-            {
-                Credentials = networkCredential
-            };
 
-            _cachedContainterRegistryToken = null;
+            _httpClient = new HttpClient();
+            _httpClient.Timeout = TimeSpan.FromMinutes(10);
+            _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
 
-            _sessionClient = new HttpClient(handler);
-            _sessionClient.Timeout = TimeSpan.FromMinutes(10);
-            _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
+            _credentialProvider = new PSResourceGetCredentialProvider(repository, cmdletPassedIn);
+            _memoryCache = new MemoryCache(new MemoryCacheOptions());
+            _orasClient = new Client(_httpClient, _credentialProvider, new Cache(_memoryCache));
         }
 
         #endregion
@@ -314,438 +304,208 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::InstallVersion()");
             errRecord = null;
             string packageNameLowercase = packageName.ToLower();
-            string accessToken = string.Empty;
-            string tenantID = string.Empty;
-            string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
             try
             {
-                Directory.CreateDirectory(tempPath);
+                // Create ORAS repository for the specific package
+                var repo = CreateOrasRepository(packageNameLowercase);
+
+                _cmdletPassedIn.WriteVerbose($"Fetching manifest for {packageNameLowercase} - {packageVersion}");
+
+                // Fetch the manifest by version tag
+                var (manifestDescriptor, manifestStream) = repo.FetchAsync(packageVersion).GetAwaiter().GetResult();
+                byte[] manifestBytes;
+                using (manifestStream)
+                {
+                    manifestBytes = manifestStream.ReadAllAsync(manifestDescriptor).GetAwaiter().GetResult();
+                }
+
+                // Parse the manifest to get the layer descriptor (contains the nupkg blob)
+                var manifest = System.Text.Json.JsonSerializer.Deserialize<Manifest>(manifestBytes);
+                if (manifest == null || manifest.Layers == null || manifest.Layers.Count == 0)
+                {
+                    errRecord = new ErrorRecord(
+                        exception: new InvalidOperationException($"Manifest for {packageNameLowercase} version {packageVersion} has no layers."),
+                        "ManifestNoLayersError",
+                        ErrorCategory.InvalidResult,
+                        _cmdletPassedIn);
+                    return null;
+                }
+
+                // The first layer contains the nupkg
+                var nupkgLayer = manifest.Layers[0];
+                _cmdletPassedIn.WriteVerbose($"Downloading blob for {packageNameLowercase} - {packageVersion} (digest: {nupkgLayer.Digest})");
+
+                // Fetch the blob content
+                using var blobStream = repo.FetchAsync(nupkgLayer).GetAwaiter().GetResult();
+                var resultStream = new MemoryStream();
+                blobStream.CopyTo(resultStream);
+                resultStream.Position = 0;
+                return resultStream;
             }
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(
                     exception: e,
-                    "InstallVersionTempDirCreationError",
+                    "InstallVersionOrasError",
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
 
                 return null;
             }
+        }
 
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false, out errRecord);
-            if (errRecord != null)
-            {
-                return null;
-            }
+        #endregion
 
-            _cmdletPassedIn.WriteVerbose($"Getting manifest for {packageNameLowercase} - {packageVersion}");
-            var manifest = GetContainerRegistryRepositoryManifest(packageNameLowercase, packageVersion, containerRegistryAccessToken, out errRecord);
-            if (errRecord != null)
-            {
-                return null;
-            }
-            string digest = GetDigestFromManifest(manifest, out errRecord);
-            if (errRecord != null)
-            {
-                return null;
-            }
+        #region ORAS Helper Methods
 
-            _cmdletPassedIn.WriteVerbose($"Downloading blob for {packageNameLowercase} - {packageVersion}");
-            HttpContent responseContent;
+        /// <summary>
+        /// Creates an ORAS Repository instance for the given package name.
+        /// </summary>
+        private OrasRepository CreateOrasRepository(string packageName)
+        {
+            string reference = $"{Registry}/{packageName}";
+            return new OrasRepository(new RepositoryOptions
+            {
+                Reference = Reference.Parse(reference),
+                Client = _orasClient,
+            });
+        }
+
+        /// <summary>
+        /// Creates an ORAS Registry instance for catalog operations.
+        /// </summary>
+        private OrasRegistry CreateOrasRegistry()
+        {
+            return new OrasRegistry(Registry, _orasClient);
+        }
+
+        /// <summary>
+        /// Lists all tags for a given package using ORAS.
+        /// </summary>
+        internal List<string> ListImageTags(string packageName, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::ListImageTags()");
+            errRecord = null;
+            var tags = new List<string>();
+
             try
             {
-                responseContent = GetContainerRegistryBlobAsync(packageNameLowercase, digest, containerRegistryAccessToken).Result;
+                var repo = CreateOrasRepository(packageName);
+                var tagsEnumerable = repo.ListTagsAsync("");
+                // Collect all tags synchronously
+                var enumerator = tagsEnumerable.GetAsyncEnumerator();
+                try
+                {
+                    while (enumerator.MoveNextAsync().AsTask().GetAwaiter().GetResult())
+                    {
+                        tags.Add(enumerator.Current);
+                    }
+                }
+                finally
+                {
+                    enumerator.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                }
             }
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(
                     exception: e,
-                    "InstallVersionGetContainerRegistryBlobAsyncError",
+                    "ListImageTagsOrasError",
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
-
-                return null;
             }
 
-            return responseContent.ReadAsStreamAsync().Result;
-        }
-
-        #endregion
-
-        #region Authentication and Token Methods
-
-        /// <summary>
-        /// Gets the access token for the container registry by following the below logic:
-        /// If a credential is provided when registering the repository, retrieve the token from SecretsManagement.
-        /// If no credential provided at registration then, check if the ACR endpoint can be accessed without a token. If not, try using Azure.Identity to get the az access token, then ACR refresh token and then ACR access token.
-        /// Note: Access token can be empty if the repository is unauthenticated
-        /// </summary>
-        internal string GetContainerRegistryAccessToken(bool needCatalogAccess, bool isPushOperation, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessToken()");
-            string accessToken = string.Empty;
-            string containerRegistryAccessToken = string.Empty;
-            string tenantID = string.Empty;
-            errRecord = null;
-
-            if (!string.IsNullOrEmpty(_cachedContainterRegistryToken))
-            {
-                _cmdletPassedIn.WriteVerbose("Using cached container registry access token.");
-                return _cachedContainterRegistryToken;
-            }
-
-            var repositoryCredentialInfo = Repository.CredentialInfo;
-            if (repositoryCredentialInfo != null)
-            {
-                accessToken = Utils.GetContainerRegistryAccessTokenFromSecretManagement(
-                    Repository.Name,
-                    repositoryCredentialInfo,
-                    _cmdletPassedIn);
-
-                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
-
-                tenantID = repositoryCredentialInfo.SecretName;
-            }
-            else
-            {
-                // A container registry repository is determined to be unauthenticated if it allows anonymous pull access. However, push operations always require authentication.
-                bool isRepositoryUnauthenticated = isPushOperation ? false : IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), needCatalogAccess, out errRecord, out accessToken);
-                _cmdletPassedIn.WriteInformation($"Value of isRepositoryUnauthenticated: {isRepositoryUnauthenticated}", new string[] { "PSRGContainerRegistryUnauthenticatedCheck" });
-
-                _cmdletPassedIn.WriteDebug($"Is repository unauthenticated: {isRepositoryUnauthenticated}");
-
-                if (errRecord != null)
-                {
-                    return null;
-                }
-
-                if (!string.IsNullOrEmpty(accessToken))
-                {
-                    _cmdletPassedIn.WriteVerbose("Anonymous access token retrieved.");
-                    return accessToken;
-                }
-
-                if (!isRepositoryUnauthenticated)
-                {
-                    accessToken = Utils.GetAzAccessToken(_cmdletPassedIn);
-                    if (string.IsNullOrEmpty(accessToken))
-                    {
-                        errRecord = new ErrorRecord(
-                            new InvalidOperationException("Failed to get access token from Azure."),
-                            "AzAccessTokenFailure",
-                            ErrorCategory.AuthenticationError,
-                            this);
-
-                        return null;
-                    }
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteVerbose("Repository is unauthenticated");
-                    return null;
-                }
-            }
-
-            var containerRegistryRefreshToken = GetContainerRegistryRefreshToken(tenantID, accessToken, out errRecord);
-            if (errRecord != null)
-            {
-                return null;
-            }
-
-            containerRegistryAccessToken = GetContainerRegistryAccessTokenByRefreshToken(containerRegistryRefreshToken, out errRecord);
-            if (errRecord != null)
-            {
-                return null;
-            }
-
-            _cmdletPassedIn.WriteVerbose("Container registry access token retrieved.");
-            _cachedContainterRegistryToken = containerRegistryAccessToken;
-
-            return containerRegistryAccessToken;
+            return tags;
         }
 
         /// <summary>
-        /// Checks if container registry repository is unauthenticated.
+        /// Lists all repositories in the registry using ORAS.
         /// </summary>
-        internal bool IsContainerRegistryUnauthenticated(string containerRegistryUrl, bool needCatalogAccess, out ErrorRecord errRecord, out string anonymousAccessToken)
+        internal List<string> ListAllRepositories(out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::IsContainerRegistryUnauthenticated()");
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::ListAllRepositories()");
             errRecord = null;
-            anonymousAccessToken = string.Empty;
-            string endpoint = $"{containerRegistryUrl}/v2/";
-            HttpResponseMessage response;
+            var repositories = new List<string>();
+
             try
             {
-                response = _sessionClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, endpoint)).Result;
-
-                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                var registry = CreateOrasRegistry();
+                var repoEnumerable = registry.ListRepositoriesAsync("");
+                var enumerator = repoEnumerable.GetAsyncEnumerator();
+                try
                 {
-                    // check if there is a auth challenge header
-                    if (response.Headers.WwwAuthenticate.Count() > 0)
+                    while (enumerator.MoveNextAsync().AsTask().GetAwaiter().GetResult())
                     {
-                        var authHeader = response.Headers.WwwAuthenticate.First();
-                        if (authHeader.Scheme == "Bearer")
-                        {
-                            // check if there is a realm
-                            if (authHeader.Parameter.Contains("realm"))
-                            {
-                                // get the realm
-                                var realm = authHeader.Parameter.Split(',')?.Where(x => x.Contains("realm"))?.FirstOrDefault()?.Split('=')[1]?.Trim('"');
-                                // get the service
-                                var service = authHeader.Parameter.Split(',')?.Where(x => x.Contains("service"))?.FirstOrDefault()?.Split('=')[1]?.Trim('"');
-
-                                if (string.IsNullOrEmpty(realm) || string.IsNullOrEmpty(service))
-                                {
-                                    errRecord = new ErrorRecord(
-                                        new InvalidOperationException("Failed to get realm or service from the auth challenge header."),
-                                        "RegistryUnauthenticationCheckError",
-                                        ErrorCategory.InvalidResult,
-                                        this);
-
-                                    return false;
-                                }
-
-                                string content = needCatalogAccess ? String.Format(grantTypeTemplate, service, catalogScope) : String.Format(grantTypeTemplate, service, defaultScope);
-
-                                var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
-
-                                string url = needCatalogAccess ? String.Format(authUrlTemplate, realm, service, catalogScope) : String.Format(authUrlTemplate, realm, service, defaultScope);
-
-                                _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
-
-                                // we don't check the error record here because we want to return false if we get a 401 and not throw an error
-                                _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
-                                ErrorRecord errRecordTemp = null;
-
-                                var results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out errRecordTemp);
-
-                                if (results == null)
-                                {
-                                    _cmdletPassedIn.WriteDebug("Failed to get access token from the realm. results is null.");
-                                    _cmdletPassedIn.WriteDebug($"ErrorRecord: {errRecordTemp}");
-                                    return false;
-                                }
-
-                                if (results["access_token"] == null)
-                                {
-                                    _cmdletPassedIn.WriteDebug($"Failed to get access token from the realm. access_token is null. results: {results}");
-                                    return false;
-                                }
-
-                                anonymousAccessToken = results["access_token"].ToString();
-                                return true;
-                            }
-                        }
+                        repositories.Add(enumerator.Current);
                     }
                 }
-            }
-            catch (HttpRequestException hre)
-            {
-                 errRecord = new ErrorRecord(
-                    hre,
-                    "RegistryAnonymousAcquireError",
-                    ErrorCategory.ConnectionError,
-                    this);
-
-                return false;
+                finally
+                {
+                    enumerator.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                }
             }
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(
-                    e,
-                    "RegistryUnauthenticationCheckError",
+                    exception: e,
+                    "ListAllRepositoriesOrasError",
                     ErrorCategory.InvalidResult,
-                    this);
-
-                return false;
+                    _cmdletPassedIn);
             }
 
-            return (response.StatusCode == HttpStatusCode.OK);
+            return repositories;
         }
 
         /// <summary>
-        /// Given the access token retrieved from credentials, gets the refresh token.
+        /// Fetches the manifest for a specific package version and parses it.
+        /// Returns the manifest as a parsed OCI Manifest object.
         /// </summary>
-        internal string GetContainerRegistryRefreshToken(string tenant, string accessToken, out ErrorRecord errRecord)
+        internal Manifest FetchManifest(string packageName, string version, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryRefreshToken()");
-            string content = string.Format(containerRegistryRefreshTokenTemplate, Registry, tenant, accessToken);
-            var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
-            string exchangeUrl = string.Format(containerRegistryOAuthExchangeUrlTemplate, Registry);
-            var results = GetHttpResponseJObjectUsingContentHeaders(exchangeUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
-            if (errRecord != null || results == null || results["refresh_token"] == null)
-            {
-                return string.Empty;
-            }
-
-            return results["refresh_token"].ToString();
-        }
-
-        /// <summary>
-        /// Given the refresh token, gets the new access token with appropriate scope access permissions.
-        /// </summary>
-        internal string GetContainerRegistryAccessTokenByRefreshToken(string refreshToken, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessTokenByRefreshToken()");
-            string content = string.Format(containerRegistryAccessTokenTemplate, Registry, refreshToken);
-            var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
-            string tokenUrl = string.Format(containerRegistryOAuthTokenUrlTemplate, Registry);
-            var results = GetHttpResponseJObjectUsingContentHeaders(tokenUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
-            if (errRecord != null || results == null || results["access_token"] == null)
-            {
-                return string.Empty;
-            }
-
-            return results["access_token"].ToString();
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        /// <summary>
-        /// Parses package manifest JObject to find digest entry, which is the SHA needed to identify and get the package.
-        /// </summary>
-        private string GetDigestFromManifest(JObject manifest, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetDigestFromManifest()");
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FetchManifest()");
             errRecord = null;
-            string digest = String.Empty;
 
-            if (manifest == null)
+            try
             {
-                errRecord = new ErrorRecord(
-                    exception: new ArgumentNullException("Manifest (passed in to determine digest) is null."),
-                    "ManifestNullError",
-                    ErrorCategory.InvalidArgument,
-                    _cmdletPassedIn);
-
-                return digest;
-            }
-
-            JToken layers = manifest["layers"];
-            if (layers == null || !layers.HasValues)
-            {
-                errRecord = new ErrorRecord(
-                    exception: new ArgumentNullException("Manifest 'layers' property (passed in to determine digest) is null or does not have values."),
-                    "ManifestLayersNullOrEmptyError",
-                    ErrorCategory.InvalidArgument,
-                    _cmdletPassedIn);
-
-                return digest;
-            }
-
-            foreach (JObject item in layers)
-            {
-                if (item.ContainsKey("digest"))
+                var repo = CreateOrasRepository(packageName);
+                var (descriptor, stream) = repo.FetchAsync(version).GetAwaiter().GetResult();
+                byte[] manifestBytes;
+                using (stream)
                 {
-                    digest = item.GetValue("digest").ToString();
-                    break;
+                    manifestBytes = stream.ReadAllAsync(descriptor).GetAwaiter().GetResult();
                 }
+
+                var manifest = System.Text.Json.JsonSerializer.Deserialize<Manifest>(manifestBytes);
+                return manifest;
             }
-
-            return digest;
-        }
-
-        /// <summary>
-        /// Gets the manifest for a package (ie repository in container registry terms) from the repository (ie registry in container registry terms)
-        /// </summary>
-        internal JObject GetContainerRegistryRepositoryManifest(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryRepositoryManifest()");
-            // example of manifestUrl: https://psgetregistry.azurecr.io/hello-world:3.0.0
-            string manifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, version);
-            var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-            return GetHttpResponseJObjectUsingDefaultHeaders(manifestUrl, HttpMethod.Get, defaultHeaders, out errRecord);
-        }
-
-        /// <summary>
-        /// Get the blob for the package (ie repository in container registry terms) from the repository (ie registry in container registry terms)
-        /// Used when installing the package
-        /// </summary>
-        internal async Task<HttpContent> GetContainerRegistryBlobAsync(string packageName, string digest, string containerRegistryAccessToken)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryBlobAsync()");
-            string blobUrl = string.Format(containerRegistryBlobDownloadUrlTemplate, Registry, packageName, digest);
-            var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-            return await GetHttpContentResponseJObject(blobUrl, defaultHeaders);
-        }
-
-        /// <summary>
-        /// Gets the image tags associated with the package (i.e repository in container registry terms), where the tag corresponds to the package's versions.
-        /// If the package version is specified search for that specific tag for the image, if the package version is "*" search for all tags for the image.
-        /// </summary>
-        internal JObject FindContainerRegistryImageTags(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
-        {
-            /*
+            catch (Exception e)
             {
-                "name": "<name>",
-                "tags": [
-                    "<tag1>",
-                    "<tag2>",
-                    "<tag3>"
-                  ]
-                }
-            */
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindContainerRegistryImageTags()");
-            string resolvedVersion = string.Equals(version, "*", StringComparison.OrdinalIgnoreCase) ? null : $"/{version}";
-            string findImageUrl = string.Format(containerRegistryFindImageVersionUrlTemplate, Registry, packageName);
-            var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-            return GetHttpResponseJObjectUsingDefaultHeaders(findImageUrl, HttpMethod.Get, defaultHeaders, out errRecord);
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "FetchManifestOrasError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+
+                return null;
+            }
         }
 
         /// <summary>
-        /// Helper method to find all packages on container registry
+        /// Get metadata for a package version by fetching its manifest and reading annotations.
         /// </summary>
-        /// <param name="containerRegistryAccessToken"></param>
-        /// <param name="errRecord"></param>
-        /// <returns></returns>
-        internal JObject FindAllRepositories(string containerRegistryAccessToken, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindAllRepositories()");
-            string repositoryListUrl = string.Format(containerRegistryRepositoryListTemplate, Registry);
-            var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-            return GetHttpResponseJObjectUsingDefaultHeaders(repositoryListUrl, HttpMethod.Get, defaultHeaders, out errRecord, usePagination: true);
-        }
-
-        /// <summary>
-        /// Get metadata for a package version.
-        /// </summary>
-        internal Hashtable GetContainerRegistryMetadata(string packageName, string exactTagVersion, string containerRegistryAccessToken, out ErrorRecord errRecord)
+        internal Hashtable GetContainerRegistryMetadata(string packageName, string exactTagVersion, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryMetadata()");
             Hashtable requiredVersionResponse = new();
 
-            JObject foundTags = FindContainerRegistryManifest(packageName, exactTagVersion, containerRegistryAccessToken, out errRecord);
+            var manifest = FetchManifest(packageName, exactTagVersion, out errRecord);
             if (errRecord != null)
             {
                 return requiredVersionResponse;
             }
 
-            /*
-                Response returned looks something like:
-                {
-                    "schemaVersion": 2,
-                    "config": {
-                        "mediaType": "application/vnd.unknown.config.v1+json",
-                        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                        "size": 0
-                    },
-                    "layers": [
-                        {
-                            "mediaType": "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip'",
-                            "digest": "sha256:7c55c7b66cb075628660d8249cc4866f16e34741c246a42ed97fb23ccd4ea956",
-                            "size": 3533,
-                            "annotations": {
-                                "org.opencontainers.image.title": "test_module.1.0.0.nupkg",
-                                "metadata": "{\"GUID\":\"45219bf4-10a4-4242-92d6-9bfcf79878fd\",\"FunctionsToExport\":[],\"CompanyName\":\"Anam\",\"CmdletsToExport\":[],\"VariablesToExport\":\"*\",\"Author\":\"Anam Navied\",\"ModuleVersion\":\"1.0.0\",\"Copyright\":\"(c) Anam Navied. All rights reserved.\",\"PrivateData\":{\"PSData\":{\"Tags\":[\"Test\",\"CommandsAndResource\",\"Tag2\"]}},\"RequiredModules\":[],\"Description\":\"This is a test module, for PSGallery team internal testing. Do not take a dependency on this package. This version contains tags for the package.\",\"AliasesToExport\":[]}"
-                            }
-                        }
-                    ]
-                }
-            */
-
-            ContainerRegistryInfo serverPkgInfo = GetMetadataProperty(foundTags, packageName, out errRecord);
+            ContainerRegistryInfo serverPkgInfo = GetMetadataProperty(manifest, packageName, out errRecord);
             if (errRecord != null)
             {
                 return requiredVersionResponse;
@@ -828,29 +588,15 @@ namespace Microsoft.PowerShell.PSResourceGet
         }
 
         /// <summary>
-        /// Get the manifest associated with the package version.
+        /// Get metadata for the package by parsing its OCI manifest annotations.
         /// </summary>
-        internal JObject FindContainerRegistryManifest(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindContainerRegistryManifest()");
-            var createManifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, version);
-            _cmdletPassedIn.WriteDebug($"GET manifest url:  {createManifestUrl}");
-
-            var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-            return GetHttpResponseJObjectUsingDefaultHeaders(createManifestUrl, HttpMethod.Get, defaultHeaders, out errRecord);
-        }
-
-        /// <summary>
-        /// Get metadata for the package by parsing its manifest.
-        /// </summary>
-        internal ContainerRegistryInfo GetMetadataProperty(JObject foundTags, string packageName, out ErrorRecord errRecord)
+        internal ContainerRegistryInfo GetMetadataProperty(Manifest manifest, string packageName, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetMetadataProperty()");
             errRecord = null;
             ContainerRegistryInfo serverPkgInfo = null;
 
-            JToken layers = foundTags["layers"];
-            if (layers == null || layers[0] == null)
+            if (manifest == null || manifest.Layers == null || manifest.Layers.Count == 0 || manifest.Layers[0] == null)
             {
                 errRecord = new ErrorRecord(
                     new InvalidOrEmptyResponse($"Response does not contain 'layers' element in manifest for package '{packageName}' in '{Repository.Name}'."),
@@ -861,7 +607,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return serverPkgInfo;
             }
 
-            JToken annotations = layers[0]["annotations"];
+            var annotations = manifest.Layers[0].Annotations;
             if (annotations == null)
             {
                 errRecord = new ErrorRecord(
@@ -874,11 +620,10 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             // Check for package name
-            JToken pkgTitleJToken = annotations["org.opencontainers.image.title"];
-            if (pkgTitleJToken == null)
+            if (!annotations.TryGetValue("org.opencontainers.image.title", out string metadataPkgName) || string.IsNullOrWhiteSpace(metadataPkgName))
             {
                 errRecord = new ErrorRecord(
-                    new InvalidOrEmptyResponse($"Response does not contain 'org.opencontainers.image.title' element for package '{packageName}' in '{Repository.Name}'."),
+                    new InvalidOrEmptyResponse($"Response does not contain or has empty 'org.opencontainers.image.title' element for package '{packageName}' in '{Repository.Name}'."),
                     "GetMetadataPropertyOCITitleError",
                     ErrorCategory.InvalidData,
                     this);
@@ -886,21 +631,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return serverPkgInfo;
             }
 
-            string metadataPkgName = pkgTitleJToken.ToString();
-            if (string.IsNullOrWhiteSpace(metadataPkgName))
-            {
-                errRecord = new ErrorRecord(
-                    new InvalidOrEmptyResponse($"Response element 'org.opencontainers.image.title' is empty for package '{packageName}' in '{Repository.Name}'."),
-                    "GetMetadataPropertyOCITitleEmptyError",
-                    ErrorCategory.InvalidData,
-                    this);
-
-                return serverPkgInfo;
-            }
-
             // Check for package metadata
-            JToken pkgMetadataJToken = annotations["metadata"];
-            if (pkgMetadataJToken == null)
+            if (!annotations.TryGetValue("metadata", out string metadata) || metadata == null)
             {
                 errRecord = new ErrorRecord(
                     new InvalidOrEmptyResponse($"Response does not contain 'metadata' element in manifest for package '{packageName}' in '{Repository.Name}'."),
@@ -911,402 +643,17 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return serverPkgInfo;
             }
 
-            string metadata = pkgMetadataJToken.ToString();
-
             // Check for package artifact type
-            JToken resourceTypeJToken = annotations["resourceType"];
-            var resourceType = resourceTypeJToken != null ? resourceTypeJToken.ToString() : "None";
+            annotations.TryGetValue("resourceType", out string resourceType);
+            resourceType = resourceType ?? "None";
 
             return new ContainerRegistryInfo(metadataPkgName, metadata, resourceType);
-        }
-
-        /// <summary>
-        /// Upload manifest for the package, used for publishing.
-        /// </summary>
-        internal async Task<HttpResponseMessage> UploadManifest(string packageName, string packageVersion, string configPath, bool isManifest, string containerRegistryAccessToken)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::UploadManifest()");
-            try
-            {
-                var createManifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, packageVersion);
-                var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-                return await PutRequestAsync(createManifestUrl, configPath, isManifest, defaultHeaders);
-            }
-            catch (HttpRequestException e)
-            {
-                throw new HttpRequestException("Error occurred while trying to create manifest: " + e.Message);
-            }
-        }
-
-        internal async Task<HttpContent> GetHttpContentResponseJObject(string url, Collection<KeyValuePair<string, string>> defaultHeaders)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetHttpContentResponseJObject()");
-            try
-            {
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
-                SetDefaultHeaders(defaultHeaders);
-                return await SendContentRequestAsync(request);
-            }
-            catch (HttpRequestException e)
-            {
-                throw new HttpRequestException("Error occurred while trying to retrieve response: " + e.Message);
-            }
-        }
-
-        /// <summary>
-        /// Get response object when using default headers in the request.
-        /// </summary>
-        internal JObject GetHttpResponseJObjectUsingDefaultHeaders(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders, out ErrorRecord errRecord, bool usePagination = false)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetHttpResponseJObjectUsingDefaultHeaders()");
-            try
-            {
-                errRecord = null;
-                HttpRequestMessage request = new HttpRequestMessage(method, url);
-                SetDefaultHeaders(defaultHeaders);
-
-                var response = usePagination ? SendRequestAsyncWithPagination(request) : SendRequestAsync(request);
-                return response.GetAwaiter().GetResult();
-            }
-            catch (ResourceNotFoundException e)
-            {
-                errRecord = new ErrorRecord(
-                    exception: e,
-                    "ResourceNotFound",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn);
-            }
-            catch (UnauthorizedException e)
-            {
-                errRecord = new ErrorRecord(
-                    exception: e,
-                    "UnauthorizedRequest",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn);
-            }
-            catch (HttpRequestException e)
-            {
-                errRecord = new ErrorRecord(
-                    exception: e,
-                    "HttpRequestCallFailure",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn);
-            }
-            catch (Exception e)
-            {
-                errRecord = new ErrorRecord(
-                    exception: e,
-                    "HttpRequestCallFailure",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn);
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Get response object when using content headers in the request.
-        /// </summary>
-        internal JObject GetHttpResponseJObjectUsingContentHeaders(string url, HttpMethod method, string content, Collection<KeyValuePair<string, string>> contentHeaders, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetHttpResponseJObjectUsingContentHeaders()");
-            errRecord = null;
-            try
-            {
-                HttpRequestMessage request = new HttpRequestMessage(method, url);
-
-                // HTTP GET does not expect a body / content.
-                if (method != HttpMethod.Get)
-                {
-
-                    if (string.IsNullOrEmpty(content))
-                    {
-                        errRecord = new ErrorRecord(
-                        exception: new ArgumentNullException($"Content is null or empty and cannot be used to make a request as its content headers."),
-                        "RequestContentHeadersNullOrEmpty",
-                        ErrorCategory.InvalidData,
-                        _cmdletPassedIn);
-
-                        return null;
-                    }
-
-                    // codeql[cs/sensitive-data-transmission] This is expected PSResourceGet behavior to create the content of the request which is only transmitted to the server, not the user. This information is also not exposed back to the user via error or verbose messaging.
-                    request.Content = new StringContent(content);
-                    request.Content.Headers.Clear();
-                    if (contentHeaders != null)
-                    {
-                        foreach (var header in contentHeaders)
-                        {
-                            request.Content.Headers.Add(header.Key, header.Value);
-                        }
-                    }
-                }
-
-                return SendRequestAsync(request).GetAwaiter().GetResult();
-            }
-            catch (ResourceNotFoundException e)
-            {
-                errRecord = new ErrorRecord(
-                    exception: e,
-                    "ResourceNotFound",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn);
-            }
-            catch (UnauthorizedException e)
-            {
-                errRecord = new ErrorRecord(
-                    exception: e,
-                    "UnauthorizedRequest",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn);
-            }
-            catch (HttpRequestException e)
-            {
-                errRecord = new ErrorRecord(
-                    exception: e,
-                    "HttpRequestCallFailure",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn);
-            }
-            catch (Exception e)
-            {
-                errRecord = new ErrorRecord(
-                    exception: e,
-                    "HttpRequestCallFailure",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn);
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Get response headers.
-        /// </summary>
-        internal async Task<HttpResponseHeaders> GetHttpResponseHeader(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders)
-        {
-            try
-            {
-                HttpRequestMessage request = new HttpRequestMessage(method, url);
-                SetDefaultHeaders(defaultHeaders);
-                return await SendRequestHeaderAsync(request);
-            }
-            catch (HttpRequestException e)
-            {
-                throw new HttpRequestException("Error occurred while trying to retrieve response header: " + e.Message);
-            }
-        }
-
-        /// <summary>
-        /// Set default headers for HttpClient.
-        /// </summary>
-        private void SetDefaultHeaders(Collection<KeyValuePair<string, string>> defaultHeaders)
-        {
-            _sessionClient.DefaultRequestHeaders.Clear();
-            if (defaultHeaders != null)
-            {
-                foreach (var header in defaultHeaders)
-                {
-                    if (string.Equals(header.Key, "Authorization", StringComparison.OrdinalIgnoreCase))
-                    {
-                        _sessionClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", header.Value);
-                    }
-                    else if (string.Equals(header.Key, "Accept", StringComparison.OrdinalIgnoreCase))
-                    {
-                        _sessionClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
-                    }
-                    else
-                    {
-                        _sessionClient.DefaultRequestHeaders.Add(header.Key, header.Value);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Sends request for content.
-        /// </summary>
-        private async Task<HttpContent> SendContentRequestAsync(HttpRequestMessage message)
-        {
-            try
-            {
-                HttpResponseMessage response = await _sessionClient.SendAsync(message);
-                response.EnsureSuccessStatusCode();
-                return response.Content;
-            }
-            catch (Exception e)
-            {
-                throw new SendRequestException($"Error occurred while sending request to Container Registry server for content with: {e.GetType()} '{e.Message}'", e);
-            }
-        }
-
-        /// <summary>
-        /// Sends HTTP request.
-        /// </summary>
-        private async Task<JObject> SendRequestAsync(HttpRequestMessage message)
-        {
-            HttpResponseMessage response;
-            try
-            {
-                response = await _sessionClient.SendAsync(message);
-            }
-            catch (Exception e)
-            {
-                throw new SendRequestException($"Error occurred while sending request to Container Registry server with: {e.GetType()} '{e.Message}'", e);
-            }
-
-            switch (response.StatusCode)
-            {
-                case HttpStatusCode.OK:
-                    break;
-
-                case HttpStatusCode.Unauthorized:
-                    throw new UnauthorizedException($"Response returned status code: {response.ReasonPhrase}.");
-
-                case HttpStatusCode.NotFound:
-                    throw new ResourceNotFoundException($"Response returned status code package: {response.ReasonPhrase}.");
-
-                default:
-                    throw new Exception($"Response returned error with status code {response.StatusCode}: {response.ReasonPhrase}.");
-            }
-
-            return JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
-        }
-
-        private async Task<JObject> SendRequestAsyncWithPagination(HttpRequestMessage initialMessage)
-        {
-            HttpResponseMessage response;
-            string nextUrl = initialMessage.RequestUri.ToString();
-            string urlBase = initialMessage.RequestUri.Scheme + "://" + initialMessage.RequestUri.Host;
-            JObject finalResult = new JObject();
-            JArray allRepositories = new JArray();
-
-            do
-            {
-                var message = new HttpRequestMessage(HttpMethod.Get, nextUrl);
-                try
-                {
-                    response = await _sessionClient.SendAsync(message);
-                }
-                catch (Exception e)
-                {
-                    throw new SendRequestException($"Error occurred while sending request to Container Registry server with: {e.GetType()} '{e.Message}'", e);
-                }
-
-                switch (response.StatusCode)
-                {
-                    case HttpStatusCode.OK:
-                        break;
-                    case HttpStatusCode.Unauthorized:
-                        throw new UnauthorizedException($"Response returned status code: {response.ReasonPhrase}.");
-                    case HttpStatusCode.NotFound:
-                        throw new ResourceNotFoundException($"Response returned status code package: {response.ReasonPhrase}.");
-                    default:
-                        throw new Exception($"Response returned error with status code {response.StatusCode}: {response.ReasonPhrase}.");
-                }
-
-                var content = await response.Content.ReadAsStringAsync();
-                var json = JObject.Parse(content);
-                var repositories = json["repositories"] as JArray;
-                if (repositories != null)
-                {
-                    allRepositories.Merge(repositories);
-                }
-
-                // Check for Link header to continue pagination
-                if (response.Headers.TryGetValues("Link", out var linkHeaders))
-                {
-                    var linkHeader = string.Join(",", linkHeaders);
-                    var match = Regex.Match(linkHeader, @"<([^>]+)>;\s*rel=""next""");
-                    var nextUrlPart = match.Success ? match.Groups[1].Value : null;
-                    if (!string.IsNullOrEmpty(nextUrlPart))
-                    {
-                        nextUrl = urlBase + nextUrlPart;
-                    }
-                    else
-                    {
-                        nextUrl = null;
-                    }
-                }
-                else
-                {
-                    nextUrl = null;
-                }
-
-            } while (!string.IsNullOrEmpty(nextUrl));
-
-            finalResult["repositories"] = allRepositories;
-            return finalResult;
-        }
-
-        /// <summary>
-        /// Send request to get response headers.
-        /// </summary>
-        private async Task<HttpResponseHeaders> SendRequestHeaderAsync(HttpRequestMessage message)
-        {
-            try
-            {
-                HttpResponseMessage response = await _sessionClient.SendAsync(message);
-                response.EnsureSuccessStatusCode();
-                return response.Headers;
-            }
-            catch (HttpRequestException e)
-            {
-                throw new HttpRequestException("Error occurred while trying to retrieve response: " + e.Message);
-            }
-        }
-
-        /// <summary>
-        /// Sends a PUT request, used for publishing to container registry.
-        /// </summary>
-        private async Task<HttpResponseMessage> PutRequestAsync(string url, string filePath, bool isManifest, Collection<KeyValuePair<string, string>> contentHeaders)
-        {
-            try
-            {
-                SetDefaultHeaders(contentHeaders);
-
-                FileInfo fileInfo = new FileInfo(filePath);
-                using (FileStream fileStream = fileInfo.Open(FileMode.Open, FileAccess.Read))
-                {
-                    HttpContent httpContent = new StreamContent(fileStream);
-                    if (isManifest)
-                    {
-                        httpContent.Headers.Add("Content-Type", "application/vnd.oci.image.manifest.v1+json");
-                    }
-                    else
-                    {
-                        httpContent.Headers.Add("Content-Type", "application/octet-stream");
-                    }
-
-                    return await _sessionClient.PutAsync(url, httpContent);
-                }
-            }
-            catch (Exception e)
-            {
-                throw new SendRequestException($"Error occurred while uploading module to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
-            }
-        }
-
-        /// <summary>
-        /// Get the default headers associated with the access token.
-        /// </summary>
-        private static Collection<KeyValuePair<string, string>> GetDefaultHeaders(string containerRegistryAccessToken)
-        {
-            var defaultHeaders = new Collection<KeyValuePair<string, string>>();
-
-            if (!string.IsNullOrEmpty(containerRegistryAccessToken))
-            {
-                defaultHeaders.Add(new KeyValuePair<string, string>("Authorization", containerRegistryAccessToken));
-            }
-
-            defaultHeaders.Add(new KeyValuePair<string, string>("Accept", "application/vnd.oci.image.manifest.v1+json"));
-
-            return defaultHeaders;
         }
 
         #endregion
 
         #region Publish Methods
+
         /// <summary>
         /// Helper method that publishes a package to the container registry.
         /// This gets called from Publish-PSResource.
@@ -1324,382 +671,76 @@ namespace Microsoft.PowerShell.PSResourceGet
             out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::PushNupkgContainerRegistry()");
+            errRecord = null;
 
             // if isNupkgPathSpecified, then we need to publish the original .nupkg file, as it may be signed
-            string fullNupkgFile = isNupkgPathSpecified ? originalNupkgPath :           System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
+            string fullNupkgFile = isNupkgPathSpecified ? originalNupkgPath : System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
 
             string pkgNameForUpload = string.IsNullOrEmpty(modulePrefix) ? packageName : modulePrefix + "/" + packageName;
             string packageNameLowercase = pkgNameForUpload.ToLower();
 
-            // Get access token (includes refresh tokens)
-            _cmdletPassedIn.WriteVerbose($"Get access token for container registry server.");
-            var containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: true, out errRecord);
-            if (errRecord != null)
+            try
             {
-                return false;
-            }
+                var repo = CreateOrasRepository(packageNameLowercase);
 
-            // Upload .nupkg
-            _cmdletPassedIn.WriteVerbose($"Upload .nupkg file: {fullNupkgFile}");
-            string nupkgDigest = UploadNupkgFile(packageNameLowercase, containerRegistryAccessToken, fullNupkgFile, out errRecord);
-            if (errRecord != null)
-            {
-                return false;
-            }
+                // Read the nupkg file bytes
+                _cmdletPassedIn.WriteVerbose($"Reading .nupkg file: {fullNupkgFile}");
+                byte[] nupkgBytes = File.ReadAllBytes(fullNupkgFile);
 
-            // Create and upload an empty file-- needed by ContainerRegistry server
-            CreateAndUploadEmptyFile(outputNupkgDir, packageNameLowercase, containerRegistryAccessToken, out errRecord);
-            if (errRecord != null)
-            {
-                return false;
-            }
+                // Create metadata JSON string
+                _cmdletPassedIn.WriteVerbose("Create package version metadata as JSON string");
+                string metadataJson = CreateMetadataContent(resourceType, parsedMetadataHash, out errRecord);
+                if (errRecord != null)
+                {
+                    return false;
+                }
 
-            // Create config.json file
-            var configFilePath = System.IO.Path.Combine(outputNupkgDir, "config.json");
-            _cmdletPassedIn.WriteVerbose($"Create config.json file at path: {configFilePath}");
-            string configDigest = CreateConfigFile(configFilePath, out errRecord);
-            if (errRecord != null)
-            {
-                return false;
-            }
+                var fileName = System.IO.Path.GetFileName(fullNupkgFile);
 
-            _cmdletPassedIn.WriteVerbose("Create package version metadata as JSON string");
-            // Create module metadata string
-            string metadataJson = CreateMetadataContent(resourceType, parsedMetadataHash, out errRecord);
-            if (errRecord != null)
-            {
-                return false;
-            }
+                // Create layer descriptor for the nupkg with annotations
+                var nupkgDescriptor = Descriptor.Create(nupkgBytes, OrasProject.Oras.Oci.MediaType.ImageLayerGzip);
+                nupkgDescriptor.Annotations = new Dictionary<string, string>
+                {
+                    ["org.opencontainers.image.title"] = packageName,
+                    ["org.opencontainers.image.description"] = fileName,
+                    ["metadata"] = metadataJson,
+                    ["resourceType"] = resourceType.ToString()
+                };
 
-            // Create and upload manifest
-            TryCreateAndUploadManifest(fullNupkgFile, nupkgDigest, configDigest, packageName, modulePrefix, resourceType, metadataJson, configFilePath, packageVersion, containerRegistryAccessToken, out errRecord);
-            if (errRecord != null)
+                // Push the nupkg layer
+                _cmdletPassedIn.WriteVerbose($"Pushing .nupkg blob for {packageNameLowercase}");
+                repo.PushAsync(nupkgDescriptor, new MemoryStream(nupkgBytes)).GetAwaiter().GetResult();
+
+                // Create config descriptor
+                byte[] configBytes = Array.Empty<byte>();
+                var configDescriptor = Descriptor.Create(configBytes, OrasProject.Oras.Oci.MediaType.ImageConfig);
+
+                // Pack and push the manifest using Packer
+                _cmdletPassedIn.WriteVerbose("Packing and pushing manifest");
+                var packOptions = new PackManifestOptions
+                {
+                    Config = configDescriptor,
+                    Layers = new List<Descriptor> { nupkgDescriptor }
+                };
+
+                var manifestDescriptor = Packer.PackManifestAsync(repo, Packer.ManifestVersion.Version1_1, "", packOptions).GetAwaiter().GetResult();
+
+                // Tag the manifest with the version
+                _cmdletPassedIn.WriteVerbose($"Tagging manifest with version: {packageVersion.OriginalVersion}");
+                repo.TagAsync(manifestDescriptor, packageVersion.OriginalVersion).GetAwaiter().GetResult();
+            }
+            catch (Exception e)
             {
+                errRecord = new ErrorRecord(
+                    new UploadBlobException($"Error occurred while publishing package to ContainerRegistry: {e.GetType()} '{e.Message}'", e),
+                    "PackagePublishOrasError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn);
+
                 return false;
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Upload the nupkg file, by creating a digest for it and uploading as blob.
-        /// Note: ContainerRegistry registries will only accept a name that is all lowercase.
-        /// </summary>
-        private string UploadNupkgFile(string packageNameLowercase, string containerRegistryAccessToken, string fullNupkgFile, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::UploadNupkgFile()");
-            _cmdletPassedIn.WriteVerbose("Start uploading blob");
-            string nupkgDigest = string.Empty;
-            errRecord = null;
-            string moduleLocation;
-            try
-            {
-                moduleLocation = GetStartUploadBlobLocation(packageNameLowercase, containerRegistryAccessToken).Result;
-            }
-            catch (Exception startUploadException)
-            {
-                errRecord = new ErrorRecord(
-                        startUploadException,
-                        "StartUploadBlobLocationError",
-                        ErrorCategory.InvalidResult,
-                        _cmdletPassedIn);
-
-                return nupkgDigest;
-            }
-
-            _cmdletPassedIn.WriteVerbose("Computing digest for .nupkg file");
-            nupkgDigest = CreateDigest(fullNupkgFile, out errRecord);
-            if (errRecord != null)
-            {
-                return nupkgDigest;
-            }
-
-            _cmdletPassedIn.WriteVerbose("Finish uploading blob");
-            try
-            {
-                var responseNupkg = EndUploadBlob(moduleLocation, fullNupkgFile, nupkgDigest, isManifest: false, containerRegistryAccessToken).Result;
-                bool uploadSuccessful = responseNupkg.IsSuccessStatusCode;
-
-                if (!uploadSuccessful)
-                {
-                    errRecord = new ErrorRecord(
-                    new UploadBlobException("Uploading of blob for publish failed."),
-                    "EndUploadBlobError",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn);
-
-                    return nupkgDigest;
-                }
-            }
-            catch (Exception endUploadException)
-            {
-                errRecord = new ErrorRecord(
-                    endUploadException,
-                    "EndUploadBlobError",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn);
-
-                return nupkgDigest;
-            }
-
-            return nupkgDigest;
-        }
-
-        /// <summary>
-        /// Uploads an empty file at the start of publish as is needed.
-        /// </summary>
-        private void CreateAndUploadEmptyFile(string outputNupkgDir, string pkgNameLower, string containerRegistryAccessToken, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::CreateAndUploadEmptyFile()");
-            _cmdletPassedIn.WriteVerbose("Create an empty file");
-            string emptyFileName = "empty" + Guid.NewGuid().ToString() + ".txt";
-            var emptyFilePath = System.IO.Path.Combine(outputNupkgDir, emptyFileName);
-
-            try
-            {
-                Utils.CreateFile(emptyFilePath);
-
-                _cmdletPassedIn.WriteVerbose("Start uploading an empty file");
-                string emptyLocation = GetStartUploadBlobLocation(pkgNameLower, containerRegistryAccessToken).Result;
-
-                _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
-                string emptyFileDigest = CreateDigest(emptyFilePath, out errRecord);
-                if (errRecord != null)
-                {
-                    return;
-                }
-
-                _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
-                var emptyResponse = EndUploadBlob(emptyLocation, emptyFilePath, emptyFileDigest, false, containerRegistryAccessToken).Result;
-                bool uploadSuccessful = emptyResponse.IsSuccessStatusCode;
-
-                if (!uploadSuccessful)
-                {
-                    errRecord = new ErrorRecord(
-                        new UploadBlobException($"Error occurred while uploading blob, response code was: {emptyResponse.StatusCode} with reason {emptyResponse.ReasonPhrase}"),
-                        "UploadEmptyFileError",
-                        ErrorCategory.InvalidResult,
-                        _cmdletPassedIn);
-
-                    return;
-                }
-            }
-            catch (Exception e)
-            {
-                errRecord = new ErrorRecord(
-                    e,
-                    "UploadEmptyFileError",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn);
-
-                return;
-            }
-        }
-
-        /// <summary>
-        /// Create config file associated with the package (i.e repository in container registry terms) as is needed for the package's manifest config layer
-        /// </summary>
-        private string CreateConfigFile(string configFilePath, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::CreateConfigFile()");
-            string configFileDigest = string.Empty;
-            _cmdletPassedIn.WriteVerbose("Create the config file");
-            while (File.Exists(configFilePath))
-            {
-                configFilePath = Guid.NewGuid().ToString() + ".json";
-            }
-
-            try
-            {
-                Utils.CreateFile(configFilePath);
-
-                _cmdletPassedIn.WriteVerbose("Computing digest for config");
-                configFileDigest = CreateDigest(configFilePath, out errRecord);
-                if (errRecord != null)
-                {
-                    return configFileDigest;
-                }
-            }
-            catch (Exception e)
-            {
-                errRecord = new ErrorRecord(
-                    e,
-                    "CreateConfigFileError",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn);
-
-                return configFileDigest;
-            }
-
-            return configFileDigest;
-        }
-
-        /// <summary>
-        /// Create the manifest for the package and upload it
-        /// </summary>
-        private bool TryCreateAndUploadManifest(string fullNupkgFile,
-            string nupkgDigest,
-            string configDigest,
-            string packageName,
-            string modulePrefix,
-            ResourceType resourceType,
-            string metadataJson,
-            string configFilePath,
-            NuGetVersion pkgVersion,
-            string containerRegistryAccessToken,
-            out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::TryCreateAndUploadManifest()");
-            errRecord = null;
-
-            string pkgNameForUpload = string.IsNullOrEmpty(modulePrefix) ? packageName : modulePrefix + "/" + packageName;
-            string packageNameLowercase = pkgNameForUpload.ToLower();
-
-            FileInfo nupkgFile = new FileInfo(fullNupkgFile);
-            var fileSize = nupkgFile.Length;
-            var fileName = System.IO.Path.GetFileName(fullNupkgFile);
-            string fileContent = CreateManifestContent(nupkgDigest, configDigest, fileSize, fileName, packageName, resourceType, metadataJson);
-            File.WriteAllText(configFilePath, fileContent);
-
-            _cmdletPassedIn.WriteVerbose("Create the manifest layer");
-            bool manifestCreated = false;
-            try
-            {
-                HttpResponseMessage manifestResponse = UploadManifest(packageNameLowercase, pkgVersion.OriginalVersion, configFilePath, true, containerRegistryAccessToken).Result;
-                manifestCreated = manifestResponse.IsSuccessStatusCode;
-            }
-            catch (Exception e)
-            {
-                errRecord = new ErrorRecord(
-                    new UploadBlobException($"Error occurred while uploading package manifest to ContainerRegistry: {e.GetType()} '{e.Message}'", e),
-                    "PackageManifestUploadError",
-                    ErrorCategory.InvalidResult,
-                    _cmdletPassedIn);
-
-                return manifestCreated;
-            }
-
-            return manifestCreated;
-        }
-
-        /// <summary>
-        /// Create the content for the manifest for the packge.
-        /// </summary>
-        private string CreateManifestContent(
-            string nupkgDigest,
-            string configDigest,
-            long nupkgFileSize,
-            string fileName,
-            string packageName,
-            ResourceType resourceType,
-            string metadata)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::CreateManifestContent()");
-            StringBuilder stringBuilder = new StringBuilder();
-            StringWriter stringWriter = new StringWriter(stringBuilder);
-            JsonTextWriter jsonWriter = new JsonTextWriter(stringWriter);
-
-            jsonWriter.Formatting = Newtonsoft.Json.Formatting.Indented;
-
-            // start of manifest JSON object
-            jsonWriter.WriteStartObject();
-
-            jsonWriter.WritePropertyName("schemaVersion");
-            jsonWriter.WriteValue(2);
-            jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("application/vnd.oci.image.manifest.v1+json");
-
-            jsonWriter.WritePropertyName("config");
-            jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("application/vnd.oci.image.config.v1+json");
-            jsonWriter.WritePropertyName("digest");
-            jsonWriter.WriteValue($"sha256:{configDigest}");
-            jsonWriter.WritePropertyName("size");
-            jsonWriter.WriteValue(0);
-            jsonWriter.WriteEndObject();
-
-            jsonWriter.WritePropertyName("layers");
-            jsonWriter.WriteStartArray();
-
-            jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName("mediaType");
-            jsonWriter.WriteValue("application/vnd.oci.image.layer.v1.tar+gzip");
-            jsonWriter.WritePropertyName("digest");
-            jsonWriter.WriteValue($"sha256:{nupkgDigest}");
-            jsonWriter.WritePropertyName("size");
-            jsonWriter.WriteValue(nupkgFileSize);
-            jsonWriter.WritePropertyName("annotations");
-            jsonWriter.WriteStartObject();
-            jsonWriter.WritePropertyName("org.opencontainers.image.title");
-            jsonWriter.WriteValue(packageName);
-            jsonWriter.WritePropertyName("org.opencontainers.image.description");
-            jsonWriter.WriteValue(fileName);
-            jsonWriter.WritePropertyName("metadata");
-            jsonWriter.WriteValue(metadata);
-            jsonWriter.WritePropertyName("resourceType");
-            jsonWriter.WriteValue(resourceType.ToString());
-            jsonWriter.WriteEndObject(); // end of annotations object
-
-            jsonWriter.WriteEndObject(); // end of 'layers' entry object
-
-            jsonWriter.WriteEndArray(); // end of 'layers' array
-            jsonWriter.WriteEndObject(); // end of manifest JSON object
-
-            return stringWriter.ToString();
-        }
-
-        /// <summary>
-        /// Create SHA256 digest that will be associated with .nupkg, config file or empty file.
-        /// </summary>
-        private string CreateDigest(string fileName, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::CreateDigest()");
-            errRecord = null;
-            string digest = string.Empty;
-            FileInfo fileInfo = new FileInfo(fileName);
-            SHA256 mySHA256 = SHA256.Create();
-
-            using (FileStream fileStream = fileInfo.Open(FileMode.Open, FileAccess.Read))
-            {
-                try
-                {
-                    // Create a fileStream for the file.
-                    // Be sure it's positioned to the beginning of the stream.
-                    fileStream.Position = 0;
-                    // Compute the hash of the fileStream.
-                    byte[] hashValue = mySHA256.ComputeHash(fileStream);
-                    StringBuilder stringBuilder = new StringBuilder();
-                    foreach (byte b in hashValue)
-                    {
-                        stringBuilder.AppendFormat("{0:x2}", b);
-                    }
-
-                    digest = stringBuilder.ToString();
-                }
-                catch (IOException ex)
-                {
-                    errRecord = new ErrorRecord(ex, $"IOException for .nupkg file: {ex.Message}", ErrorCategory.InvalidOperation, null);
-                    return digest;
-                }
-                catch (UnauthorizedAccessException ex)
-                {
-                    errRecord = new ErrorRecord(ex, $"UnauthorizedAccessException for .nupkg file: {ex.Message}", ErrorCategory.PermissionDenied, null);
-                    return digest;
-                }
-                catch (Exception ex)
-                {
-                    errRecord = new ErrorRecord(ex, $"Exception when creating digest: {ex.Message}", ErrorCategory.PermissionDenied, null);
-                    return digest;
-                }
-            }
-
-            if (String.IsNullOrEmpty(digest))
-            {
-                errRecord = new ErrorRecord(new ArgumentNullException("Digest created was null or empty."), "DigestNullOrEmptyError.", ErrorCategory.InvalidResult, null);
-            }
-
-            return digest;
         }
 
         /// <summary>
@@ -1746,42 +787,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             return jsonString;
         }
 
-        /// <summary>
-        /// Get start location when uploading blob, used during publish.
-        /// </summary>
-        internal async Task<string> GetStartUploadBlobLocation(string packageName, string containerRegistryAccessToken)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetStartUploadBlobLocation()");
-            try
-            {
-                var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-                var startUploadUrl = string.Format(containerRegistryStartUploadTemplate, Registry, packageName);
-                return (await GetHttpResponseHeader(startUploadUrl, HttpMethod.Post, defaultHeaders)).Location.ToString();
-            }
-            catch (Exception e)
-            {
-                throw new UploadBlobException($"Error occurred while starting to upload the blob location used for publishing to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
-            }
-        }
-
-        /// <summary>
-        /// Upload blob, used for publishing
-        /// </summary>
-        internal async Task<HttpResponseMessage> EndUploadBlob(string location, string filePath, string digest, bool isManifest, string containerRegistryAccessToken)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::EndUploadBlob()");
-            try
-            {
-                var endUploadUrl = string.Format(containerRegistryEndUploadTemplate, Registry, location, digest);
-                var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-                return await PutRequestAsync(endUploadUrl, filePath, isManifest, defaultHeaders);
-            }
-            catch (Exception e)
-            {
-                throw new UploadBlobException($"Error occurred while uploading module to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
-            }
-        }
-
         #endregion
 
         #region Find Helper Methods
@@ -1792,26 +797,17 @@ namespace Microsoft.PowerShell.PSResourceGet
         private Hashtable[] FindPackagesWithVersionHelper(string packageName, VersionType versionType, VersionRange versionRange, NuGetVersion requiredVersion, bool includePrerelease, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindPackagesWithVersionHelper()");
-            string accessToken = string.Empty;
-            string tenantID = string.Empty;
-            string registryUrl = Repository.Uri.ToString();
             string packageNameLowercase = packageName.ToLower();
 
             string packageNameForFind = PrependMARPrefix(packageNameLowercase);
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false,out errRecord);
-            if (errRecord != null)
-            {
-                return emptyHashResponses;
-            }
 
-            var foundTags = FindContainerRegistryImageTags(packageNameForFind, "*", containerRegistryAccessToken, out errRecord);
-            if (errRecord != null || foundTags == null)
+            var allVersionsList = ListImageTags(packageNameForFind, out errRecord);
+            if (errRecord != null || allVersionsList == null)
             {
                 return emptyHashResponses;
             }
 
             List<Hashtable> latestVersionResponse = new List<Hashtable>();
-            List<JToken> allVersionsList = foundTags["tags"].ToList();
 
             SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, versionType, versionRange, requiredVersion, packageNameForFind, includePrerelease, out errRecord);
             if (errRecord != null && sortedQualifyingPkgs?.Count == 0)
@@ -1825,7 +821,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             foreach (var pkgVersionTag in pkgsInDescendingOrder)
             {
                 string exactTagVersion = pkgVersionTag.Value.ToString();
-                Hashtable metadata = GetContainerRegistryMetadata(packageNameForFind, exactTagVersion, containerRegistryAccessToken, out errRecord);
+                Hashtable metadata = GetContainerRegistryMetadata(packageNameForFind, exactTagVersion, out errRecord);
                 if (errRecord != null || metadata.Count == 0)
                 {
                     return emptyHashResponses;
@@ -1845,17 +841,15 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Helper method used for find scenarios that resolves versions required from all versions found.
         /// </summary>
-        private SortedDictionary<NuGet.Versioning.SemanticVersion, string> GetPackagesWithRequiredVersion(List<JToken> allPkgVersions, VersionType versionType, VersionRange versionRange, NuGetVersion specificVersion, string packageName, bool includePrerelease, out ErrorRecord errRecord)
+        private SortedDictionary<NuGet.Versioning.SemanticVersion, string> GetPackagesWithRequiredVersion(List<string> allPkgVersions, VersionType versionType, VersionRange versionRange, NuGetVersion specificVersion, string packageName, bool includePrerelease, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetPackagesWithRequiredVersion()");
             errRecord = null;
-            // we need NuGetVersion to sort versions by order, and string pkgVersionString (which is the exact tag from the server) to call GetContainerRegistryMetadata() later with exact version tag.
             SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedPkgs = new SortedDictionary<SemanticVersion, string>(VersionComparer.Default);
             bool isSpecificVersionSearch = versionType == VersionType.SpecificVersion;
 
-            foreach (var pkgVersionTagInfo in allPkgVersions)
+            foreach (var pkgVersionString in allPkgVersions)
             {
-                string pkgVersionString = pkgVersionTagInfo.ToString();
                 // determine if the package version that is a repository tag is a valid NuGetVersion
                 if (!NuGetVersion.TryParse(pkgVersionString, out NuGetVersion pkgVersion))
                 {
@@ -1910,13 +904,8 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindPackages()");
             errRecord = null;
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: true, isPushOperation: false, out errRecord);
-            if (errRecord != null)
-            {
-                return emptyResponseResults;
-            }
 
-            var pkgResult = FindAllRepositories(containerRegistryAccessToken, out errRecord);
+            var repositoryNames = ListAllRepositories(out errRecord);
             if (errRecord != null)
             {
                 return emptyResponseResults;
@@ -1926,10 +915,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             var isMAR = Repository.IsMARRepository();
 
             // Convert the list of repositories to a list of hashtables
-            foreach (var repository in pkgResult["repositories"].ToList())
+            foreach (var repositoryName in repositoryNames)
             {
-                string repositoryName = repository.ToString();
-
                 if (isMAR && !repositoryName.StartsWith(PSRepositoryInfo.MARPrefix))
                 {
                     continue;

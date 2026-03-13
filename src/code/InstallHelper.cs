@@ -270,7 +270,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 PSRepositoryInfo currentRepository = listOfRepositories[i];
 
-                bool isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+                bool isAllowed = true;
+
+                if (OperatingSystem.IsWindows())
+                {
+                    isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+                }
 
                 if (!isAllowed)
                 {
@@ -659,7 +664,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             ErrorCategory.InvalidOperation,
                             _cmdletPassedIn));
 
-                    throw e;
+                    throw;
                 }
                 finally
                 {
