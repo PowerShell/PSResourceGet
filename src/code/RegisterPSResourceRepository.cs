@@ -323,11 +323,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            if (repo["Name"].ToString().Equals("PSGallery"))
+            if (repo["Name"].ToString().Equals("PSGallery", StringComparison.OrdinalIgnoreCase))
             {
                 WriteError(new ErrorRecord(
                         new PSInvalidOperationException("Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery"),
                         "PSGalleryProvidedAsNameRepoPSet",
+                        ErrorCategory.InvalidArgument,
+                        this));
+
+                return null;
+            }
+
+            if (repo["Name"].ToString().Equals("MAR", StringComparison.OrdinalIgnoreCase))
+            {
+                WriteError(new ErrorRecord(
+                        new PSInvalidOperationException("Cannot register MAR with -Name parameter. The MAR repository is automatically registered. Try: Reset-PSResourceRepository to restore default repositories."),
+                        "MARProvidedAsNameRepoPSet",
                         ErrorCategory.InvalidArgument,
                         this));
 
