@@ -1,6 +1,6 @@
 $schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
 resources:
-- name: register PSGallery
+- name: unregister PSGallery
   type: Microsoft.PowerShell.PSResourceGet/Repository
   properties:
     name: TestRepository
