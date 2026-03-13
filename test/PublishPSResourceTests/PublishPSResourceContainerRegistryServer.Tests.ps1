@@ -591,6 +591,13 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
 Describe 'Test Publish-PSResource for MAR Repository' -tags 'CI' {
 
+    BeforeAll {
+        Get-NewPSResourceRepositoryFile
+    }
+    AfterAll {
+        Get-RevertPSResourceRepositoryFile
+    }
+
     It "Should find resource given specific Name, Version null" {
         $fileName = "NonExistent.psd1"
         $modulePath = New-Item -Path "$TestDrive\NonExistent" -ItemType Directory -Force

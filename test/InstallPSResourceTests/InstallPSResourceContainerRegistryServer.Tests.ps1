@@ -352,6 +352,13 @@ Describe 'Test Install-PSResource for Container Registry scenarios - Manual Vali
 
 Describe 'Test Install-PSResource for MAR Repository' -tags 'CI' {
 
+    BeforeAll {
+        Get-NewPSResourceRepositoryFile
+    }
+    AfterAll {
+        Get-RevertPSResourceRepositoryFile
+    }
+
     It "Should find resource given specific Name, Version null" {
         try {
             $pkg = Install-PSResource -Name "Az.Accounts" -Repository "MAR" -PassThru -TrustRepository -Reinstall
