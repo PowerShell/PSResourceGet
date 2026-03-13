@@ -17,10 +17,26 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         internal static string MARPrefix;
 
+        // PSContentPath testing hooks
+        internal static string LastUserContentPathSource;
+        internal static string LastUserContentPath;
+
         public static void SetTestHook(string property, object value)
         {
             var fieldInfo = typeof(InternalHooks).GetField(property, BindingFlags.Static | BindingFlags.NonPublic);
             fieldInfo?.SetValue(null, value);
+        }
+
+        public static object GetTestHook(string property)
+        {
+            var fieldInfo = typeof(InternalHooks).GetField(property, BindingFlags.Static | BindingFlags.NonPublic);
+            return fieldInfo?.GetValue(null);
+        }
+
+        public static void ClearPSContentPathHooks()
+        {
+            LastUserContentPathSource = null;
+            LastUserContentPath = null;
         }
 
         public static string GetUserString()
