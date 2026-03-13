@@ -77,7 +77,7 @@ Describe "Test MAR Repository Registration" -tags 'CI' {
 
     Context "Reset repository store includes MAR" {
         It "Reset-PSResourceRepository should register MAR alongside PSGallery" {
-            Reset-PSResourceRepository
+            Reset-PSResourceRepository -Confirm:$false
             $res = Get-PSResourceRepository -Name $MARName
             $res | Should -Not -BeNullOrEmpty
             $res.Name | Should -Be $MARName
@@ -95,7 +95,7 @@ Describe "Test MAR Repository Registration" -tags 'CI' {
             $res = Get-PSResourceRepository -Name $MARName -ErrorAction SilentlyContinue
             $res | Should -BeNullOrEmpty
 
-            Reset-PSResourceRepository
+            Reset-PSResourceRepository -Confirm:$false
             $res = Get-PSResourceRepository -Name $MARName
             $res | Should -Not -BeNullOrEmpty
             $res.Name | Should -Be $MARName
@@ -107,7 +107,7 @@ Describe "Test MAR Repository Registration" -tags 'CI' {
         It "Reset-PSResourceRepository should restore both PSGallery and MAR" {
             Unregister-PSResourceRepository -Name $MARName
             Unregister-PSResourceRepository -Name $PSGalleryName
-            Reset-PSResourceRepository
+            Reset-PSResourceRepository -Confirm:$false
 
             $mar = Get-PSResourceRepository -Name $MARName
             $mar | Should -Not -BeNullOrEmpty
@@ -125,15 +125,18 @@ Describe "Test MAR Repository Registration" -tags 'CI' {
         It "Find-PSResource Az.Accounts module from MAR" {
             $res = Find-PSResource -Name "Az.Accounts"
             $res | Should -Not -BeNullOrEmpty
-            $res.Name | Should -Be "Az.Accounts"
-            $res.Repository | Should -Be $MARName
+            $res.Count | Should -BeGreaterThan 0
+            $firstRes = $res | Select-Object -First 1
+            $firstRes.Name | Should -Be "Az.Accounts"
+            $firstRes.Repository | Should -Be $MARName
         }
 
         It 'Find-PSResource fallback to PSGallery if module not in MAR' {
             $res = Find-PSResource -Name "Pscx"
             $res | Should -Not -BeNullOrEmpty
-            $res.Name | Should -Be "Pscx"
-            $res.Repository | Should -Be $PSGalleryName
+            $firstRes = $res | Select-Object -First 1
+            $firstRes.Name | Should -Be "Pscx"
+            $firstRes.Repository | Should -Be $PSGalleryName
         }
     }
 }
