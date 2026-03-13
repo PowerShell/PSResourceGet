@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Management.Automation;
+using System.Management.Automation.Runspaces;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -24,6 +25,7 @@ namespace Microsoft.PowerShell.PSResourceGet
     {
         private readonly PSRepositoryInfo _repository;
         private readonly PSCmdlet _cmdletPassedIn;
+        private readonly Runspace _callerRunspace;
         private readonly string _registryHost;
         private readonly HttpClient _httpClient;
         private Credential _cachedCredential;
@@ -38,6 +40,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             _repository = repository;
             _cmdletPassedIn = cmdletPassedIn;
+            _callerRunspace = Runspace.DefaultRunspace;
             _registryHost = repository.Uri.Host;
             _httpClient = httpClient ?? new HttpClient();
             _cachedCredential = new Credential();
@@ -50,6 +53,25 @@ namespace Microsoft.PowerShell.PSResourceGet
                 throw new ArgumentException("Hostname cannot be null or empty.", nameof(hostname));
             }
 
+            // ORAS invokes this callback on a thread pool thread which has no
+            // PowerShell Runspace.  Restore the caller's Runspace so that
+            // InvokeCommand.InvokeScript, WriteVerbose, WriteWarning and any
+            // nested PowerShell script invocations (SecretManagement, etc.) work.
+            var previousRunspace = Runspace.DefaultRunspace;
+            Runspace.DefaultRunspace = _callerRunspace;
+
+            try
+            {
+                return await ResolveCredentialCoreAsync(hostname, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                Runspace.DefaultRunspace = previousRunspace;
+            }
+        }
+
+        private async Task<Credential> ResolveCredentialCoreAsync(string hostname, CancellationToken cancellationToken)
+        {
             // Return cached credential if still valid
             if (!string.IsNullOrEmpty(_cachedCredential.RefreshToken) && DateTimeOffset.UtcNow < _tokenExpiry)
             {
