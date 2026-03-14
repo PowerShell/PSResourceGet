@@ -390,7 +390,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
 
                 // If the current package is out of range, install it with the correct version.
-                if (!NuGetVersion.TryParse(installedPackage.Version.ToString(), out NuGetVersion installedVersion))
+                string installedVersionString = Utils.GetNormalizedVersionString(installedPackage.Version.ToString(), installedPackage.Prerelease);
+                if (!NuGetVersion.TryParse(installedVersionString, out NuGetVersion installedVersion))
                 {
                     WriteWarning($"Cannot parse nuget version in installed package '{installedPackage.Name}'. Cannot update package.");
                     continue;
