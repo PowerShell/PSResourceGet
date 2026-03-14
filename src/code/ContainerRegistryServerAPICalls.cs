@@ -33,28 +33,31 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override PSRepositoryInfo Repository { get; set; }
         public String Registry { get; set; }
         private readonly PSCmdlet _cmdletPassedIn;
+        private readonly NetworkCredential _registryCredential = null;
         private HttpClient _sessionClient { get; set; }
         private static readonly Hashtable[] emptyHashResponses = new Hashtable[] { };
         private static FindResponseType containerRegistryFindResponseType = FindResponseType.ResponseString;
         private static readonly FindResults emptyResponseResults = new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: containerRegistryFindResponseType);
 
         const string containerRegistryRefreshTokenTemplate = "grant_type=access_token&service={0}&tenant={1}&access_token={2}"; // 0 - registry, 1 - tenant, 2 - access token
-        const string containerRegistryAccessTokenTemplate = "grant_type=refresh_token&service={0}&scope=repository:*:*&scope=registry:catalog:*&refresh_token={1}"; // 0 - registry, 1 - refresh token
         const string containerRegistryOAuthExchangeUrlTemplate = "https://{0}/oauth2/exchange"; // 0 - registry
-        const string containerRegistryOAuthTokenUrlTemplate = "https://{0}/oauth2/token"; // 0 - registry
         const string containerRegistryManifestUrlTemplate = "https://{0}/v2/{1}/manifests/{2}"; // 0 - registry, 1 - repo(modulename), 2 - tag(version)
         const string containerRegistryBlobDownloadUrlTemplate = "https://{0}/v2/{1}/blobs/{2}"; // 0 - registry, 1 - repo(modulename), 2 - layer digest
         const string containerRegistryFindImageVersionUrlTemplate = "https://{0}/v2/{1}/tags/list"; // 0 - registry, 1 - repo(modulename)
         const string containerRegistryStartUploadTemplate = "https://{0}/v2/{1}/blobs/uploads/"; // 0 - registry, 1 - packagename
         const string containerRegistryEndUploadTemplate = "https://{0}{1}&digest=sha256:{2}"; // 0 - registry, 1 - location, 2 - digest
-        const string defaultScope = "&scope=repository:*:*&scope=registry:catalog:*";
-        const string catalogScope = "&scope=registry:catalog:*";
-        const string grantTypeTemplate = "grant_type=access_token&service={0}{1}"; // 0 - registry, 1 - scope
-        const string authUrlTemplate = "{0}?service={1}{2}"; // 0 - realm, 1 - service, 2 - scope
 
         const string containerRegistryRepositoryListTemplate = "https://{0}/v2/_catalog"; // 0 - registry
 
-        private string _cachedContainterRegistryToken = null;
+        const string _tokenUrlTemplate = "{0}?service={1}&scope={2}"; // 0 - realm, 2 - service, 3 - scope
+
+        const string _pullScopeTemplate = "repository:{0}:pull"; // 0 - packagename
+        const string _pushScopeTemplate = "repository:{0}:push,pull"; // 0 - packagename
+        const string _catalogScopeTemplate = "registry:catalog:*";
+
+        private bool _registryIsUnauthenticated = false;
+        private Dictionary<string, string> _cachedContainterRegistryToken = new Dictionary<string, string>();
+        private (string realm, string service)? _cachedBearerInformation = null;
 
         #endregion
 
@@ -65,12 +68,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             Repository = repository;
             Registry = Repository.Uri.Host;
             _cmdletPassedIn = cmdletPassedIn;
-            HttpClientHandler handler = new HttpClientHandler()
-            {
-                Credentials = networkCredential
-            };
-
-            _cachedContainterRegistryToken = null;
+            _registryCredential = networkCredential;
+            HttpClientHandler handler = new HttpClientHandler();
 
             _sessionClient = new HttpClient(handler);
             _sessionClient.Timeout = TimeSpan.FromMinutes(10);
@@ -332,7 +331,10 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return null;
             }
 
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false, out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(
+                string.Format(_pullScopeTemplate, packageName),
+                allowAnonymous: true,
+                out errRecord);
             if (errRecord != null)
             {
                 return null;
@@ -374,170 +376,237 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         #region Authentication and Token Methods
 
-        /// <summary>
-        /// Gets the access token for the container registry by following the below logic:
-        /// If a credential is provided when registering the repository, retrieve the token from SecretsManagement.
-        /// If no credential provided at registration then, check if the ACR endpoint can be accessed without a token. If not, try using Azure.Identity to get the az access token, then ACR refresh token and then ACR access token.
-        /// Note: Access token can be empty if the repository is unauthenticated
-        /// </summary>
-        internal string GetContainerRegistryAccessToken(bool needCatalogAccess, bool isPushOperation, out ErrorRecord errRecord)
+        private string GetContainerRegistryAccessToken(
+            string scope,
+            bool allowAnonymous,
+            out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessToken()");
-            string accessToken = string.Empty;
-            string containerRegistryAccessToken = string.Empty;
-            string tenantID = string.Empty;
             errRecord = null;
 
-            if (!string.IsNullOrEmpty(_cachedContainterRegistryToken))
+            if (_registryIsUnauthenticated)
+            {
+                _cmdletPassedIn.WriteVerbose("Registry has been marked as having no authentication.");
+                return null;
+            }
+            else if (_cachedContainterRegistryToken.TryGetValue(scope, out string cachedToken))
             {
                 _cmdletPassedIn.WriteVerbose("Using cached container registry access token.");
-                return _cachedContainterRegistryToken;
+                return cachedToken;
             }
 
-            var repositoryCredentialInfo = Repository.CredentialInfo;
-            if (repositoryCredentialInfo != null)
+            if (_cachedBearerInformation is null)
             {
-                accessToken = Utils.GetContainerRegistryAccessTokenFromSecretManagement(
-                    Repository.Name,
-                    repositoryCredentialInfo,
-                    _cmdletPassedIn);
+                _cachedBearerInformation = GetContainerRegistryTokenBearerRealm(Repository.Uri.ToString(), out errRecord);
+                if (_cachedBearerInformation is null)
+                {
+                    _cmdletPassedIn.WriteVerbose("Failed to get Repository bearer realm");
+                    return null;
+                }
+            }
 
-                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
+            (string realm, string service) = _cachedBearerInformation.Value;
+            if (string.IsNullOrEmpty(realm))
+            {
+                _cmdletPassedIn.WriteVerbose("Registry is unauthenticated");
+                _registryIsUnauthenticated = true;
+                return null;
+            }
 
-                tenantID = repositoryCredentialInfo.SecretName;
+            NetworkCredential credential = GetRegistryCredential(Repository.Uri.ToString(), service, out errRecord);
+            if (errRecord is not null)
+            {
+                _cmdletPassedIn.WriteVerbose("Failure attempting to retrieve credential");
+                return null;
+            }
+
+            var authHeaders = new Collection<KeyValuePair<string, string>>();
+            if (credential is null)
+            {
+                // If we have no credentials we check that the caller can use an anonymous
+                // token and fail. Otherwise request the anonymous token (no Basic header).
+                if (!allowAnonymous)
+                {
+                    errRecord = new ErrorRecord(
+                        new InvalidOperationException("No credentials were specified for operation that requires authentication."),
+                        "RegistryTokenAnonymousAuthNotAllowed",
+                        ErrorCategory.AuthenticationError,
+                        this);
+
+                    return null;
+                }
             }
             else
             {
-                // A container registry repository is determined to be unauthenticated if it allows anonymous pull access. However, push operations always require authentication.
-                bool isRepositoryUnauthenticated = isPushOperation ? false : IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), needCatalogAccess, out errRecord, out accessToken);
-                _cmdletPassedIn.WriteInformation($"Value of isRepositoryUnauthenticated: {isRepositoryUnauthenticated}", new string[] { "PSRGContainerRegistryUnauthenticatedCheck" });
-
-                _cmdletPassedIn.WriteDebug($"Is repository unauthenticated: {isRepositoryUnauthenticated}");
-
-                if (errRecord != null)
-                {
-                    return null;
-                }
-
-                if (!string.IsNullOrEmpty(accessToken))
-                {
-                    _cmdletPassedIn.WriteVerbose("Anonymous access token retrieved.");
-                    return accessToken;
-                }
-
-                if (!isRepositoryUnauthenticated)
-                {
-                    accessToken = Utils.GetAzAccessToken(_cmdletPassedIn);
-                    if (string.IsNullOrEmpty(accessToken))
-                    {
-                        errRecord = new ErrorRecord(
-                            new InvalidOperationException("Failed to get access token from Azure."),
-                            "AzAccessTokenFailure",
-                            ErrorCategory.AuthenticationError,
-                            this);
-
-                        return null;
-                    }
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteVerbose("Repository is unauthenticated");
-                    return null;
-                }
+                string basicAuth = Convert.ToBase64String(Encoding.UTF8.GetBytes(
+                    $"{credential.UserName}:{credential.Password}"));
+                authHeaders.Add(new KeyValuePair<string, string>("Authorization", $"Basic {basicAuth}"));
             }
 
-            var containerRegistryRefreshToken = GetContainerRegistryRefreshToken(tenantID, accessToken, out errRecord);
-            if (errRecord != null)
+            var results = GetHttpResponseJObjectUsingDefaultHeaders(
+                string.Format(_tokenUrlTemplate, realm, service, scope),
+                HttpMethod.Get,
+                authHeaders,
+                out errRecord);
+            if (errRecord is not null)
             {
                 return null;
             }
 
-            containerRegistryAccessToken = GetContainerRegistryAccessTokenByRefreshToken(containerRegistryRefreshToken, out errRecord);
-            if (errRecord != null)
+            string bearerToken = string.Empty;
+            if (results.TryGetValue("token", out JToken token))
             {
+                bearerToken = token.Value<string>();
+            }
+            else if (results.TryGetValue("access_token", out JToken accessToken))
+            {
+                bearerToken = accessToken.Value<string>();
+            }
+
+            if (string.IsNullOrEmpty(bearerToken))
+            {
+                errRecord = new ErrorRecord(
+                    new InvalidOperationException("Unexpected result from token exchange, expected key for token or access_token but found none."),
+                    "RegistryTokenKeyNotFound",
+                    ErrorCategory.InvalidResult,
+                    this);
+
                 return null;
             }
 
-            _cmdletPassedIn.WriteVerbose("Container registry access token retrieved.");
-            _cachedContainterRegistryToken = containerRegistryAccessToken;
-
-            return containerRegistryAccessToken;
+            _cachedContainterRegistryToken[scope] = bearerToken;
+            return bearerToken;
         }
 
         /// <summary>
-        /// Checks if container registry repository is unauthenticated.
+        /// Gets the credential used for the current registry.
+        ///
+        /// Credentials are sourced in this order:
+        ///
+        ///     1. -Credential passed to the cmdlet for this operation
+        ///     2. -CredentialInfo passed to the repository configuration
+        ///     3. Any Azure environmental credentials (for ACR)
         /// </summary>
-        internal bool IsContainerRegistryUnauthenticated(string containerRegistryUrl, bool needCatalogAccess, out ErrorRecord errRecord, out string anonymousAccessToken)
+        /// <returns>The network credential to use, or null for anonymous access.</returns>
+        private NetworkCredential GetRegistryCredential(string registry, string service, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::IsContainerRegistryUnauthenticated()");
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetRegistryCredential()");
             errRecord = null;
-            anonymousAccessToken = string.Empty;
-            string endpoint = $"{containerRegistryUrl}/v2/";
-            HttpResponseMessage response;
+
+            NetworkCredential azToken = null;
+            NetworkCredential credential = null;
+            if (_registryCredential is not null)
+            {
+                credential = _registryCredential;
+            }
+            else if (Repository.CredentialInfo is {} repoCredential)
+            {
+                string password = Utils.GetContainerRegistryAccessTokenFromSecretManagement(
+                    Repository.Name,
+                    repoCredential,
+                    _cmdletPassedIn);
+
+                _cmdletPassedIn.WriteVerbose("SecretManagement credential retrieved.");
+                credential = new NetworkCredential(repoCredential.SecretName, password);
+            }
+            else if (service.EndsWith(".azurecr.io"))
+            {
+                // If no credentials were provided then we try and use an
+                // existing Azure context. This should really be gated by some
+                // other check so that it's only done with ACR endpoint but I
+                // don't know a safe way to determine that.
+                string accessToken = Utils.GetAzAccessToken(_cmdletPassedIn);
+                if (accessToken is not null)
+                {
+                    azToken = new NetworkCredential(string.Empty, accessToken);
+                }
+            }
+
+            // Any credentials with the 'AzureAccessToken: GUID' pattern is
+            // considered an Azure AccessToken which requires another Azure
+            // specific exchange before using it with OCI.
+            string azTokenPattern = "^AzureAccessToken: ([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})$";
+            if (credential is not null && Regex.Match(credential.UserName, azTokenPattern) is Match match && match.Success)
+            {
+                string tenantId = match.Groups[1].Value;
+                if (tenantId == Guid.Empty.ToString())
+                {
+                    // 0'd GUID means no tenant id
+                    tenantId = string.Empty;
+                }
+                azToken = new NetworkCredential(tenantId, credential.Password);
+            }
+
+            if (azToken is not null)
+            {
+                // We do the Azure specific exchange to get an ACR refresh
+                // token. The refresh token can be used like other credentials
+                // in the bearer token exchange.
+                string refreshToken = GetAcrRefreshToken(service, azToken.UserName, azToken.Password, out errRecord);
+                if (errRecord is not null)
+                {
+                    return null;
+                }
+                else if (!string.IsNullOrEmpty(refreshToken))
+                {
+                    // The empty GUID is required, it tells ACR that this is a
+                    // refresh token.
+                    credential = new NetworkCredential(Guid.Empty.ToString(), refreshToken);
+                }
+            }
+
+            return credential;
+        }
+
+        /// <summary>
+        /// Try and get the OCI authentication realm URI.
+        ///
+        /// The realm and service will be set when the method returns true. If the realm is
+        /// an empty string, the registry is valid and doesn't require a bearer
+        /// token (unauthenticated access is allowed).
+        /// </summary>
+        /// <see href="https://distribution.github.io/distribution/spec/auth/token/">WWW-Authenticate header details.</see>
+        /// <param name="registry">The registry to check.</param>
+        /// <param name="errRecord">ErrorRecord containing the error on a failure.</param>
+        /// <param name="realm">Returns the realm URI to request the bearer token from.</param>
+        /// <param name="service">Returns the service component of the realm URI.</param>
+        /// <returns>true if the container registry realm was retrieved/allows unauthenticated access or false if there was a failure.</returns>
+        private (string, string)? GetContainerRegistryTokenBearerRealm(string registry, out ErrorRecord errRecord)
+        {
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::TryGetContainerRegistryTokenBearerRealm()");
+            errRecord = null;
+
+            string endpoint = $"{registry}/v2/";
             try
             {
-                response = _sessionClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, endpoint)).Result;
+                // Not all endpoints allow a HEAD request so we use GET.
+                HttpResponseMessage response = _sessionClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, endpoint)).Result;
 
-                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                if (response.IsSuccessStatusCode)
                 {
-                    // check if there is a auth challenge header
-                    if (response.Headers.WwwAuthenticate.Count() > 0)
-                    {
-                        var authHeader = response.Headers.WwwAuthenticate.First();
-                        if (authHeader.Scheme == "Bearer")
-                        {
-                            // check if there is a realm
-                            if (authHeader.Parameter.Contains("realm"))
-                            {
-                                // get the realm
-                                var realm = authHeader.Parameter.Split(',')?.Where(x => x.Contains("realm"))?.FirstOrDefault()?.Split('=')[1]?.Trim('"');
-                                // get the service
-                                var service = authHeader.Parameter.Split(',')?.Where(x => x.Contains("service"))?.FirstOrDefault()?.Split('=')[1]?.Trim('"');
-
-                                if (string.IsNullOrEmpty(realm) || string.IsNullOrEmpty(service))
-                                {
-                                    errRecord = new ErrorRecord(
-                                        new InvalidOperationException("Failed to get realm or service from the auth challenge header."),
-                                        "RegistryUnauthenticationCheckError",
-                                        ErrorCategory.InvalidResult,
-                                        this);
-
-                                    return false;
-                                }
-
-                                string content = needCatalogAccess ? String.Format(grantTypeTemplate, service, catalogScope) : String.Format(grantTypeTemplate, service, defaultScope);
-
-                                var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
-
-                                string url = needCatalogAccess ? String.Format(authUrlTemplate, realm, service, catalogScope) : String.Format(authUrlTemplate, realm, service, defaultScope);
-
-                                _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
-
-                                // we don't check the error record here because we want to return false if we get a 401 and not throw an error
-                                _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
-                                ErrorRecord errRecordTemp = null;
-
-                                var results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out errRecordTemp);
-
-                                if (results == null)
-                                {
-                                    _cmdletPassedIn.WriteDebug("Failed to get access token from the realm. results is null.");
-                                    _cmdletPassedIn.WriteDebug($"ErrorRecord: {errRecordTemp}");
-                                    return false;
-                                }
-
-                                if (results["access_token"] == null)
-                                {
-                                    _cmdletPassedIn.WriteDebug($"Failed to get access token from the realm. access_token is null. results: {results}");
-                                    return false;
-                                }
-
-                                anonymousAccessToken = results["access_token"].ToString();
-                                return true;
-                            }
-                        }
-                    }
+                    // Registry allows unauthenticated requests, an empty realm signals this to the caller.
+                    return (string.Empty, string.Empty);
                 }
+                else if (response.StatusCode != HttpStatusCode.Unauthorized)
+                {
+                    // This raises HttpRequestException which our catch block handles.
+                    response.EnsureSuccessStatusCode();
+                }
+
+                var authHeader = response.Headers.WwwAuthenticate
+                    .Where(a => a.Scheme == "Bearer")
+                    .FirstOrDefault() ?? throw new InvalidOperationException("Failed to get container registry bearer realm, no WWW-Authenticate Bearer response found.");
+
+                var authParams = ParseKeyValuePair(authHeader.Parameter);
+                string realm = authParams.TryGetValue("realm", out string v1) ? v1 : string.Empty;
+                string service = authParams.TryGetValue("service", out string v2) ? v2 : string.Empty;
+
+                if (string.IsNullOrEmpty(realm) || string.IsNullOrEmpty(service))
+                {
+                    throw new InvalidOperationException("Failed to get realm or service from the auth challenge header.");
+                }
+
+                return (realm, service);
             }
             catch (HttpRequestException hre)
             {
@@ -546,8 +615,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                     "RegistryAnonymousAcquireError",
                     ErrorCategory.ConnectionError,
                     this);
-
-                return false;
             }
             catch (Exception e)
             {
@@ -556,20 +623,18 @@ namespace Microsoft.PowerShell.PSResourceGet
                     "RegistryUnauthenticationCheckError",
                     ErrorCategory.InvalidResult,
                     this);
-
-                return false;
             }
 
-            return (response.StatusCode == HttpStatusCode.OK);
+            return null;
         }
 
         /// <summary>
         /// Given the access token retrieved from credentials, gets the refresh token.
         /// </summary>
-        internal string GetContainerRegistryRefreshToken(string tenant, string accessToken, out ErrorRecord errRecord)
+        private string GetAcrRefreshToken(string service, string tenant, string accessToken, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryRefreshToken()");
-            string content = string.Format(containerRegistryRefreshTokenTemplate, Registry, tenant, accessToken);
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetAcrRefreshToken()");
+            string content = string.Format(containerRegistryRefreshTokenTemplate, service, tenant, accessToken);
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
             string exchangeUrl = string.Format(containerRegistryOAuthExchangeUrlTemplate, Registry);
             var results = GetHttpResponseJObjectUsingContentHeaders(exchangeUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
@@ -579,24 +644,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             return results["refresh_token"].ToString();
-        }
-
-        /// <summary>
-        /// Given the refresh token, gets the new access token with appropriate scope access permissions.
-        /// </summary>
-        internal string GetContainerRegistryAccessTokenByRefreshToken(string refreshToken, out ErrorRecord errRecord)
-        {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessTokenByRefreshToken()");
-            string content = string.Format(containerRegistryAccessTokenTemplate, Registry, refreshToken);
-            var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
-            string tokenUrl = string.Format(containerRegistryOAuthTokenUrlTemplate, Registry);
-            var results = GetHttpResponseJObjectUsingContentHeaders(tokenUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
-            if (errRecord != null || results == null || results["access_token"] == null)
-            {
-                return string.Empty;
-            }
-
-            return results["access_token"].ToString();
         }
 
         #endregion
@@ -1109,7 +1156,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                 {
                     if (string.Equals(header.Key, "Authorization", StringComparison.OrdinalIgnoreCase))
                     {
-                        _sessionClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", header.Value);
+                        _sessionClient.DefaultRequestHeaders.Authorization = header.Value.StartsWith("Basic ")
+                            ? new AuthenticationHeaderValue(header.Value)
+                            : new AuthenticationHeaderValue("Bearer", header.Value);
                     }
                     else if (string.Equals(header.Key, "Accept", StringComparison.OrdinalIgnoreCase))
                     {
@@ -1333,7 +1382,10 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             // Get access token (includes refresh tokens)
             _cmdletPassedIn.WriteVerbose($"Get access token for container registry server.");
-            var containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: true, out errRecord);
+            var containerRegistryAccessToken = GetContainerRegistryAccessToken(
+                string.Format(_pushScopeTemplate, packageNameLowercase),
+                allowAnonymous: false,
+                out errRecord);
             if (errRecord != null)
             {
                 return false;
@@ -1798,7 +1850,10 @@ namespace Microsoft.PowerShell.PSResourceGet
             string packageNameLowercase = packageName.ToLower();
 
             string packageNameForFind = PrependMARPrefix(packageNameLowercase);
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false,out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(
+                string.Format(_pullScopeTemplate, packageNameLowercase),
+                allowAnonymous: true,
+                out errRecord);
             if (errRecord != null)
             {
                 return emptyHashResponses;
@@ -1910,7 +1965,10 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindPackages()");
             errRecord = null;
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: true, isPushOperation: false, out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(
+                _catalogScopeTemplate,
+                allowAnonymous: true,
+                out errRecord);
             if (errRecord != null)
             {
                 return emptyResponseResults;
@@ -1955,6 +2013,23 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             return new FindResults(stringResponse: new string[] { }, hashtableResponse: repositoriesList.ToArray(), responseType: containerRegistryFindResponseType);
+        }
+
+        private static Dictionary<string, string> ParseKeyValuePair(string inputString)
+        {
+            Dictionary<string, string> pairs = new Dictionary<string, string>();
+            foreach (string entry in inputString.Split(','))
+            {
+                string[] parts = entry.Split(new char[] {'='}, 2);
+                if (parts.Length != 2)
+                {
+                    continue;
+                }
+
+                pairs[parts[0].Trim()] = parts[1].Trim().Trim('"');
+            }
+
+            return pairs;
         }
 
         #endregion
