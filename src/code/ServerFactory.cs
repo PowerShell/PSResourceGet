@@ -30,7 +30,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
     internal class ServerFactory
     {
-        public static ServerApiCall GetServer(PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential)
+        public static ServerApiCall GetServer(PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential, bool writeWarnings = false)
         {
             PSRepositoryInfo.APIVersion repoApiVersion = repository.ApiVersion;
             ServerApiCall currentServer = null;
@@ -47,7 +47,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case PSRepositoryInfo.APIVersion.Local:
-                    currentServer = new LocalServerAPICalls(repository, cmdletPassedIn, networkCredential);
+                    currentServer = new LocalServerAPICalls(repository, cmdletPassedIn, networkCredential, writeWarnings);
                     break;
 
                 case PSRepositoryInfo.APIVersion.NugetServer:
