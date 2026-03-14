@@ -65,7 +65,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// This constructor is called by internal cmdlet methods and creates a PSScriptHelp with default values
         /// for the parameters. Calling a method like PSScriptRequires.ParseContentIntoObj() would then populate those properties.
         /// </summary>
-        internal PSScriptRequires() {}
+        internal PSScriptRequires() { }
 
         #endregion
 
@@ -93,7 +93,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             try
             {
-                var ast = Parser.ParseInput(
+                ScriptBlockAst ast = Parser.ParseInput(
                     requiresComment,
                     out Token[] tokens,
                     out ParseError[] parserErrors);
@@ -229,7 +229,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// </summary>
         internal void UpdateContent(ModuleSpecification[] requiredModules)
         {
-            if (requiredModules != null && requiredModules.Length != 0){
+            if (requiredModules != null && requiredModules.Length != 0)
+            {
                 RequiredModules = requiredModules;
             }
         }

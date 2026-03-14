@@ -7,7 +7,7 @@ Import-Module $modPath -Force -Verbose
 
 Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
 
-    BeforeAll{
+    BeforeAll {
         $PSGalleryName = Get-PSGalleryName
         $testModuleName = "test_module2"
         $testScriptName = "test_script"
@@ -35,8 +35,8 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         Get-InstalledPSResource $testModuleName | Should -BeNullOrEmpty
     }
 
-    $testCases = @{Name="Test?Module";      ErrorId="ErrorFilteringNamesForUnsupportedWildcards"},
-                 @{Name="Test[Module";      ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
+    $testCases = @{Name = "Test?Module"; ErrorId = "ErrorFilteringNamesForUnsupportedWildcards" },
+    @{Name = "Test[Module"; ErrorId = "ErrorFilteringNamesForUnsupportedWildcards" }
 
     It "not uninstall module given Name with invalid wildcard characters" -TestCases $testCases {
         param($Name, $ErrorId)
@@ -170,11 +170,11 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
     It "Do not uninstall module with incorrectly formatted version such as <Description>" -TestCases $testCases2 {
         param($Version, $Description)
 
-        {Uninstall-PSResource -Name $testModuleName -Version $Version -SkipDependencyCheck} | Should -Throw "Argument for -Version parameter is not in the proper format."
+        { Uninstall-PSResource -Name $testModuleName -Version $Version -SkipDependencyCheck } | Should -Throw "Argument for -Version parameter is not in the proper format."
     }
 
-    $testCases3 =  @{Version='(1.0.0.0)';       Description="exclusive version (1.0.0.0)"},
-                @{Version='[1-0-0-0]';       Description="version formatted with invalid delimiter"}
+    $testCases3 = @{Version = '(1.0.0.0)'; Description = "exclusive version (1.0.0.0)" },
+    @{Version = '[1-0-0-0]'; Description = "version formatted with invalid delimiter" }
 
     It "Do not uninstall module with incorrectly formatted version such as <Description>" -TestCases $testCases3 {
         param($Version, $Description)
@@ -183,8 +183,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
 
         try {
             Uninstall-PSResource -Name $testModuleName -Version $Version -ErrorAction SilentlyContinue -SkipDependencyCheck
-        }
-        catch
+        } catch
         {}
         $pkg = Get-InstalledPSResource $testModuleName -Version "1.0.0.0"
         $pkg.Version | Should -Be "1.0.0.0"
@@ -229,14 +228,14 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "5.0.0" -Repository $PSGalleryName -TrustRepository
         Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleName
-        $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
+        $prereleaseVersionPkgs = $res | Where-Object { $_.IsPrerelease -eq $true }
         $prereleaseVersionPkgs.Count | Should -Be 2
 
         Uninstall-PSResource -Name $testModuleName -Version "*" -Prerelease -SkipDependencyCheck
         $res = Get-InstalledPSResource -Name $testModuleName
-        $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
+        $prereleaseVersionPkgs = $res | Where-Object { $_.IsPrerelease -eq $true }
         $prereleaseVersionPkgs.Count | Should -Be 0
-        $stableVersionPkgs = $res | Where-Object {$_.IsPrerelease -ne $true}
+        $stableVersionPkgs = $res | Where-Object { $_.IsPrerelease -ne $true }
         $stableVersionPkgs.Count | Should -Be 2
     }
 
@@ -248,15 +247,15 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Version "5.2.5-alpha001" -Repository $PSGalleryName -TrustRepository
 
         $res = Get-InstalledPSResource -Name $testModuleName
-        $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
+        $prereleaseVersionPkgs = $res | Where-Object { $_.IsPrerelease -eq $true }
         $prereleaseVersionPkgs.Count | Should -Be 2
 
         Uninstall-PSResource -Name $testModuleName -Version "[2.0.0, 5.0.0]" -Prerelease -SkipDependencyCheck
         $res = Get-InstalledPSResource -Name $testModuleName
         # should only uninstall 2.5.0-beta, 5.2.5-alpha001 is out of range and should remain installed
-        $prereleaseVersionPkgs = $res | Where-Object {$_.IsPrerelease -eq $true}
+        $prereleaseVersionPkgs = $res | Where-Object { $_.IsPrerelease -eq $true }
         $prereleaseVersionPkgs.Count | Should -Be 1
-        $stableVersionPkgs = $res | Where-Object {$_.IsPrerelease -ne $true}
+        $stableVersionPkgs = $res | Where-Object { $_.IsPrerelease -ne $true }
         # versions 3.0.0 falls in range but should not be uninstalled as Prerelease parameter only selects prerelease versions to uninstall
         $stableVersionPkgs.Count | Should -Be 2
     }

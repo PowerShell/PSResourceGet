@@ -38,8 +38,8 @@
     FunctionsToExport      = @(
         'Import-PSGetRepository'
     )
-    VariablesToExport = 'PSGetPath'
-    AliasesToExport = @(
+    VariablesToExport      = 'PSGetPath'
+    AliasesToExport        = @(
         'Get-PSResource',
         'fdres',
         'gres',

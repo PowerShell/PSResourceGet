@@ -1,5 +1,5 @@
 
-# Examples for `Find-PSResource` searching through repositories.
+# Examples for `Find-PSResource` searching through repositories
 
 These examples will go through a number of scenarios related to `Find-PSResource` searching through repositories to show what the expected outcome will be. `Find-PSResource` will return resources from all repositories that match the criteria specified.
 In all these examples, the repositories registered and their priorities are as follows:
@@ -17,87 +17,109 @@ Note that PSGallery has a lower priority than NuGetGallery.
 
 1) Searching with only a package name specified, eg: `Find-PSResource 'TestModule'` or `Find-PSResource 'TestModule' -Repository '*'`
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         TestModule  1.0.0.0            NuGetGallery
         ```
+
        Should return 'TestModule' from both 'PSGallery' and 'NuGetGallery'.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            NuGetGallery
         ```
+
         Should return 'TestModule' from 'NuGetGallery'.
 
     * When the package exists in neither repository:
+
         ```
         Find-PSResource: Package 'TestModule' could not be found in any registered repositories.
         ```
+
 2) Searching with a package name and a repository specified, eg: `Find-PSResource 'TestModule' -Repository PSGallery`
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Find-PSResource: Package with name 'TestModule' could not be found in repository 'PSGallery'.
         ```
+
     * When the package exists in neither repository:
+
         ```
         Find-PSResource: Package with name 'TestModule' could not be found in repository 'PSGallery'.
         ```
 
 3) Searching with a package name specified and wildcard repository, eg: `Find-PSResource 'TestModule' -Repository *Gallery`
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         TestModule  1.0.0.0            NuGetGallery
         ```
+
         Should return 'TestModule' from 'PSGallery' and 'NuGetGallery'.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            NuGetGallery
         ```
+
         Should return 'TestModule' from 'NuGetGallery'.
 
     * When the package exists in neither repository:
+
         ```
         Find-PSResource: Package 'TestModule' could not be found in registered repositories: 'PSGallery, NuGetGallery'.
         ```
@@ -105,15 +127,18 @@ Note that PSGallery has a lower priority than NuGetGallery.
 4) Searching with a package name specified and multiple repository names specified, eg: `Find-PSResource 'TestModule' -Repository PSGallery, NuGetGallery`
 
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         TestModule  1.0.0.0            NuGetGallery
         ```
+
         Should return 'TestModule' from 'PSGallery' and 'NuGetGallery'.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -121,10 +146,11 @@ Note that PSGallery has a lower priority than NuGetGallery.
 
         Find-PSResource: Package with name 'TestModule' could not be found in repository 'NuGetGallery'.
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
-
     * When the package exists the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -132,10 +158,11 @@ Note that PSGallery has a lower priority than NuGetGallery.
 
         Find-PSResource: Package with name 'TestModule' could not be found in repository 'PSGallery'.
         ```
+
         Should return 'TestModule' from 'NuGetGallery'.
 
-
     * When the package is in neither repository:
+
         ```
         Find-PSResource: Package with name 'TestModule' could not be found in repository 'PSGallery'.
         Find-PSResource: Package with name 'TestModule' could not be found in repository 'NuGetGallery'.
@@ -144,6 +171,7 @@ Note that PSGallery has a lower priority than NuGetGallery.
 5) Searching with a package name specified and both a repository name specified AND a repository name with a wildcard, eg: `Find-PSResource 'TestModule' -Repository *Gallery, otherRepository`
 
     * This scenario is not supported due to the ambiguity that arises when a repository with a wildcard in its name is specified as well as a repository with a specific name. The command will display the following error:
+
         ```
         Find-PSResource: Repository name with wildcard is not allowed when another repository without wildcard is specified.
         ```
@@ -154,31 +182,38 @@ In these examples, the package TestModule has the following tags: Tag1, Tag2.
 
 1) Searching with only a tag specified, eg: `Find-PSResource -Tag 'Tag1'` or `Find-PSResource -Tag 'Tag1' -Repository '*'`
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         TestModule  1.0.0.0            NuGetGallery
         ```
+
        Should return 'TestModule' from both 'PSGallery' and 'NuGetGallery'.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            NuGetGallery
         ```
+
         Should return 'TestModule' from 'NuGetGallery'.
 
     * When the package exists in neither repository:
+
         ```
         Find-PSResource: Package with Tags 'Tag1' could not be found in any registered repositories.
         ```
@@ -186,12 +221,14 @@ In these examples, the package TestModule has the following tags: Tag1, Tag2.
     * When the package exists in both repositories and multiple existing tags are specified:
 
         eg: `Find-PSResource -Tag 'Tag1','Tag2'` or `Find-PSResource -Tag 'Tag1','Tag2' -Repository '*'`
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         TestModule  1.0.0.0            NuGetGallery
         ```
+
        Should return 'TestModule' from both 'PSGallery' and 'NuGetGallery'.
 
     * When the package exists in both repositories and multiple tags (existing and non-existant) are specified:
@@ -203,27 +240,33 @@ In these examples, the package TestModule has the following tags: Tag1, Tag2.
 
 2) Searching with a tag and a repository specified, eg: `Find-PSResource -Tag 'Tag1' -Repository PSGallery`
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Package with Tags 'Tag1' could not be found in repository 'PSGallery'.
         ```
 
     * When the package exists in neither repository:
+
         ```
         Package with Tags 'Tag1' could not be found in repository 'PSGallery'.
         ```
@@ -231,11 +274,13 @@ In these examples, the package TestModule has the following tags: Tag1, Tag2.
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery) and multiple existing tags are specified:
 
         eg: `Find-PSResource -Tag 'Tag1','Tag2' -Repository PSGallery`
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
        Should return 'TestModule' from both 'PSGallery'.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery) and multiple tags (existing and non-existant) are specified:
@@ -247,31 +292,38 @@ In these examples, the package TestModule has the following tags: Tag1, Tag2.
 
 3) Searching with a tag specified and wildcard repository, eg: `Find-PSResource -Tag 'Tag1' -Repository *Gallery`
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         TestModule  1.0.0.0            NuGetGallery
         ```
+
         Should return 'TestModule' from 'PSGallery' and 'NuGetGallery'.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            NuGetGallery
         ```
+
         Should return 'TestModule' from 'NuGetGallery'.
 
     * When the package exists in neither repository:
+
         ```
         Find-PSResource: Package with Tags 'Tag1' could not be found in registered repositories: 'PSGallery, NuGetGallery'.
         ```
@@ -279,12 +331,14 @@ In these examples, the package TestModule has the following tags: Tag1, Tag2.
     * When the package exists in both repositories and multiple existing tags are specified:
 
         eg: `Find-PSResource -Tag 'Tag1','Tag2' -Repository *Gallery`
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         TestModule  1.0.0.0            NuGetGallery
         ```
+
         Should return 'TestModule' from 'PSGallery' and 'NuGetGallery'.
 
     * When the package exists in both repositories and multiple tags (existing and non-existant) are specified:
@@ -297,15 +351,18 @@ In these examples, the package TestModule has the following tags: Tag1, Tag2.
 4) Searching with a tag specified and multiple repository names specified, eg: `Find-PSResource -Tag 'Tag1' -Repository PSGallery, NuGetGallery`
 
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         TestModule  1.0.0.0            NuGetGallery
         ```
+
         Should return 'TestModule' from 'PSGallery' and 'NuGetGallery'.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -313,10 +370,11 @@ In these examples, the package TestModule has the following tags: Tag1, Tag2.
 
         Find-PSResource: Package with Tags 'Tag1' could not be found in repository 'NuGetGallery'.
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
-
     * When the package exists the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -324,10 +382,11 @@ In these examples, the package TestModule has the following tags: Tag1, Tag2.
 
         Find-PSResource: Package with Tags 'Tag1' could not be found in repository 'PSGallery'.
         ```
+
         Should return 'TestModule' from 'NuGetGallery'.
 
-
     * When the package is in neither repository:
+
         ```
         Find-PSResource: Package with Tags 'Tag1' could not be found in repository 'PSGallery'.
         Find-PSResource: Package with Tags 'Tag1' could not be found in repository 'NuGetGallery'.
@@ -336,12 +395,14 @@ In these examples, the package TestModule has the following tags: Tag1, Tag2.
     * When the package exists in both repositories and multiple existing tags are specified:
 
         eg: `Find-PSResource -Tag 'Tag1','Tag2' -Repository PSGallery, NuGetGallery`
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         TestModule  1.0.0.0            NuGetGallery
         ```
+
         Should return 'TestModule' from 'PSGallery' and 'NuGetGallery'.
 
     * When the package exists in both repositories and multiple tags (existing and non-existant) are specified:
@@ -354,6 +415,7 @@ In these examples, the package TestModule has the following tags: Tag1, Tag2.
 5) Searching with a tag specified and both a repository name specified AND a repository name with a wildcard, eg: `Find-PSResource -Tag 'Tag1' -Repository *Gallery, otherRepository`
 
     * This scenario is not supported due to the ambiguity that arises when a repository with a wildcard in its name is specified as well as a repository with a specific name. The command will display the following error:
+
         ```
         Find-PSResource: Repository name with wildcard is not allowed when another repository without wildcard is specified.
         ```
@@ -364,41 +426,51 @@ In these examples, the package TestModule has the following command names (i.e t
 
 1) Searching with only a Command name specified, eg: `Find-PSResource -CommandName 'Get-MyCommand1'` or `Find-PSResource -CommandName 'Get-MyCommand1' -Repository '*'`
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'. Since searching with `-CommandName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'. Since searching with `-CommandName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Find-PSResource: Package with CommandName 'Get-MyCommand1' could not be found in any registered repositories.
         ```
+
         Since searching with `-CommandName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in neither repository:
+
         ```
         Find-PSResource: Package with CommandName 'Get-MyCommand1' could not be found in any registered repositories.
         ```
+
         Since searching with `-CommandName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in both repositories and multiple existing Command names are specified:
 
         eg: `Find-PSResource -CommandName 'Get-MyCommand1','Get-MyCommand2'` or `Find-PSResource -CommandName 'Get-MyCommand1','Get-MyCommand2' -Repository '*'`
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
        Should return 'TestModule' from both 'PSGallery'. Since searching with `-CommandName` for NuGetGallery repository is not supported, it will be skipped.
 
 
@@ -411,27 +483,33 @@ In these examples, the package TestModule has the following command names (i.e t
 
 2) Searching with a Command name and a repository specified, eg: `Find-PSResource -CommandName 'Get-MyCommand1' -Repository PSGallery`
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Package with CommandName 'Get-MyCommand1' could not be found in repository 'PSGallery'.
         ```
 
     * When the package exists in neither repository:
+
         ```
         Package with CommandName 'Get-MyCommand1' could not be found in repository 'PSGallery'.
         ```
@@ -439,11 +517,13 @@ In these examples, the package TestModule has the following command names (i.e t
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery) and multiple existing tags are specified:
 
         eg: `Find-PSResource -CommandName 'Get-MyCommand1','Get-MyCommand2' -Repository PSGallery`
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
        Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery) and multiple tags (existing and non-existant) are specified:
@@ -455,28 +535,35 @@ In these examples, the package TestModule has the following command names (i.e t
 
 3) Searching with a Command name specified and wildcard repository, eg: `Find-PSResource -CommandName 'Get-MyCommand1' -Repository *Gallery`
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'. Since searching with `-CommandName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Find-PSResource: Package with CommandName 'Get-MyCommand1' could not be found in any registered repositories.
         ```
+
         Since searching with `-CommandName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in neither repository:
+
         ```
         Find-PSResource: Package with CommandName 'Get-MyCommand1' could not be found in registered repositories: 'PSGallery, NuGetGallery'.
         ```
@@ -484,11 +571,13 @@ In these examples, the package TestModule has the following command names (i.e t
     * When the package exists in both repositories and multiple existing Command names are specified:
 
         eg: `Find-PSResource -CommandName 'Get-MyCommand1','Get-MyCommand2' -Repository *Gallery`
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'. Since searching with `-CommandName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in both repositories and multiple Command names (existing and non-existant) are specified:
@@ -501,14 +590,17 @@ In these examples, the package TestModule has the following command names (i.e t
 4) Searching with a Command name specified and multiple repository names specified, eg: `Find-PSResource -CommandName 'Get-MyCommand1' -Repository PSGallery, NuGetGallery`
 
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'. Since searching with `-CommandName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -516,25 +608,29 @@ In these examples, the package TestModule has the following command names (i.e t
 
         Find-PSResource: Find by CommandName or DSCResource is not supported for the V3 server protocol repository 'NuGetGallery'.
         ```
+
         Should return 'TestModule' from 'PSGallery'. Since searching with `-CommandName` for NuGetGallery repository is not supported, it will not be searched and error written out.
 
     * When the package exists the second repository (NuGetGallery), but not the first (PSGallery):
         ```
         Find-PSResource: Find by CommandName or DSCResource is not supported for the V3 server protocol repository 'NuGetGallery'.
         ```
+
         Since searching with `-CommandName` for NuGetGallery repository is not supported, it will not be searched and error written out.
 
-
     * When the package is in neither repository:
+
         ```
         Find-PSResource: Package with Command 'Get-MyCommand1' could not be found in repository 'PSGallery'.
         Find-PSResource: Find by CommandName or DSCResource is not supported for the V3 server protocol repository 'NuGetGallery'.
         ```
+
         Since searching with `-CommandName` for NuGetGallery repository, it will not be searched and error written out.
 
     * When the package exists in both repositories and multiple existing Command names are specified:
 
         eg: `Find-PSResource -CommandName 'Get-MyCommand1','Get-MyCommand2' -Repository PSGallery, NuGetGallery`
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -542,8 +638,8 @@ In these examples, the package TestModule has the following command names (i.e t
 
         Find-PSResource: Find by CommandName or DSCResource is not supported for the V3 server protocol repository 'NuGetGallery'.
         ```
-        Since searching with `-CommandName` for NuGetGallery repository, it will not be searched and error written out.
 
+        Since searching with `-CommandName` for NuGetGallery repository, it will not be searched and error written out.
 
     * When the package exists in both repositories and multiple Command names (existing and non-existant) are specified:
 
@@ -552,11 +648,13 @@ In these examples, the package TestModule has the following command names (i.e t
         Find-PSResource: Package with Command 'Get-MyCommand1' could not be found in repository 'PSGallery'.
         Find-PSResource: Find by CommandName or DSCResource is not supported for the V3 server protocol repository 'NuGetGallery'.
         ```
+
         Since searching with `-CommandName` for NuGetGallery repository, it will not be searched and error written out.
 
 5) Searching with a Command name specified and both a repository name specified AND a repository name with a wildcard, eg: `Find-PSResource -CommandName 'Get-MyCommand1' -Repository *Gallery, otherRepository`
 
     * This scenario is not supported due to the ambiguity that arises when a repository with a wildcard in its name is specified as well as a repository with a specific name. The command will display the following error:
+
         ```
         Find-PSResource: Repository name with wildcard is not allowed when another repository without wildcard is specified.
         ```
@@ -567,41 +665,51 @@ In these examples, the package TestModule has the following DscResource names (i
 
 1) Searching with only a DscResource name specified, eg: `Find-PSResource -DscResourceName 'MyDscResource1'` or `Find-PSResource -DscResourceName 'MyDscResource1' -Repository '*'`
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'. Since searching with `-DscResourceName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'. Since searching with `-DscResourceName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Find-PSResource: Package with DSCResourceName 'MyDscResource1' could not be found in any registered repositories.
         ```
+
         Since searching with `-DscResourceName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in neither repository:
+
         ```
         Find-PSResource: Package with DSCResourceName 'MyDscResource1' could not be found in any registered repositories.
         ```
+
         Since searching with `-DSCResourceName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in both repositories and multiple existing DSCResource names are specified:
 
         eg: `Find-PSResource -DSCResourceName 'MyDscResource1','MyDscResource2'` or `Find-PSResource -DSCResourceName 'MyDscResource1', 'MyDscResource2' -Repository '*'`
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
        Should return 'TestModule' from both 'PSGallery'. Since searching with `-DscResourceName` for NuGetGallery repository is not supported, it will be skipped.
 
 
@@ -614,27 +722,33 @@ In these examples, the package TestModule has the following DscResource names (i
 
 2) Searching with a DscResource name and a repository specified, eg: `Find-PSResource -DscResourceName 'MyDscResource1' -Repository PSGallery`
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Package with DscResourceName 'MyDscResource1' could not be found in repository 'PSGallery'.
         ```
 
     * When the package exists in neither repository:
+
         ```
         Package with DSCResourceName 'MyDscResource1' could not be found in repository 'PSGallery'.
         ```
@@ -642,11 +756,13 @@ In these examples, the package TestModule has the following DscResource names (i
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery) and multiple existing tags are specified:
 
         eg: `Find-PSResource -DscResourceName 'MyDscResource1','MyDscResource2' -Repository PSGallery`
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
        Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery) and multiple tags (existing and non-existant) are specified:
@@ -658,28 +774,35 @@ In these examples, the package TestModule has the following DscResource names (i
 
 3) Searching with a DscResource name specified and wildcard repository, eg: `Find-PSResource -DscResourceName 'MyDscResource1' -Repository *Gallery`
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'. Since searching with `-DscResourceName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'.
 
     * When the package exists in the second repository (NuGetGallery), but not the first (PSGallery):
+
         ```
         Find-PSResource: Package with DSCResourceName 'MyDscResource1' could not be found in any registered repositories.
         ```
+
         Since searching with `-DscResourceName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in neither repository:
+
         ```
         Find-PSResource: Package with DSCResourceName 'MyDscResource1' could not be found in registered repositories: 'PSGallery, NuGetGallery'.
         ```
@@ -687,11 +810,13 @@ In these examples, the package TestModule has the following DscResource names (i
     * When the package exists in both repositories and multiple existing DscResource names are specified:
 
         eg: `Find-PSResource -DscResourceName 'MyDscResource1','MyDscResource2' -Repository *Gallery`
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'. Since searching with `-DscResourceName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in both repositories and multiple DscResource names (existing and non-existant) are specified:
@@ -704,14 +829,17 @@ In these examples, the package TestModule has the following DscResource names (i
 4) Searching with a DscResource name specified and multiple repository names specified, eg: `Find-PSResource -DscResourceName 'MyDscResource1' -Repository PSGallery, NuGetGallery`
 
     * When the package exists in both repositories:
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
         TestModule  1.0.0.0            PSGallery
         ```
+
         Should return 'TestModule' from 'PSGallery'. Since searching with `-DscResourceName` for NuGetGallery repository is not supported, it will be skipped.
 
     * When the package exists in the first repository (PSGallery), but not the second (NuGetGallery):
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -719,25 +847,29 @@ In these examples, the package TestModule has the following DscResource names (i
 
         Find-PSResource: Find by DscResourceName or DSCResource is not supported for the V3 server protocol repository 'NuGetGallery'.
         ```
+
         Should return 'TestModule' from 'PSGallery'. Since searching with `-DscResourceName` for NuGetGallery repository is not supported, it will not be searched and error written out.
 
     * When the package exists the second repository (NuGetGallery), but not the first (PSGallery):
         ```
         Find-PSResource: Find by DscResourceName or DSCResource is not supported for the V3 server protocol repository 'NuGetGallery'.
         ```
+
         Since searching with `-DscResourceName` for NuGetGallery repository is not supported, it will not be searched and error written out.
 
-
     * When the package is in neither repository:
+
         ```
         Find-PSResource: Package with DSCResourceName 'MyDscResource1' could not be found in repository 'PSGallery'.
         Find-PSResource: Find by CommandName or DSCResource is not supported for the V3 server protocol repository 'NuGetGallery'.
         ```
+
         Since searching with `-DscResourceName` for NuGetGallery repository, it will not be searched and error written out.
 
     * When the package exists in both repositories and multiple existing DscResource names are specified:
 
         eg: `Find-PSResource -DscResourceName 'MyDscResource1','MyDscResource2' -Repository PSGallery, NuGetGallery`
+
         ```
         Name        Version Prerelease Repository
         ----        ------- ---------- ----------
@@ -745,8 +877,8 @@ In these examples, the package TestModule has the following DscResource names (i
 
         Find-PSResource: Find by CommandName or DSCResource is not supported for the V3 server protocol repository 'NuGetGallery'.
         ```
-        Since searching with `-DscResourceName` for NuGetGallery repository, it will not be searched and error written out.
 
+        Since searching with `-DscResourceName` for NuGetGallery repository, it will not be searched and error written out.
 
     * When the package exists in both repositories and multiple DscResource names (existing and non-existant) are specified:
 
@@ -755,11 +887,13 @@ In these examples, the package TestModule has the following DscResource names (i
         Find-PSResource: Package with DscResource 'MyDscResource1' could not be found in repository 'PSGallery'.
         Find-PSResource: Find by CommandName or DSCResource is not supported for the V3 server protocol repository 'NuGetGallery'.
         ```
+
         Since searching with `-DscResourceName` for NuGetGallery repository, it will not be searched and error written out.
 
 5) Searching with a DscResource name specified and both a repository name specified AND a repository name with a wildcard, eg: `Find-PSResource -DscResourceName 'MyDscResource1' -Repository *Gallery, otherRepository`
 
     * This scenario is not supported due to the ambiguity that arises when a repository with a wildcard in its name is specified as well as a repository with a specific name. The command will display the following error:
+
         ```
         Find-PSResource: Repository name with wildcard is not allowed when another repository without wildcard is specified.
         ```

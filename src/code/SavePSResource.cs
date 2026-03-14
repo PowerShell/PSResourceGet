@@ -169,7 +169,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Suppresses progress information.
         /// </summary>
-        [Parameter] 
+        [Parameter]
         public SwitchParameter Quiet { get; set; }
 
         /// <summary>
@@ -188,7 +188,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
             RepositorySettings.CheckRepositoryStore();
 
-            var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+            NetworkCredential networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
             // If path is not provided, use current path.
             if (string.IsNullOrEmpty(_path))
@@ -214,7 +214,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    foreach (var inputObj in InputObject)
+                    foreach (PSResourceInfo inputObj in InputObject)
                     {
                         string normalizedVersionString = Utils.GetNormalizedVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
                         ProcessSaveHelper(
@@ -289,7 +289,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 pkgPrerelease = true;
             }
 
-            var installedPkgs = _installHelper.BeginInstallPackages(
+            IEnumerable<PSResourceInfo> installedPkgs = _installHelper.BeginInstallPackages(
                 names: namesToSave,
                 versionRange: versionRange,
                 nugetVersion: nugetVersion,

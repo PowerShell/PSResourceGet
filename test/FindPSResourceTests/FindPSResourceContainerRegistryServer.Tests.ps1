@@ -313,10 +313,10 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
     It "Should find version range for Az dependencies" {
         # Target known version to know the output from the API won't change
         $res = Find-PSResource -Repository 'MAR' -Name 'Az' -Version '14.4.0'
-        
+
         # Version defined by "ModuleVersion"
         $res.Dependencies.Where{$_.'Name' -eq 'Az.Accounts'}.'VersionRange'.ToString() | Should -Be '[5.3.0, )'
-        
+
         # Version defined by "RequiredVersion"
         $res.Dependencies.Where{$_.'Name' -eq 'Az.Resources'}.'VersionRange'.ToString() | Should -Be '[8.1.0, 8.1.0]'
     }

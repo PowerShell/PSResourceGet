@@ -25,7 +25,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         ///     If no criteria are added with <seealso cref="NuGetV2FilterBuilder.AddCriterion(string)"/>, the built query string will not contain a <c>$filter</c> parameter unless <seealso cref="ShouldEmitEmptyFilter"/> is true.
         /// </remarks>
         internal NuGetV2FilterBuilder FilterBuilder { get; private set; }
-        
+
         /// <summary>
         ///     Indicates whether an empty <c>$filter</c> parameter should be emitted if <seealso cref="FilterBuilder"/> contains no criteria.
         /// </summary>
@@ -72,7 +72,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         internal string BuildQueryString()
         {
 
-            var QueryParameters = HttpUtility.ParseQueryString("");
+            NameValueCollection QueryParameters = HttpUtility.ParseQueryString("");
 
 
             if (FilterBuilder.CriteriaCount > 0 || ShouldEmitEmptyFilter)
@@ -80,11 +80,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 QueryParameters["$filter"] = FilterBuilder.BuildFilterString();
             }
 
-            if (SearchTerm != null) {
+            if (SearchTerm != null)
+            {
                 QueryParameters["searchTerm"] = SearchTerm;
             }
 
-            foreach (var parameter in AdditionalParameters)
+            foreach (KeyValuePair<string, string> parameter in AdditionalParameters)
             {
                 QueryParameters[parameter.Key] = parameter.Value;
             }
@@ -147,13 +148,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // Parenthesizing binary criteria (like "Id eq 'Foo'") would ideally provide better isolation/debuggability of mis-built filters.
             // However, a $filter like "(IsLatestVersion)" appears to be rejected by PSGallery (possibly because grouping operators cannot be used with single unary operators).
-            // Parenthesizing only binary criteria requires more introspection into the underlying criteria, which we don't currently have with string-form criteria. 
+            // Parenthesizing only binary criteria requires more introspection into the underlying criteria, which we don't currently have with string-form criteria.
 
             // Figure out the expected size of our filter string, based on:
             int ExpectedSize = FilterCriteria.Select(x => x.Length).Sum() // The length of the filter criteria themselves.
                 + 5 * (FilterCriteria.Count - 1); // The length of the combining string, " and ", interpolated between the filters.
 
-            // Allocate a StringBuilder with our calculated capacity. 
+            // Allocate a StringBuilder with our calculated capacity.
             // This helps right-size memory allocation and reduces performance impact from resizing the builder's internal capacity.
             StringBuilder sb = new StringBuilder(ExpectedSize);
 

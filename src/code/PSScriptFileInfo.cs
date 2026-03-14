@@ -109,7 +109,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             ref string[] remainingFileContent,
             out ErrorRecord error)
         {
-            error= null;
+            error = null;
 
             psScriptInfoCommentContent = new List<string>();
             helpInfoCommentContent = new List<string>();
@@ -323,7 +323,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 remainingFileContent: ref remainingFileContent,
                 out ErrorRecord parseError))
             {
-                errors = new ErrorRecord[]{parseError};
+                errors = new ErrorRecord[] { parseError };
                 return false;
             }
 
@@ -511,7 +511,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             Hashtable scriptHashtable = new Hashtable(StringComparer.OrdinalIgnoreCase);
 
             Hashtable metadataObjectHashtable = ScriptMetadataComment.ToHashtable();
-            foreach(string key in metadataObjectHashtable.Keys)
+            foreach (string key in metadataObjectHashtable.Keys)
             {
                 if (!scriptHashtable.ContainsKey(key))
                 {

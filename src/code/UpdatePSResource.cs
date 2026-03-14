@@ -41,7 +41,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         [SupportsWildcards]
         [Parameter(Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
         [ValidateNotNullOrEmpty]
-        public string[] Name { get; set ; } = new string[] {"*"};
+        public string[] Name { get; set; } = new string[] { "*" };
 
         /// <summary>
         /// Specifies the version the resource is to be updated to.
@@ -86,11 +86,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             set
             {
-                if (WildcardPattern.ContainsWildcardCharacters(value)) 
-                { 
-                    throw new PSArgumentException("Wildcard characters are not allowed in the temporary path."); 
-                } 
-                
+                if (WildcardPattern.ContainsWildcardCharacters(value))
+                {
+                    throw new PSArgumentException("Wildcard characters are not allowed in the temporary path.");
+                }
+
                 // This will throw if path cannot be resolved
                 _tmpPath = GetResolvedProviderPathFromPSPath(value, out ProviderInfo provider).First();
             }
@@ -161,14 +161,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> pathsToSearch = Utils.GetAllResourcePaths(this, Scope);
             _packagesOnMachine = Utils.GetInstalledPackages(pathsToSearch, this);
             _cancellationTokenSource = new CancellationTokenSource();
-            var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+            NetworkCredential networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
             _findHelper = new FindHelper(
-                cancellationToken: _cancellationTokenSource.Token, 
+                cancellationToken: _cancellationTokenSource.Token,
                 cmdletPassedIn: this,
                 networkCredential: networkCred);
 
-             _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
+            _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }
 
         protected override void ProcessRecord()
@@ -186,7 +186,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "IncorrectVersionFormat",
                     ErrorCategory.InvalidArgument,
                     this));
-                    
+
                 return;
             }
 
@@ -197,7 +197,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return;
             }
 
-            var installedPkgs = _installHelper.BeginInstallPackages(
+            IEnumerable<PSResourceInfo> installedPkgs = _installHelper.BeginInstallPackages(
                 names: namesToUpdate,
                 versionRange: versionRange,
                 nugetVersion: nugetVersion,
@@ -265,10 +265,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             namesToProcess = Utils.ProcessNameWildcards(
                 pkgNames: namesToProcess,
-                removeWildcardEntries:false, 
+                removeWildcardEntries: false,
                 errorMsgs: out string[] errorMsgs,
                 isContainWildcard: out bool _);
-            
+
             foreach (string error in errorMsgs)
             {
                 WriteError(new ErrorRecord(
@@ -277,12 +277,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ErrorCategory.InvalidArgument,
                     this));
             }
-            
+
             // This catches the case where namesToProcess wasn't passed in as null or empty,
             // but after filtering out unsupported wildcard names there are no elements left in namesToProcess.
             if (namesToProcess.Length == 0)
             {
-                 return Utils.EmptyStrArray;
+                return Utils.EmptyStrArray;
             }
 
             if (String.Equals(namesToProcess[0], "*", StringComparison.InvariantCultureIgnoreCase))
@@ -295,7 +295,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var installedPackages = new Dictionary<string, PSResourceInfo>(StringComparer.InvariantCultureIgnoreCase);
 
             // selectPrereleaseOnly is false because even if Prerelease is true we want to include both stable and prerelease, not select prerelease only.
-            foreach (var installedPackage in getHelper.GetPackagesFromPath(
+            foreach (PSResourceInfo installedPackage in getHelper.GetPackagesFromPath(
                 name: namesToProcess,
                 versionRange: VersionRange.All,
                 pathsToSearch: Utils.GetAllResourcePaths(this, Scope),
@@ -314,7 +314,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     "NoInstalledPackagesFoundWithNameProvided",
                     ErrorCategory.InvalidOperation,
                     this));
-                    
+
                 return Utils.EmptyStrArray;
             }
 
@@ -335,7 +335,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // Find all packages selected for updating in provided repositories.
             var repositoryPackages = new Dictionary<string, PSResourceInfo>(StringComparer.InvariantCultureIgnoreCase);
-            foreach (var foundResource in _findHelper.FindByResourceName(
+            foreach (PSResourceInfo foundResource in _findHelper.FindByResourceName(
                 name: installedPackages.Keys.ToArray(),
                 type: ResourceType.None,
                 versionRange: versionRange,
@@ -398,7 +398,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 // cases in which to update:
                 // versionRange: null/*,        , repoVersion : 2.0.0-beta, installedVersion: 1.5.0
-                // versionRange: [1.8.0, 2.1.0] , repoVersion: 2.0.0, installedVersion: 1.6.0 
+                // versionRange: [1.8.0, 2.1.0] , repoVersion: 2.0.0, installedVersion: 1.6.0
                 // versionRange: [, 2.1.0]      , repoVersion: 2.0.0, installedVersion: 1.5.0 (installedVersion satisfies requirement, but there's later version)
                 if (((versionRange == null || versionRange == VersionRange.All) && repoVersion > installedVersion) ||
                     versionRange != null && repoVersion > installedVersion && versionRange.Satisfies(repoVersion))

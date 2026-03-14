@@ -39,7 +39,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override PSRepositoryInfo Repository { get; set; }
         private readonly PSCmdlet _cmdletPassedIn;
         private HttpClient _sessionClient { get; set; }
-        private static readonly Hashtable[] emptyHashResponses = new Hashtable[]{};
+        private static readonly Hashtable[] emptyHashResponses = new Hashtable[] { };
         public FindResponseType v2FindResponseType = FindResponseType.ResponseString;
         private bool _isADORepo;
         private bool _isJFrogRepo;
@@ -49,17 +49,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Constructor
 
-        public V2ServerAPICalls (PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential, string userAgentString) : base (repository, networkCredential)
+        public V2ServerAPICalls(PSRepositoryInfo repository, PSCmdlet cmdletPassedIn, NetworkCredential networkCredential, string userAgentString) : base(repository, networkCredential)
         {
             this.Repository = repository;
             _cmdletPassedIn = cmdletPassedIn;
             HttpClientHandler handler = new HttpClientHandler();
             bool token = false;
 
-            if(networkCredential != null)
+            if (networkCredential != null)
             {
                 token = String.Equals("token", networkCredential.UserName) ? true : false;
-            };
+            }
+            ;
 
             if (token)
             {
@@ -69,12 +70,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 _sessionClient = new HttpClient(handler);
                 _sessionClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
 
-            } else {
+            }
+            else
+            {
 
                 handler.Credentials = networkCredential;
 
                 _sessionClient = new HttpClient(handler);
-            };
+            }
+            ;
 
             _sessionClient.Timeout = TimeSpan.FromMinutes(10);
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
@@ -212,7 +216,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         _cmdletPassedIn.WriteDebug($"Count is '{count}'");
                         // skip 100
                         scriptSkip += 100;
-                        var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: false,  scriptSkip, out errRecord);
+                        var tmpResponse = FindTagFromEndpoint(tags, includePrerelease, isSearchingModule: false, scriptSkip, out errRecord);
                         if (errRecord != null)
                         {
                             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -347,16 +351,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$inlinecount", "allpages" },
                 { "id", $"'{packageName}'" },
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
             // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
-            if (!_isJFrogRepo) {
+            if (!_isJFrogRepo)
+            {
                 filterBuilder.AddCriterion($"Id eq '{packageName}'");
             }
 
             filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion eq true" : "IsLatestVersion eq true");
-            if (type != ResourceType.None) {
+            if (type != ResourceType.None)
+            {
                 filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
             }
 
@@ -394,7 +400,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 response = string.Empty;
             }
 
-            return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
         }
 
         /// <summary>
@@ -416,16 +422,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$inlinecount", "allpages" },
                 { "id", $"'{packageName}'" },
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
             // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
-            if (!_isJFrogRepo) {
+            if (!_isJFrogRepo)
+            {
                 filterBuilder.AddCriterion($"Id eq '{packageName}'");
             }
 
             filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion eq true" : "IsLatestVersion eq true");
-            if (type != ResourceType.None) {
+            if (type != ResourceType.None)
+            {
                 filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
             }
 
@@ -653,11 +661,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$inlinecount", "allpages" },
                 { "id", $"'{packageName}'" },
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
             // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
-            if (!_isJFrogRepo) {
+            if (!_isJFrogRepo)
+            {
                 filterBuilder.AddCriterion($"Id eq '{packageName}'");
             }
 
@@ -720,17 +729,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$inlinecount", "allpages" },
                 { "id", $"'{packageName}'" },
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
 
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
             // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
-            if (!_isJFrogRepo) {
+            if (!_isJFrogRepo)
+            {
                 filterBuilder.AddCriterion($"Id eq '{packageName}'");
             }
 
             filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
-            if (type != ResourceType.None) {
+            if (type != ResourceType.None)
+            {
                 filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
             }
 
@@ -918,31 +929,40 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$skip", skip.ToString()},
                 { "$top", "6000"}
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
-            if (_isPSGalleryRepo) {
+            if (_isPSGalleryRepo)
+            {
                 queryBuilder.AdditionalParameters["$orderby"] = "Id desc";
             }
 
             // JFrog/Artifactory requires an empty search term to enumerate all packages in the feed
-            if (_isJFrogRepo) {
+            if (_isJFrogRepo)
+            {
                 queryBuilder.SearchTerm = "''";
 
-                if (includePrerelease) {
+                if (includePrerelease)
+                {
                     queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                     // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsAbsoluteLatestVersion correctly
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
-                } else {
+                }
+                else
+                {
                     // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsLatestVersion correctly
                     filterBuilder.AddCriterion("IsLatestVersion eq true");
                 }
             }
-            else {
+            else
+            {
                 // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
-                if (includePrerelease) {
+                if (includePrerelease)
+                {
                     queryBuilder.AdditionalParameters["includePrerelease"] = "true";
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
-                } else {
+                }
+                else
+                {
                     filterBuilder.AddCriterion("IsLatestVersion");
                 }
             }
@@ -970,27 +990,35 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$skip", skip.ToString()},
                 { "$top", "6000"}
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
-            if (_isPSGalleryRepo) {
+            if (_isPSGalleryRepo)
+            {
                 queryBuilder.AdditionalParameters["$orderby"] = "Id desc";
             }
 
-            if (includePrerelease) {
+            if (includePrerelease)
+            {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                if (_isJFrogRepo) {
+                if (_isJFrogRepo)
+                {
                     // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsAbsoluteLatestVersion correctly
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
                 }
-                else {
+                else
+                {
                     // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
                 }
-            } else {
-                if (_isJFrogRepo) {
+            }
+            else
+            {
+                if (_isJFrogRepo)
+                {
                     filterBuilder.AddCriterion("IsLatestVersion eq true");
                 }
-                else {
+                else
+                {
                     // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsLatestVersion");
                 }
@@ -1020,28 +1048,36 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$skip", skip.ToString()},
                 { "$top", "6000"}
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
-            if (_isPSGalleryRepo) {
+            if (_isPSGalleryRepo)
+            {
                 queryBuilder.AdditionalParameters["$orderby"] = "Id desc";
             }
 
-            if (includePrerelease) {
+            if (includePrerelease)
+            {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                if (_isJFrogRepo) {
+                if (_isJFrogRepo)
+                {
                     // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsAbsoluteLatestVersion correctly
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
                 }
-                else {
+                else
+                {
                     // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
                 }
-            } else {
-                if (_isJFrogRepo) {
+            }
+            else
+            {
+                if (_isJFrogRepo)
+                {
                     // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsLatestVersion correctly
                     filterBuilder.AddCriterion("IsLatestVersion eq true");
                 }
-                else {
+                else
+                {
                     // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsLatestVersion");
                 }
@@ -1075,34 +1111,42 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$skip", skip.ToString()},
                 { "$top", "100"}
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
-            if (_isPSGalleryRepo) {
+            if (_isPSGalleryRepo)
+            {
                 queryBuilder.AdditionalParameters["$orderby"] = "Id desc";
             }
 
-            if (includePrerelease) {
+            if (includePrerelease)
+            {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                if (_isJFrogRepo) {
+                if (_isJFrogRepo)
+                {
                     // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsAbsoluteLatestVersion correctly
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
                 }
-                else {
+                else
+                {
                     // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
                 }
-            } else {
-                if (_isJFrogRepo) {
+            }
+            else
+            {
+                if (_isJFrogRepo)
+                {
                     // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsLatestVersion correctly
                     filterBuilder.AddCriterion("IsLatestVersion eq true");
                 }
-                else {
+                else
+                {
                     // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsLatestVersion");
                 }
             }
 
-            var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
+            var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (names.Length == 0)
             {
@@ -1161,7 +1205,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return string.Empty;
             }
-            if (type != ResourceType.None) {
+            if (type != ResourceType.None)
+            {
                 filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
             }
             var requestUrlV2 = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
@@ -1183,35 +1228,43 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 { "$skip", skip.ToString()},
                 { "$top", "100"}
             });
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
-            if (_isPSGalleryRepo) {
+            if (_isPSGalleryRepo)
+            {
                 queryBuilder.AdditionalParameters["$orderby"] = "Id desc";
             }
 
             // JFrog/Artifactory requires an empty search term to enumerate all packages in the feed
-            if (includePrerelease) {
+            if (includePrerelease)
+            {
                 queryBuilder.AdditionalParameters["includePrerelease"] = "true";
-                if (_isJFrogRepo) {
+                if (_isJFrogRepo)
+                {
                     // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsAbsoluteLatestVersion correctly
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion eq true");
                 }
-                else {
+                else
+                {
                     // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsAbsoluteLatestVersion");
                 }
-            } else {
-                if (_isJFrogRepo) {
+            }
+            else
+            {
+                if (_isJFrogRepo)
+                {
                     // note: we add 'eq true' because some PMPs (currently we know of JFrog, but others may do this too) will proxy the query unedited to the upstream remote and if that's PSGallery, it doesn't handle IsLatestVersion correctly
                     filterBuilder.AddCriterion("IsLatestVersion eq true");
                 }
-                else {
+                else
+                {
                     // For ADO, 'IsLatestVersion eq true' and 'IsAbsoluteLatestVersion eq true' in the filter create a bad request error, so we use 'IsLatestVersion' or 'IsAbsoluteLatestVersion' only
                     filterBuilder.AddCriterion("IsLatestVersion");
                 }
             }
 
-            var names = packageName.Split(new char[] {'*'}, StringSplitOptions.RemoveEmptyEntries);
+            var names = packageName.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (!_isPSGalleryRepo)
             {
@@ -1275,7 +1328,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 filterBuilder.AddCriterion($"substringof('{tag}', Tags) eq true");
             }
 
-            if (type != ResourceType.None) {
+            if (type != ResourceType.None)
+            {
                 filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
             }
             var requestUrlV2 = $"{Repository.Uri}/Search()?{queryBuilder.BuildQueryString()}";
@@ -1325,7 +1379,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {"id", $"'{packageName}'"}
             });
 
-            var filterBuilder = queryBuilder.FilterBuilder;
+            NuGetV2FilterBuilder filterBuilder = queryBuilder.FilterBuilder;
 
             if (versionRange.MinVersion != null)
             {
@@ -1348,7 +1402,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     maxPart = String.Format(format, operation, $"'{maxVersion.ToNormalizedString()}'");
                 }
-                else {
+                else
+                {
                     maxPart = String.Format(format, operation, $"'{versionRange.MaxVersion.ToNormalizedString()}'");
                 }
             }
@@ -1362,7 +1417,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 filterBuilder.AddCriterion(maxPart);
             }
-            if (!includePrerelease) {
+            if (!includePrerelease)
+            {
                 filterBuilder.AddCriterion("IsPrerelease eq false");
             }
 
@@ -1370,11 +1426,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
             // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
-            if (!_isJFrogRepo) {
+            if (!_isJFrogRepo)
+            {
                 filterBuilder.AddCriterion($"Id eq '{packageName}'");
             }
 
-            if (type == ResourceType.Script) {
+            if (type == ResourceType.Script)
+            {
                 filterBuilder.AddCriterion($"substringof('PS{type.ToString()}', Tags) eq true");
             }
 
@@ -1412,7 +1470,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
             }
 
-            var response = HttpRequestCallForContent(requestUrlV2, out errRecord);
+            HttpContent response = HttpRequestCallForContent(requestUrlV2, out errRecord);
 
             if (errRecord != null)
             {
@@ -1433,7 +1491,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return response.ReadAsStreamAsync().Result;
         }
 
-        private string GetTypeFilterForRequest(ResourceType type) {
+        private string GetTypeFilterForRequest(ResourceType type)
+        {
             string typeFilterPart = string.Empty;
             if (type == ResourceType.Script)
             {
@@ -1486,7 +1545,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (!countSearchSucceeded)
                 {
-                             // Note: not all V2 servers may have the 'count' property implemented or valid (i.e CloudSmith server), in this case try to get 'd:Id' property.
+                    // Note: not all V2 servers may have the 'count' property implemented or valid (i.e CloudSmith server), in this case try to get 'd:Id' property.
                     elemList = doc.GetElementsByTagName("d:Id");
                     if (elemList.Count > 0)
                     {

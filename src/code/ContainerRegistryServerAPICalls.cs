@@ -87,7 +87,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindAll(bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindAll()");
-            var findResult = FindPackages("*", includePrerelease, out errRecord);
+            FindResults findResult = FindPackages("*", includePrerelease, out errRecord);
             if (errRecord != null)
             {
                 return emptyResponseResults;
@@ -172,7 +172,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindNameGlobbing()");
-            var findResult = FindPackages(packageName, includePrerelease, out errRecord);
+            FindResults findResult = FindPackages(packageName, includePrerelease, out errRecord);
             if (errRecord != null)
             {
                 return emptyResponseResults;
@@ -339,7 +339,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             _cmdletPassedIn.WriteVerbose($"Getting manifest for {packageNameLowercase} - {packageVersion}");
-            var manifest = GetContainerRegistryRepositoryManifest(packageNameLowercase, packageVersion, containerRegistryAccessToken, out errRecord);
+            JObject manifest = GetContainerRegistryRepositoryManifest(packageNameLowercase, packageVersion, containerRegistryAccessToken, out errRecord);
             if (errRecord != null)
             {
                 return null;
@@ -387,14 +387,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             string containerRegistryAccessToken = string.Empty;
             string tenantID = string.Empty;
             errRecord = null;
-
+            
             if (!string.IsNullOrEmpty(_cachedContainterRegistryToken))
             {
                 _cmdletPassedIn.WriteVerbose("Using cached container registry access token.");
                 return _cachedContainterRegistryToken;
             }
 
-            var repositoryCredentialInfo = Repository.CredentialInfo;
+            PSCredentialInfo repositoryCredentialInfo = Repository.CredentialInfo;
             if (repositoryCredentialInfo != null)
             {
                 accessToken = Utils.GetContainerRegistryAccessTokenFromSecretManagement(
@@ -483,7 +483,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     // check if there is a auth challenge header
                     if (response.Headers.WwwAuthenticate.Count() > 0)
                     {
-                        var authHeader = response.Headers.WwwAuthenticate.First();
+                        AuthenticationHeaderValue authHeader = response.Headers.WwwAuthenticate.First();
                         if (authHeader.Scheme == "Bearer")
                         {
                             // check if there is a realm
@@ -517,7 +517,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                                 _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
                                 ErrorRecord errRecordTemp = null;
 
-                                var results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out errRecordTemp);
+                                JObject results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out errRecordTemp);
 
                                 if (results == null)
                                 {
@@ -541,11 +541,11 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (HttpRequestException hre)
             {
-                 errRecord = new ErrorRecord(
-                    hre,
-                    "RegistryAnonymousAcquireError",
-                    ErrorCategory.ConnectionError,
-                    this);
+                errRecord = new ErrorRecord(
+                   hre,
+                   "RegistryAnonymousAcquireError",
+                   ErrorCategory.ConnectionError,
+                   this);
 
                 return false;
             }
@@ -572,7 +572,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string content = string.Format(containerRegistryRefreshTokenTemplate, Registry, tenant, accessToken);
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
             string exchangeUrl = string.Format(containerRegistryOAuthExchangeUrlTemplate, Registry);
-            var results = GetHttpResponseJObjectUsingContentHeaders(exchangeUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
+            JObject results = GetHttpResponseJObjectUsingContentHeaders(exchangeUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
             if (errRecord != null || results == null || results["refresh_token"] == null)
             {
                 return string.Empty;
@@ -590,7 +590,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string content = string.Format(containerRegistryAccessTokenTemplate, Registry, refreshToken);
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
             string tokenUrl = string.Format(containerRegistryOAuthTokenUrlTemplate, Registry);
-            var results = GetHttpResponseJObjectUsingContentHeaders(tokenUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
+            JObject results = GetHttpResponseJObjectUsingContentHeaders(tokenUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
             if (errRecord != null || results == null || results["access_token"] == null)
             {
                 return string.Empty;
@@ -655,7 +655,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryRepositoryManifest()");
             // example of manifestUrl: https://psgetregistry.azurecr.io/hello-world:3.0.0
             string manifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, version);
-            var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
+            Collection<KeyValuePair<string, string>> defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
             return GetHttpResponseJObjectUsingDefaultHeaders(manifestUrl, HttpMethod.Get, defaultHeaders, out errRecord);
         }
 
@@ -667,7 +667,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryBlobAsync()");
             string blobUrl = string.Format(containerRegistryBlobDownloadUrlTemplate, Registry, packageName, digest);
-            var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
+            Collection<KeyValuePair<string, string>> defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
             return await GetHttpContentResponseJObject(blobUrl, defaultHeaders);
         }
 
@@ -690,7 +690,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindContainerRegistryImageTags()");
             string resolvedVersion = string.Equals(version, "*", StringComparison.OrdinalIgnoreCase) ? null : $"/{version}";
             string findImageUrl = string.Format(containerRegistryFindImageVersionUrlTemplate, Registry, packageName);
-            var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
+            Collection<KeyValuePair<string, string>> defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
             return GetHttpResponseJObjectUsingDefaultHeaders(findImageUrl, HttpMethod.Get, defaultHeaders, out errRecord);
         }
 
@@ -836,7 +836,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var createManifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, version);
             _cmdletPassedIn.WriteDebug($"GET manifest url:  {createManifestUrl}");
 
-            var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
+            Collection<KeyValuePair<string, string>> defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
             return GetHttpResponseJObjectUsingDefaultHeaders(createManifestUrl, HttpMethod.Get, defaultHeaders, out errRecord);
         }
 
@@ -929,7 +929,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             try
             {
                 var createManifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, packageVersion);
-                var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
+                Collection<KeyValuePair<string, string>> defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
                 return await PutRequestAsync(createManifestUrl, configPath, isManifest, defaultHeaders);
             }
             catch (HttpRequestException e)
@@ -1035,7 +1035,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     request.Content.Headers.Clear();
                     if (contentHeaders != null)
                     {
-                        foreach (var header in contentHeaders)
+                        foreach (KeyValuePair<string, string> header in contentHeaders)
                         {
                             request.Content.Headers.Add(header.Key, header.Value);
                         }
@@ -1105,7 +1105,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             _sessionClient.DefaultRequestHeaders.Clear();
             if (defaultHeaders != null)
             {
-                foreach (var header in defaultHeaders)
+                foreach (KeyValuePair<string, string> header in defaultHeaders)
                 {
                     if (string.Equals(header.Key, "Authorization", StringComparison.OrdinalIgnoreCase))
                     {
@@ -1326,7 +1326,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::PushNupkgContainerRegistry()");
 
             // if isNupkgPathSpecified, then we need to publish the original .nupkg file, as it may be signed
-            string fullNupkgFile = isNupkgPathSpecified ? originalNupkgPath :           System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
+            string fullNupkgFile = isNupkgPathSpecified ? originalNupkgPath : System.IO.Path.Combine(outputNupkgDir, packageName + "." + packageVersion.ToNormalizedString() + ".nupkg");
 
             string pkgNameForUpload = string.IsNullOrEmpty(modulePrefix) ? packageName : modulePrefix + "/" + packageName;
             string packageNameLowercase = pkgNameForUpload.ToLower();
@@ -1417,7 +1417,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteVerbose("Finish uploading blob");
             try
             {
-                var responseNupkg = EndUploadBlob(moduleLocation, fullNupkgFile, nupkgDigest, isManifest: false, containerRegistryAccessToken).Result;
+                HttpResponseMessage responseNupkg = EndUploadBlob(moduleLocation, fullNupkgFile, nupkgDigest, isManifest: false, containerRegistryAccessToken).Result;
                 bool uploadSuccessful = responseNupkg.IsSuccessStatusCode;
 
                 if (!uploadSuccessful)
@@ -1470,7 +1470,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 }
 
                 _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
-                var emptyResponse = EndUploadBlob(emptyLocation, emptyFilePath, emptyFileDigest, false, containerRegistryAccessToken).Result;
+                HttpResponseMessage emptyResponse = EndUploadBlob(emptyLocation, emptyFilePath, emptyFileDigest, false, containerRegistryAccessToken).Result;
                 bool uploadSuccessful = emptyResponse.IsSuccessStatusCode;
 
                 if (!uploadSuccessful)
@@ -1754,7 +1754,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetStartUploadBlobLocation()");
             try
             {
-                var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
+                Collection<KeyValuePair<string, string>> defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
                 var startUploadUrl = string.Format(containerRegistryStartUploadTemplate, Registry, packageName);
                 return (await GetHttpResponseHeader(startUploadUrl, HttpMethod.Post, defaultHeaders)).Location.ToString();
             }
@@ -1773,7 +1773,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             try
             {
                 var endUploadUrl = string.Format(containerRegistryEndUploadTemplate, Registry, location, digest);
-                var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
+                Collection<KeyValuePair<string, string>> defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
                 return await PutRequestAsync(endUploadUrl, filePath, isManifest, defaultHeaders);
             }
             catch (Exception e)
@@ -1804,7 +1804,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return emptyHashResponses;
             }
 
-            var foundTags = FindContainerRegistryImageTags(packageNameForFind, "*", containerRegistryAccessToken, out errRecord);
+            JObject foundTags = FindContainerRegistryImageTags(packageNameForFind, "*", containerRegistryAccessToken, out errRecord);
             if (errRecord != null || foundTags == null)
             {
                 return emptyHashResponses;
@@ -1820,9 +1820,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return emptyHashResponses;
             }
 
-            var pkgsInDescendingOrder = sortedQualifyingPkgs.Reverse();
+            IEnumerable<KeyValuePair<SemanticVersion, string>> pkgsInDescendingOrder = sortedQualifyingPkgs.Reverse();
 
-            foreach (var pkgVersionTag in pkgsInDescendingOrder)
+            foreach (KeyValuePair<SemanticVersion, string> pkgVersionTag in pkgsInDescendingOrder)
             {
                 string exactTagVersion = pkgVersionTag.Value.ToString();
                 Hashtable metadata = GetContainerRegistryMetadata(packageNameForFind, exactTagVersion, containerRegistryAccessToken, out errRecord);
@@ -1853,7 +1853,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedPkgs = new SortedDictionary<SemanticVersion, string>(VersionComparer.Default);
             bool isSpecificVersionSearch = versionType == VersionType.SpecificVersion;
 
-            foreach (var pkgVersionTagInfo in allPkgVersions)
+            foreach (JToken pkgVersionTagInfo in allPkgVersions)
             {
                 string pkgVersionString = pkgVersionTagInfo.ToString();
                 // determine if the package version that is a repository tag is a valid NuGetVersion
@@ -1916,7 +1916,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return emptyResponseResults;
             }
 
-            var pkgResult = FindAllRepositories(containerRegistryAccessToken, out errRecord);
+            JObject pkgResult = FindAllRepositories(containerRegistryAccessToken, out errRecord);
             if (errRecord != null)
             {
                 return emptyResponseResults;
@@ -1926,7 +1926,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             var isMAR = Repository.IsMARRepository();
 
             // Convert the list of repositories to a list of hashtables
-            foreach (var repository in pkgResult["repositories"].ToList())
+            foreach (JToken repository in pkgResult["repositories"].ToList())
             {
                 string repositoryName = repository.ToString();
 

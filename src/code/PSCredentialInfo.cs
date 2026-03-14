@@ -31,29 +31,29 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             Credential = credential;
         }
 
-		/// <summary>
+        /// <summary>
         /// Initializes a new instance of the PSCredentialInfo class with
         /// containing vaultName and secretName of type string, and
         /// (optionally) credential of type PSCredential from a Hashtable.
         /// </summary>
         /// <param name="hashtable"></param>
         public PSCredentialInfo(Hashtable hashtable)
-		{
-			if (!(hashtable.ContainsKey("VaultName") && (hashtable.ContainsKey("SecretName") || hashtable.ContainsKey("Name"))))
+        {
+            if (!(hashtable.ContainsKey("VaultName") && (hashtable.ContainsKey("SecretName") || hashtable.ContainsKey("Name"))))
             {
-				throw new ArgumentException("Credential Information must contain the keys 'VaultName' and 'SecretName'!");
-			}
+                throw new ArgumentException("Credential Information must contain the keys 'VaultName' and 'SecretName'!");
+            }
             VaultName = hashtable["VaultName"] as string;
-			if (hashtable.ContainsKey("SecretName"))
-				SecretName = hashtable["SecretName"] as string;
-			else
-				SecretName = hashtable["Name"] as string;
+            if (hashtable.ContainsKey("SecretName"))
+                SecretName = hashtable["SecretName"] as string;
+            else
+                SecretName = hashtable["Name"] as string;
 
-			if (hashtable.ContainsKey("Credential") && hashtable["Credential"] is PSCredential psCred)
-			{
-				Credential = psCred;
-			}
-		}
+            if (hashtable.ContainsKey("Credential") && hashtable["Credential"] is PSCredential psCred)
+            {
+                Credential = psCred;
+            }
+        }
 
         /// <summary>
         /// Initializes a new instance of the PSCredentialInfo class with
@@ -68,11 +68,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 throw new ArgumentNullException(nameof(psObject));
             }
 
-            VaultName = (string) psObject.Properties[PSCredentialInfo.VaultNameAttribute]?.Value;
-            SecretName = (string) psObject.Properties[PSCredentialInfo.SecretNameAttribute]?.Value;
-			if (String.IsNullOrEmpty(SecretName))
-				SecretName = (string) psObject.Properties["Name"]?.Value;
-			
+            VaultName = (string)psObject.Properties[PSCredentialInfo.VaultNameAttribute]?.Value;
+            SecretName = (string)psObject.Properties[PSCredentialInfo.SecretNameAttribute]?.Value;
+            if (String.IsNullOrEmpty(SecretName))
+                SecretName = (string)psObject.Properties["Name"]?.Value;
+
             var credentialAttr = psObject.Properties[PSCredentialInfo.CredentialAttribute]?.Value;
             if (credentialAttr is string credStr)
             {
@@ -96,7 +96,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// <summary>
         /// the Name of the SecretManagement Vault
         /// </summary>
-        public string VaultName {
+        public string VaultName
+        {
             get
             {
                 return _vaultName;
@@ -117,7 +118,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// <summary>
         /// the Name of the Secret
         /// </summary>
-        public string SecretName {
+        public string SecretName
+        {
             get
             {
                 return _secretName;
