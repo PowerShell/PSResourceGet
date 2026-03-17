@@ -42,14 +42,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// A RID string like "win-x64", "linux-x64", "osx-arm64", etc.
         /// Follows the .NET RID catalog: https://learn.microsoft.com/en-us/dotnet/core/rid-catalog
         /// </returns>
-        /// <example>
-        /// Windows 64-bit: "win-x64"
-        /// Windows 32-bit: "win-x86"
-        /// Linux 64-bit: "linux-x64"
-        /// Alpine Linux: "linux-musl-x64"
-        /// macOS Intel: "osx-x64"
-        /// macOS Apple Silicon: "osx-arm64"
-        /// </example>
         public static string GetCurrentRuntimeIdentifier()
         {
             if (s_currentRid != null)
@@ -252,16 +244,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 Architecture.X86 => "x86",
                 Architecture.Arm => "arm",
                 Architecture.Arm64 => "arm64",
-#if NET6_0_OR_GREATER
-                Architecture.S390x => "s390x",
-                Architecture.Ppc64le => "ppc64le",
-#endif
-#if NET7_0_OR_GREATER
-                Architecture.LoongArch64 => "loongarch64",
-#endif
-#if NET8_0_OR_GREATER
-                Architecture.Armv6 => "arm",
-#endif
                 _ => processArch.ToString().ToLowerInvariant()
             };
         }
