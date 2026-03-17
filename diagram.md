@@ -50,15 +50,6 @@ flowchart TD
 
     S --> T["5. Installed Module<br/>MyModule/1.0.0/<br/>├── MyModule.psd1<br/>├── lib/net8.0/ ← only best TFM<br/>└── runtimes/win-x64/ ← only matching RID"]
 
-    click A "src/code/InstallPSResource.cs#L147" "InstallPSResource.cs — cmdlet parameters"
-    click C "src/code/InstallHelper.cs#L1181" "InstallHelper.TryExtractToDirectory()"
-    click D3 "src/code/InstallHelper.cs#L1394" "InstallHelper.GetCurrentFramework()"
-    click D4 "src/code/InstallHelper.cs#L1289" "InstallHelper.GetBestLibFramework()"
-    click E3 "src/code/RuntimeIdentifierHelper.cs#L204" "RuntimeIdentifierHelper.DetectRuntimeIdentifier()"
-    click J "src/code/RuntimePackageHelper.cs#L83" "RuntimePackageHelper.ShouldIncludeEntry()"
-    click O "src/code/InstallHelper.cs#L1358" "InstallHelper.ShouldIncludeLibEntry()"
-    click S "src/code/InstallHelper.cs#L1709" "InstallHelper.DeleteExtraneousFiles()"
-
     style K fill:#2d6a2d,color:#fff
     style I fill:#2d6a2d,color:#fff
     style N fill:#2d6a2d,color:#fff
@@ -68,6 +59,19 @@ flowchart TD
     style Q fill:#8b1a1a,color:#fff
     style T fill:#1a3d5c,color:#fff
 ```
+
+### Code References
+
+| Diagram Step | Method | File |
+|---|---|---|
+| Cmdlet parameters | `SkipRuntimeFiltering`, `RuntimeIdentifier`, `TargetFramework` | [InstallPSResource.cs#L147](src/code/InstallPSResource.cs#L147) |
+| TryExtractToDirectory | Entry point for filtered extraction | [InstallHelper.cs#L1181](src/code/InstallHelper.cs#L1181) |
+| GetCurrentFramework | Auto-detect TFM from `RuntimeInformation.FrameworkDescription` | [InstallHelper.cs#L1394](src/code/InstallHelper.cs#L1394) |
+| GetBestLibFramework | `FrameworkReducer.GetNearest()` for lib/ selection | [InstallHelper.cs#L1289](src/code/InstallHelper.cs#L1289) |
+| ShouldIncludeLibEntry | Filter lib/ entries against best TFM | [InstallHelper.cs#L1358](src/code/InstallHelper.cs#L1358) |
+| DetectRuntimeIdentifier | Auto-detect RID from OS + architecture | [RuntimeIdentifierHelper.cs#L204](src/code/RuntimeIdentifierHelper.cs#L204) |
+| ShouldIncludeEntry | Filter runtimes/ entries against target RID | [RuntimePackageHelper.cs#L83](src/code/RuntimePackageHelper.cs#L83) |
+| DeleteExtraneousFiles | Cleanup: remove NuGet packaging artifacts | [InstallHelper.cs#L1709](src/code/InstallHelper.cs#L1709) |
 
 ## Dependency Parsing (TFM-Aware)
 
@@ -86,13 +90,17 @@ flowchart TD
     F -->|".NET 8 (PS 7.4)"| G["Select net8.0 group<br/>→ 0 dependencies<br/>(APIs are inbox)"]
     F -->|".NET Framework 4.7.2 (PS 5.1)"| H["Select net472 group<br/>→ 2 dependencies<br/>(System.Memory, System.Buffers)"]
 
-    click C "src/code/LocalServerApiCalls.cs#L958" "LocalServerApiCalls.GetHashtableForNuspec()"
-    click D "src/code/PSResourceInfo.cs#L618" "PSResourceInfo.TryConvertFromJson()"
-    click E "src/code/PSResourceInfo.cs#L1704" "PSResourceInfo.ParseNuspecDependencyGroups()"
-    
     style G fill:#2d6a2d,color:#fff
     style H fill:#c47a20,color:#fff
 ```
+
+### Code References
+
+| Diagram Step | Method | File |
+|---|---|---|
+| GetHashtableForNuspec | `NuspecReader` parses .nuspec for local repos | [LocalServerApiCalls.cs#L958](src/code/LocalServerApiCalls.cs#L958) |
+| TryConvertFromJson | Parses V3 JSON dependency groups for remote repos | [PSResourceInfo.cs#L618](src/code/PSResourceInfo.cs#L618) |
+| ParseNuspecDependencyGroups | TFM-aware group selection via `FrameworkReducer` | [PSResourceInfo.cs#L1704](src/code/PSResourceInfo.cs#L1704) |
 
 ## Before vs After
 
@@ -138,5 +146,5 @@ flowchart LR
     L1["linux-musl-x64"] --> L2["linux-x64"] --> L3["linux"] --> U["unix"] --> ANY
     O1["osx.12-arm64"] --> O2["osx-arm64"] --> O3["osx"] --> U
 
-    click W1 "src/code/RuntimeIdentifierHelper.cs#L301" "BuildCompatibleRidList()"
+
 ```
