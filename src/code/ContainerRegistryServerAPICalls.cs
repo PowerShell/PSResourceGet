@@ -411,7 +411,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 errRecord = new ErrorRecord(
                     exception: e,
-                    "ListImageTagsOrasError",
+                    "ResourceNotFound",
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
             }
