@@ -95,39 +95,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool selectPrereleaseOnly)
         {
             _cmdletPassedIn.WriteDebug("In GetHelper::GetPackagesFromPath()");
-            if (name.Length < 1 )
-            {
-                _cmdletPassedIn.WriteDebug("In GetHelper::GetPackagesFromPath() :: length of names less than 1");
-            }
-            if (pathsToSearch.Count < 1 )
-            {
-                _cmdletPassedIn.WriteDebug("In GetHelper::GetPackagesFromPath() :: length of pathsToSearch less than 1");
-            }
-
             List<string> pkgPathsByName = FilterPkgPathsByName(name, pathsToSearch);
-
-            _cmdletPassedIn.WriteDebug("In GetHelper::GetPackagesFromPath():: entering filterpkgpathsbyversion");
-            if (versionRange == null )
-            {
-                _cmdletPassedIn.WriteDebug("In GetHelper::GetPackagesFromPath() :: versionRange is null");
-            }
-            if (pkgPathsByName.Count < 1 )
-            {
-                _cmdletPassedIn.WriteDebug("In GetHelper::GetPackagesFromPath() :: length of pkgPathsByName less than 1");
-            }
-
-            if (_scriptDictionary == null)
-            {
-                _cmdletPassedIn.WriteDebug("In GetHelper::GetPackagesFromPath() :: _scriptDictionary is null");
-            }
 
             foreach (string pkgPath in FilterPkgPathsByVersion(versionRange, pkgPathsByName, selectPrereleaseOnly))
             {
-                if (pkgPath == null)
-                {
-                    _cmdletPassedIn.WriteDebug("In GetHelper::GetPackagesFromPath() :: pkgPath is null");
-                }
-
                 PSResourceInfo pkg = OutputPackageObject(pkgPath, _scriptDictionary);
                 if (pkg != null)
                 {
