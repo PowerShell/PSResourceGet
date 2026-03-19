@@ -812,7 +812,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this);
 
                 return null;
-            }s
+            }
 
             return content.ReadAsStreamAsync().GetAwaiter().GetResult();
         }
@@ -844,7 +844,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 return Utils.EmptyStrArray;
             }
-            
+
             return responses;
         }
 
