@@ -134,3 +134,30 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'Release' {
         }
     }
 }
+
+
+Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
+
+    BeforeAll{
+        $PSGalleryName = Get-PSGalleryName
+        $testModuleName = "test_module"
+        $testScriptName = "test_script"
+        $commandName = "Get-TargetResource"
+        $dscResourceName = "SystemLocale"
+        $parentModuleName = "SystemLocaleDsc"
+        Get-NewPSResourceRepositoryFile
+    }
+
+    AfterAll {
+        Get-RevertPSResourceRepositoryFile
+    }
+
+        It "find all resources with specified tag given Tag property, with and without Prerelease property" {
+        $tagToFind = "MyPSTag"
+        $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName
+        $res | Should -HaveCount 1
+
+        $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName -Prerelease
+        $res | Should -HaveCount 2
+    }
+}

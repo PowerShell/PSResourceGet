@@ -685,21 +685,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
             }
 
-            _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - 679");
             // Convert parent package to PSResourceInfo
             PSResourceInfo pkgToInstall = null;
             foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
             {
-                if (currentResult == null)
-                {
-                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - currentResult is null");
-                    continue;
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - currentResult is not null");
-                }
-
                 if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
                     errRecord = new ErrorRecord(
@@ -765,7 +754,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // TODO:  can use cache for this
             if (!_reinstall)
             {
-                string currPkgNameVersion = $"{pkgToInstall.Name}{pkgToInstall.Version}";
+                string currPkgNameVersion = $"{pkgToInstall.Name}{pkgVersion}";
                 // Use HashSet lookup instead of Contains for O(1) performance
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
                 {
@@ -844,15 +833,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 else {
                     // If we don't install dependencies, we're only installing the parent pkg so we can short circut and simply install the parent pkg. 
                     // TODO:  check this version and prerelease combo
-                    Stream responseStream = currentServer.InstallPackage(pkgToInstall.Name, pkgToInstall.Version.ToString(), true, out ErrorRecord installNameErrRecord);
+                    Stream responseStream = currentServer.InstallPackage(pkgToInstall.Name, pkgVersion, true, out ErrorRecord installNameErrRecord);
 
                     if (installNameErrRecord != null)
                     {
                         errRecord = installNameErrRecord;
                         return packagesHash;
                     }
-                    bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgToInstall.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :
-                        TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgToInstall.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out warning, out errRecord);
+                    bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :
+                        TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out warning, out errRecord);
                     if (!installedToTempPathSuccessfully)
                     {
                         return packagesHash;

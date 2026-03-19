@@ -344,15 +344,6 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
     #     $foundTestScript | Should -Be $True
     # }
 
-    It "find all resources with specified tag given Tag property, with and without Prerelease property" {
-        $tagToFind = "MyPSTag"
-        $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName
-        $res | Should -HaveCount 1
-
-        $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName -Prerelease
-        $res | Should -HaveCount 2
-    }
-
     It "find resource, but only show listed versions" {
         # testmodule99 version 1.0.0-beta1 is unlisted
         $res = Find-PSResource -Name "testmodule99" -Repository $PSGalleryName

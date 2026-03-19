@@ -13,8 +13,8 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
         $testScriptName = "test_script"
         $GithubPackagesRepoName = "GithubPackagesRepo"
         $GithubPackagesRepoUri = "https://nuget.pkg.github.com/PowerShell/index.json"
-       # Get-NewPSResourceRepositoryFile
-       # Register-PSResourceRepository -Name $GithubPackagesRepoName -Uri $GithubPackagesRepoUri
+        Get-NewPSResourceRepositoryFile
+        Register-PSResourceRepository -Name $GithubPackagesRepoName -Uri $GithubPackagesRepoUri
 
         $secureString = ConvertTo-SecureString $env:MAPPED_GITHUB_PAT -AsPlainText -Force
         $credential = New-Object pscredential ($env:GITHUB_USERNAME, $secureString)
@@ -44,25 +44,22 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
     }
 
     It "Install specific module resource by name" {
-        $DebugPreference = 'Continue'
-        Install-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -Verbose -Debug
+        Install-PSResource -Name $testModuleName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Install specific script resource by name" {
-        #$DebugPreference = 'Continue'
-        Install-PSResource -Name $testScriptName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository #-Verbose -Debug
+        Install-PSResource -Name $testScriptName -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $testScriptName
         $pkg.Name | Should -Be $testScriptName
         $pkg.Version | Should -Be "3.5.0"
     }
 
     It "Install multiple resources by name" {
-        #$DebugPreference = 'Continue'
         $pkgNames = @($testModuleName, $testModuleName2)
-        Install-PSResource -Name $pkgNames -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository #-debug -verbose
+        Install-PSResource -Name $pkgNames -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $pkgNames
         $pkg.Name | Should -Be $pkgNames
     }
@@ -91,16 +88,14 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
     }
 
     It "Should install resource given name and exact range inclusive [1.0.0, 5.0.0]" {
-        #$DebugPreference = 'Continue'
-        Install-PSResource -Name $testModuleName -Version "[1.0.0, 5.0.0]" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository #-Debug -Verbose
+        Install-PSResource -Name $testModuleName -Version "[1.0.0, 5.0.0]" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
     }
 
     It "Should install resource given name and exact range exclusive (1.0.0, 5.0.0)" {
-        #$DebugPreference = 'Continue'
-        Install-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository #-Verbose -Debug
+        Install-PSResource -Name $testModuleName -Version "(1.0.0, 5.0.0)" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "3.0.0"
