@@ -50,7 +50,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         Install-PSResource -Name $Name -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -110,7 +110,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     It "Install resource where version specified is a prerelease version" {
         # the resource has version "1.0", but querying with any equivalent version should work
-        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.5-alpha" -Prerelease -Repository $ACRRepoName -TrustRepository
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.5-alpha" -Prerelease -Repository $ACRRepoName -TrustRepository -Verbose -Debug
         $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
         $res | Should -Not -BeNullOrEmpty
         $res.Version | Should -Be "1.5"
@@ -126,7 +126,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     It "Should not install resource given nonexistent name" {
         Install-PSResource -Name "NonExistentModule" -Repository $ACRRepoName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource "NonExistentModule"
+        $pkg = Get-InstalledPSResource "NonExistentModule" -ErrorAction SilentlyContinue
         $pkg | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
