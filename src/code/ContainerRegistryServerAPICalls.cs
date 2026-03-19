@@ -83,12 +83,12 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type)
         {
-            return null;    
+            throw new NotImplementedException("FindVersionAsync is not implemented for ContainerRegistryServerAPICalls.");
         }
 
         public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest)
         {
-            return null;    
+            throw new NotImplementedException("FindVersionGlobbingAsync is not implemented for ContainerRegistryServerAPICalls.");   
         }
 
         /// <summary>
@@ -159,7 +159,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type)
         {
-            return null;    
+            throw new NotImplementedException("FindNameAsync is not implemented for ContainerRegistryServerAPICalls.");
         }
 
         /// <summary>

@@ -162,11 +162,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindName()");
-            var res = FindNameHelper(packageName, tags: Utils.EmptyStrArray, includePrerelease, type, out errRecord);
-            _cmdletPassedIn.WriteDebug($"returned back to FindName()");
-            
-            return res;
-
+            return FindNameHelper(packageName, tags: Utils.EmptyStrArray, includePrerelease, type, out errRecord);
         }
 
         public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type)
@@ -183,11 +179,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override FindResults FindNameWithTag(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameWithTag()");
-            var res = FindNameHelper(packageName, tags, includePrerelease, type, out errRecord);
-
-            _cmdletPassedIn.WriteDebug($"returned back to FIndNamewithtag");
-
-            return res;
+            return FindNameHelper(packageName, tags, includePrerelease, type, out errRecord);
         }
 
         /// <summary>
@@ -335,7 +327,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
-            // this can be called from inside concurrency
             //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallPackage()");
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
@@ -349,11 +340,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return results;
             }
 
-            results = InstallVersion(packageName, packageVersion, out errRecord);
-
-            //_cmdletPassedIn.WriteDebug("Returning from V3ServerAPICalls::InstallPackage()");
-
-            return results;
+            return InstallVersion(packageName, packageVersion, out errRecord);
         }
 
         #endregion
@@ -523,21 +510,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             bool isTagMatch = true;
             foreach (string response in versionedResponses)
             {
-                 _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameHelper():: response");
-                 if (response == null)
-                {
-                     _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameHelper():: response is NULL");
-                }
-                else
-                {
-                    _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameHelper():: response is NOT null");        
-                }
-
                 try
                 {
                     using (JsonDocument pkgVersionEntry = JsonDocument.Parse(response))
                     {
-                        _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameHelper():: using 1");
                         JsonElement rootDom = pkgVersionEntry.RootElement;
                         if (!rootDom.TryGetProperty(versionName, out JsonElement pkgVersionElement))
                         {
@@ -560,18 +536,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
                         }
 
-                         _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameHelper():: nuget parse version");
-
                         if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
                         {
                             _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
                             if (!pkgVersion.IsPrerelease || includePrerelease)
                             {
-                                _cmdletPassedIn.WriteDebug($"entered if statement");
                                 // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
                                 latestVersionResponse = response;
                                 isTagMatch = IsRequiredTagSatisfied(tagsItem, tags, out errRecord);
-                                _cmdletPassedIn.WriteDebug($"right before break");
 
                                 break;
                             }
@@ -590,8 +562,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            _cmdletPassedIn.WriteDebug($"FindNameHelper line 581");
-
             if (String.IsNullOrEmpty(latestVersionResponse))
             {
                 errRecord = new ErrorRecord(
@@ -602,8 +572,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
-
-            _cmdletPassedIn.WriteDebug($"Right before tag match");
 
             // Check and write error for tags matching requirement. If no tags were required the isTagMatch variable will be true.
             if (!isTagMatch)
@@ -620,8 +588,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
             
-            _cmdletPassedIn.WriteDebug($"return results");
-
             return new FindResults(stringResponse: new string[] { latestVersionResponse }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
@@ -739,11 +705,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private Stream InstallName(string packageName, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallName()");
-            var inst = InstallHelper(packageName, version: null, out errRecord);
-
-            _cmdletPassedIn.WriteDebug("Returning from V3ServerAPICalls::InstallName()");
-
-            return inst;
+            return InstallHelper(packageName, version: null, out errRecord);
         }
 
         /// <summary>
@@ -760,10 +722,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
                 //_cmdletPassedIn.WriteDebug("InstallVersion - could not parse version");
-                if (string.IsNullOrEmpty(version))
-                {
-                    //_cmdletPassedIn.WriteDebug("version is null or empty");
-                }
                 errRecord = new ErrorRecord(
                     new ArgumentException($"Version {version} to be installed is not a valid NuGet version."),
                     "InstallVersionFailure",
@@ -772,12 +730,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return null;
             }
-            //_cmdletPassedIn.WriteDebug("InstallVersion 765");
 
-            var inst = InstallHelper(packageName, requiredVersion, out errRecord);
-            //_cmdletPassedIn.WriteDebug("Returning from V3ServerAPICalls::InstallVersion()");
-
-            return inst;
+            return InstallHelper(packageName, requiredVersion, out errRecord);
         }
 
         /// <summary>
@@ -849,8 +803,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallHelper() before checking if content is null");
-
             if (content is null)
             {
                 errRecord = new ErrorRecord(
@@ -860,8 +812,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this);
 
                 return null;
-            }
-            //_cmdletPassedIn.WriteDebug("Exiting method V3ServerAPICalls::InstallHelper()");
+            }s
 
             return content.ReadAsStreamAsync().GetAwaiter().GetResult();
         }
@@ -893,16 +844,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 return Utils.EmptyStrArray;
             }
-
-            // if (responses == null)
-            // {
-            //     _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedPackageEntriesFromRegistrationsResource() - responses null");
-            // }
-            // else
-            // {
-            //     _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedPackageEntriesFromRegistrationsResource() - responses NOT null");
-            // }
-
+            
             return responses;
         }
 
