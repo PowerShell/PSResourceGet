@@ -831,8 +831,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         if (_tag.Length == 0)
                         {
                             responses = currentServer.FindName(pkgName, _prerelease, _type, out errRecord);
-                            _cmdletPassedIn.WriteDebug($"returned back to SearchByName() 834");
-
                         }
                         else
                         {
@@ -1068,7 +1066,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 foreach (PSResourceInfo currentPkg in parentPkgs)
                 {
-                    _cmdletPassedIn.WriteDebug($"Finding dependency packages (SearchByNames) for '{currentPkg.Name}'");
                     foreach (PSResourceInfo pkgDep in FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository))
                     {
                         yield return pkgDep;
@@ -1447,6 +1444,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return depPkg;
         }
 
-    #endregion
+        #endregion
     }
 }

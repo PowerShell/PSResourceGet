@@ -342,13 +342,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 repositoryNamesToSearch.Add(repoName);
 
-                _cmdletPassedIn.WriteVerbose("InstallHelper line 345");
                 List<PSResourceInfo> installedPkgs = InstallPackages(_pkgNamesToInstall.ToArray(), currentRepository, currentServer, currentResponseUtil, scope, skipDependencyCheck, findHelper);
                 foreach (PSResourceInfo pkg in installedPkgs)
                 {
                     _pkgNamesToInstall.RemoveAll(x => x.Equals(pkg.Name, StringComparison.InvariantCultureIgnoreCase));
                 }
-                _cmdletPassedIn.WriteVerbose("InstallHelper line 351");
 
                 allPkgsInstalled.AddRange(installedPkgs);
             }
@@ -362,7 +360,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ErrorCategory.InvalidData,
                     _cmdletPassedIn));
             }
-            _cmdletPassedIn.WriteVerbose("InstallHelper line 365");
 
             return allPkgsInstalled;
         }
@@ -756,7 +753,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     pkgVersion += $"-{pkgToInstall.Prerelease}";
                 }
             }
-            _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 748");
 
             // For most repositories/providers the server will use the normalized version, which pkgVersion originally reflects
             // However, for container registries the version must exactly match what was in the artifact manifest and then reflected in PSResourceInfo.Version.ToString()
@@ -764,8 +760,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 pkgVersion = String.IsNullOrEmpty(pkgToInstall.Prerelease) ? pkgToInstall.Version.ToString() : $"{pkgToInstall.Version.ToString()}-{pkgToInstall.Prerelease}";
             }
-
-            _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 757");
             
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
             // TODO:  can use cache for this
@@ -791,47 +785,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
 
             ConcurrentDictionary<string, Hashtable> updatedPackagesHash = packagesHash;
-
-            _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 784");
-            
-            if (!_savePkg)
-            {
-                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 788");                
-
-            }
-            else
-            {
-                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 793");
-            }
-  
-            if (pkgToInstall == null)
-            {
-                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - packageToInstall is null 798");
-            }
-            else
-            {
-                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - packageToInstall is not null 802");
-            }
-
-
-            if (string.IsNullOrEmpty(pkgToInstall.Name))
-            {
-                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() -pkgtoinstall name is null or empty 808");
-            }
-            else
-            {
-                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - pkgtoinstall is available 812 ");
-            }
-
-
-            if (string.IsNullOrEmpty(pkgVersion))
-            {
-                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() -pkgVersion name is null or empty 818");
-            }
-            else
-            {
-                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - pkgVersion is available 822 ");
-            }
   
             // -WhatIf processing.
             // if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
@@ -875,12 +828,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // }
             //else
             //{
-                _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 821");
-                // Concurrent updates
+                // Concurrent updates, currently only implemented for v2 server repositories
                 // Find all dependencies
-                if (!skipDependencyCheck)
+                if (!skipDependencyCheck && currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2)
                 {
-                    _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 826");
                     // concurrency updates 
                     List<PSResourceInfo> parentAndDeps = _findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
                     // List returned only includes dependencies, so we'll add the parent pkg to this list to pass on to installation method
@@ -895,15 +846,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // TODO:  check this version and prerelease combo
                     Stream responseStream = currentServer.InstallPackage(pkgToInstall.Name, pkgToInstall.Version.ToString(), true, out ErrorRecord installNameErrRecord);
 
-                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage 898");
-
                     if (installNameErrRecord != null)
                     {
-                        _cmdletPassedIn.WriteDebug("In BeginInstallPackage 902");
                         errRecord = installNameErrRecord;
                         return packagesHash;
                     }
-                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage 905");
                     bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgToInstall.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :
                         TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgToInstall.Version.ToString(), pkgToInstall, packagesHash, out updatedPackagesHash, out warning, out errRecord);
                     if (!installedToTempPathSuccessfully)
