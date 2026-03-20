@@ -7,7 +7,9 @@ function SetupDsc {
         throw "DSC_ROOT environment variable is not set or path does not exist."
     }
 
-    $env:PATH += ";$script:DSC_ROOT"
+    $pathSeparator = [System.IO.Path]::PathSeparator
+
+    $env:PATH += "$pathSeparator$script:DSC_ROOT"
 
     # Ensure DSC v3 is available
     if (-not (Get-Command -name dsc -CommandType Application -ErrorAction SilentlyContinue)) {

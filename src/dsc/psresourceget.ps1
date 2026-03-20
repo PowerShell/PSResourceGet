@@ -218,7 +218,7 @@ function SatisfiesVersion {
         [string]$versionRange
     )
 
-    Add-Type -AssemblyName "$PSScriptRoot/dependencies/NuGet.Versioning.dll"
+    Add-Type -Path "$PSScriptRoot/dependencies/NuGet.Versioning.dll"
 
     try {
         $versionRangeObj = [NuGet.Versioning.VersionRange]::Parse($versionRange)
@@ -629,7 +629,7 @@ function SetOperation {
                 }
             }
 
-            if ($null -eq $rep) {
+            if ($null -eq $rep -and $inputObj._exist -ne $false) {
                 Register-PSResourceRepository @splatt
             }
             else {
