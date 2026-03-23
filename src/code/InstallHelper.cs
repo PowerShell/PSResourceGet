@@ -49,7 +49,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool _noClobber;
         private bool _authenticodeCheck;
         private bool _savePkg;
-        private bool _skipRuntimeFiltering;
         private string _runtimeIdentifier;
         private string _targetFramework;
         List<string> _pathsToSearch;
@@ -96,7 +95,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ScopeType? scope,
             string tmpPath,
             HashSet<string> pkgsInstalled,
-            bool skipRuntimeFiltering = false,
             string runtimeIdentifier = null,
             string targetFramework = null)
         {
@@ -140,7 +138,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _asNupkg = asNupkg;
             _includeXml = includeXml;
             _savePkg = savePkg;
-            _skipRuntimeFiltering = skipRuntimeFiltering;
             _runtimeIdentifier = runtimeIdentifier;
             _targetFramework = targetFramework;
             _pathsToInstallPkg = pathsToInstallPkg;
@@ -1175,7 +1172,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Similar functionality as System.IO.Compression.ZipFile.ExtractToDirectory,
         /// but while ExtractToDirectory cannot overwrite files, this method can.
         /// Additionally filters:
-        /// - runtimes/{rid}/ entries based on the current platform's RID (unless _skipRuntimeFiltering is true)
+        /// - Root-level RID folder entries (e.g., win-x64/) based on the current platform's RID
         /// - lib/{tfm}/ entries to only extract the best matching Target Framework Moniker
         /// </summary>
         private bool TryExtractToDirectory(string zipPath, string extractPath, out ErrorRecord error)
@@ -1216,10 +1213,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         bestLibFramework = GetBestLibFramework(archive);
                     }
 
+                    // Warn if TFM filtering is skipping assemblies for a different .NET lineage
+                    // (e.g., installing on PS7/.NET 8 but package also has net472 for WinPS 5.1)
+                    if (bestLibFramework != null)
+                    {
+                        WarnIfCrossLineageTfmSkipped(archive, bestLibFramework);
+                    }
+
                     foreach (ZipArchiveEntry entry in archive.Entries.Where(entry => entry.CompressedLength > 0))
                     {
-                        // RID filtering: skip runtimes/ entries for incompatible platforms
-                        if (!_skipRuntimeFiltering)
+                        // RID filtering: skip entries under incompatible platform RID folders
                         {
                             bool includeEntry = !string.IsNullOrEmpty(_runtimeIdentifier)
                                 ? RuntimePackageHelper.ShouldIncludeEntry(entry.FullName, _runtimeIdentifier)
@@ -1433,6 +1436,67 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             // Fallback: default to netstandard2.0 which is broadly compatible
             return NuGetFramework.ParseFolder("netstandard2.0");
+        }
+
+        /// <summary>
+        /// Emits a warning if TFM filtering will skip assemblies for a different .NET lineage.
+        /// For example, when installing on PowerShell 7 (.NET Core), if the package also contains
+        /// .NET Framework assemblies (net472), those will be skipped — which means the module
+        /// won't work if later used on Windows PowerShell 5.1.
+        /// </summary>
+        private void WarnIfCrossLineageTfmSkipped(ZipArchive archive, NuGetFramework bestFramework)
+        {
+            try
+            {
+                bool bestIsNetCore = bestFramework.Framework.Equals(".NETCoreApp", StringComparison.OrdinalIgnoreCase);
+                bool bestIsNetFramework = bestFramework.Framework.Equals(".NETFramework", StringComparison.OrdinalIgnoreCase);
+
+                // Only warn when we're on one lineage and skipping the other
+                if (!bestIsNetCore && !bestIsNetFramework)
+                {
+                    return;
+                }
+
+                // Scan lib/ folders for a TFM from the other lineage
+                var skippedLineageTfms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (ZipArchiveEntry entry in archive.Entries)
+                {
+                    string normalizedName = entry.FullName.Replace('\\', '/');
+                    if (normalizedName.StartsWith("lib/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string[] segments = normalizedName.Split('/');
+                        if (segments.Length >= 3 && !string.IsNullOrEmpty(segments[1]))
+                        {
+                            NuGetFramework entryFw = NuGetFramework.ParseFolder(segments[1]);
+                            if (entryFw != null && !entryFw.IsUnsupported && !entryFw.Equals(bestFramework))
+                            {
+                                bool entryIsNetCore = entryFw.Framework.Equals(".NETCoreApp", StringComparison.OrdinalIgnoreCase);
+                                bool entryIsNetFramework = entryFw.Framework.Equals(".NETFramework", StringComparison.OrdinalIgnoreCase);
+
+                                // Detect cross-lineage: we're on Core and skipping Framework, or vice versa
+                                if ((bestIsNetCore && entryIsNetFramework) || (bestIsNetFramework && entryIsNetCore))
+                                {
+                                    skippedLineageTfms.Add(segments[1]);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (skippedLineageTfms.Count > 0)
+                {
+                    string skippedList = string.Join(", ", skippedLineageTfms);
+                    string otherHost = bestIsNetCore ? "Windows PowerShell 5.1" : "PowerShell 7+";
+                    _cmdletPassedIn.WriteWarning(
+                        $"This package contains assemblies for {skippedList} which were not installed because " +
+                        $"the current runtime selected {bestFramework.GetShortFolderName()}. " +
+                        $"If you also use this module on {otherHost}, install it separately from that host.");
+                }
+            }
+            catch
+            {
+                // Non-critical warning — don't let it fail the install
+            }
         }
 
         /// <summary>

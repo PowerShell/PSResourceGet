@@ -139,14 +139,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public SwitchParameter AuthenticodeCheck { get; set; }
 
         /// <summary>
-        /// Skips platform-specific runtime asset filtering during installation.
-        /// When specified, all runtime assets for all platforms will be installed (original behavior).
-        /// By default, only runtime assets compatible with the current platform are installed.
-        /// </summary>
-        [Parameter]
-        public SwitchParameter SkipRuntimeFiltering { get; set; }
-
-        /// <summary>
         /// Specifies the Runtime Identifier (RID) to filter platform-specific assets for.
         /// When specified, only runtime assets matching this RID are installed instead of the auto-detected platform.
         /// Use this for cross-platform deployment scenarios (e.g., preparing a Linux package from Windows).
@@ -626,7 +618,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 scope: scope,
                 tmpPath: _tmpPath,
                 pkgsInstalled: _packagesOnMachine,
-                skipRuntimeFiltering: SkipRuntimeFiltering,
                 runtimeIdentifier: RuntimeIdentifier,
                 targetFramework: TargetFramework);
 

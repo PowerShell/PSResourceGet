@@ -2,11 +2,9 @@
 # Licensed under the MIT License.
 
 # Integration tests for platform-aware installation:
-# - RID filtering of runtimes/ folder
+# - RID filtering of root-level RID folders
 # - TFM filtering of lib/ folder
-# - .nuspec retention post-install
 # - NuspecReader-based dependency parsing
-# - SkipRuntimeFiltering parameter
 #
 # NOTE: These tests require the built module to be deployed on PSModulePath.
 # Run the project build script (e.g., build.ps1) before executing these tests.
@@ -40,11 +38,11 @@ Describe 'Platform-Aware Installation Integration Tests' -tags 'CI' {
             $null = New-Item $tempDir -ItemType Directory -Force
 
             try {
-                # Create runtimes/ subdirectories with dummy native files
+                # Create RID subdirectories with dummy native files at package root
                 foreach ($rid in $RuntimeIdentifiers) {
-                    $nativeDir = Join-Path $tempDir "runtimes/$rid/native"
-                    $null = New-Item $nativeDir -ItemType Directory -Force
-                    Set-Content -Path (Join-Path $nativeDir "native_$rid.dll") -Value "native-binary-for-$rid"
+                    $ridDir = Join-Path $tempDir $rid
+                    $null = New-Item $ridDir -ItemType Directory -Force
+                    Set-Content -Path (Join-Path $ridDir "native_$rid.dll") -Value "native-binary-for-$rid"
                 }
 
                 # Create lib/ subdirectories with dummy assemblies
@@ -153,7 +151,7 @@ $depEntriesXml      </group>
             $script:ridPkgName = 'TestRidFilterModule'
             $script:ridPkgVersion = '1.0.0'
 
-            # Create test nupkg with runtimes for multiple platforms
+            # Create test nupkg with RID folders at package root
             New-TestNupkg -Name $ridPkgName -Version $ridPkgVersion `
                 -OutputDir $localRepoDir `
                 -RuntimeIdentifiers @('win-x64', 'win-x86', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64') `
@@ -165,44 +163,37 @@ $depEntriesXml      </group>
             Uninstall-PSResource $ridPkgName -Version "*" -ErrorAction SilentlyContinue
         }
 
-        It "Should only install runtimes matching current platform" {
+        It "Should only install matching RID folders" {
             Install-PSResource -Name $ridPkgName -Repository $localRepoName -TrustRepository -Version $ridPkgVersion
             $installed = Get-InstalledPSResource -Name $ridPkgName
             $installed | Should -Not -BeNullOrEmpty
 
             $installPath = Get-VersionInstallPath $installed
-            $runtimesDir = Join-Path $installPath 'runtimes'
 
-            if (Test-Path $runtimesDir) {
-                $installedRidFolders = @((Get-ChildItem $runtimesDir -Directory).Name)
+            # Current platform RID folder should exist
+            $currentRidDir = Join-Path $installPath $currentRid
+            Test-Path $currentRidDir | Should -BeTrue
 
-                # Current platform should be present
-                $installedRidFolders | Should -Contain $currentRid
+            # Foreign platform folders should NOT exist
+            $foreignRids = @('win-x64', 'linux-x64', 'osx-arm64') | Where-Object {
+                -not $InternalHooks::IsCompatibleRid($_)
+            }
 
-                # Foreign platforms should NOT be present
-                $foreignRids = @('win-x64', 'linux-x64', 'osx-arm64') | Where-Object {
-                    -not $InternalHooks::IsCompatibleRid($_)
-                }
-
-                foreach ($foreign in $foreignRids) {
-                    $installedRidFolders | Should -Not -Contain $foreign
-                }
+            foreach ($foreign in $foreignRids) {
+                Test-Path (Join-Path $installPath $foreign) | Should -BeFalse
             }
         }
 
-        It "Should install all runtimes when -SkipRuntimeFiltering is specified" {
-            Install-PSResource -Name $ridPkgName -Repository $localRepoName -TrustRepository -Version $ridPkgVersion -SkipRuntimeFiltering
+        It "Should install only the specified RID folder with -RuntimeIdentifier" {
+            Install-PSResource -Name $ridPkgName -Repository $localRepoName -TrustRepository -Version $ridPkgVersion -RuntimeIdentifier 'linux-x64'
             $installed = Get-InstalledPSResource -Name $ridPkgName
             $installed | Should -Not -BeNullOrEmpty
 
             $installPath = Get-VersionInstallPath $installed
-            $runtimesDir = Join-Path $installPath 'runtimes'
 
-            if (Test-Path $runtimesDir) {
-                $installedRidFolders = @((Get-ChildItem $runtimesDir -Directory).Name)
-                # All 6 RID folders should be present
-                $installedRidFolders.Count | Should -Be 6
-            }
+            Test-Path (Join-Path $installPath 'linux-x64') | Should -BeTrue
+            Test-Path (Join-Path $installPath 'win-x86') | Should -BeFalse
+            Test-Path (Join-Path $installPath 'osx-arm64') | Should -BeFalse
         }
     }
 
@@ -292,15 +283,10 @@ $depEntriesXml      </group>
             $installed | Should -Not -BeNullOrEmpty
 
             $installPath = Get-VersionInstallPath $installed
-            $runtimesDir = Join-Path $installPath 'runtimes'
 
-            if (Test-Path $runtimesDir) {
-                $installedRidFolders = @((Get-ChildItem $runtimesDir -Directory).Name)
-                $installedRidFolders | Should -Contain 'linux-x64'
-                # Other platforms should NOT be present
-                $installedRidFolders | Should -Not -Contain 'win-x86'
-                $installedRidFolders | Should -Not -Contain 'osx-arm64'
-            }
+            Test-Path (Join-Path $installPath 'linux-x64') | Should -BeTrue
+            Test-Path (Join-Path $installPath 'win-x86') | Should -BeFalse
+            Test-Path (Join-Path $installPath 'osx-arm64') | Should -BeFalse
         }
 
         It "Should override auto-detection with -RuntimeIdentifier" {
@@ -311,12 +297,7 @@ $depEntriesXml      </group>
             $installed | Should -Not -BeNullOrEmpty
 
             $installPath = Get-VersionInstallPath $installed
-            $runtimesDir = Join-Path $installPath 'runtimes'
-
-            if (Test-Path $runtimesDir) {
-                $installedRidFolders = @((Get-ChildItem $runtimesDir -Directory).Name)
-                $installedRidFolders | Should -Contain $foreignRid
-            }
+            Test-Path (Join-Path $installPath $foreignRid) | Should -BeTrue
         }
     }
 

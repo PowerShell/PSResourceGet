@@ -71,7 +71,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         #region RuntimePackageHelper Test Hooks
 
         /// <summary>
-        /// Checks if a zip entry path is in the runtimes folder.
+        /// Checks if a folder name looks like a .NET Runtime Identifier.
+        /// </summary>
+        public static bool IsRidFolder(string folderName)
+        {
+            return RuntimePackageHelper.IsRidFolder(folderName);
+        }
+
+        /// <summary>
+        /// Checks if a zip entry path contains runtime-specific assets.
         /// </summary>
         public static bool IsRuntimesEntry(string entryFullName)
         {

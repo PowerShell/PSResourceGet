@@ -12,30 +12,87 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
     /// <summary>
     /// Helper class for parsing package runtime assets and filtering during extraction.
     /// Provides functionality to filter runtime-specific assets based on the current platform's RID.
+    /// Detects root-level RID folders (e.g., win-x64/native.dll) used by PowerShell modules
+    /// with platform-specific native dependencies.
     /// </summary>
     internal static class RuntimePackageHelper
     {
         #region Constants
 
         /// <summary>
-        /// The name of the runtimes folder in NuGet packages.
-        /// </summary>
-        private const string RuntimesFolderName = "runtimes";
-
-        /// <summary>
         /// Path separator used in zip archives.
         /// </summary>
         private const char ZipPathSeparator = '/';
+
+        /// <summary>
+        /// Known OS prefixes used in .NET Runtime Identifiers.
+        /// </summary>
+        private static readonly string[] s_knownOsPrefixes = new[]
+        {
+            "win", "linux", "osx", "unix", "maccatalyst", "browser"
+        };
+
+        /// <summary>
+        /// Known architectures used in .NET Runtime Identifiers.
+        /// </summary>
+        private static readonly string[] s_knownArchitectures = new[]
+        {
+            "loongarch64", "ppc64le", "mips64", "s390x", "arm64", "armel", "wasm", "arm", "x64", "x86"
+        };
 
         #endregion
 
         #region Public Methods
 
         /// <summary>
-        /// Checks if a zip entry path is within the runtimes folder.
+        /// Checks if a folder name looks like a .NET Runtime Identifier.
+        /// Matches patterns like: win-x64, linux-arm64, osx-arm64, linux-musl-x64, etc.
+        /// </summary>
+        /// <param name="folderName">The folder name to check.</param>
+        /// <returns>True if the folder name matches a RID pattern; otherwise, false.</returns>
+        public static bool IsRidFolder(string folderName)
+        {
+            if (string.IsNullOrEmpty(folderName) || !folderName.Contains("-"))
+            {
+                return false;
+            }
+
+            // Must start with a known OS prefix
+            bool startsWithKnownOs = false;
+            foreach (string prefix in s_knownOsPrefixes)
+            {
+                if (folderName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    startsWithKnownOs = true;
+                    break;
+                }
+            }
+
+            if (!startsWithKnownOs)
+            {
+                return false;
+            }
+
+            // Must end with a known architecture
+            string[] parts = folderName.Split('-');
+            string lastPart = parts[parts.Length - 1];
+            foreach (string arch in s_knownArchitectures)
+            {
+                if (string.Equals(lastPart, arch, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if a zip entry path is under a root-level RID folder.
+        /// Detects entries like win-x64/native.dll, linux-arm64/libfoo.so, etc.
         /// </summary>
         /// <param name="entryFullName">The full path of the zip entry.</param>
-        /// <returns>True if the entry is in the runtimes folder; otherwise, false.</returns>
+        /// <returns>True if the entry is under a RID folder; otherwise, false.</returns>
         public static bool IsRuntimesEntry(string entryFullName)
         {
             if (string.IsNullOrEmpty(entryFullName))
@@ -43,33 +100,31 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return false;
             }
 
-            // Normalize path separators for comparison
             string normalizedPath = entryFullName.Replace('\\', ZipPathSeparator);
-            
-            return normalizedPath.StartsWith(RuntimesFolderName + ZipPathSeparator, StringComparison.OrdinalIgnoreCase);
+            string[] segments = normalizedPath.Split(ZipPathSeparator);
+
+            // Pattern: {rid}/... (root-level RID folders like win-x64/native.dll)
+            return segments.Length >= 2 && IsRidFolder(segments[0]);
         }
 
         /// <summary>
-        /// Extracts the RID from a runtimes folder entry path.
+        /// Extracts the RID from a root-level RID folder entry path.
         /// </summary>
-        /// <param name="entryFullName">The full path of the zip entry (e.g., "runtimes/win-x64/native/file.dll").</param>
-        /// <returns>The RID (e.g., "win-x64"), or null if not a runtimes entry.</returns>
+        /// <param name="entryFullName">The full path of the zip entry (e.g., "win-x64/native.dll").</param>
+        /// <returns>The RID (e.g., "win-x64"), or null if not under a RID folder.</returns>
         public static string GetRidFromRuntimesEntry(string entryFullName)
         {
-            if (!IsRuntimesEntry(entryFullName))
+            if (string.IsNullOrEmpty(entryFullName))
             {
                 return null;
             }
 
-            // Normalize path separators
             string normalizedPath = entryFullName.Replace('\\', ZipPathSeparator);
-            
-            // Path format: runtimes/{rid}/...
             string[] parts = normalizedPath.Split(ZipPathSeparator);
-            
-            if (parts.Length >= 2)
+
+            if (parts.Length >= 2 && IsRidFolder(parts[0]))
             {
-                return parts[1]; // The RID is the second segment
+                return parts[0];
             }
 
             return null;
@@ -82,21 +137,18 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// <returns>True if the entry should be included; otherwise, false.</returns>
         public static bool ShouldIncludeEntry(string entryFullName)
         {
-            // Non-runtimes entries are always included
             if (!IsRuntimesEntry(entryFullName))
             {
                 return true;
             }
 
             string entryRid = GetRidFromRuntimesEntry(entryFullName);
-            
+
             if (string.IsNullOrEmpty(entryRid))
             {
-                // If we can't determine the RID, include the entry to be safe
                 return true;
             }
 
-            // Check if this RID is compatible with the current platform
             return RuntimeIdentifierHelper.IsCompatibleRid(entryRid);
         }
 
@@ -109,25 +161,24 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// <returns>True if the entry should be included; otherwise, false.</returns>
         public static bool ShouldIncludeEntry(string entryFullName, string targetRid)
         {
-            // Non-runtimes entries are always included
             if (!IsRuntimesEntry(entryFullName))
             {
                 return true;
             }
 
             string entryRid = GetRidFromRuntimesEntry(entryFullName);
-            
+
             if (string.IsNullOrEmpty(entryRid))
             {
                 return true;
             }
 
-            // Check if this RID is compatible with the specified target
             return RuntimeIdentifierHelper.IsCompatibleRid(entryRid, targetRid);
         }
 
         /// <summary>
-        /// Gets a list of all unique RIDs present in a zip archive's runtimes folder.
+        /// Gets a list of all unique RIDs present in a zip archive.
+        /// Detects both runtimes/{rid}/ and root-level {rid}/ patterns.
         /// </summary>
         /// <param name="archive">The zip archive to scan.</param>
         /// <returns>A list of unique RIDs found in the archive.</returns>
@@ -153,7 +204,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         }
 
         /// <summary>
-        /// Gets a list of all unique RIDs present in a zip file's runtimes folder.
+        /// Gets a list of all unique RIDs present in a zip file.
         /// </summary>
         /// <param name="zipPath">The path to the zip file.</param>
         /// <returns>A list of unique RIDs found in the archive.</returns>
