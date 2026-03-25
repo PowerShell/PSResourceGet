@@ -100,7 +100,7 @@
                 "uri": {
                     "title": "URI",
                     "description": "The URI of the repository.",
-                    "type": "string",
+                    "type": ["string", "null"],
                     "format": "uri"
                 },
                 "trusted": {

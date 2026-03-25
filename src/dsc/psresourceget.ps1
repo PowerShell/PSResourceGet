@@ -82,11 +82,14 @@ class PSResource {
     }
 
     [string] ToJson() {
-        return ($this | Select-Object -ExcludeProperty _inDesiredState | ConvertTo-Json -Compress)
+        $retVal = ($this | Select-Object -ExcludeProperty _inDesiredState | ConvertTo-Json -Compress -EnumsAsStrings)
+        Write-Trace -message "Serializing PSResource to JSON. Name: $($this.name), Version: $($this.version), Scope: $($this.scope), RepositoryName: $($this.repositoryName), PreRelease: $($this.preRelease), _exist: $($this._exist)" -level trace
+        Write-Trace -message "Serialized JSON: $retVal" -level trace
+        return $retVal
     }
 
     [string] ToJsonForTest() {
-        return ($this | ConvertTo-Json -Compress -Depth 5)
+        return ($this | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings)
     }
 }
 
@@ -140,12 +143,17 @@ class PSResourceList {
         $resourceJson = "[$resourceJson]"
         $jsonString = "{'repositoryName': '$($this.repositoryName)','resources': $resourceJson}"
         $jsonString = $jsonString -replace "'", '"'
-        return $jsonString | ConvertFrom-Json | ConvertTo-Json -Compress
+        $retVal =  $jsonString | ConvertFrom-Json | ConvertTo-Json -Compress -EnumsAsStrings
+
+        Write-Trace -message "Serializing PSResourceList to JSON. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level trace
+        Write-Trace -message "Serialized JSON: $retVal" -level trace
+
+        return $retVal
     }
 
     [string] ToJsonForTest() {
         Write-Trace -message "Serializing PSResourceList to JSON for test output. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level trace
-        $jsonForTest = $this | ConvertTo-Json -Compress -Depth 5
+        $jsonForTest = $this | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
         Write-Trace -message "Serialized JSON: $jsonForTest" -level trace
         return $jsonForTest
     }
@@ -162,6 +170,7 @@ class Repository {
     Repository([string]$name) {
         $this.name = $name
         $this._exist = $false
+        $this.repositoryType = 'Unknown'
     }
 
     Repository([string]$name, [string]$uri, [bool]$trusted, [int]$priority, [string]$repositoryType) {
@@ -185,10 +194,11 @@ class Repository {
     Repository([string]$name, [bool]$exist) {
         $this.name = $name
         $this._exist = $exist
+        $this.repositoryType = 'Unknown'
     }
 
     [string] ToJson() {
-        return ($this | ConvertTo-Json -Compress)
+        return ($this | ConvertTo-Json -Compress -EnumsAsStrings)
     }
 }
 
