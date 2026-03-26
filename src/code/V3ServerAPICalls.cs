@@ -327,7 +327,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
-            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallPackage()");
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallPackage()");  // TODO: is this a problem?
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
             {
@@ -718,10 +718,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
             // gets called from inside concurrency
-            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallVersion()");
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallVersion()"); // TODO: is this a problem?
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
-                //_cmdletPassedIn.WriteDebug("InstallVersion - could not parse version");
                 errRecord = new ErrorRecord(
                     new ArgumentException($"Version {version} to be installed is not a valid NuGet version."),
                     "InstallVersionFailure",

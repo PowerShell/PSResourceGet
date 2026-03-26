@@ -855,7 +855,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private ConcurrentDictionary<string, Hashtable> InstallParentAndDependencyPackages(List<PSResourceInfo> parentAndDeps, ServerApiCall currentServer, string tempInstallPath, ConcurrentDictionary<string, Hashtable> packagesHash, ConcurrentDictionary<string, Hashtable> updatedPackagesHash, PSResourceInfo pkgToInstall)
         {
             string warning = string.Empty;
-            ConcurrentBag<ErrorRecord> errors = new ConcurrentBag<ErrorRecord>();
+            ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
 
             // TODO: figure out a good threshold and parallel count
             int processorCount = Environment.ProcessorCount;
@@ -872,54 +875,55 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     var depPkgName = depPkg.Name;
                     var depPkgVersion = depPkg.Version.ToString();
 
+                    verboseMsgs.Enqueue($"Installing package '{depPkgName}' version '{depPkgVersion}'");
                     Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
-
-                    // if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2)
-                    // {
-                    //     // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
-                    //     string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
-                    //     response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type));
-                        
-                    //     responses = response.GetAwaiter().GetResult();
-                    // }
-                    // else
-                    // {
-                    //     responses = currentServer.FindVersion(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, out errRecord);
-                    // }
-
-
-
-                    //_cmdletPassedIn.WriteDebug("In BeginInstallPackage 938");
 
                     if (installNameErrRecord != null)
                     {
-                      //  _cmdletPassedIn.WriteDebug("In BeginInstallPackage 942");
-                        //errors.Add(installNameErrRecord);
+                        verboseMsgs.Enqueue($"Error installing package '{depPkgName}': {installNameErrRecord.Exception?.Message}");
+                        errorMsgs.Enqueue(installNameErrRecord);
                     }
-                   // _cmdletPassedIn.WriteDebug("In BeginInstallPackage 945");
+
                     ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
                     bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
                         TryInstallToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out warning, out tempInstallErrRecord);
 
                     if (!installedToTempPathSuccessfully)
                     {
-                        errors.Add(tempSaveErrRecord ?? tempInstallErrRecord);
+                        verboseMsgs.Enqueue($"Failed to install '{depPkgName}' to temp path");
+                        errorMsgs.Enqueue(tempSaveErrRecord ?? tempInstallErrRecord);
+                    }
+                    else
+                    {
+                        verboseMsgs.Enqueue($"Successfully installed '{depPkgName}' version '{depPkgVersion}' to temp path");
                     }
                 });
 
-                if (errors.Count > 0)
+                // Write out all log messages collected from Parallel.ForEach
+                while (verboseMsgs.TryDequeue(out string verboseMsg))
+                {
+                    _cmdletPassedIn.WriteVerbose(verboseMsg);
+                }
+
+                if (errorMsgs.Count > 0)
                 {
                     // Write out all errors collected from Parallel.ForEach
-                    foreach (var err in errors)
+                    while (errorMsgs.TryDequeue(out ErrorRecord errMsg))
                     {
-                        _cmdletPassedIn.WriteError(err);
+                        _cmdletPassedIn.WriteError(errMsg);
                     }
 
                     return packagesHash;
                 }
-                if (!string.IsNullOrEmpty(warning))
+                if (warningMsgs.Count > 0)
                 {
-                    _cmdletPassedIn.WriteWarning(warning);
+                    // Write out all warnings collected from Parallel.ForEach
+                    while (warningMsgs.TryDequeue(out string warningMsg))
+                    {
+                        _cmdletPassedIn.WriteWarning(warningMsg);
+                    }
+
+                    return packagesHash;
                 }
 
                 return updatedPackagesHash;
