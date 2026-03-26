@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -81,12 +82,12 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         #region Overridden Methods
 
-        public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type)
+        public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
         {
             throw new NotImplementedException("FindVersionAsync is not implemented for ContainerRegistryServerAPICalls.");
         }
 
-        public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest)
+        public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
         {
             throw new NotImplementedException("FindVersionGlobbingAsync is not implemented for ContainerRegistryServerAPICalls.");   
         }
@@ -157,7 +158,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         }
 
 
-        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type)
+        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
         {
             throw new NotImplementedException("FindNameAsync is not implemented for ContainerRegistryServerAPICalls.");
         }

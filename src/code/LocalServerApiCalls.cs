@@ -14,6 +14,7 @@ using System.Net;
 using System.Management.Automation;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -40,12 +41,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Overridden Methods
 
-        public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type)
+        public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
         {
             throw new NotImplementedException();
         }
 
-        public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest)
+        public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
         {
             throw new NotImplementedException();
         }
@@ -119,7 +120,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return FindNameHelper(packageName, Utils.EmptyStrArray, includePrerelease, type, out errRecord);
         }
 
-        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type)
+        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
         {
             throw new NotImplementedException();
         }

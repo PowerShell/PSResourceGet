@@ -981,7 +981,33 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return results;
             }
 
-            results = InstallVersionAsync(packageName, packageVersion).GetAwaiter().GetResult();
+            results = InstallVersion(packageName, packageVersion, out errRecord);
+            return results;
+        }
+
+        /// <summary>
+        /// Installs a specific package.
+        /// User may request to install package with or without providing version (as seen in examples below), but prior to calling this method the package is located and package version determined.
+        /// Therefore, package version should not be null in this method.
+        /// Name: no wildcard support.
+        /// Examples: Install "PowerShellGet"
+        ///           Install "PowerShellGet" -Version "3.0.0"
+        /// </summary>
+        public async Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
+        {
+            Stream results = new MemoryStream();
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    exception: new ArgumentNullException($"Package version could not be found for {packageName}"),
+                    "PackageVersionNullOrEmptyError",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
+                return results;
+            }
+
+            results = await InstallVersionAsync(packageName, packageVersion, errorMsgs, debugMsgs);
             return results;
         }
 
