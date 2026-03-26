@@ -134,6 +134,12 @@ $depEntriesXml      </group>
         $script:localRepoDir = Join-Path $TestDrive 'platformFilterRepo'
         $null = New-Item $localRepoDir -ItemType Directory -Force
 
+        # Import the local build of the module (handles PS 7.6+ where it ships built-in)
+        $outModulePath = Join-Path $PSScriptRoot '../../out/Microsoft.PowerShell.PSResourceGet'
+        if (Test-Path $outModulePath) {
+            Import-Module $outModulePath -Force
+        }
+
         $script:localRepoName = 'PlatformFilterTestRepo'
         Register-PSResourceRepository -Name $localRepoName -Uri $localRepoDir -Trusted -Force -ErrorAction SilentlyContinue
 
@@ -394,6 +400,168 @@ $depEntriesXml      </group>
                 $depNames | Should -Contain 'Newtonsoft.Json'
                 $depNames | Should -Contain 'System.Memory'
             }
+        }
+    }
+
+
+    Context 'TFM Merge Install (already installed, explicit -TargetFramework)' {
+
+        BeforeAll {
+            $script:tfmMergePkgName = 'TestTfmMergeModule'
+            $script:tfmMergePkgVersion = '1.0.0'
+
+            New-TestNupkg -Name $tfmMergePkgName -Version $tfmMergePkgVersion `
+                -OutputDir $localRepoDir `
+                -LibTfms @('net472', 'net8.0') `
+                -IncludeModuleManifest
+        }
+
+        AfterEach {
+            Uninstall-PSResource $tfmMergePkgName -Version "*" -ErrorAction SilentlyContinue
+        }
+
+        It "Should merge net472 into an existing net8.0 install" -Skip:($PSVersionTable.PSVersion.Major -le 5) {
+            # Step 1: Install normally — should select net8.0 on PS7+
+            Install-PSResource -Name $tfmMergePkgName -Repository $localRepoName -TrustRepository -Version $tfmMergePkgVersion
+            $installed = Get-InstalledPSResource -Name $tfmMergePkgName
+            $installed | Should -Not -BeNullOrEmpty
+
+            $installPath = Get-VersionInstallPath $installed
+            $libDir = Join-Path $installPath 'lib'
+
+            # Verify only net8.0 was installed
+            Test-Path (Join-Path $libDir 'net8.0') | Should -BeTrue
+            Test-Path (Join-Path $libDir 'net472') | Should -BeFalse
+
+            # Step 2: Merge net472 using -TargetFramework
+            Install-PSResource -Name $tfmMergePkgName -Repository $localRepoName -TrustRepository -Version $tfmMergePkgVersion -TargetFramework 'net472'
+
+            # Verify both TFMs are now present
+            Test-Path (Join-Path $libDir 'net8.0') | Should -BeTrue
+            Test-Path (Join-Path $libDir 'net472') | Should -BeTrue
+
+            # Verify the assembly file exists in the merged folder
+            Test-Path (Join-Path $libDir "net472/$tfmMergePkgName.dll") | Should -BeTrue
+        }
+
+        It "Should merge net8.0 into an existing net472 install" -Skip:($PSVersionTable.PSVersion.Major -gt 5) {
+            # Step 1: Install normally on WinPS — should select net472
+            Install-PSResource -Name $tfmMergePkgName -Repository $localRepoName -TrustRepository -Version $tfmMergePkgVersion
+            $installed = Get-InstalledPSResource -Name $tfmMergePkgName
+            $installed | Should -Not -BeNullOrEmpty
+
+            $installPath = Get-VersionInstallPath $installed
+            $libDir = Join-Path $installPath 'lib'
+
+            # Verify only net472 was installed
+            Test-Path (Join-Path $libDir 'net472') | Should -BeTrue
+            Test-Path (Join-Path $libDir 'net8.0') | Should -BeFalse
+
+            # Step 2: Merge net8.0 using -TargetFramework
+            Install-PSResource -Name $tfmMergePkgName -Repository $localRepoName -TrustRepository -Version $tfmMergePkgVersion -TargetFramework 'net8.0'
+
+            # Verify both TFMs are now present
+            Test-Path (Join-Path $libDir 'net472') | Should -BeTrue
+            Test-Path (Join-Path $libDir 'net8.0') | Should -BeTrue
+        }
+
+        It "Should not overwrite existing files during merge" -Skip:($PSVersionTable.PSVersion.Major -le 5) {
+            # Step 1: Install normally — gets net8.0
+            Install-PSResource -Name $tfmMergePkgName -Repository $localRepoName -TrustRepository -Version $tfmMergePkgVersion
+
+            $installed = Get-InstalledPSResource -Name $tfmMergePkgName
+            $installPath = Get-VersionInstallPath $installed
+            $psd1Path = Join-Path $installPath "$tfmMergePkgName.psd1"
+
+            # Record the original .psd1 write time
+            $originalWriteTime = (Get-Item $psd1Path).LastWriteTime
+
+            # Small delay to ensure timestamp difference
+            Start-Sleep -Milliseconds 100
+
+            # Step 2: Merge net472
+            Install-PSResource -Name $tfmMergePkgName -Repository $localRepoName -TrustRepository -Version $tfmMergePkgVersion -TargetFramework 'net472'
+
+            # The .psd1 should NOT have been overwritten
+            $newWriteTime = (Get-Item $psd1Path).LastWriteTime
+            $newWriteTime | Should -Be $originalWriteTime
+        }
+    }
+
+
+    Context 'RID Merge Install (already installed, explicit -RuntimeIdentifier)' {
+
+        BeforeAll {
+            $script:ridMergePkgName = 'TestRidMergeModule'
+            $script:ridMergePkgVersion = '1.0.0'
+
+            New-TestNupkg -Name $ridMergePkgName -Version $ridMergePkgVersion `
+                -OutputDir $localRepoDir `
+                -RuntimeIdentifiers @('win-x64', 'linux-x64', 'osx-arm64') `
+                -LibTfms @('netstandard2.0') `
+                -IncludeModuleManifest
+        }
+
+        AfterEach {
+            Uninstall-PSResource $ridMergePkgName -Version "*" -ErrorAction SilentlyContinue
+        }
+
+        It "Should merge a foreign RID into an existing install" {
+            # Step 1: Install normally — gets current platform RID
+            Install-PSResource -Name $ridMergePkgName -Repository $localRepoName -TrustRepository -Version $ridMergePkgVersion
+            $installed = Get-InstalledPSResource -Name $ridMergePkgName
+            $installed | Should -Not -BeNullOrEmpty
+
+            $installPath = Get-VersionInstallPath $installed
+
+            # Pick a foreign RID
+            $foreignRid = if ($IsWindows) { 'linux-x64' } elseif ($IsMacOS) { 'win-x64' } else { 'osx-arm64' }
+
+            # Verify foreign RID is not present yet
+            Test-Path (Join-Path $installPath $foreignRid) | Should -BeFalse
+
+            # Step 2: Merge foreign RID
+            Install-PSResource -Name $ridMergePkgName -Repository $localRepoName -TrustRepository -Version $ridMergePkgVersion -RuntimeIdentifier $foreignRid
+
+            # Verify both RIDs are now present
+            $currentRidDir = Join-Path $installPath $script:currentRid
+            $foreignRidDir = Join-Path $installPath $foreignRid
+            Test-Path $currentRidDir | Should -BeTrue
+            Test-Path $foreignRidDir | Should -BeTrue
+        }
+    }
+
+
+    Context 'Missing TFM/RID Validation Warnings' {
+
+        BeforeAll {
+            $script:warnPkgName = 'TestMissingTfmRidModule'
+            $script:warnPkgVersion = '1.0.0'
+
+            # Package only has net8.0 and win-x64
+            New-TestNupkg -Name $warnPkgName -Version $warnPkgVersion `
+                -OutputDir $localRepoDir `
+                -RuntimeIdentifiers @('win-x64') `
+                -LibTfms @('net8.0') `
+                -IncludeModuleManifest
+        }
+
+        AfterEach {
+            Uninstall-PSResource $warnPkgName -Version "*" -ErrorAction SilentlyContinue
+        }
+
+        It "Should warn when -TargetFramework does not exist in the package" {
+            $warnings = $null
+            Install-PSResource -Name $warnPkgName -Repository $localRepoName -TrustRepository -Version $warnPkgVersion -TargetFramework 'net472' -WarningVariable warnings
+            $warnings | Should -Not -BeNullOrEmpty
+            ($warnings | Out-String) | Should -BeLike "*net472*not found*"
+        }
+
+        It "Should warn when -RuntimeIdentifier does not exist in the package" {
+            $warnings = $null
+            Install-PSResource -Name $warnPkgName -Repository $localRepoName -TrustRepository -Version $warnPkgVersion -RuntimeIdentifier 'linux-arm64' -WarningVariable warnings
+            $warnings | Should -Not -BeNullOrEmpty
+            ($warnings | Out-String) | Should -BeLike "*linux-arm64*not found*"
         }
     }
 }

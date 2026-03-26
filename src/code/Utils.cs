@@ -1760,6 +1760,34 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             DeleteDirectory(sourceDirPath);
         }
 
+        /// <summary>
+        /// Merges the contents of a source directory into an existing destination directory.
+        /// Only adds new files and subdirectories; does not delete or overwrite existing content.
+        /// Used when merging additional TFM or RID content into an already-installed module.
+        /// </summary>
+        public static void MergeDirContents(string sourceDirPath, string destDirPath)
+        {
+            if (!Directory.Exists(destDirPath))
+            {
+                Directory.CreateDirectory(destDirPath);
+            }
+
+            foreach (var filePath in Directory.GetFiles(sourceDirPath))
+            {
+                var destFilePath = Path.Combine(destDirPath, Path.GetFileName(filePath));
+                if (!File.Exists(destFilePath))
+                {
+                    File.Copy(filePath, destFilePath);
+                }
+            }
+
+            foreach (var srcSubDirPath in Directory.GetDirectories(sourceDirPath))
+            {
+                var destSubDirPath = Path.Combine(destDirPath, Path.GetFileName(srcSubDirPath));
+                MergeDirContents(srcSubDirPath, destSubDirPath);
+            }
+        }
+
         private static void CopyDirContents(
             string sourceDirPath,
             string destDirPath,

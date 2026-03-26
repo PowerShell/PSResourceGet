@@ -51,6 +51,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool _savePkg;
         private string _runtimeIdentifier;
         private string _targetFramework;
+        private bool _mergeFilteredContent;
         List<string> _pathsToSearch;
         List<string> _pkgNamesToInstall;
         private string _tmpPath;
@@ -423,6 +424,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     _cmdletPassedIn.WriteVerbose($"Attempting to move '{tempModuleVersionDir}' to '{finalModuleVersionDir}'");
                     Directory.CreateDirectory(newPathParent);
                     Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
+                }
+                else if (_mergeFilteredContent && Directory.Exists(finalModuleVersionDir))
+                {
+                    // Copy only new TFM/RID content into the existing install
+                    _cmdletPassedIn.WriteVerbose($"Merging additional platform content from '{tempModuleVersionDir}' into '{finalModuleVersionDir}'");
+                    Utils.MergeDirContents(tempModuleVersionDir, finalModuleVersionDir);
+                    Utils.DeleteDirectory(tempModuleVersionDir);
                 }
                 else
                 {
@@ -801,12 +809,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string currPkgNameVersion = $"{pkgToInstall.Name}{pkgToInstall.Version}";
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
                 {
-                    _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
+                    // When -TargetFramework or -RuntimeIdentifier is explicitly specified, allow re-download
+                    // to merge the additional TFM/RID content into the existing install directory.
+                    bool hasExplicitOverride = !string.IsNullOrEmpty(_targetFramework) || !string.IsNullOrEmpty(_runtimeIdentifier);
+                    if (hasExplicitOverride)
+                    {
+                        _cmdletPassedIn.WriteVerbose($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed. " +
+                            $"Proceeding to merge additional platform content (TargetFramework='{_targetFramework}', RuntimeIdentifier='{_runtimeIdentifier}').");
+                        _mergeFilteredContent = true;
+                    }
+                    else
+                    {
+                        _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
 
-                    // Remove from tracking list of packages to install.
-                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
+                        // Remove from tracking list of packages to install.
+                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
 
-                    return packagesHash;
+                        return packagesHash;
+                    }
                 }
             }
 
@@ -1267,6 +1287,54 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             entry.ExtractToFile(destinationPath, overwrite: true);
                         }
                     }
+
+                    // Warn if an explicitly specified TFM or RID had no matching entries in the package
+                    if (!string.IsNullOrEmpty(_targetFramework) && bestLibFramework != null)
+                    {
+                        bool hasMatchingLib = archive.Entries.Any(e =>
+                        {
+                            string n = e.FullName.Replace('\\', '/');
+                            if (!n.StartsWith("lib/", StringComparison.OrdinalIgnoreCase)) return false;
+                            string[] s = n.Split('/');
+                            if (s.Length < 3 || string.IsNullOrEmpty(s[1])) return false;
+                            NuGetFramework fw = NuGetFramework.ParseFolder(s[1]);
+                            return fw != null && !fw.IsUnsupported && fw.Equals(bestLibFramework);
+                        });
+
+                        if (!hasMatchingLib)
+                        {
+                            var availableTfms = archive.Entries
+                                .Select(e => e.FullName.Replace('\\', '/'))
+                                .Where(n => n.StartsWith("lib/", StringComparison.OrdinalIgnoreCase))
+                                .Select(n => n.Split('/'))
+                                .Where(s => s.Length >= 3 && !string.IsNullOrEmpty(s[1]))
+                                .Select(s => s[1])
+                                .Distinct(StringComparer.OrdinalIgnoreCase);
+                            string available = string.Join(", ", availableTfms);
+                            _cmdletPassedIn.WriteWarning(
+                                $"The specified TargetFramework '{_targetFramework}' was not found in this package. " +
+                                $"No lib/ assemblies were installed. Available TFMs: {(string.IsNullOrEmpty(available) ? "none" : available)}");
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(_runtimeIdentifier))
+                    {
+                        bool hasMatchingRid = archive.Entries.Any(e =>
+                            RuntimePackageHelper.IsRidFolder(e.FullName.Replace('\\', '/').Split('/')[0]) &&
+                            RuntimePackageHelper.ShouldIncludeEntry(e.FullName, _runtimeIdentifier));
+
+                        if (!hasMatchingRid)
+                        {
+                            var availableRids = archive.Entries
+                                .Select(e => e.FullName.Replace('\\', '/').Split('/')[0])
+                                .Where(f => RuntimePackageHelper.IsRidFolder(f))
+                                .Distinct(StringComparer.OrdinalIgnoreCase);
+                            string available = string.Join(", ", availableRids);
+                            _cmdletPassedIn.WriteWarning(
+                                $"The specified RuntimeIdentifier '{_runtimeIdentifier}' was not found in this package. " +
+                                $"No platform-specific assets were installed. Available RIDs: {(string.IsNullOrEmpty(available) ? "none" : available)}");
+                        }
+                    }
                 }
             }
             catch (Exception e)
@@ -1487,10 +1555,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     string skippedList = string.Join(", ", skippedLineageTfms);
                     string otherHost = bestIsNetCore ? "Windows PowerShell 5.1" : "PowerShell 7+";
+                    string skippedTfm = skippedLineageTfms.First();
                     _cmdletPassedIn.WriteWarning(
                         $"This package contains assemblies for {skippedList} which were not installed because " +
                         $"the current runtime selected {bestFramework.GetShortFolderName()}. " +
-                        $"If you also use this module on {otherHost}, install it separately from that host.");
+                        $"If you also use this module on {otherHost}, run: Install-PSResource -Name <ModuleName> -TargetFramework '{skippedTfm}'");
                 }
             }
             catch
