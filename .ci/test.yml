@@ -100,6 +100,8 @@ jobs:
       $version = '${{ parameters.DSCVersion }}'
       $packageName = "DSC-$version"
       $ext = 'tar.gz'
+      $executableName = 'dsc'
+      $executableExt = if ($IsWindows) { '.exe' } else { '' }
 
       $uri = if ($IsWindows) {
         $ext = 'zip'
@@ -127,7 +129,9 @@ jobs:
         tar -xzf $destPath -C $env:AGENT_TEMPDIRECTORY
       }
 
-      $executable = Get-ChildItem -Path $destPath -File -Recurse | Where-Object { $_.Name -eq 'dsc' } | Select-Object -First 1
+      $executableFileName = $executableName + $executableExt
+
+      $executable = Get-ChildItem -Path $destPath -File -Recurse -Verbose | Where-Object { $_.Name -eq $executableFileName } | Select-Object -First 1
 
       if (-not $executable) {
         throw "Could not find dsc executable in the downloaded package"
