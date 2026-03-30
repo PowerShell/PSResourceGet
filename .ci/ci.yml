@@ -10,15 +10,17 @@ pr:
     include:
     - master
 
+parameters:
+  - name: DSCVersion
+    default: '3.2.0-preview.13'
+    type: string
+
 resources:
   repositories:
   - repository: ComplianceRepo
     type: github
     endpoint: ComplianceGHRepo
     name: PowerShell/compliance
-
-parameters:
-  DSCVersion: '3.2.0-preview.13'
 
 variables:
   - group: GithubTestingFeedCreds
