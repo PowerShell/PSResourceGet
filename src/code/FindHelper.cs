@@ -708,6 +708,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository, bool shouldReportErrorForEachRepo)
         {
             ErrorRecord errRecord = null;
+            ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
             List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
             string tagsAsString = String.Empty;
             bool isV2Resource = currentResponseUtil is V2ResponseUtil;
@@ -904,11 +906,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
+
+                        
                             ConcurrentDictionary<string, Task<FindResults>> cachedNetworkCalls = new ConcurrentDictionary<string, Task<FindResults>>();
                             Task<FindResults> response = null;
                             if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2) {       
                                 string key = $"{pkgName}|{_nugetVersion.ToNormalizedString()}|{_type}";
-                                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(pkgName, _nugetVersion.ToNormalizedString(), _type));
+                                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(pkgName, _nugetVersion.ToNormalizedString(), _type, errorMsgs, debugMsgs));
                     
                                 responses = response.GetAwaiter().GetResult();
 
@@ -993,7 +997,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             Task<FindResults> response = null;
                             if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2) {       
                                 string key = $"{pkgName}|{_versionRange.ToString()}|{_type}";
-                                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false));
+                                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, errorMsgs, debugMsgs));
                                 
                                 responses = response.GetAwaiter().GetResult();
                             }
@@ -1250,7 +1254,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     else
                     {
                         // Find this version from the server
-                        depPkg = FindDependencyWithLowerBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, debugMsgs);
+                        depPkg = FindDependencyWithLowerBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, verboseMsgs);
                     }
             }
             else if (dep.VersionRange.HasLowerBound && dep.VersionRange.MinVersion.Equals(dep.VersionRange.MaxVersion))
@@ -1267,7 +1271,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    depPkg = FindDependencyWithSpecificVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, debugMsgs);
+                    depPkg = FindDependencyWithSpecificVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, verboseMsgs, warningMsgs);
                 }
             }
             else
@@ -1283,7 +1287,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    depPkg = FindDependencyWithUpperBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, debugMsgs);
+                    depPkg = FindDependencyWithUpperBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, verboseMsgs);
                 }
             }
         }
@@ -1309,7 +1313,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
                 string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
                 verboseMsgs.Enqueue("Checking if network call is cached.");
-                response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type));
+                response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, errorMsgs, verboseMsgs));
                 
                 responses = response.GetAwaiter().GetResult();
             }
@@ -1382,7 +1386,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
                 string key = $"{dep.Name}|*|{_type}";
                 verboseMsgs.Enqueue("Checking if network call is cached.");
-                response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindNameAsync(dep.Name, includePrerelease: true, _type));
+                response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindNameAsync(dep.Name, includePrerelease: true, _type, errorMsgs, verboseMsgs));
                 
                 responses = response.GetAwaiter().GetResult();
             }
@@ -1456,7 +1460,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // See if the network call we're making is already caced, if not, call FindNameAsync() and cache results
                 string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
                 verboseMsgs.Enqueue("Checking if network call is cached.");
-                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true));
+                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, errorMsgs, verboseMsgs));
 
                 responses = response.GetAwaiter().GetResult();
 

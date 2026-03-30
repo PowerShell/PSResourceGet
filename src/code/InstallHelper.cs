@@ -639,7 +639,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             out string warning,
             out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackage()");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::BeginPackageInstall()");
             FindResults responses = null;
             warning = null;
             errRecord = null;
@@ -826,7 +826,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // List returned only includes dependencies, so we'll add the parent pkg to this list to pass on to installation method
                     parentAndDeps.Add(pkgToInstall);
 
-                    _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackage(), found all dependencies");
+                    _cmdletPassedIn.WriteDebug("In InstallHelper::BeginPackageInstall(), found all dependencies");
 
                     return InstallParentAndDependencyPackages(parentAndDeps, currentServer, tempInstallPath, packagesHash, updatedPackagesHash, pkgToInstall);
                 }
@@ -876,7 +876,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     var depPkgVersion = depPkg.Version.ToString();
 
                     verboseMsgs.Enqueue($"Installing package '{depPkgName}' version '{depPkgVersion}'");
-                    Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
+                    //Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
+                    // add async
+                    Stream responseStream = currentServer.InstallPackageAsync(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord, errorMsgs, verboseMsgs);
 
                     if (installNameErrRecord != null)
                     {
