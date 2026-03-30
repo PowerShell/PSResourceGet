@@ -5,6 +5,7 @@ parameters:
   powershellExecutable: pwsh
   buildDirectory: '.'
   useAzAuth: false
+  DSCVersion: '3.2.0-preview.13'
 
 jobs:
 - job: ${{ parameters.jobName }}
@@ -94,6 +95,51 @@ jobs:
 
     displayName: 'Setup Azure Artifacts Credential Provider secret'
     condition: eq(${{ parameters.useAzAuth }}, false)
+
+  - pwsh: |
+      $version = ${{ parameters.DSCVersion }}
+      $packageName = "DSC-$version"
+      $ext = 'tar.gz'
+
+      $uri = if ($IsWindows) {
+        $ext = 'zip'
+        "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-pc-windows-msvc.zip"
+      } else if ($IsLinux) {
+        "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-linux.tar.gz"
+      }
+      else if ($IsMacOS) {
+        "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-aarch64-apple-darwin.tar.gz"
+      }
+      else {
+        throw "Unsupported OS platform"
+      }
+
+      $destPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath "$packageName.$ext"
+
+      Write-Verbose -Verbose "Downloading DSC v3 from $uri to $destPath"
+
+      Invoke-WebRequest -Uri $uri -OutFile $destPath
+
+      if ($IsWindows) {
+        Expand-Archive -Path $destPath -DestinationPath $env:AGENT_TEMPDIRECTORY -Force
+      }
+      else {
+        tar -xzf $destPath -C $env:AGENT_TEMPDIRECTORY
+      }
+
+      $executable = Get-ChildItem -Path $destPath -File -Recurse | Where-Object { $_.Name -eq 'dsc' } | Select-Object -First 1
+
+      if (-not $executable) {
+        throw "Could not find dsc executable in the downloaded package"
+      }
+
+      $dscRoot = Split-Path -Path $executable.FullName -Parent
+
+      $vstsCommandString = "vso[task.setvariable variable=DSC_ROOT]$dscRoot"
+      Write-Host "sending " + $vstsCommandString
+      Write-Host "##$vstsCommandString"
+
+    displayName: 'Install latest DSC v3'
 
   - pwsh: |
       Get-ChildItem -Path env: | Out-String -width 9999 -Stream | Write-Verbose -Verbose

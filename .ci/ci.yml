@@ -17,6 +17,9 @@ resources:
     endpoint: ComplianceGHRepo
     name: PowerShell/compliance
 
+parameters:
+  DSCVersion: '3.2.0-preview.13'
+
 variables:
   - group: GithubTestingFeedCreds
 
@@ -122,6 +125,7 @@ stages:
       jobName: TestPkgWin
       displayName: PowerShell Core on Windows
       imageName: windows-latest
+      DSCVersion: ${{ parameters.DSCVersion }}
 
   - template: test.yml
     parameters:
@@ -129,18 +133,21 @@ stages:
       displayName: Windows PowerShell on Windows
       imageName: windows-latest
       powershellExecutable: powershell
+      DSCVersion: ${{ parameters.DSCVersion }}
 
   - template: test.yml
     parameters:
       jobName: TestPkgUbuntu
       displayName: PowerShell Core on Ubuntu
       imageName: ubuntu-latest
+      DSCVersion: ${{ parameters.DSCVersion }}
 
   - template: test.yml
     parameters:
       jobName: TestPkgWinMacOS
       displayName: PowerShell Core on macOS
       imageName: macOS-latest
+      DSCVersion: ${{ parameters.DSCVersion }}
 
   - template: test.yml
     parameters:
@@ -148,3 +155,4 @@ stages:
       displayName: AzAuth PowerShell Core on Windows
       imageName: windows-latest
       useAzAuth: true
+      DSCVersion: ${{ parameters.DSCVersion }}

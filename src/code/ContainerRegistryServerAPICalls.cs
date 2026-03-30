@@ -1001,8 +1001,6 @@ namespace Microsoft.PowerShell.PSResourceGet
                     _cmdletPassedIn);
             }
 
-            _cmdletPassedIn.WriteVerbose("Exiting ContainerRegistryServerAPICalls::GetHttpResponseJObjectUsingDefaultHeaders() with NULL");
-
             return null;
         }
 
