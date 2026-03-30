@@ -97,7 +97,7 @@ jobs:
     condition: eq(${{ parameters.useAzAuth }}, false)
 
   - pwsh: |
-      $version = ${{ parameters.DSCVersion }}
+      $version = '${{ parameters.DSCVersion }}'
       $packageName = "DSC-$version"
       $ext = 'tar.gz'
 
