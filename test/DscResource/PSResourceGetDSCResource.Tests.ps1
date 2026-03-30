@@ -17,6 +17,23 @@ function SetupDsc {
     }
 
     $script:dscExe = Get-Command -name dsc -CommandType Application | Select-Object -First 1
+
+    $loadedPSResourceGet = Get-Module PSResourceGet -ErrorAction SilentlyContinue
+    $resources = Get-ChildItem $loadedPSResourceGet.ModuleBase/*resource.json -ErrorAction SilentlyContinue
+
+    if (-not $script:dscExe) {
+        throw "Could not find dsc executable in PATH after setup."
+    }
+
+    if (-not $resources.Count -ge 2) {
+        throw "Expected at least 2 resource schema files in PSResourceGet module directory, found $($resources.Count)."
+    }
+
+    $resourcePath = Split-Path $resources[0].FullName -Parent
+
+    Write-Verbose -Verbose "Adding DSC resource path to PATH environment variable: $resourcePath"
+
+    $env:PATH += "$pathSeparator$resourcePath"
 }
 
 function SetupTestRepos {
