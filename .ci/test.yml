@@ -123,7 +123,7 @@ jobs:
       Invoke-WebRequest -Uri $uri -OutFile $destPath
 
       if ($IsWindows) {
-        Expand-Archive -Path $destPath -DestinationPath $env:AGENT_TEMPDIRECTORY -Force
+        Expand-Archive -Path $destPath -DestinationPath $env:AGENT_TEMPDIRECTORY -Force -Verbose
       }
       else {
         tar -xzf $destPath -C $env:AGENT_TEMPDIRECTORY
@@ -131,7 +131,7 @@ jobs:
 
       $executableFileName = $executableName + $executableExt
 
-      $executable = Get-ChildItem -Path $destPath -File -Recurse -Verbose | Where-Object { $_.Name -eq $executableFileName } | Select-Object -First 1
+      $executable = Get-ChildItem -Path $env:AGENT_TEMPDIRECTORY -File -Recurse -Verbose | Where-Object { $_.Name -eq $executableFileName } | Select-Object -First 1
 
       if (-not $executable) {
         throw "Could not find dsc executable in the downloaded package"
