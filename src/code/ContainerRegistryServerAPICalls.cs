@@ -1157,7 +1157,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                     if (string.Equals(header.Key, "Authorization", StringComparison.OrdinalIgnoreCase))
                     {
                         _sessionClient.DefaultRequestHeaders.Authorization = header.Value.StartsWith("Basic ")
-                            ? new AuthenticationHeaderValue(header.Value)
+                            ? AuthenticationHeaderValue.Parse(header.Value)
                             : new AuthenticationHeaderValue("Bearer", header.Value);
                     }
                     else if (string.Equals(header.Key, "Accept", StringComparison.OrdinalIgnoreCase))
