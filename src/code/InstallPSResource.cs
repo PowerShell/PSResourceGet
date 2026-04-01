@@ -146,6 +146,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty]
+        [ArgumentCompleter(typeof(RuntimeIdentifierCompleter))]
         public string RuntimeIdentifier { get; set; }
 
         /// <summary>
@@ -156,6 +157,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         [Parameter]
         [ValidateNotNullOrEmpty]
+        [ArgumentCompleter(typeof(TargetFrameworkCompleter))]
         public string TargetFramework { get; set; }
 
         /// <summary>
