@@ -709,7 +709,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             ErrorRecord errRecord = null;
             ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
             ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
             List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
             string tagsAsString = String.Empty;
             bool isV2Resource = currentResponseUtil is V2ResponseUtil;
@@ -912,7 +914,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             Task<FindResults> response = null;
                             if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2) {       
                                 string key = $"{pkgName}|{_nugetVersion.ToNormalizedString()}|{_type}";
-                                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(pkgName, _nugetVersion.ToNormalizedString(), _type, errorMsgs, debugMsgs));
+                                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(pkgName, _nugetVersion.ToNormalizedString(), _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
                     
                                 responses = response.GetAwaiter().GetResult();
 
@@ -997,7 +999,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             Task<FindResults> response = null;
                             if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2) {       
                                 string key = $"{pkgName}|{_versionRange.ToString()}|{_type}";
-                                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, errorMsgs, debugMsgs));
+                                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
                                 
                                 responses = response.GetAwaiter().GetResult();
                             }
@@ -1192,7 +1194,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     Parallel.ForEach(currentPkg.Dependencies, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, dep =>
                     {
                         debugMsgs.Enqueue($"Finding dependency '{dep.Name}' version range '{dep.VersionRange}'");
-                        FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, verboseMsgs, warningMsgs);
+                        FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     });
                     // TODO: what is perf if parallel.ForEach is always run?
                 }
@@ -1201,7 +1203,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     foreach (var dep in currentPkg.Dependencies)
                     {
                         debugMsgs.Enqueue($"Finding dependency '{dep.Name}' version range '{dep.VersionRange}'");
-                        FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, verboseMsgs, warningMsgs);
+                        FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     }
                 }
 
@@ -1237,8 +1239,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSResourceInfo currentPkg, 
             PSRepositoryInfo repository, 
             ConcurrentQueue<ErrorRecord> errorMsgs, 
-            ConcurrentQueue<string> verboseMsgs,
-            ConcurrentQueue<string> warningMsgs)
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
         {
             PSResourceInfo depPkg = null;
 
@@ -1254,7 +1257,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     else
                     {
                         // Find this version from the server
-                        depPkg = FindDependencyWithLowerBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, verboseMsgs);
+                        depPkg = FindDependencyWithLowerBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     }
             }
             else if (dep.VersionRange.HasLowerBound && dep.VersionRange.MinVersion.Equals(dep.VersionRange.MaxVersion))
@@ -1271,7 +1274,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    depPkg = FindDependencyWithSpecificVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, verboseMsgs, warningMsgs);
+                    depPkg = FindDependencyWithSpecificVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                 }
             }
             else
@@ -1287,7 +1290,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    depPkg = FindDependencyWithUpperBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, verboseMsgs);
+                    depPkg = FindDependencyWithUpperBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                 }
             }
         }
@@ -1300,8 +1303,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSResourceInfo currentPkg, 
             PSRepositoryInfo repository, 
             ConcurrentQueue<ErrorRecord> errorMsgs, 
-            ConcurrentQueue<string> verboseMsgs,
-            ConcurrentQueue<string> warningMsgs)
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
         {
             PSResourceInfo depPkg = null;
             ErrorRecord errRecord = null;
@@ -1313,7 +1317,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
                 string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
                 verboseMsgs.Enqueue("Checking if network call is cached.");
-                response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, errorMsgs, verboseMsgs));
+                response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
                 
                 responses = response.GetAwaiter().GetResult();
             }
@@ -1374,6 +1378,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSResourceInfo currentPkg, 
             PSRepositoryInfo repository, 
             ConcurrentQueue<ErrorRecord> errorMsgs, 
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
             ConcurrentQueue<string> verboseMsgs) 
         {
             PSResourceInfo depPkg = null;
@@ -1386,7 +1392,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
                 string key = $"{dep.Name}|*|{_type}";
                 verboseMsgs.Enqueue("Checking if network call is cached.");
-                response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindNameAsync(dep.Name, includePrerelease: true, _type, errorMsgs, verboseMsgs));
+                response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindNameAsync(dep.Name, includePrerelease: true, _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
                 
                 responses = response.GetAwaiter().GetResult();
             }
@@ -1446,6 +1452,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSResourceInfo currentPkg, 
             PSRepositoryInfo repository, 
             ConcurrentQueue<ErrorRecord> errorMsgs, 
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
             ConcurrentQueue<string> verboseMsgs)
         {
             PSResourceInfo depPkg = null;
@@ -1460,7 +1468,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // See if the network call we're making is already caced, if not, call FindNameAsync() and cache results
                 string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
                 verboseMsgs.Enqueue("Checking if network call is cached.");
-                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, errorMsgs, verboseMsgs));
+                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
 
                 responses = response.GetAwaiter().GetResult();
 

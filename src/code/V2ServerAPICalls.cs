@@ -407,7 +407,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
         /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease depending on user preference)
         /// </summary>
-        public override async Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
+        public override async Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             // TODO: pass all debug output into a list that can be written to console later.
             debugMsgs.Enqueue("In V2ServerAPICalls::FindNameAsync()");
@@ -438,7 +438,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = string.Empty;
             try
             {
-                response = await HttpRequestCallAsync(requestUrlV2, errorMsgs, debugMsgs);
+                response = await HttpRequestCallAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             }
             catch (Exception e)
             {
@@ -806,7 +806,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
 
-        public override async Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
+        public override async Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true
             // Quotations around package name and version do not matter, same metadata gets returned.
@@ -834,7 +834,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = string.Empty;
             try
             {
-                response = await HttpRequestCallAsync(requestUrlV2, errorMsgs, debugMsgs);
+                response = await HttpRequestCallAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             }
             catch (Exception e)
             {
@@ -993,7 +993,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Examples: Install "PowerShellGet"
         ///           Install "PowerShellGet" -Version "3.0.0"
         /// </summary>
-        public async Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
+        public override async Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
@@ -1007,7 +1007,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return results;
             }
 
-            results = await InstallVersionAsync(packageName, packageVersion, errorMsgs, debugMsgs);
+            results = await InstallVersionAsync(packageName, packageVersion, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             return results;
         }
 
@@ -1071,7 +1071,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Helper method that makes the HTTP request for the V2 server protocol url passed in for find APIs.
         /// </summary>
-        private async Task<string> HttpRequestCallAsync(string requestUrlV2, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
+        private async Task<string> HttpRequestCallAsync(string requestUrlV2, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             // TODO: Async methods cannot have out ref, so currently handling errorRecords as thrown exceptions.
             debugMsgs.Enqueue("In V2ServerAPICalls::HttpRequestCallAsync()");
@@ -1128,7 +1128,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Helper method that makes the HTTP request for the V2 server protocol url passed in for install APIs.
         /// </summary>
-        private async Task<HttpContent> HttpRequestCallForContentAsync(string requestUrlV2, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
+        private async Task<HttpContent> HttpRequestCallForContentAsync(string requestUrlV2, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             // TODO: Async methods cannot have out ref, so need to handle errorRecords a different way.
             debugMsgs.Enqueue("In V2ServerAPICalls::HttpRequestCallForContentAsync()");
@@ -1708,13 +1708,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
 
-        public override async Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
+        public override async Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In V2ServerAPICalls::FindVersionGlobbingAsync()");
             List<string> responses = new List<string>();
             int skip = 0;
 
-            var initialResponse = await FindVersionGlobbingAsync(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, errorMsgs, debugMsgs);
+            var initialResponse = await FindVersionGlobbingAsync(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
             int initialCount = GetCountFromResponse(initialResponse, out ErrorRecord errRecord);
             if (errRecord != null)
@@ -1758,7 +1758,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Helper method for string[] FindVersionGlobbing()
         /// </summary>
-        private async Task<string> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, int skip, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
+        private async Task<string> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, int skip, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In V2ServerAPICalls::FindVersionGlobbingAsync()");
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true
@@ -1852,7 +1852,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
 
-            return await HttpRequestCallAsync(requestUrlV2, errorMsgs, debugMsgs);
+            return await HttpRequestCallAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
         }
 
 
@@ -1905,7 +1905,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return response.ReadAsStreamAsync().Result;
         }
 
-        private async Task<Stream> InstallVersionAsync(string packageName, string version, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
+        private async Task<Stream> InstallVersionAsync(string packageName, string version, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In V2ServerAPICalls::InstallVersionAsync()");
             string requestUrlV2;
@@ -1925,7 +1925,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
             }
 
-            var response = await HttpRequestCallForContentAsync(requestUrlV2, errorMsgs, debugMsgs);
+            var response = await HttpRequestCallForContentAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
             if (response is null)
             {

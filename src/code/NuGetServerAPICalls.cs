@@ -49,12 +49,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Overridden Methods
 
-        public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
+        public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             throw new NotImplementedException("FindVersionAsync is not implemented for NuGetServerAPICalls.");
         }
 
-        public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
+        public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             throw new NotImplementedException("FindVersionGlobbingAsync is not implemented for NuGetServerAPICalls.");
         }
@@ -193,7 +193,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
         }
 
-        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs)
+        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             throw new NotImplementedException("FindNameAsync is not implemented for NuGetServerAPICalls.");
         }
@@ -459,6 +459,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             results = InstallVersion(packageName, packageVersion, out errRecord);
             return results;
+        }
+
+        /// <summary>
+        /// Installs a specific package asynchronously.
+        /// User may request to install package with or without providing version (as seen in examples below), but prior to calling this method the package is located and package version determined.
+        /// Therefore, package version should not be null in this method.
+        /// Name: no wildcard support.
+        /// Examples: Install "PowerShellGet" -Version "3.5.0-alpha"
+        ///           Install "PowerShellGet" -Version "3.0.0"
+        /// </summary>
+        public override Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            throw new NotImplementedException("InstallPackageAsync is not implemented for NuGetServerAPICalls.");
         }
 
         /// <summary>

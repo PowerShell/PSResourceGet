@@ -878,26 +878,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     verboseMsgs.Enqueue($"Installing package '{depPkgName}' version '{depPkgVersion}'");
                     //Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
                     // add async
-                    Stream responseStream = currentServer.InstallPackageAsync(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord, errorMsgs, verboseMsgs);
+                    Stream responseStream = currentServer.InstallPackageAsync(depPkgName, depPkgVersion, true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs).GetAwaiter().GetResult();
 
-                    if (installNameErrRecord != null)
+                    if (errorMsgs.Count > 0)
                     {
-                        verboseMsgs.Enqueue($"Error installing package '{depPkgName}': {installNameErrRecord.Exception?.Message}");
-                        errorMsgs.Enqueue(installNameErrRecord);
+                        verboseMsgs.Enqueue($"Error installing package '{depPkgName}'");
                     }
+                    else {
+                        ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
+                        bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
+                            TryInstallToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out warning, out tempInstallErrRecord);
 
-                    ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
-                    bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
-                        TryInstallToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out warning, out tempInstallErrRecord);
-
-                    if (!installedToTempPathSuccessfully)
-                    {
-                        verboseMsgs.Enqueue($"Failed to install '{depPkgName}' to temp path");
-                        errorMsgs.Enqueue(tempSaveErrRecord ?? tempInstallErrRecord);
-                    }
-                    else
-                    {
-                        verboseMsgs.Enqueue($"Successfully installed '{depPkgName}' version '{depPkgVersion}' to temp path");
+                        if (!installedToTempPathSuccessfully)
+                        {
+                            verboseMsgs.Enqueue($"Failed to install '{depPkgName}' to temp path");
+                            errorMsgs.Enqueue(tempSaveErrRecord ?? tempInstallErrRecord);
+                        }
+                        else
+                        {
+                            verboseMsgs.Enqueue($"Successfully installed '{depPkgName}' version '{depPkgVersion}' to temp path");
+                        }
                     }
                 });
 
