@@ -161,3 +161,95 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res | Should -HaveCount 2
     }
 }
+
+
+Describe 'Test Find-PSResource for searching and looping through repositories' -tags 'CI' {
+
+    BeforeAll{
+        $testModuleName = "test_module"
+        $testModuleName2 = "test_module2"
+        $testCmdDSCParentPkg = "myCmdDSCModule"
+        $testScriptName = "test_script"
+
+        $tag1 = "CommandsAndResource"
+        $tag2 = "Tag-Required-Script1-2.5"
+
+        $cmdName = "Get-TargetResource"
+        $dscName = "SystemLocale"
+        $tagsEscaped = @("'$tag1'", "'PSCommand_$cmdName'", "'PSDscResource_$dscName'")
+
+        $cmdName2 = "Get-MyCommand"
+        $dscName2 = "MyDSCResource"
+        $tagsEscaped2 = @("'PSCommand_$cmdName2'", "'PSDscResource_$dscName2'")
+
+        $PSGalleryName = "PSGallery"
+        $NuGetGalleryName = "NuGetGallery"
+        $localRepoName = "localRepo"
+
+        Get-NewPSResourceRepositoryFile
+
+        $localRepoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
+        $null = New-Item $localRepoUriAddress -ItemType Directory -Force
+        Register-PSResourceRepository -Name $localRepoName -Uri $localRepoUriAddress
+
+        New-TestModule -moduleName $testModuleName -repoName localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags $tagsEscaped
+        New-TestModule -moduleName $testCmdDSCParentPkg -repoName localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags $tagsEscaped2
+    }
+
+    AfterAll {
+        Get-RevertPSResourceRepositoryFile
+    }
+
+    It "not find resource and discard CommandName entry containing wildcard, but search for other non-wildcard CommandName entries (without -Repository specified)" {
+        $res = Find-PSResource -CommandName $cmdName,"myCommandName*" -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -HaveCount 1
+        $err[0].FullyQualifiedErrorId | Should -BeExactly "WildcardsUnsupportedForCommandNameorDSCResourceName,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+
+        $res.Count | Should -BeGreaterOrEqual 9
+        $pkgFoundFromLocalRepo = $false
+        $pkgFoundFromPSGallery = $false
+
+        foreach ($pkg in $res)
+        {
+            if ($pkg.ParentResource.Repository -eq $localRepoName)
+            {
+                $pkgFoundFromLocalRepo = $true
+            }
+            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
+            {
+                $pkgFoundFromPSGallery = $true
+            }
+        }
+
+        $pkg.Names | Should -Be $cmdName
+        $pkg.ParentResource.Includes.Command | Should -Contain $cmdName
+        $pkgFoundFromLocalRepo | Should -BeTrue
+        $pkgFoundFromPSGallery | Should -BeTrue
+    }
+
+    
+    It "find resource given CommandName from all repositories where it exists (-Repository with multiple non-wildcard values)" {
+        $res = Find-PSResource -CommandName $cmdName -Repository $PSGalleryName,$localRepoName
+        $res.Count | Should -BeGreaterOrEqual 9
+
+        $pkgFoundFromLocalRepo = $false
+        $pkgFoundFromPSGallery = $false
+
+        foreach ($pkg in $res)
+        {
+            if ($pkg.ParentResource.Repository -eq $localRepoName)
+            {
+                $pkgFoundFromLocalRepo = $true
+            }
+            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
+            {
+                $pkgFoundFromPSGallery = $true
+            }
+        }
+
+        $pkg.Names | Should -Be $cmdName
+        $pkg.ParentResource.Includes.Command | Should -Contain $cmdName
+        $pkgFoundFromLocalRepo | Should -BeTrue
+        $pkgFoundFromPSGallery | Should -BeTrue
+    }
+}
