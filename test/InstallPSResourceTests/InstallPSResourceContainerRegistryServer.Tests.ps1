@@ -178,7 +178,8 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     #}
 
     It "Install resource with a dependency (should install both parent and dependency)" {
-        Install-PSResource -Name $testModuleParentName -Repository $ACRRepoName -TrustRepository
+        $DebugPreference = 'SilentlyContinue'
+        Install-PSResource -Name $testModuleParentName -Repository $ACRRepoName -TrustRepository -Debug -Verbose
 
         $parentPkg = Get-InstalledPSResource $testModuleParentName
         $parentPkg.Name | Should -Be $testModuleParentName

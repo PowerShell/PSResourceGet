@@ -1187,7 +1187,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 // If finding more than 5 packages, do so concurrently
                 //const int PARALLEL_THRESHOLD = 5; // TODO: Trottle limit from user, defaults to 5; 
-                int processorCount = Environment.ProcessorCount;
+                int processorCount = 2; //Environment.ProcessorCount;
                 int maxDegreeOfParallelism = processorCount * 4;
                 if (currentPkg.Dependencies.Length > processorCount)
                 {

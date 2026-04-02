@@ -863,7 +863,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
 
             // TODO: figure out a good threshold and parallel count
-            int processorCount = Environment.ProcessorCount;
+            int processorCount = 2; //Environment.ProcessorCount;
             _cmdletPassedIn.WriteDebug($"parentAndDeps.Count is {parentAndDeps.Count}, processor count is: {processorCount}");
             if (parentAndDeps.Count > processorCount)
             {
