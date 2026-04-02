@@ -173,7 +173,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 skipDependencyCheck: skipDependencyCheck,
                 scope: scope ?? ScopeType.CurrentUser);
 
-            _cmdletPassedIn.WriteVerbose("Returning from BeginInstallpackages");
             return installedPkgs;
         }
 
@@ -435,7 +434,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Delete the directory path before replacing it with the new module.
                         // If deletion fails (usually due to binary file in use), then attempt restore so that the currently
                         // installed module is not corrupted.
-                        //_cmdletPassedIn.WriteVerbose($"Attempting to delete with restore on failure. '{finalModuleVersionDir}'");
+                        _cmdletPassedIn.WriteVerbose($"Attempting to delete with restore on failure. '{finalModuleVersionDir}'");
                         Utils.DeleteDirectoryWithRestore(finalModuleVersionDir);
                     }
 
@@ -673,9 +672,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 default:
                     // VersionType.NoVersion
                     responses = currentServer.FindName(pkgNameToInstall, _prerelease, ResourceType.None, out ErrorRecord findNameErrRecord);
-
-                    _cmdletPassedIn.WriteDebug($"returned back to BeginPackageInstall()");
-
                     if (findNameErrRecord != null)
                     {
                         errRecord = findNameErrRecord;
@@ -722,8 +718,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
                 }
             }
-
-            _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - after for loop 729");
 
             if (pkgToInstall == null)
             {
@@ -776,6 +770,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ConcurrentDictionary<string, Hashtable> updatedPackagesHash = packagesHash;
   
             // -WhatIf processing.
+            // TODO:: 
             // if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
             // {
 
@@ -832,7 +827,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else {
                     // If we don't install dependencies, we're only installing the parent pkg so we can short circut and simply install the parent pkg. 
-                    // TODO:  check this version and prerelease combo
+                    // TODO::  check this version and prerelease combo
                     Stream responseStream = currentServer.InstallPackage(pkgToInstall.Name, pkgVersion, true, out ErrorRecord installNameErrRecord);
 
                     if (installNameErrRecord != null)
@@ -840,8 +835,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         errRecord = installNameErrRecord;
                         return packagesHash;
                     }
-                    bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out errRecord) :
-                        TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, out warning, out errRecord);
+                    ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
+                    ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
+                    ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
+                    ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
+
+                    bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs) :
+                        TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                    
+                    Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     if (!installedToTempPathSuccessfully)
                     {
                         return packagesHash;
@@ -886,13 +888,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                     else {
                         ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
-                        bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
-                            TryInstallToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, out warning, out tempInstallErrRecord);
+                        bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs) :
+                            TryInstallToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
                         if (!installedToTempPathSuccessfully)
                         {
                             verboseMsgs.Enqueue($"Failed to install '{depPkgName}' to temp path");
-                            errorMsgs.Enqueue(tempSaveErrRecord ?? tempInstallErrRecord);
+                            Utils.EnqueueIfNotNull(errorMsgs, (tempSaveErrRecord ?? tempInstallErrRecord));
                         }
                         else
                         {
@@ -901,33 +903,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                 });
 
-                // Write out all log messages collected from Parallel.ForEach
-                while (verboseMsgs.TryDequeue(out string verboseMsg))
-                {
-                    _cmdletPassedIn.WriteVerbose(verboseMsg);
-                }
-
+                Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                 if (errorMsgs.Count > 0)
                 {
-                    // Write out all errors collected from Parallel.ForEach
-                    while (errorMsgs.TryDequeue(out ErrorRecord errMsg))
-                    {
-                        _cmdletPassedIn.WriteError(errMsg);
-                    }
-
                     return packagesHash;
                 }
-                if (warningMsgs.Count > 0)
-                {
-                    // Write out all warnings collected from Parallel.ForEach
-                    while (warningMsgs.TryDequeue(out string warningMsg))
-                    {
-                        _cmdletPassedIn.WriteWarning(warningMsg);
-                    }
-
-                    return packagesHash;
-                }
-
+                
                 return updatedPackagesHash;
             }
             else
@@ -937,22 +918,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     var pkgToInstallName = pkgToBeInstalled.Name;
                     var pkgToInstallVersion = Utils.GetNormalizedVersionString(pkgToBeInstalled.Version.ToString(), pkgToBeInstalled.Prerelease);
-                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage - not going through concurrency");
                     Stream responseStream = currentServer.InstallPackage(pkgToInstallName, pkgToInstallVersion, true, out ErrorRecord installNameErrRecord);
-                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage 981");
 
                     if (installNameErrRecord != null)
                     {
-                        _cmdletPassedIn.WriteDebug("In BeginInstallPackage 985");
-                        //_cmdletPassedIn.WriteError(installNameErrRecord);  // todo revert this
+                        _cmdletPassedIn.WriteError(installNameErrRecord);
                         return packagesHash;
                     }
-                    _cmdletPassedIn.WriteDebug("In BeginInstallPackage 988");
 
                     ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
-                    bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, out tempSaveErrRecord) :
-                        TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, out warning, out tempInstallErrRecord);
+                    bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs) :
+                        TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
+                    // TODO:: write out queues
                     if (!installedToTempPathSuccessfully)
                     {
                         _cmdletPassedIn.WriteError(tempSaveErrRecord ?? tempInstallErrRecord);
@@ -1029,20 +1007,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSResourceInfo pkgToInstall,
             ConcurrentDictionary<string, Hashtable> packagesHash,
             out ConcurrentDictionary<string, Hashtable> updatedPackagesHash,
-            out string warning,
-            out ErrorRecord error)
+            ConcurrentQueue<ErrorRecord> errorMsgs,
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
         {
-            warning = null;
-            error = null;
             updatedPackagesHash = packagesHash;
             try
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
                 using var fs = File.Create(pathToFile);
-                // if (responseStream == null)
-                // {
-                //     throw new InvalidOperationException("responseStream is null");
-                // }
+                if (responseStream == null)
+                {
+                    errorMsgs.Enqueue(new ErrorRecord(
+                            new ArgumentNullException("Response stream is null."),
+                            "NullResponseError",
+                            ErrorCategory.InvalidResult,
+                            _cmdletPassedIn));
+
+                            return false;
+                }
                 responseStream.Seek(0, System.IO.SeekOrigin.Begin);
                 responseStream.CopyTo(fs);
                 fs.Close();
@@ -1052,8 +1036,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var tempDirNameVersion = Path.Combine(tempInstallPath, pkgName, pkgVersion);
                 Directory.CreateDirectory(tempDirNameVersion);
 
-                if (!TryExtractToDirectory(pathToFile, tempDirNameVersion, out error))
+                if (!TryExtractToDirectory(pathToFile, tempDirNameVersion, out ErrorRecord error))
                 {
+                    Utils.EnqueueIfNotNull(errorMsgs, error);
                     return false;
                 }
 
@@ -1075,9 +1060,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     pkgName,
                     tempDirNameVersion,
                     _cmdletPassedIn,
-                    out warning,
+                    out string warning,
                     out error))
                 {
+                    Utils.EnqueueIfNotNull(warningMsgs, warning);
+                    Utils.EnqueueIfNotNull(errorMsgs, error);
+
                     return false;
                 }
 
@@ -1088,11 +1076,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (!File.Exists(moduleManifest))
                     {
-                        error = new ErrorRecord(
+                        errorMsgs.Enqueue(new ErrorRecord(
                             new ArgumentException("Package '{pkgName}' could not be installed: Module manifest file: {moduleManifest} does not exist. This is not a valid PowerShell module."),
                             "PSDataFileNotExistError",
                             ErrorCategory.ReadError,
-                            _cmdletPassedIn);
+                            _cmdletPassedIn));
 
                             return false;
                         }
@@ -1102,11 +1090,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         manifestInfo: out Hashtable parsedMetadataHashtable,
                         error: out Exception manifestReadError))
                     {
-                        error = new ErrorRecord(
+                        errorMsgs.Enqueue(new ErrorRecord(
                             manifestReadError,
                             "ManifestFileReadParseError",
                             ErrorCategory.ReadError,
-                            _cmdletPassedIn);
+                            _cmdletPassedIn));
 
                             return false;
                     }
@@ -1134,9 +1122,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         scriptFileInfoPath: scriptPath,
                         parsedScript: out PSScriptFileInfo scriptToInstall,
                         out ErrorRecord[] parseScriptFileErrors,
-                        out string[] _))
+                        out string[] verboseMessages))
                     {
-                        error = parseScriptFileErrors.FirstOrDefault();
+                        foreach (ErrorRecord err in parseScriptFileErrors)
+                        {
+                            Utils.EnqueueIfNotNull(errorMsgs, err);
+                        }
+                        
+                        foreach (var msg in verboseMessages)
+                        {
+                            Utils.EnqueueIfNotNull(verboseMsgs, msg);
+                        }
                         return false;
                     }
                 }
@@ -1145,7 +1141,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // This package is not a PowerShell package (eg a resource from the NuGet Gallery).
                     installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
 
-                        //_cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
+                        // TODO:: _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
                         isModule = true;
                 }
 
@@ -1180,13 +1176,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                error = new ErrorRecord(
+                errorMsgs.Enqueue(new ErrorRecord(
                     new PSInvalidOperationException(
                     message: $"Unable to successfully install package '{pkgName}': '{e.Message}' to temporary installation path.",
                     innerException: e),
                     "InstallPackageFailed",
                     ErrorCategory.InvalidOperation,
-                    _cmdletPassedIn);
+                    _cmdletPassedIn));
 
                 return false;
             }
@@ -1203,10 +1199,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSResourceInfo pkgToInstall,
             ConcurrentDictionary<string, Hashtable> packagesHash,
             out ConcurrentDictionary<string, Hashtable> updatedPackagesHash,
-            out ErrorRecord error)
+            ConcurrentQueue<ErrorRecord> errorMsgs,
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
         {
-           // _cmdletPassedIn.WriteDebug("In InstallHelper::TrySaveNupkgToTempPath()");
-            error = null;
+            debugMsgs.Enqueue("In InstallHelper::TrySaveNupkgToTempPath()");
             updatedPackagesHash = packagesHash;
 
             try
@@ -1220,8 +1218,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string installPath = _pathsToInstallPkg.First();
                 if (_includeXml)
                 {
-                    if (!CreateMetadataXMLFile(tempInstallPath, installPath, pkgToInstall, isModule: true, out error))
+                    if (!CreateMetadataXMLFile(tempInstallPath, installPath, pkgToInstall, isModule: true, out ErrorRecord error))
                     {
+                        Utils.EnqueueIfNotNull(errorMsgs, error);
                         return false;
                     }
                 }
@@ -1245,13 +1244,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (Exception e)
             {
-                error = new ErrorRecord(
+                errorMsgs.Enqueue(new ErrorRecord(
                     new PSInvalidOperationException(
                             message: $"Unable to successfully save .nupkg '{pkgName}': '{e.Message}' to temporary installation path.",
                             innerException: e),
                     "SaveNupkgFailed",
                     ErrorCategory.InvalidOperation,
-                    _cmdletPassedIn);
+                    this));
 
                 return false;
             }

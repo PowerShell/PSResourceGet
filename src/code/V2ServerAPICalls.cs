@@ -480,11 +480,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             int count = GetCountFromResponse(response, out ErrorRecord errRecord);
             if (errRecord != null)
             {
-                errorMsgs.Enqueue(errRecord);
-                //throw new Exception($"Error retrieving count from response for package '{packageName}' from repository '{Repository.Name}'.", errRecord.Exception);
+                Utils.EnqueueIfNotNull(errorMsgs, errRecord);
             }
-
-            if (count == 0)
+            else if (count == 0)
             {
                 errorMsgs.Enqueue(new ErrorRecord(
                     new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'."),
@@ -1719,7 +1717,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             int initialCount = GetCountFromResponse(initialResponse, out ErrorRecord errRecord);
             if (errRecord != null)
             {
-                errorMsgs.Enqueue(errRecord);
+                Utils.EnqueueIfNotNull(errorMsgs, errRecord);
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
@@ -1743,7 +1741,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     var tmpResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, out errRecord);
                     if (errRecord != null)
                     {
-                        errorMsgs.Enqueue(errRecord);
+                        Utils.EnqueueIfNotNull(errorMsgs, errRecord);
                         return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                     }
                     responses.Add(tmpResponse);

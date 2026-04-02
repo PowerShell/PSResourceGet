@@ -24,6 +24,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Collections.Concurrent;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -1668,6 +1669,37 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             secureString.MakeReadOnly();
 
             return secureString;
+        }
+
+        public static void EnqueueIfNotNull<T>(ConcurrentQueue<T> queue, T value)
+            where T : class
+        {
+            if (value != null)
+            {
+                queue.Enqueue(value);
+            }
+        }
+
+
+        public static void WriteOutConcurrentQueue(PSCmdlet cmdletPassedIn, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+
+            while (errorMsgs.TryDequeue(out ErrorRecord error))
+            {
+                cmdletPassedIn.WriteError(error);
+            }
+            while (warningMsgs.TryDequeue(out string warningMsg))
+            {
+                cmdletPassedIn.WriteWarning(warningMsg);
+            }
+            while (debugMsgs.TryDequeue(out string debugMsg))
+            {
+                cmdletPassedIn.WriteDebug(debugMsg);
+            }
+            while (verboseMsgs.TryDequeue(out string verboseMsg))
+            {
+                cmdletPassedIn.WriteVerbose(verboseMsg);
+            }
         }
 
         #endregion
