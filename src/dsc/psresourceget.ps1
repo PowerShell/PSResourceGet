@@ -222,13 +222,42 @@ function Write-Trace {
     }
 }
 
+function EnsureAssemblyLoadedByName {
+    param(
+        [Parameter(Mandatory)]
+        [string] $SimpleName,
+
+        [string] $Path  # optional fallback
+    )
+
+    $loaded = [AppDomain]::CurrentDomain.GetAssemblies() |
+        Where-Object { $_.GetName().Name -eq $SimpleName } |
+        Select-Object -First 1
+
+    if ($loaded) {
+        # Already loaded — do nothing and return the loaded assembly
+        return $loaded
+    }
+
+    if ($Path) {
+        # Not loaded — load from path
+        Add-Type -Path $Path -ErrorAction Stop | Out-Null
+        return [AppDomain]::CurrentDomain.GetAssemblies() |
+            Where-Object { $_.GetName().Name -eq $SimpleName } |
+            Select-Object -First 1
+    }
+
+    throw "Assembly '$SimpleName' is not loaded and no -Path was provided."
+}
+
+
 function SatisfiesVersion {
     param(
         [string]$version,
         [string]$versionRange
     )
 
-    Add-Type -Path "$PSScriptRoot/dependencies/NuGet.Versioning.dll"
+    EnsureAssemblyLoadedByName -SimpleName "NuGet.Versioning" -Path "$PSScriptRoot/dependencies/NuGet.Versioning.dll" | Out-Null
 
     try {
         $versionRangeObj = [NuGet.Versioning.VersionRange]::Parse($versionRange)
