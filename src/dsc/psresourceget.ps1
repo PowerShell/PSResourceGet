@@ -234,6 +234,16 @@ function EnsureAssemblyLoadedByName {
         Where-Object { $_.GetName().Name -eq $SimpleName } |
         Select-Object -First 1
 
+    if (-not $loaded) {
+        # Check in AssemblyLoadContext if running on .NET Core/.NET 5+
+        if ($null -ne [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext([System.Reflection.Assembly])) {
+            $loaded = [System.Runtime.Loader.AssemblyLoadContext]::All |
+                ForEach-Object { $_.Assemblies } |
+                Where-Object { $_.GetName().Name -eq $SimpleName } |
+                Select-Object -First 1
+        }
+    }
+
     if ($loaded) {
         # Already loaded — do nothing and return the loaded assembly
         return $loaded
