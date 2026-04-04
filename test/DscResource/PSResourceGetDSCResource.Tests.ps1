@@ -19,7 +19,7 @@ function SetupDsc {
     $script:dscExe = Get-Command -name dsc -CommandType Application | Select-Object -First 1
 
     $expectedModulePath = Join-Path $env:BUILD_SOURCESDIRECTORY 'out'
-    $resources = Get-ChildItem $expectedModulePath/*resource.json -ErrorAction SilentlyContinue
+    $resources = Get-ChildItem $expectedModulePath/*resource.json -ErrorAction SilentlyContinue -Recurse
 
     if (-not $script:dscExe) {
         throw "Could not find dsc executable in PATH after setup."
