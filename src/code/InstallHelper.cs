@@ -814,7 +814,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             //{
                 // Concurrent updates, currently only implemented for v2 server repositories
                 // Find all dependencies
-                if (!skipDependencyCheck && currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2)
+                if (!skipDependencyCheck)
                 {
                     // concurrency updates 
                     List<PSResourceInfo> parentAndDeps = _findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
@@ -891,6 +891,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs) :
                             TryInstallToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
+                        //Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+
                         if (!installedToTempPathSuccessfully)
                         {
                             verboseMsgs.Enqueue($"Failed to install '{depPkgName}' to temp path");
@@ -926,19 +928,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return packagesHash;
                     }
 
-                    ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
+                    //ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
                     bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs) :
                         TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
-                    // TODO:: write out queues
+                    Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+
                     if (!installedToTempPathSuccessfully)
                     {
-                        _cmdletPassedIn.WriteError(tempSaveErrRecord ?? tempInstallErrRecord);
                         return packagesHash;
-                    }
-                    if (!string.IsNullOrEmpty(warning))
-                    {
-                        _cmdletPassedIn.WriteWarning(warning);
                     }
                 }
 
