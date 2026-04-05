@@ -269,7 +269,14 @@ function ConvertInputToPSResource(
 
 # catch any un-caught exception and write it to the error stream
 trap {
-    Write-Trace -Level Error -message $_.Exception.Message
+
+    if ($_.Exception.GetType().FullName -eq 'System.IO.FileLoadException') {
+        Write-Trace -message "NuGet.Versioning assembly is already loaded. Continuing with existing assembly, as all the versions have the functionality available." -level trace
+    }
+    else {
+        Write-Trace -Level Error -message $_.Exception.Message
+    }
+
     exit 1
 }
 
