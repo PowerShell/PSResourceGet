@@ -103,7 +103,7 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
 
         $resourceInput = $repoParams | ConvertTo-Json -Depth 5
 
-        $getResult = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/Repository --input $resourceInput -o json | ConvertFrom-Json
+        $getResult = & $script:dscExe -l trace resource get --resource Microsoft.PowerShell.PSResourceGet/Repository --input $resourceInput -o json | ConvertFrom-Json
 
         $getResult.actualState.name | Should -BeExactly 'TestRepo'
         $getResult.actualState.uri | Should -BeExactly 'https://www.doesnotexist.com/'
