@@ -367,14 +367,22 @@ function GetOperation {
 
     $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
 
+    Write-Trace -message "Starting Get operation for ResourceType: $ResourceType" -level trace
+
     switch ($ResourceType) {
         'repository' {
+            Write-Trace -message "Processing Get operation for Repository resource." -level trace
+
             $inputRepository = [Repository]::new($inputObj)
+
+            Write-Trace -message "Looking up repository with name: $($inputRepository.Name)" -level trace
 
             $rep = Get-PSResourceRepository -Name $inputRepository.Name -ErrorVariable err -ErrorAction SilentlyContinue
 
+            Write-Trace -message "Get-PSResourceRepository returned: $($rep | ConvertTo-Json -Compress)" -level trace
+
             $ret = if ($err.FullyQualifiedErrorId -eq 'ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSResourceRepository') {
-                Write-Trace -message "Repository not found: $($inputRepository.Name). Returning _exist = false"
+                Write-Trace -message "Repository not found: $($inputRepository.Name). Returning _exist = false" -level trace
                 [Repository]::new(
                     $InputRepository.Name,
                     $false
@@ -389,7 +397,7 @@ function GetOperation {
                     $rep.ApiVersion
                 )
 
-                Write-Trace -message "Returning repository object for: $($ret.Name)"
+                Write-Trace -message "Returning repository object for: $($ret.Name)" -level trace
             }
 
             return ( $ret.ToJson() )
