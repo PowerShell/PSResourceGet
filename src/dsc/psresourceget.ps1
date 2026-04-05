@@ -230,6 +230,8 @@ function SatisfiesVersion {
 
     $typeName = 'NuGet.Versioning.VersionRange'
 
+    Write-Trace -message "Checking if version '$version' satisfies version range '$versionRange'." -level trace
+
     if ($typeName -as [type]) {
         Write-Trace -message "NuGet.Versioning assembly is already loaded. Using existing assembly." -level trace
     }
@@ -237,7 +239,6 @@ function SatisfiesVersion {
         Write-Trace -message "Loading NuGet.Versioning assembly from $PSScriptRoot/dependencies/NuGet.Versioning.dll" -level trace
         Add-Type -Path "$PSScriptRoot/dependencies/NuGet.Versioning.dll" -ErrorAction Stop | Out-Null
     }
-
 
     try {
         $versionRangeObj = [NuGet.Versioning.VersionRange]::Parse($versionRange)
@@ -335,6 +336,7 @@ function GetPSResourceList {
     foreach ($resource in $allPSResources) {
         foreach ($inputResource in $inputResources) {
             if ($resource.Name -eq $inputResource.Name) {
+                Write-Trace -message "Found matching resource for input: $($inputResource.Name). Checking version constraints. Input version: $($inputResource.Version), Resource version: $($resource.Version)" -level trace
                 if ($inputResource.Version) {
                     # Use the NuGet.Versioning package if available, otherwise do a simple comparison
                     try {
@@ -343,6 +345,7 @@ function GetPSResourceList {
                         }
                     }
                     catch {
+                        Write-Trace -message "Error checking version constraints for resource: $($inputResource.Name). Error details: $($_.Exception.Message)" -level error
                         # Fallback: simple string comparison (not full NuGet range support)
                         if ($resource.Version.ToString() -eq $inputResource.Version) {
                             $resourcesExist += $resource
