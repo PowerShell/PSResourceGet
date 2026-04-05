@@ -222,52 +222,18 @@ function Write-Trace {
     }
 }
 
-function EnsureAssemblyLoadedByName {
-    param(
-        [Parameter(Mandatory)]
-        [string] $SimpleName,
-
-        [string] $Path  # optional fallback
-    )
-
-    $loaded = [AppDomain]::CurrentDomain.GetAssemblies() |
-        Where-Object { $_.GetName().Name -eq $SimpleName } |
-        Select-Object -First 1
-
-    if (-not $loaded) {
-        # Check in AssemblyLoadContext if running on .NET Core/.NET 5+
-        if ($null -ne [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext([System.Reflection.Assembly])) {
-            $loaded = [System.Runtime.Loader.AssemblyLoadContext]::All |
-                ForEach-Object { $_.Assemblies } |
-                Where-Object { $_.GetName().Name -eq $SimpleName } |
-                Select-Object -First 1
-        }
-    }
-
-    if ($loaded) {
-        # Already loaded — do nothing and return the loaded assembly
-        return $loaded
-    }
-
-    if ($Path) {
-        # Not loaded — load from path
-        Add-Type -Path $Path -ErrorAction Stop | Out-Null
-        return [AppDomain]::CurrentDomain.GetAssemblies() |
-            Where-Object { $_.GetName().Name -eq $SimpleName } |
-            Select-Object -First 1
-    }
-
-    throw "Assembly '$SimpleName' is not loaded and no -Path was provided."
-}
-
-
 function SatisfiesVersion {
     param(
         [string]$version,
         [string]$versionRange
     )
 
-    EnsureAssemblyLoadedByName -SimpleName "NuGet.Versioning" -Path "$PSScriptRoot/dependencies/NuGet.Versioning.dll" | Out-Null
+    try {
+        Add-Type -Path "$PSScriptRoot/dependencies/NuGet.Versioning.dll" -ErrorAction Stop | Out-Null
+    }
+    catch [System.IO.FileLoadException] {
+        Write-Trace -message "NuGet.Versioning assembly is already loaded. Continuing with existing assembly." -level trace
+    }
 
     try {
         $versionRangeObj = [NuGet.Versioning.VersionRange]::Parse($versionRange)
