@@ -820,6 +820,11 @@ function PopulatePSResourceListObject {
     }
 }
 
+if ($null -eq (Get-Module -Name Microsoft.PowerShell.PSResourceGet)) {
+    Write-Trace -level trace -message "Microsoft.PowerShell.PSResourceGet module is not imported. Importing it."
+    Import-Module -Name Microsoft.PowerShell.PSResourceGet -Force -ErrorAction Stop -Verbose
+}
+
 switch ($Operation.ToLower()) {
     'get' { return (GetOperation -ResourceType $ResourceType) }
     'set' { return (SetOperation -ResourceType $ResourceType) }
