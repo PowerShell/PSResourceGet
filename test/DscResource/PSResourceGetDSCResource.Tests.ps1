@@ -35,7 +35,7 @@ function SetupDsc {
 
     $env:PATH += "$pathSeparator$resourcePath"
 
-    Import-Module -Path $resourcePath -Verbose -Force
+    Import-Module $resourcePath -Verbose -Force
 }
 
 function SetupTestRepos {
