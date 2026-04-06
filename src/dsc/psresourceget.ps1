@@ -276,16 +276,76 @@ function ConvertInputToPSResource(
 trap {
     # Write-Trace -Level Error -message $_.Exception.Message
     # exit 1
-
-    $e = $_.Exception
-
-    while ($e) {
-        "-----"
-        $e.GetType().FullName
-        $e.Message
-        $e = $e.InnerException
+    Get-LoadedAssembliesByALC |  Select-Object -Property ALCName, AssemblyName, Location | ForEach-Object {
+        Write-Trace -message "ALC: $($_.ALCName) - Assembly: $($_.AssemblyName) - Location: $($_.Location)" -level trace
     }
 
+    exit 1
+}
+
+
+function Get-LoadedAssembliesByALC {
+    [CmdletBinding()]
+    param(
+        # Optional filter: only show assemblies whose simple name matches this regex
+        [string] $NameMatch,
+
+        # Optional: show only AssemblyLoadContexts whose name matches this regex
+        [string] $ALCMatch
+    )
+
+    # AssemblyLoadContext is in System.Runtime.Loader
+    $alcType = [System.Runtime.Loader.AssemblyLoadContext]
+
+    # Enumerate all ALCs currently alive
+    $alcs = $alcType::All
+
+    $rows = foreach ($alc in $alcs) {
+
+        if ($ALCMatch -and ($alc.Name -notmatch $ALCMatch)) { continue }
+
+        foreach ($asm in $alc.Assemblies) {
+
+            $an = $asm.GetName()
+
+            if ($NameMatch -and ($an.Name -notmatch $NameMatch)) { continue }
+
+            # Some assemblies are dynamic/in-memory and have no Location
+            $location = $null
+            $isDynamic = $false
+            try {
+                $isDynamic = $asm.IsDynamic
+                if (-not $isDynamic) { $location = $asm.Location }
+            } catch {
+                # Some runtime assemblies can still throw on Location; ignore safely
+                $location = $null
+            }
+
+            $pkt = $null
+            try {
+                $bytes = $an.GetPublicKeyToken()
+                if ($bytes -and $bytes.Length -gt 0) {
+                    $pkt = ($bytes | ForEach-Object { $_.ToString("x2") }) -join ""
+                }
+            } catch { $pkt = $null }
+
+            [pscustomobject]@{
+                ALCName        = if ($alc.Name) { $alc.Name } else { "<unnamed>" }
+                IsDefaultALC   = ($alc -eq [System.Runtime.Loader.AssemblyLoadContext]::Default)
+                IsCollectible  = $alc.IsCollectible
+                AssemblyName   = $an.Name
+                Version        = $an.Version.ToString()
+                Culture        = if ($an.CultureInfo) { $an.CultureInfo.Name } else { "" }
+                PublicKeyToken = $pkt
+                IsDynamic      = $isDynamic
+                Location       = if ($location) { $location } else { if ($isDynamic) { "<dynamic>" } else { "" } }
+                FullName       = $asm.FullName
+            }
+        }
+    }
+
+    # Sort for readability: by ALC then assembly name
+    $rows | Sort-Object ALCName, AssemblyName, Version
 }
 
 function GetPSResourceList {
