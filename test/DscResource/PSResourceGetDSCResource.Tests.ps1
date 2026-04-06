@@ -34,6 +34,8 @@ function SetupDsc {
     Write-Verbose -Verbose "Adding DSC resource path to PATH environment variable: $resourcePath"
 
     $env:PATH += "$pathSeparator$resourcePath"
+
+    Import-Module -Path $resourcePath -Verbose -Force
 }
 
 function SetupTestRepos {

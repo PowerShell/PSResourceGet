@@ -881,6 +881,11 @@ function PopulatePSResourceListObject {
 }
 
 if ($null -eq (Get-Module -Name Microsoft.PowerShell.PSResourceGet)) {
+    Write-Trace -level trace -message "Microsoft.PowerShell.PSResourceGet module is not currently loaded. Getting loaded assemblies for diagnostics."
+    Get-LoadedAssembliesByALC |  Select-Object -Property ALCName, AssemblyName, Location | ForEach-Object {
+        Write-Trace -message "ALC: $($_.ALCName) - Assembly: $($_.AssemblyName) - Location: $($_.Location)" -level trace
+    }
+
     Write-Trace -level trace -message "Microsoft.PowerShell.PSResourceGet module is not imported. Importing it."
     Import-Module -Name Microsoft.PowerShell.PSResourceGet -Force -ErrorAction Stop -Verbose
 }
