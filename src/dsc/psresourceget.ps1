@@ -274,8 +274,18 @@ function ConvertInputToPSResource(
 
 # catch any un-caught exception and write it to the error stream
 trap {
-    Write-Trace -Level Error -message $_.Exception.Message
-    exit 1
+    # Write-Trace -Level Error -message $_.Exception.Message
+    # exit 1
+
+    $e = $_.Exception
+
+    while ($e) {
+        "-----"
+        $e.GetType().FullName
+        $e.Message
+        $e = $e.InnerException
+    }
+
 }
 
 function GetPSResourceList {
@@ -512,7 +522,7 @@ function ExportOperation {
         }
 
         'repositorylist' {
-            Write-Trace -level error -message "Get operation is not implemented for RepositoryList resource."
+            Write-Trace -level error -message "Export operation is not implemented for RepositoryList resource."
             exit 8
         }
         'psresource' {
