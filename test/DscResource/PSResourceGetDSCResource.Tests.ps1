@@ -35,7 +35,13 @@ function SetupDsc {
 
     $env:PATH += "$pathSeparator$resourcePath"
 
-    Import-Module $resourcePath -Verbose -Force
+    $moduleToTest = Join-Path $resourcePath 'Microsoft.PowerShell.PSResource.psd1'
+
+    if (-not (Test-Path -Path $moduleToTest)) {
+        throw "Module to test not found: $moduleToTest"
+    }
+
+    Import-Module $moduleToTest -Verbose -Force
 }
 
 function SetupTestRepos {
