@@ -34,20 +34,6 @@ function SetupDsc {
     Write-Verbose -Verbose "Adding DSC resource path to PATH environment variable: $resourcePath"
 
     $env:PATH += "$pathSeparator$resourcePath"
-
-    $moduleToTest = Join-Path $resourcePath 'Microsoft.PowerShell.PSResourceGet.psd1'
-
-    if (-not (Test-Path -Path $moduleToTest)) {
-        Get-ChildItem $resourcePath -Recurse| Write-Verbose -Verbose 
-        throw "Module to test not found: $moduleToTest"
-    }
-
-    $psrgMod = Get-Module -Name Microsoft.PowerShell.PSResourceGet 
-
-    if (-not $psrgMod) {
-        Write-Verbose -Verbose "In SetupDsc: Importing module: $moduleToTest "
-        Import-Module $moduleToTest -Verbose -Force
-    }
 }
 
 function SetupTestRepos {
@@ -119,7 +105,7 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
 
         Get-Module -Name Microsoft.PowerShell.PSResourceGet | Write-Verbose -Verbose
 
-        $getResult = & $script:dscExe -l trace resource get --resource Microsoft.PowerShell.PSResourceGet/Repository --input $resourceInput -o json | ConvertFrom-Json
+        $getResult = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/Repository --input $resourceInput -o json | ConvertFrom-Json
 
         $getResult.actualState.name | Should -BeExactly 'TestRepo'
         $getResult.actualState.uri | Should -BeExactly 'https://www.doesnotexist.com/'

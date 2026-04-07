@@ -274,81 +274,8 @@ function ConvertInputToPSResource(
 
 # catch any un-caught exception and write it to the error stream
 trap {
-    Write-Trace -Level Error -message $_.Exception.Message
-    Write-Trace -Level Error -message $_.Exception.FileName
-    Write-Trace -Level Error -message $_.Exception.HResult
-
-    # exit 1
-    Get-LoadedAssembliesByALC |  Select-Object -Property ALCName, AssemblyName, Location | ForEach-Object {
-        Write-Trace -message "ALC: $($_.ALCName) - Assembly: $($_.AssemblyName) - Location: $($_.Location)" -level trace
-    }
-
+    Write-Trace -message "Exiting with error code 1 due to unhandled exception: $($_.Exception.Message)" -level trace
     exit 1
-}
-
-
-function Get-LoadedAssembliesByALC {
-    [CmdletBinding()]
-    param(
-        # Optional filter: only show assemblies whose simple name matches this regex
-        [string] $NameMatch,
-
-        # Optional: show only AssemblyLoadContexts whose name matches this regex
-        [string] $ALCMatch
-    )
-
-    # AssemblyLoadContext is in System.Runtime.Loader
-    $alcType = [System.Runtime.Loader.AssemblyLoadContext]
-
-    # Enumerate all ALCs currently alive
-    $alcs = $alcType::All
-
-    $rows = foreach ($alc in $alcs) {
-
-        if ($ALCMatch -and ($alc.Name -notmatch $ALCMatch)) { continue }
-
-        foreach ($asm in $alc.Assemblies) {
-
-            $an = $asm.GetName()
-
-            if ($NameMatch -and ($an.Name -notmatch $NameMatch)) { continue }
-
-            # Some assemblies are dynamic/in-memory and have no Location
-            $location = $null
-            $isDynamic = $false
-            try {
-                $isDynamic = $asm.IsDynamic
-                if (-not $isDynamic) { $location = $asm.Location }
-            } catch {
-                # Some runtime assemblies can still throw on Location; ignore safely
-                $location = $null
-            }
-
-            $pkt = $null
-            try {
-                $bytes = $an.GetPublicKeyToken()
-                if ($bytes -and $bytes.Length -gt 0) {
-                    $pkt = ($bytes | ForEach-Object { $_.ToString("x2") }) -join ""
-                }
-            } catch { $pkt = $null }
-
-            [pscustomobject]@{
-                ALCName        = if ($alc.Name) { $alc.Name } else { "<unnamed>" }
-                IsDefaultALC   = ($alc -eq [System.Runtime.Loader.AssemblyLoadContext]::Default)
-                IsCollectible  = $alc.IsCollectible
-                AssemblyName   = $an.Name
-                Version        = $an.Version.ToString()
-                Culture        = if ($an.CultureInfo) { $an.CultureInfo.Name } else { "" }
-                PublicKeyToken = $pkt
-                IsDynamic      = $isDynamic
-                Location       = if ($location) { $location } else { if ($isDynamic) { "<dynamic>" } else { "" } }
-                FullName       = $asm.FullName
-            }
-        }
-    }
-
-    # Sort for readability: by ALC then assembly name
-    $rows | Sort-Object ALCName, AssemblyName, Version
 }
 
 function GetPSResourceList {
@@ -883,22 +810,12 @@ function PopulatePSResourceListObject {
     }
 }
 
+## This is mostly needed for CI tests as the PSModulePath has a different version PSResourceGet
+## If the module is loaded from a different path, then we get an error "Assembly with same name is already loaded"
 if ($null -eq (Get-Module -Name Microsoft.PowerShell.PSResourceGet)) {
-    Write-Trace -level trace -message "Microsoft.PowerShell.PSResourceGet module is not currently loaded. Getting loaded assemblies for diagnostics."
-    Get-LoadedAssembliesByALC |  Select-Object -Property ALCName, AssemblyName, Location | ForEach-Object {
-        Write-Trace -message "ALC: $($_.ALCName) - Assembly: $($_.AssemblyName) - Location: $($_.Location)" -level trace
-    }
-
-    Write-Trace -level trace -message "Microsoft.PowerShell.PSResourceGet module is not imported. Importing it."
-
-    try {
-        $path = Join-Path -Path $PSScriptRoot -ChildPath "Microsoft.PowerShell.PSResourceGet.psd1"
-        Write-Trace -level trace -message "Importing Microsoft.PowerShell.PSResourceGet module from path: $path"
-        Import-Module -Name $path -Force -ErrorAction Stop
-    }
-    catch {
-        Write-Trace -level info -message "IGNORING Failed to import Microsoft.PowerShell.PSResourceGet module. Error details: $($_.Exception.Message)"
-    }
+    $path = Join-Path -Path $PSScriptRoot -ChildPath "Microsoft.PowerShell.PSResourceGet.psd1"
+    Write-Trace -level trace -message "Importing Microsoft.PowerShell.PSResourceGet module from path: $path"
+    Import-Module -Name $path -Force -ErrorAction Stop
 }
 
 switch ($Operation.ToLower()) {
