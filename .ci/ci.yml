@@ -12,7 +12,7 @@ pr:
 
 parameters:
   - name: DSCVersion
-    default: '3.2.0-preview.13'
+    default: '3.2.0-preview.14'
     type: string
 
 resources:
