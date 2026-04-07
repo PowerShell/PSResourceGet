@@ -892,7 +892,9 @@ if ($null -eq (Get-Module -Name Microsoft.PowerShell.PSResourceGet)) {
     Write-Trace -level trace -message "Microsoft.PowerShell.PSResourceGet module is not imported. Importing it."
 
     try {
-        Import-Module -Name Microsoft.PowerShell.PSResourceGet -Force -ErrorAction Stop
+        $path = Join-Path -Path $PSScriptRoot -ChildPath "Microsoft.PowerShell.PSResourceGet.psd1"
+        Write-Trace -level trace -message "Importing Microsoft.PowerShell.PSResourceGet module from path: $path"
+        Import-Module -Name $path -Force -ErrorAction Stop
     }
     catch {
         Write-Trace -level info -message "IGNORING Failed to import Microsoft.PowerShell.PSResourceGet module. Error details: $($_.Exception.Message)"
