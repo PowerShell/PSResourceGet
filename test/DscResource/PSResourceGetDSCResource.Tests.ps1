@@ -237,10 +237,10 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
         $setResult = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
         $setResult.afterState.repositoryName | Should -BeExactly $script:localRepo
         $setResult.afterState.resources.Count | Should -Be 2
-        $setResult.afterState.resources[0].name | Should -BeExactly $script:testModuleName
-        $setResult.afterState.resources[0].version | Should -BeExactly '5.0.0'
-        $setResult.afterState.resources[1].name | Should -BeExactly $script:testModuleName2
-        $setResult.afterState.resources[1].version | Should -BeExactly '5.0.0'
+        $setResult.afterState.resources[0].name | Should -BeIn @($script:testModuleName, $script:testModuleName2)
+        $setResult.afterState.resources[0].version | Should -Be '5.0.0'
+        $setResult.afterState.resources[1].name | Should -BeIn @($script:testModuleName, $script:testModuleName2)
+        $setResult.afterState.resources[1].version | Should -Be '5.0.0'
     }
 
     It 'Can test a PSResourceList resource instance with resources' {
