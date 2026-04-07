@@ -35,9 +35,10 @@ function SetupDsc {
 
     $env:PATH += "$pathSeparator$resourcePath"
 
-    $moduleToTest = Join-Path $resourcePath 'Microsoft.PowerShell.PSResource.psd1'
+    $moduleToTest = Join-Path $resourcePath 'Microsoft.PowerShell.PSResourceGet.psd1'
 
     if (-not (Test-Path -Path $moduleToTest)) {
+        Get-ChildItem $resourcePath -Recurse| Write-Verbose -Verbose 
         throw "Module to test not found: $moduleToTest"
     }
 
