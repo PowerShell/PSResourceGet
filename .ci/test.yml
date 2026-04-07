@@ -110,7 +110,8 @@ jobs:
         "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-linux.tar.gz"
       }
       elseif ($IsMacOS) {
-        "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-aarch64-apple-darwin.tar.gz"
+        "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-apple-darwin.tar.gz"
+
       }
       else {
         throw "Unsupported OS platform"
