@@ -274,7 +274,7 @@ function ConvertInputToPSResource(
 
 # catch any un-caught exception and write it to the error stream
 trap {
-    # Write-Trace -Level Error -message $_.Exception.Message
+    Write-Trace -Level Error -message $_.Exception.Message
     # exit 1
     Get-LoadedAssembliesByALC |  Select-Object -Property ALCName, AssemblyName, Location | ForEach-Object {
         Write-Trace -message "ALC: $($_.ALCName) - Assembly: $($_.AssemblyName) - Location: $($_.Location)" -level trace

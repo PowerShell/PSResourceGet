@@ -42,7 +42,12 @@ function SetupDsc {
         throw "Module to test not found: $moduleToTest"
     }
 
-    Import-Module $moduleToTest -Verbose -Force
+    $psrgMod = Get-Module -Name Microsoft.PowerShell.PSResourceGet 
+
+    if (-not $psrgMod) {
+        Write-Verbose -Verbose "In SetupDsc: Importing module: $moduleToTest "
+        Import-Module $moduleToTest -Verbose -Force
+    }
 }
 
 function SetupTestRepos {
@@ -111,6 +116,8 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
         }
 
         $resourceInput = $repoParams | ConvertTo-Json -Depth 5
+
+        Get-Module -Name Microsoft.PowerShell.PSResourceGet | Write-Verbose -Verbose
 
         $getResult = & $script:dscExe -l trace resource get --resource Microsoft.PowerShell.PSResourceGet/Repository --input $resourceInput -o json | ConvertFrom-Json
 
