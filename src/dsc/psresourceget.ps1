@@ -890,7 +890,13 @@ if ($null -eq (Get-Module -Name Microsoft.PowerShell.PSResourceGet)) {
     }
 
     Write-Trace -level trace -message "Microsoft.PowerShell.PSResourceGet module is not imported. Importing it."
-    Import-Module -Name Microsoft.PowerShell.PSResourceGet -Force -ErrorAction Stop -Verbose
+
+    try {
+        Import-Module -Name Microsoft.PowerShell.PSResourceGet -Force -ErrorAction Stop
+    }
+    catch {
+        Write-Trace -level info -message "IGNORING Failed to import Microsoft.PowerShell.PSResourceGet module. Error details: $($_.Exception.Message)"
+    }
 }
 
 switch ($Operation.ToLower()) {
