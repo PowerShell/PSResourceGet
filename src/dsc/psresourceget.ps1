@@ -18,6 +18,22 @@ enum Scope {
     AllUsers
 }
 
+enum ExitCode {
+    Success = 0
+    Error = 1
+    RepositoryNotFound = 2
+    RepositoryNotTrusted = 3
+    InstallationFailed = 4
+    UnknownResourceType = 5
+    ResourceNotImplemented = 6
+    TestNotImplemented = 7
+    ExportNotImplemented = 8
+    GetNotImplemented = 9
+    SetNotImplemented = 10
+    DeleteNotImplemented = 11
+    UnknownOperation = 12
+}
+
 class PSResource {
     [string]$name
     [string]$version
@@ -53,28 +69,28 @@ class PSResource {
             ($null -eq $this.scope -or $_.Scope -eq $this.scope) -and
             ($null -eq $this.repositoryName -or $_.Repository -eq $this.repositoryName)
         } | Select-Object -First 1 | ForEach-Object {
-            Write-Trace -message "Matching resource found: Name=$($_.Name), Version=$($_.Version), Scope=$($_.Scope), Repository=$($_.Repository), PreRelease=$($_.PreRelease)" -level trace
+            Write-Trace -message "Matching resource found: Name=$($_.Name), Version=$($_.Version), Scope=$($_.Scope), Repository=$($_.Repository), PreRelease=$($_.PreRelease)" -level debug
             $this._exist = $true
         }
 
         if ($this.name -ne $other.name) {
-            Write-Trace -message "Name mismatch: $($this.name) vs $($other.name)" -level trace
+            Write-Trace -message "Name mismatch: $($this.name) vs $($other.name)" -level debug
             $retValue = $false
         }
         elseif ($null -ne $this.version -and $null -ne $other.version -and -not (SatisfiesVersion -version $this.version -versionRange $other.version)) {
-            Write-Trace -message "Version mismatch: $($this.version) vs $($other.version)" -level trace
+            Write-Trace -message "Version mismatch: $($this.version) vs $($other.version)" -level debug
             $retValue = $false
         }
         elseif ($null -ne $this.scope -and $this.scope -ne $other.scope) {
-            Write-Trace -message "Scope mismatch: $($this.scope) vs $($other.scope)" -level trace
+            Write-Trace -message "Scope mismatch: $($this.scope) vs $($other.scope)" -level debug
             $retValue = $false
         }
         elseif ($null -ne $this.repositoryName -and $this.repositoryName -ne $other.repositoryName) {
-            Write-Trace -message "Repository mismatch: $($this.repositoryName) vs $($other.repositoryName)" -level trace
+            Write-Trace -message "Repository mismatch: $($this.repositoryName) vs $($other.repositoryName)" -level debug
             $retValue = $false
         }
         elseif ($this._exist -ne $other._exist) {
-            Write-Trace -message "_exist mismatch: $($this._exist) vs $($other._exist)" -level trace
+            Write-Trace -message "_exist mismatch: $($this._exist) vs $($other._exist)" -level debug
             $retValue = $false
         }
 
@@ -83,7 +99,7 @@ class PSResource {
 
     [string] ToJson() {
         $retVal = ($this | Select-Object -ExcludeProperty _inDesiredState | ConvertTo-Json -Compress -EnumsAsStrings)
-        Write-Trace -message "Serializing PSResource to JSON. Name: $($this.name), Version: $($this.version), Scope: $($this.scope), RepositoryName: $($this.repositoryName), PreRelease: $($this.preRelease), _exist: $($this._exist)" -level trace
+        Write-Trace -message "Serializing PSResource to JSON. Name: $($this.name), Version: $($this.version), Scope: $($this.scope), RepositoryName: $($this.repositoryName), PreRelease: $($this.preRelease), _exist: $($this._exist)" -level debug
         Write-Trace -message "Serialized JSON: $retVal" -level trace
         return $retVal
     }
@@ -107,12 +123,12 @@ class PSResourceList {
 
     [bool] IsInDesiredState([PSResourceList] $other) {
         if ($this.repositoryName -ne $other.repositoryName) {
-            Write-Trace -message "RepositoryName mismatch: $($this.repositoryName) vs $($other.repositoryName)" -level trace
+            Write-Trace -message "RepositoryName mismatch: $($this.repositoryName) vs $($other.repositoryName)" -level debug
             return $false
         }
 
         if ($null -ne $this.resources -and $this.resources.Count -ne $other.resources.Count) {
-            Write-Trace -message "Resources count mismatch: $($this.resources.Count) vs $($other.resources.Count)" -level trace
+            Write-Trace -message "Resources count mismatch: $($this.resources.Count) vs $($other.resources.Count)" -level debug
             return $false
         }
 
@@ -126,11 +142,11 @@ class PSResourceList {
             }
 
             if ($found) {
-                Write-Trace -message "Resource match found for: $($otherResource.name)" -level trace
+                Write-Trace -message "Resource match found for: $($otherResource.name)" -level debug
                 break
             }
             else {
-                Write-Trace -message "Resource mismatch for: $($otherResource.name)" -level trace
+                Write-Trace -message "Resource mismatch for: $($otherResource.name)" -level debug
                 return $false
             }
         }
@@ -145,14 +161,14 @@ class PSResourceList {
         $jsonString = $jsonString -replace "'", '"'
         $retVal =  $jsonString | ConvertFrom-Json | ConvertTo-Json -Compress -EnumsAsStrings
 
-        Write-Trace -message "Serializing PSResourceList to JSON. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level trace
+        Write-Trace -message "Serializing PSResourceList to JSON. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level debug
         Write-Trace -message "Serialized JSON: $retVal" -level trace
 
         return $retVal
     }
 
     [string] ToJsonForTest() {
-        Write-Trace -message "Serializing PSResourceList to JSON for test output. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level trace
+        Write-Trace -message "Serializing PSResourceList to JSON for test output. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level debug
         $jsonForTest = $this | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
         Write-Trace -message "Serialized JSON: $jsonForTest" -level trace
         return $jsonForTest
@@ -214,12 +230,7 @@ function Write-Trace {
         $level.ToLower() = $message
     } | ConvertTo-Json -Compress
 
-    if ($env:SKIP_TRACE) {
-        $host.ui.WriteVerboseLine($trace)
-    }
-    else {
-        $host.ui.WriteErrorLine($trace)
-    }
+    $host.ui.WriteErrorLine($trace)
 }
 
 function SatisfiesVersion {
@@ -230,13 +241,13 @@ function SatisfiesVersion {
 
     $typeName = 'NuGet.Versioning.VersionRange'
 
-    Write-Trace -message "Checking if version '$version' satisfies version range '$versionRange'." -level trace
+    Write-Trace -message "Checking if version '$version' satisfies version range '$versionRange'." -level debug
 
     if ($typeName -as [type]) {
-        Write-Trace -message "NuGet.Versioning assembly is already loaded. Using existing assembly." -level trace
+        Write-Trace -message "NuGet.Versioning assembly is already loaded. Using existing assembly." -level debug
     }
     else {
-        Write-Trace -message "Loading NuGet.Versioning assembly from $PSScriptRoot/dependencies/NuGet.Versioning.dll" -level trace
+        Write-Trace -message "Loading NuGet.Versioning assembly from $PSScriptRoot/dependencies/NuGet.Versioning.dll" -level debug
         Add-Type -Path "$PSScriptRoot/dependencies/NuGet.Versioning.dll" -ErrorAction Stop | Out-Null
     }
 
@@ -274,8 +285,8 @@ function ConvertInputToPSResource(
 
 # catch any un-caught exception and write it to the error stream
 trap {
-    Write-Trace -message "Exiting with error code 1 due to unhandled exception: $($_.Exception.Message)" -level trace
-    exit 1
+    Write-Trace -message "Exiting with error code 1 due to unhandled exception: $($_.Exception.Message)" -level debug
+    exit [ExitCode]::Error
 }
 
 function GetPSResourceList {
@@ -336,7 +347,7 @@ function GetPSResourceList {
     foreach ($resource in $allPSResources) {
         foreach ($inputResource in $inputResources) {
             if ($resource.Name -eq $inputResource.Name) {
-                Write-Trace -message "Found matching resource for input: $($inputResource.Name). Checking version constraints. Input version: $($inputResource.Version), Resource version: $($resource.Version)" -level trace
+                Write-Trace -message "Found matching resource for input: $($inputResource.Name). Checking version constraints. Input version: $($inputResource.Version), Resource version: $($resource.Version)" -level debug
                 if ($inputResource.Version) {
                     # Use the NuGet.Versioning package if available, otherwise do a simple comparison
                     try {
@@ -345,7 +356,7 @@ function GetPSResourceList {
                         }
                     }
                     catch {
-                        Write-Trace -message "Error checking version constraints for resource: $($inputResource.Name). Error details: $($_.Exception.Message)" -level error
+                        Write-Trace -message "Error checking version constraints for resource: $($inputResource.Name). Error details: $($_.Exception.Message)" -level debug
                         # Fallback: simple string comparison (not full NuGet range support)
                         if ($resource.Version.ToString() -eq $inputResource.Version) {
                             $resourcesExist += $resource
@@ -371,18 +382,12 @@ function GetOperation {
 
     switch ($ResourceType) {
         'repository' {
-            Write-Trace -message "Processing Get operation for Repository resource." -level trace
-
             $inputRepository = [Repository]::new($inputObj)
-
-            Write-Trace -message "Looking up repository with name: $($inputRepository.Name)" -level trace
-
             $rep = Get-PSResourceRepository -Name $inputRepository.Name -ErrorVariable err -ErrorAction SilentlyContinue
-
             Write-Trace -message "Get-PSResourceRepository returned: $($rep | ConvertTo-Json -Compress)" -level trace
 
             $ret = if ($err.FullyQualifiedErrorId -eq 'ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSResourceRepository') {
-                Write-Trace -message "Repository not found: $($inputRepository.Name). Returning _exist = false" -level trace
+                Write-Trace -message "Repository not found: $($inputRepository.Name). Returning _exist = false" -level debug
                 [Repository]::new(
                     $InputRepository.Name,
                     $false
@@ -400,23 +405,25 @@ function GetOperation {
                 Write-Trace -message "Returning repository object for: $($ret.Name)" -level trace
             }
 
+            Write-Trace -message "Serialized JSON output for Get operation: $($ret.ToJson())" -level trace
+
             return ( $ret.ToJson() )
         }
 
         'repositorylist' {
             Write-Trace -level error -message "Get operation is not implemented for RepositoryList resource."
-            exit 6
+            exit [ExitCode]::ResourceNotImplemented
         }
         'psresource' {
             Write-Trace -level error -message "Get operation is not implemented for PSResource resource."
-            exit 6
+            exit [ExitCode]::ResourceNotImplemented
         }
         'psresourcelist' {
             (GetPSResourceList -inputObj $inputObj).ToJson()
         }
         default {
             Write-Trace -level error -message "Unknown ResourceType: $ResourceType"
-            exit 6
+            exit [ExitCode]::ResourceNotImplemented
         }
     }
 }
@@ -432,7 +439,7 @@ function TestPSResourceList {
     $repositoryState = Get-PSResourceRepository -Name $inputObj.repositoryName -ErrorAction SilentlyContinue
 
     if (-not $repositoryState) {
-        Write-Trace -message "Repository not found: $($inputObj.repositoryName). Returning PSResourceList with _inDesiredState = false." -level info
+        Write-Trace -message "Repository not found: $($inputObj.repositoryName). Returning PSResourceList with _inDesiredState = false." -level debug
         $retValue = [PSResourceList]::new($inputObj.repositoryName, $inputResources, $false)
         $retValue._inDesiredState = $false
         $retValue.ToJsonForTest()
@@ -447,13 +454,13 @@ function TestPSResourceList {
     $currentState._inDesiredState = $inDesiredState
 
     if ($inDesiredState) {
-        Write-Trace -message "PSResourceList is in desired state." -level info
+        Write-Trace -message "PSResourceList is in desired state." -level debug
         $currentState.ToJsonForTest()
         ## Return empty array as we are in desired state and there are no differing properties
         '[]'
     }
     else {
-        Write-Trace -message "PSResourceList is NOT in desired state." -level info
+        Write-Trace -message "PSResourceList is NOT in desired state." -level debug
         $inputPSResourceList.ToJsonForTest()
         '["resources"]'
     }
@@ -469,15 +476,15 @@ function TestOperation {
     switch ($ResourceType) {
         'repository' {
             Write-Trace -level error -message "Test operation is not implemented for Repository resource."
-            exit 7
+            exit [ExitCode]::TestNotImplemented
         }
         'repositorylist' {
             Write-Trace -level error -message "Test operation is not implemented for RepositoryList resource."
-            exit 7
+            exit [ExitCode]::TestNotImplemented
         }
         'psresource' {
             Write-Trace -level error -message "Test operation is not implemented for PSResource resource."
-            exit 7
+            exit [ExitCode]::TestNotImplemented
         }
         'psresourcelist' {
             TestPSResourceList -inputObj $inputObj
@@ -485,7 +492,7 @@ function TestOperation {
 
         default {
             Write-Trace -level error -message "Unknown ResourceType: $ResourceType"
-            exit 5
+            exit [ExitCode]::UnknownResourceType
         }
     }
 }
@@ -496,7 +503,7 @@ function ExportOperation {
             $rep = Get-PSResourceRepository -ErrorAction SilentlyContinue
 
             if (-not $rep) {
-                Write-Trace -message "No repositories found. Returning empty array." -level trace
+                Write-Trace -message "No repositories found. Returning empty array." -level debug
                 return @()
             }
 
@@ -513,11 +520,11 @@ function ExportOperation {
 
         'repositorylist' {
             Write-Trace -level error -message "Export operation is not implemented for RepositoryList resource."
-            exit 8
+            exit [ExitCode]::ExportNotImplemented
         }
         'psresource' {
             Write-Trace -level error -message "Export operation is not implemented for PSResource resource."
-            exit 8
+            exit [ExitCode]::ExportNotImplemented
         }
         'psresourcelist' {
             $currentUserPSResources = Get-PSResource
@@ -526,7 +533,7 @@ function ExportOperation {
         }
         default {
             Write-Trace -level error -message "Unknown ResourceType: $ResourceType"
-            exit 5
+            exit [ExitCode]::UnknownResourceType
         }
     }
 }
@@ -557,12 +564,12 @@ function SetPSResourceList {
 
             # Uninstall if resource should not exist but does
             if (-not $resourceDesiredState._exist -and $_._exist) {
-                Write-Trace -message "Resource $($resourceDesiredState.name) exists but _exist is false. Adding to uninstall list." -level info
+                Write-Trace -message "Resource $($resourceDesiredState.name) exists but _exist is false. Adding to uninstall list." -level debug
                 $resourcesToUninstall += $_
             }
             # Install if resource should exist but doesn't, or exists but not in desired state
             elseif ($resourceDesiredState._exist -and (-not $_._exist -or -not $isInDesiredState)) {
-                Write-Trace -message "Resource $($resourceDesiredState.name) needs to be installed." -level info
+                Write-Trace -message "Resource $($resourceDesiredState.name) needs to be installed." -level debug
                 $versionStr = if ($version) { $resourceDesiredState.version } else { 'latest' }
                 $key = $name.ToLowerInvariant() + '-' + $versionStr.ToLowerInvariant()
                 if (-not $resourcesToInstall.ContainsKey($key)) {
@@ -571,13 +578,13 @@ function SetPSResourceList {
             }
             # Otherwise resource is in desired state, no action needed
             else {
-                Write-Trace -message "Resource $($resourceDesiredState.name) is in desired state." -level info
+                Write-Trace -message "Resource $($resourceDesiredState.name) is in desired state." -level debug
             }
         }
     }
 
     if ($resourcesToUninstall.Count -gt 0) {
-        Write-Trace -message "Uninstalling resources: $($resourcesToUninstall | ForEach-Object { "$($_.Name) - $($_.Version)" })"
+        Write-Trace -message "Uninstalling resources: $($resourcesToUninstall | ForEach-Object { "$($_.Name) - $($_.Version)" })" -level debug
         $resourcesToUninstall | ForEach-Object {
             Uninstall-PSResource -Name $_.Name -Scope $scope -ErrorAction Stop
         }
@@ -589,15 +596,15 @@ function SetPSResourceList {
 
         if (-not $psRepository) {
             Write-Trace -level error -message "Repository '$repositoryName' not found. Cannot install resources."
-            exit 2
+            exit [ExitCode]::RepositoryNotFound
         }
 
         if (-not $psRepository.Trusted -and -not $inputObj.trustedRepository) {
             Write-Trace -level error -message "Repository '$repositoryName' is not trusted. Cannot install resources."
-            exit 3
+            exit [ExitCode]::RepositoryNotTrusted
         }
 
-        Write-Trace -message "Installing resources: $($resourcesToInstall.Values | ForEach-Object { " $($_.Name) -- $($_.Version) " })"
+        Write-Trace -message "Installing resources: $($resourcesToInstall.Values | ForEach-Object { " $($_.Name) -- $($_.Version) " })" -level debug
         $resourcesToInstall.Values | ForEach-Object {
             $usePrerelease = if ($_.preRelease) { $true } else { $false }
 
@@ -617,7 +624,7 @@ function SetPSResourceList {
             if ($installErrors.Count -gt 0) {
                 Write-Trace -level error -message "One or more errors occurred while installing resource '$name' with version '$version': $($installErrors -join '; ')"
                 Write-Trace -level trace -message "Exiting with error code 4 due to installation failure."
-                exit 4
+                exit [ExitCode]::InstallationFailed
             }
         }
 
@@ -664,7 +671,7 @@ function SetOperation {
             }
             else {
                 if ($inputObj._exist -eq $false) {
-                    Write-Trace -message "Repository $($inputObj.Name) exists and _exist is false. Deleting it." -level info
+                    Write-Trace -message "Repository $($inputObj.Name) exists and _exist is false. Deleting it." -level debug
                     Unregister-PSResourceRepository -Name $inputObj.Name
                 }
                 else {
@@ -677,16 +684,16 @@ function SetOperation {
 
         'repositorylist' {
             Write-Trace -level error -message "Set operation is not implemented for RepositoryList resource."
-            exit 10
+            exit [ExitCode]::SetNotImplemented
         }
         'psresource' {
             Write-Trace -level error -message "Set operation is not implemented for PSResource resource."
-            exit 11
+            exit [ExitCode]::SetNotImplemented
         }
         'psresourcelist' { return SetPSResourceList -inputObj $inputObj }
         default {
             Write-Trace -level error -message "Unknown ResourceType: $ResourceType"
-            exit 5
+            exit [ExitCode]::UnknownResourceType
         }
     }
 }
@@ -709,26 +716,26 @@ function DeleteOperation {
                 Unregister-PSResourceRepository -Name $inputObj.Name
             }
             else {
-                Write-Trace -message "Repository not found: $($inputObj.Name). Nothing to delete." -level info
+                Write-Trace -message "Repository not found: $($inputObj.Name). Nothing to delete." -level debug
             }
 
             return GetOperation -ResourceType $ResourceType
         }
         'repositorylist' {
             Write-Trace -level error -message "Delete operation is not implemented for RepositoryList resource."
-            exit 11
+            exit [ExitCode]::DeleteNotImplemented
         }
         'psresource' {
             Write-Trace -level error -message "Delete operation is not implemented for PSResource resource."
-            exit 11
+            exit [ExitCode]::DeleteNotImplemented
         }
         'psresourcelist' {
             Write-Trace -level error -message "Delete operation is not implemented for PSResourceList resource."
-            exit 11
+            exit [ExitCode]::DeleteNotImplemented
         }
         default {
             Write-Trace -level error -message "Unknown ResourceType: $ResourceType"
-            exit 5
+            exit [ExitCode]::UnknownResourceType
         }
     }
 }
@@ -826,6 +833,6 @@ switch ($Operation.ToLower()) {
     'delete' { return (DeleteOperation -ResourceType $ResourceType) }
     default {
         Write-Trace -level error -message "Unknown Operation: $Operation"
-        exit 12
+        exit [ExitCode]::UnknownOperation
     }
 }

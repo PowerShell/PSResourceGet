@@ -62,6 +62,11 @@
         ],
         "input": "stdin"
     },
+    "exitCodes": {
+        "0": "Success",
+        "1": "Error",
+        "12": "Unknown operation"
+    },
     "schema": {
         "embedded": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
