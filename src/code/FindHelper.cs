@@ -1112,7 +1112,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (externalModuleDependencies.Contains(dep.Name, StringComparer.OrdinalIgnoreCase))
                     {
-                        _cmdletPassedIn.WriteVerbose($"Dependency '{dep.Name}' is listed as an external module dependency, skipping search for this dependency."); // TODO  improve message to let user know they may need to install
+                        _cmdletPassedIn.WriteVerbose($"Dependency '{dep.Name}' is listed as an external module dependency, skipping search/install for this dependency.");
                         continue;
                     }
 
