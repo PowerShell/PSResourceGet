@@ -646,7 +646,15 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $depRes = Get-InstalledPSResource $depPkgName1, $depPkgName2
         $depRes.Name | Should -Contain $depPkgName1
         $depRes.Name | Should -Contain $depPkgName2
-    }    
+    }
+
+    It "Install resource and dependency, while skipping dependency that is listed as external module dependency" {
+        $testParentModule = "test_module_ext_dep"
+        $requiredDependency = "test_module10"
+        $res = Install-PSresource -Name "test_module_ext_dep" -Repository $PSGalleryName -TrustRepository -PassThru
+        $res.Name | Should -Contain $testParentModule
+        $res.Name | Should -Contain $requiredDependency
+    }
 }
 
 Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'ManualValidationOnly' {

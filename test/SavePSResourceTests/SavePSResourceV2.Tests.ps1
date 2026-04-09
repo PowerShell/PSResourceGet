@@ -214,4 +214,20 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly 'ErrorFilteringNamesForUnsupportedWildcards,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource'
     }
+
+    It "Save resource and dependency, while skipping dependency that is listed as external module dependency" {
+        $testParentModule = "test_module_ext_dep"
+        $requiredDependency = "test_module10"
+        $res = Save-PSresource -Name "test_module_ext_dep" -Repository $PSGalleryName -Path $SaveDir -TrustRepository -PassThru
+        $res.Name | Should -Contain $testParentModule
+        $res.Name | Should -Contain $requiredDependency
+    }
+
+    It "Save resource and dependency, as .nupkg, while skipping dependency that is listed as external module dependency" {
+        $testParentModule = "test_module_ext_dep"
+        $requiredDependency = "test_module10"
+        $res = Save-PSresource -Name "test_module_ext_dep" -Repository $PSGalleryName -AsNupkg -Path $SaveDir -TrustRepository -PassThru
+        $res.Name | Should -Contain $testParentModule
+        $res.Name | Should -Contain $requiredDependency
+    }
 }

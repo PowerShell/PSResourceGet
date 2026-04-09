@@ -1632,21 +1632,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Hashtable privateData = moduleMetadata.ContainsKey("PrivateData") ? moduleMetadata["PrivateData"] as Hashtable : new Hashtable(StringComparer.InvariantCultureIgnoreCase);
             Hashtable psData = privateData.ContainsKey("PSData") ? privateData["PSData"] as Hashtable : new Hashtable(StringComparer.InvariantCultureIgnoreCase);
             object[] externalModDepObjects = psData.ContainsKey("ExternalModuleDependencies") ? psData["ExternalModuleDependencies"] as object[] : new object[0];
-            foreach (var dep in externalModDepObjects)
+            if (externalModDepObjects != null)
             {
-                string dependencyName = dep as string;
-                if (dependencyName.Contains("="))
+                foreach (var dep in externalModDepObjects)
                 {
-                    error = new ErrorRecord(
-                    new ArgumentException($"Package '{pkgName}' could not be installed: ExternalModuleDependencies should only contain module names, not other metadata. Invalid entry: '{dependencyName}'"),
-                    "ExternalModuleDependencyInvalidEntry",
-                    ErrorCategory.ReadError,
-                    _cmdletPassedIn);
+                    string dependencyName = dep as string;
+                    if (dependencyName.Contains("="))
+                    {
+                        error = new ErrorRecord(
+                        new ArgumentException($"Package '{pkgName}' could not be installed: ExternalModuleDependencies should only contain module names, not other metadata. Invalid entry: '{dependencyName}'"),
+                        "ExternalModuleDependencyInvalidEntry",
+                        ErrorCategory.ReadError,
+                        _cmdletPassedIn);
 
-                    return false;
+                        return false;
+                    }
+
+                    externalModuleDependenciesForPkg.Add(dependencyName);
                 }
-
-                externalModuleDependenciesForPkg.Add(dependencyName);
             }
 
             externalModuleDependencies = externalModuleDependenciesForPkg.ToArray();
