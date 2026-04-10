@@ -1161,7 +1161,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return s_tempHome;
         }
 
-        private readonly static Version PSVersion6 = new Version(6, 0);
         private static void GetStandardPlatformPaths(
             PSCmdlet psCmdlet,
             out string localUserDir,
@@ -1169,7 +1168,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                string powerShellType = (psCmdlet.Host.Version >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
+                string powerShellType = ((psCmdlet.GetVariableValue("PSEdition") as string) == "Core") ? "PowerShell" : "WindowsPowerShell";
                 localUserDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), powerShellType);
                 allUsersDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), powerShellType);
             }
@@ -1189,7 +1188,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         public static bool GetIsWindowsPowerShell(PSCmdlet psCmdlet)
         {
-            return psCmdlet.Host.Version < PSVersion6;
+            return ((psCmdlet.GetVariableValue("PSEdition") as string) != "Core");
         }
 
         /// <summary>
