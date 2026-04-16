@@ -1535,7 +1535,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         private static string ConcatenateVersionWithPrerelease(string version, string prerelease)
         {
-            return Utils.GetNormalizedVersionString(version, prerelease);
+            return Utils.GetThreeDigitNormalizedVersionString(version, prerelease);
         }
 
         #endregion
@@ -1820,7 +1820,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         private PSObject ConvertToCustomObject()
         {
-            // 1.0.0-alpha1
+            // TODO update Normalized Version
+            // 1.0.0-alpha1   test_module 5.0.0.0
             // 1.0.0.0
             string NormalizedVersion = IsPrerelease ? ConcatenateVersionWithPrerelease(Version.ToString(), Prerelease) : Version.ToString();
 

@@ -599,6 +599,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             // Add each pkg to _packagesOnMachine (ie pkgs fully installed on the machine).
                             _packagesOnMachine.Add($"{pkgName}{pkgInfo["pkgVersion"]}");
+
+                            // PSResourceInfo psResourceInfoPkg = pkgInfo["psResourceInfoPkg"] as PSResourceInfo;
+                            // psResourceInfoPkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
+                            // if (pkgVersion == null)
+                            // {
+                            //     // Not all NuGet providers (e.g. Artifactory, possibly others) send NormalizedVersion in NuGet package responses.
+                            //     // If they don't, we need to manually construct the combined version+prerelease from pkgToInstall.Version and the prerelease string.
+                            //     // Get three digit normalized version
+                            //     pkgVersion = Utils.GetThreeDigitNormalizedVersionString(psResourceInfoPkg.Version.ToString(), psResourceInfoPkg.Prerelease);
+                            // }
+                            
+                            _packagesOnMachine.Add($"{pkgName}{pkgVersion}");
                         }
                     }
                 }
@@ -827,7 +839,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else {
                     // If we don't install dependencies, we're only installing the parent pkg so we can short circut and simply install the parent pkg. 
-                    // TODO::  check this version and prerelease combo
                     Stream responseStream = currentServer.InstallPackage(pkgToInstall.Name, pkgVersion, true, out ErrorRecord installNameErrRecord);
 
                     if (installNameErrRecord != null)

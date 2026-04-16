@@ -318,6 +318,45 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return true;
         }
 
+        ///need this for cache
+        public static string GetThreeDigitNormalizedVersionString(
+            string versionString,
+            string prerelease)
+        {
+            // versionString may be like 1.2.0.0 or 1.2.0 or 1.2
+            // prerelease    may be      null    or "alpha1"
+            // possible passed in examples:
+            // versionString: "1.2"                           <- container registry 2 digit version
+            // versionString: "1.2"     prerelease: "alpha1"  <- container registry 2 digit version
+            // versionString: "1.2.0"   prerelease: "alpha1"
+            // versionString: "1.2.0"   prerelease: ""        <- doubtful though
+            // versionString: "1.2.0.0" prerelease: "alpha1"
+            // versionString: "1.2.0.0" prerelease: ""
+
+            int numVersionDigits = versionString.Split('.').Count();
+
+            if (numVersionDigits == 2)
+            {
+                // versionString: "1.2"   prerelease: "alpha1" -> 1.2.0-alpha1
+                return versionString + ".0-" + prerelease;
+            }
+            else if (numVersionDigits == 3)
+            {
+                // versionString: "1.2.0" prerelease: "alpha1" -> 1.2.0-alpha1
+                return versionString + "-" + prerelease;
+            }
+            else if (numVersionDigits == 4)
+            {
+                // if last digit is 0, truncated it 
+
+                // if it's not 0, just leave it
+                // versionString: "1.2.0.1"
+                return versionString;
+            }
+
+            return versionString;
+        }
+
         public static string GetNormalizedVersionString(
             string versionString,
             string prerelease)
@@ -1217,7 +1256,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 pathsToSearch: pathsToSearch,
                 selectPrereleaseOnly: false))
             {
-                string pkgNameVersion = String.Format("{0}{1}", installedPkg.Name, installedPkg.Version.ToString());
+                // if (string.Equals(installedPkg.Name, "test_module", StringComparison.OrdinalIgnoreCase))
+                // {
+                //     // get normalized version now
+                //     string pkgNameVersionnew = String.Format("{0}{1}", installedPkg.Name, Utils.GetNormalizedVersionString(installedPkg.AdditionalMetadata["NormalizedVersion"], installedPkg.Prerelease));
+                //     tempbool = true;
+                // }
+                
+                // normalize version here instead of using installedPkg.Version.ToString()
+                string pkgNameVersion = String.Format("{0}{1}", installedPkg.Name, Utils.GetThreeDigitNormalizedVersionString(installedPkg.Version.ToString(), installedPkg.Prerelease));
                 if (!pkgsInstalledOnMachine.Contains(pkgNameVersion))
                 {
                     pkgsInstalledOnMachine.Add(pkgNameVersion);
