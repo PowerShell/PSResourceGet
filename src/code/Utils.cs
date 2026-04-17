@@ -338,12 +338,14 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (numVersionDigits == 2)
             {
                 // versionString: "1.2"   prerelease: "alpha1" -> 1.2.0-alpha1
-                return versionString + ".0-" + prerelease;
+                // versionString: "1.2"   prerelease: "" -> 1.2.0
+                return String.IsNullOrEmpty(prerelease) ? versionString + ".0" : versionString + ".0-" + prerelease;
             }
             else if (numVersionDigits == 3)
             {
                 // versionString: "1.2.0" prerelease: "alpha1" -> 1.2.0-alpha1
-                return versionString + "-" + prerelease;
+                // versionString: "1.2.0" prerelease: "" -> 1.2.0
+                return String.IsNullOrEmpty(prerelease) ? versionString : versionString + "-" + prerelease;
             }
             else if (numVersionDigits == 4)
             {
