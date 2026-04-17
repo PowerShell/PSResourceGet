@@ -610,7 +610,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             //     pkgVersion = Utils.GetThreeDigitNormalizedVersionString(psResourceInfoPkg.Version.ToString(), psResourceInfoPkg.Prerelease);
                             // }
                             
-                            _packagesOnMachine.Add($"{pkgName}{pkgVersion}");
+                            //_packagesOnMachine.Add($"{pkgName}{pkgVersion}");
                         }
                     }
                 }
