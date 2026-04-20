@@ -1112,6 +1112,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (!CallAcceptLicense(pkgToInstall, moduleManifest, tempInstallPath, pkgVersion, out error))
                     {
                         _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
+                        Utils.EnqueueIfNotNull(errorMsgs, error);
                         return false;
                     }
 
@@ -1119,6 +1120,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (_noClobber && DetectClobber(pkgName, parsedMetadataHashtable, out error))
                     {
                         _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgName, StringComparison.InvariantCultureIgnoreCase));
+                        Utils.EnqueueIfNotNull(errorMsgs, error);
                         return false;
                     }
                 }
