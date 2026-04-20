@@ -350,16 +350,21 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             else if (numVersionDigits == 4)
             {
                 // if last digit is 0, truncated it 
-
                 // if it's not 0, just leave it
-                // versionString: "1.2.0.1"
-                return versionString;
+                // versionString: "1.2.0.0" prerelease: "alpha1" -> 1.2.0-alpha1
+                // versionString: "1.2.0.1" prerelease: "" -> 1.2.0.1
+                if (versionString.EndsWith(".0"))
+                {
+                    versionString = versionString.Substring(0, versionString.LastIndexOf('.'));
+                }                
+
+                return String.IsNullOrEmpty(prerelease) ? versionString : versionString + "-" + prerelease;
             }
 
             return versionString;
         }
 
-        public static string GetNormalizedVersionString(
+        public static string GetFullVersionString(
             string versionString,
             string prerelease)
         {

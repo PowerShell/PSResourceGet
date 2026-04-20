@@ -930,7 +930,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 foreach (var pkgToBeInstalled in parentAndDeps)
                 {
                     var pkgToInstallName = pkgToBeInstalled.Name;
-                    var pkgToInstallVersion = Utils.GetNormalizedVersionString(pkgToBeInstalled.Version.ToString(), pkgToBeInstalled.Prerelease);
+                    var pkgToInstallVersion = Utils.GetFullVersionString(pkgToBeInstalled.Version.ToString(), pkgToBeInstalled.Prerelease);
                     Stream responseStream = currentServer.InstallPackage(pkgToInstallName, pkgToInstallVersion, true, out ErrorRecord installNameErrRecord);
 
                     if (installNameErrRecord != null)

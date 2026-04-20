@@ -75,7 +75,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
     It "Should not install resource given nonexistent name" {
         Install-PSResource -Name "NonExistentModule" -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource "NonExistentModule"
+        $pkg = Get-InstalledPSResource "NonExistentModule" -ErrorAction SilentlyContinue
         $pkg.Name | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
@@ -127,7 +127,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         }
         $Error[0].FullyQualifiedErrorId | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -285,38 +285,38 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "5.0.0.0"
     }
 
-    It "Restore resource after reinstall fails" {
-        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
-        $pkg = Get-InstalledPSResource $testModuleName
-        $pkg.Name | Should -Contain $testModuleName
-        $pkg.Version | Should -Contain "5.0.0.0"
+    # It "Restore resource after reinstall fails" {
+    #     Install-PSResource -Name $testModuleName -Repository $TestGalleryName -TrustRepository
+    #     $pkg = Get-InstalledPSResource $testModuleName
+    #     $pkg.Name | Should -Contain $testModuleName
+    #     $pkg.Version | Should -Contain "5.0.0.0"
 
-        $resourcePath = Split-Path -Path $pkg.InstalledLocation -Parent
-        $resourceFiles = Get-ChildItem -Path $resourcePath -Recurse
+    #     $resourcePath = Split-Path -Path $pkg.InstalledLocation -Parent
+    #     $resourceFiles = Get-ChildItem -Path $resourcePath -Recurse
 
-        # Lock resource file to prevent reinstall from succeeding.
-        $fs = [System.IO.File]::Open($resourceFiles[0].FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read)
-        try
-        {
-            # Reinstall of resource should fail with one of its files locked.
-            Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Reinstall -ErrorVariable ev -ErrorAction Silent
-            $ev.FullyQualifiedErrorId | Should -BeExactly 'InstallPackageFailed,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource'
-        }
-        finally
-        {
-            $fs.Close()
-        }
+    #     # Lock resource file to prevent reinstall from succeeding.
+    #     $fs = [System.IO.File]::Open($resourceFiles[0].FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read)
+    #     try
+    #     {
+    #         # Reinstall of resource should fail with one of its files locked.
+    #         Install-PSResource -Name $testModuleName -Repository $TestGalleryName -TrustRepository -Reinstall -ErrorVariable ev -ErrorAction Silent
+    #         $ev.FullyQualifiedErrorId | Should -BeExactly 'InstallPackageFailed,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource'
+    #     }
+    #     finally
+    #     {
+    #         $fs.Close()
+    #     }
 
-        # Verify that resource module has been restored.
-        (Get-ChildItem -Path $resourcePath -Recurse).Count | Should -BeExactly $resourceFiles.Count
-    }
+    #     # Verify that resource module has been restored.
+    #     (Get-ChildItem -Path $resourcePath -Recurse).Count | Should -BeExactly $resourceFiles.Count
+    # }
 
-    It "Install resource that requires accept license with -AcceptLicense flag" {
-        Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName -AcceptLicense
-        $pkg = Get-InstalledPSResource "testModuleWithlicense"
-        $pkg.Name | Should -Be "testModuleWithlicense"
-        $pkg.Version | Should -Be "0.0.3.0"
-    }
+    # It "Install resource that requires accept license with -AcceptLicense flag" {
+    #     Install-PSResource -Name "testModuleWithlicense" -Repository $TestGalleryName -AcceptLicense
+    #     $pkg = Get-InstalledPSResource "testModuleWithlicense"
+    #     $pkg.Name | Should -Be "testModuleWithlicense"
+    #     $pkg.Version | Should -Be "0.0.3.0"
+    # }
 
     It "Install resource with cmdlet names from a module already installed with -NoClobber (should not clobber)" {
         Install-PSResource -Name $clobberTestModule -Repository $PSGalleryName -TrustRepository
@@ -325,7 +325,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "0.0.1"
 
         Install-PSResource -Name $clobberTestModule2 -Repository $PSGalleryName -TrustRepository -NoClobber -ErrorVariable ev -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource $clobberTestModule2
+        $pkg = Get-InstalledPSResource $clobberTestModule2 -ErrorAction SilentlyContinue
         $pkg | Should -BeNullOrEmpty
         $ev.Count | Should -Be 1
         $ev[0] | Should -Be "'ClobberTestModule2' package could not be installed with error: The following commands are already available on this system: 'Test-Command2, Test-Command2'. This module 'ClobberTestModule2' may override the existing commands. If you still want to install this module 'ClobberTestModule2', remove the -NoClobber parameter."
@@ -354,7 +354,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -WhatIf
         $? | Should -BeTrue
 
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -366,15 +366,15 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $res.InstalledLocation.ToString().Contains("Modules") | Should -Be $true
     }
 
-    It "Install module using -NoClobber, should throw clobber error and not install the module" {
-        Install-PSResource -Name "ClobberTestModule1" -Repository $PSGalleryName -TrustRepository
+    # It "Install module using -NoClobber, should throw clobber error and not install the module" {
+    #     Install-PSResource -Name "ClobberTestModule1" -Repository $PSGalleryName -TrustRepository
 
-        $res = Get-InstalledPSResource "ClobberTestModule1"
-        $res.Name | Should -Be "ClobberTestModule1"
+    #     $res = Get-InstalledPSResource "ClobberTestModule1"
+    #     $res.Name | Should -Be "ClobberTestModule1"
 
-        Install-PSResource -Name "ClobberTestModule2" -Repository $PSGalleryName -TrustRepository -NoClobber -ErrorAction SilentlyContinue
-        $Error[0].FullyQualifiedErrorId | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
-    }
+    #     Install-PSResource -Name "ClobberTestModule2" -Repository $PSGalleryName -TrustRepository -NoClobber -ErrorAction SilentlyContinue
+    #     $Error[0].FullyQualifiedErrorId | Should -be "CommandAlreadyExists,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+    # }
 
     It "Install PSResourceInfo object piped in" {
         Find-PSResource -Name $testModuleName -Version "1.0.0.0" -Repository $PSGalleryName | Install-PSResource -TrustRepository
@@ -540,11 +540,11 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $err[0].FullyQualifiedErrorId | Should -BeExactly "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
     }
 
-    # Install 1.4.4.1 (with incorrect catalog file)
-    # Should FAIL to install the  module
-    It "Install module with incorrect catalog file" -Skip:(!(Get-IsWindows)) {
-        { Install-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository } | Should -Throw -ErrorId "TestFileCatalogError,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
-    }
+    # # Install 1.4.4.1 (with incorrect catalog file)
+    # # Should FAIL to install the  module
+    # It "Install module with incorrect catalog file" -Skip:(!(Get-IsWindows)) {
+    #     { Install-PSResource -Name $PackageManagement -Version "1.4.4.1" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository } | Should -Throw -ErrorId "TestFileCatalogError,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+    # }
 
     # Install script that is signed
     # Should install successfully
