@@ -5,7 +5,7 @@ parameters:
   powershellExecutable: pwsh
   buildDirectory: '.'
   useAzAuth: false
-  DSCVersion: '3.2.0-preview.14'
+  DSCVersion: '3.2.0-rc.1'
 
 jobs:
 - job: ${{ parameters.jobName }}
