@@ -1069,12 +1069,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     pkgName,
                     tempDirNameVersion,
                     _cmdletPassedIn,
-                    out string warning,
-                    out error))
+                    errorMsgs,
+                    warningMsgs))
                 {
-                    Utils.EnqueueIfNotNull(warningMsgs, warning);
-                    Utils.EnqueueIfNotNull(errorMsgs, error);
-
                     return false;
                 }
 

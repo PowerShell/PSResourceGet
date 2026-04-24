@@ -128,7 +128,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
 
     It "find multiple resources from all repositories where it exists where package Name contains wildcard (without -Repository specified)" {
         $res = Find-PSResource -Name "test_module*" -ErrorVariable err -ErrorAction SilentlyContinue
-        $res | Should -HaveCount 11
+        $res | Should -HaveCount 12
         $err | Should -HaveCount 0
 
         $pkgFoundinLocalRepo = $false

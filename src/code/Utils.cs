@@ -2329,16 +2329,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             string pkgName,
             string tempDirNameVersion,
             PSCmdlet cmdletPassedIn,
-            out string warning,
-            out ErrorRecord errorRecord)
+            ConcurrentQueue<ErrorRecord> errorMsgs,
+            ConcurrentQueue<string> warningMsgs)
         {
-            warning = string.Empty;
-            errorRecord = null;
-
             // Because authenticode and catalog verifications are only applicable on Windows, we allow all packages by default to be installed on unix systems.
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                warning = "Authenticode check cannot be performed on Linux or MacOS.";
+                warningMsgs.Enqueue("Authenticode check cannot be performed on Linux or MacOS.");
                 return true;
             }
 
@@ -2360,11 +2357,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
             catch (Exception e)
             {
-                errorRecord = new ErrorRecord(
+                errorMsgs.Enqueue(new ErrorRecord(
                     new ArgumentException(e.Message),
                     "GetAuthenticodeSignatureError",
                     ErrorCategory.InvalidResult,
-                    cmdletPassedIn);
+                    cmdletPassedIn));
 
                 return false;
             }
@@ -2375,11 +2372,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 Signature signature = (Signature)signatureObject.BaseObject;
                 if (!signature.Status.Equals(SignatureStatus.Valid))
                 {
-                    errorRecord = new ErrorRecord(
+                    errorMsgs.Enqueue(new ErrorRecord(
                         new ArgumentException($"The signature status for '{pkgName}' file '{Path.GetFileName(signature.Path)}' is '{signature.Status}'. Status message: '{signature.StatusMessage}'"),
                         "GetAuthenticodeSignatureError",
                         ErrorCategory.InvalidResult,
-                        cmdletPassedIn);
+                        cmdletPassedIn));
 
                     return false;
                 }
