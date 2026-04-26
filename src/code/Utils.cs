@@ -2333,7 +2333,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             ConcurrentQueue<string> warningMsgs)
         {
             // Because authenticode and catalog verifications are only applicable on Windows, we allow all packages by default to be installed on unix systems.
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 warningMsgs.Enqueue("Authenticode check cannot be performed on Linux or MacOS.");
                 return true;
