@@ -156,7 +156,7 @@ Describe 'Test HTTP Save-PSResource for V3 Server Protocol' -tags 'CI' {
     }
 
     It "Save module and its dependencies" {
-        $res = Save-PSResource 'TestModuleWithDependencyE' -Repository $NuGetGalleryName -TrustRepository -PassThru -Confirm:$false -Debug -Verbose
+        $res = Save-PSResource 'TestModuleWithDependencyE' -Repository $NuGetGalleryName -TrustRepository -PassThru
         $res.Length | Should -Be 4
     }
 

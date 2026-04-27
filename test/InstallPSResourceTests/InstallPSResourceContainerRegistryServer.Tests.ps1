@@ -1,6 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# Note: when running tests locally set $env:USINGAZAUTH = $true to use AzAuth for authentication to ACR
+# otherwise tests will use SecretStore and require environment variable TENANTID to be set to the tenant of the ACR. 
+# For CI, AzAuth is used for authentication.
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
@@ -110,7 +113,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     It "Install resource where version specified is a prerelease version" {
         # the resource has version "1.0", but querying with any equivalent version should work
-        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.5-alpha" -Prerelease -Repository $ACRRepoName -TrustRepository -Verbose -Debug
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.5-alpha" -Prerelease -Repository $ACRRepoName -TrustRepository
         $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
         $res | Should -Not -BeNullOrEmpty
         $res.Version | Should -Be "1.5"

@@ -116,8 +116,7 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
     }
 
     It "Install resource when given Name, Version '*', should install the latest version" {
-        $DebugPreference = 'Continue'
-        Install-PSResource -Name $testModuleName -Version "*" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -Verbose -Debug
+        Install-PSResource -Name $testModuleName -Version "*" -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository
         $pkg = Get-InstalledPSResource $testModuleName
         $pkg.Name | Should -Be $testModuleName
         $pkg.Version | Should -Be "5.0.0"
