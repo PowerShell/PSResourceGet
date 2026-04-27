@@ -353,6 +353,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res | Should -HaveCount 2
     }
 
+    # Hits Lucene indexing issue
     It "find resource given CommandName" {
         $res = Find-PSResource -CommandName $commandName -Repository $PSGalleryName
         $res | Should -Not -BeNullOrEmpty
@@ -362,6 +363,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         }
     }
 
+    # Hits Lucene indexing issue
     It "find resource given DscResourceName" {
         $res = Find-PSResource -DscResourceName $dscResourceName -Repository $PSGalleryName
         $res | Should -Not -BeNullOrEmpty
