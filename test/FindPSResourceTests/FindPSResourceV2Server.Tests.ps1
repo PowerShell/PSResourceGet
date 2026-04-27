@@ -111,6 +111,11 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
     }
 
     It "find resource given CommandName" {
+        $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName -Type Module
+        $res.Name | Should -Be $testModuleName
+    }
+
+    It "find resource given CommandName" {
         $res = Find-PSResource -CommandName $commandName -Repository $PSGalleryName
         $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
@@ -470,11 +475,8 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidat
     AfterAll {
         Get-RevertPSResourceRepositoryFile
     }
-    It "find resource given CommandName" {
-        $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName -Type Module
 
-        $res.Name | Should -Be $testModuleName
-    }
+
 
     It "find should not duplicate dependencies found" {
         $res = Find-PSResource -Name "Az" -IncludeDependencies -Repository $PSGalleryName
