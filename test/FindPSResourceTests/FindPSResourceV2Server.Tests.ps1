@@ -110,6 +110,33 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $resWithPrerelease.Count | Should -BeGreaterOrEqual $resWithoutPrerelease.Count
     }
 
+    It "find resource given CommandName" {
+        $res = Find-PSResource -CommandName $commandName -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
+        foreach ($item in $res) {
+            $item.Names | Should -Be $commandName
+            $item.ParentResource.Includes.Command | Should -Contain $commandName
+        }
+    }
+    
+    It "find resource given DscResourceName" {
+        $res = Find-PSResource -DscResourceName $dscResourceName -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
+        foreach ($item in $res) {
+            $item.Names | Should -Be $dscResourceName
+            $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
+        }
+    }
+
+    It "find all resources with specified tag given Tag property, with and without Prerelease property" {
+        $tagToFind = "MyPSTag"
+        $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName
+        $res | Should -HaveCount 1
+
+        $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName -Prerelease
+        $res | Should -HaveCount 2
+    }
+
     It "find resource and its dependency resources with IncludeDependencies parameter" {
         # FindName() with deps
         $resWithoutDependencies = Find-PSResource -Name "TestModuleWithDependencyE" -Repository $PSGalleryName

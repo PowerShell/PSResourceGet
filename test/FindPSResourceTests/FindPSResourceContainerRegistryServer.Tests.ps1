@@ -281,6 +281,18 @@ Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
         Unregister-PSResourceRepository -Name "MAR"
     }
 
+    It "Should find resource with wildcard in Name" {
+        $res = Find-PSResource -Name "Az.App*" -Repository "MAR"
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterThan 1
+    }
+    
+    It "Should find all resource with wildcard in Name" {
+        $res = Find-PSResource -Name "*" -Repository "MAR"
+        $res | Should -Not -BeNullOrEmpty
+        $res.Count | Should -BeGreaterThan 1
+    }
+
     It "Should find resource given specific Name, Version null" {
         $res = Find-PSResource -Name "Az.Accounts" -Repository "MAR"
         $res.Name | Should -Be "Az.Accounts"
