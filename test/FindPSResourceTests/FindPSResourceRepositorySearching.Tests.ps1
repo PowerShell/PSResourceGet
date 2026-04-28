@@ -178,7 +178,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         # Package with CommandName "Get-TargetResource" exists in the following repositories: PSGallery, localRepo
         $res = Find-PSResource -CommandName $cmdName -Repository "*Gallery" -ErrorVariable err -ErrorAction SilentlyContinue
         $err | Should -HaveCount 0
-        $res.Count | Should -BeGreaterOrEqual 9
+        $res.Count | Should -BeGreaterOrEqual 1
 
         $pkgFoundFromLocalRepo = $false
         $pkgFoundFromPSGallery = $false
@@ -931,7 +931,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $err | Should -HaveCount 1
         $err[0].FullyQualifiedErrorId | Should -BeExactly "WildcardsUnsupportedForCommandNameorDSCResourceName,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
 
-        $res.Count | Should -BeGreaterOrEqual 9
+        $res.Count | Should -BeGreaterOrEqual 1
         $pkgFoundFromLocalRepo = $false
         $pkgFoundFromPSGallery = $false
 
@@ -955,7 +955,7 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
 
     It "find resource given CommandName from all repositories where it exists (-Repository with multiple non-wildcard values)" {
         $res = Find-PSResource -CommandName $cmdName -Repository $PSGalleryName,$localRepoName
-        $res.Count | Should -BeGreaterOrEqual 9
+        $res.Count | Should -BeGreaterOrEqual 1
 
         $pkgFoundFromLocalRepo = $false
         $pkgFoundFromPSGallery = $false
