@@ -346,7 +346,7 @@ Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
         }
 
         $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.install.dsc.yaml'
-        & $script:dscExe config set -f $configPath
+        & $script:dscExe -l trace config set -f $configPath
 
         $psresource = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Version '0.0.93'
         $psresource.Name | Should -Be 'testmodule99'
