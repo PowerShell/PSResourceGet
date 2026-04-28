@@ -110,8 +110,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initialScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
-                if (errRecord != null)
+                int initialScriptCount = GetCountFromResponse(initialScriptResponse, out string errStr);
+                if (errStr != null)
                 {
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
@@ -145,8 +145,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initialModuleCount = GetCountFromResponse(initialModuleResponse, out errRecord);
-                if (errRecord != null)
+                int initialModuleCount = GetCountFromResponse(initialModuleResponse, out string errStr);
+                if (errStr != null)
                 {
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
@@ -197,8 +197,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initialScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
-                if (errRecord != null)
+                int initialScriptCount = GetCountFromResponse(initialScriptResponse, out string errStr);
+                if (errStr != null)
                 {
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
@@ -233,8 +233,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initialModuleCount = GetCountFromResponse(initialModuleResponse, out errRecord);
-                if (errRecord != null)
+                int initialModuleCount = GetCountFromResponse(initialModuleResponse, out string errStr);
+                if (errStr != null)
                 {
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
@@ -287,8 +287,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int initialCount = GetCountFromResponse(initialResponse, out errRecord);
-            if (errRecord != null)
+            int initialCount = GetCountFromResponse(initialResponse, out string errStr);
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -379,8 +379,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int count = GetCountFromResponse(response, out errRecord);
-            if (errRecord != null)
+            int count = GetCountFromResponse(response, out string errStr);
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -477,10 +477,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            int count = GetCountFromResponse(response, out ErrorRecord errRecord);
-            if (errRecord != null)
+            int count = GetCountFromResponse(response, out string errStr);
+            if (errStr != null)
             {
-                Utils.EnqueueIfNotNull(errorMsgs, errRecord);
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}': {errStr}"),
+                    "PackageNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
             else if (count == 0)
             {
@@ -539,8 +543,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int count = GetCountFromResponse(response, out errRecord);
-            if (errRecord != null)
+            int count = GetCountFromResponse(response, out string errStr);
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -581,8 +585,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             responses.Add(initialResponse);
 
             // check count (regex)  425 ==> count/100  ~~>  4 calls
-            int initialCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
-            if (errRecord != null)
+            int initialCount = GetCountFromResponse(initialResponse, out string errStr);  // count = 4
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -634,8 +638,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             responses.Add(initialResponse);
 
             // check count (regex)  425 ==> count/100  ~~>  4 calls
-            int initialCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
-            if (errRecord != null)
+            int initialCount = GetCountFromResponse(initialResponse, out string errStr);  // count = 4
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -686,8 +690,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int initialCount = GetCountFromResponse(initialResponse, out errRecord);
-            if (errRecord != null)
+            int initialCount = GetCountFromResponse(initialResponse, out string errStr);
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -782,10 +786,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int count = GetCountFromResponse(response, out errRecord);
+            int count = GetCountFromResponse(response, out string errStr);
             _cmdletPassedIn.WriteDebug($"Count from response is '{count}'");
 
-            if (errRecord != null)
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -871,13 +875,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            int count = GetCountFromResponse(response, out ErrorRecord errRecord);
-            if (errRecord != null)
+            int count = GetCountFromResponse(response, out string errStr);
+            if (errStr != null)
             {
                 errorMsgs.Enqueue(new ErrorRecord(
-                    new Exception($"Error retrieving count from response for package '{packageName}' from repository '{Repository.Name}'.", errRecord.Exception),
-                    "GetCountFromResponseFailure",
-                    ErrorCategory.InvalidData,
+                    new ResourceNotFoundException($"Package with name '{packageName}', version '{version}' could not be found in repository '{Repository.Name}': {errStr}"),
+                    "PackageNotFound",
+                    ErrorCategory.ObjectNotFound,
                     this));
             }
 
@@ -933,10 +937,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int count = GetCountFromResponse(response, out errRecord);
+            int count = GetCountFromResponse(response, out string errStr);
             _cmdletPassedIn.WriteDebug($"Count from response is '{count}'");
 
-            if (errRecord != null)
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -1714,10 +1718,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var initialResponse = await FindVersionGlobbingAsync(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
-            int initialCount = GetCountFromResponse(initialResponse, out ErrorRecord errRecord);
-            if (errRecord != null)
+            int initialCount = GetCountFromResponse(initialResponse, out string errStr);
+            if (errStr != null)
             {
-                Utils.EnqueueIfNotNull(errorMsgs, errRecord);
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}' and version range '{versionRange.ToString()}' could not be found in repository '{Repository.Name}': {errStr}"), 
+                    "PackageNotFound", 
+                    ErrorCategory.ObjectNotFound, 
+                    this));
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
@@ -1738,7 +1746,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // skip 100
                     skip += 100;
                     // TODO: this should be an async method
-                    var tmpResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, out errRecord);
+                    var tmpResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, out ErrorRecord errRecord);
                     if (errRecord != null)
                     {
                         Utils.EnqueueIfNotNull(errorMsgs, errRecord);
@@ -1959,9 +1967,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Helper method that makes gets 'count' property from http response string.
         /// The count property is used to determine the number of total results found (for pagination).
         /// </summary>
-        public int GetCountFromResponse(string httpResponse, out ErrorRecord errRecord)
+        public int GetCountFromResponse(string httpResponse, out string errStr)
         {
-            errRecord = null;
+            errStr = null;
             int count = 0;
 
             //Create the XmlDocument.
@@ -1980,11 +1988,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (node == null || String.IsNullOrWhiteSpace(node.InnerText))
                     {
                         countSearchSucceeded = false;
-                        errRecord = new ErrorRecord(
-                            new PSArgumentException("Count property from server response was empty, invalid or not present."),
-                            "GetCountFromResponseFailure",
-                            ErrorCategory.InvalidData,
-                            this);
+                        errStr = "Count property from server response was empty, invalid or not present.";
                     }
                     else
                     {
@@ -1999,25 +2003,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (elemList.Count > 0)
                     {
                         count = elemList.Count;
-                        errRecord = null;
                     }
                     else
                     {
-                        errRecord = new ErrorRecord(
-                            new PSArgumentException("Property 'count' and 'd:Id' could not be found in response. This may indicate that the package could not be found"),
-                            "GetCountFromResponseFailure",
-                            ErrorCategory.InvalidData,
-                            this);
+                        errStr = "Property 'count' and 'd:Id' could not be found in response. This may indicate that the package could not be found";
                     }
                 }
             }
             catch (XmlException e)
             {
-                errRecord = new ErrorRecord(
-                    exception: e,
-                    "GetCountFromResponse",
-                    ErrorCategory.InvalidData,
-                    this);
+                errStr = $"XML Exception occurred while parsing server response: {e.Message}";
             }
 
             return count;
