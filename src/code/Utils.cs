@@ -1263,14 +1263,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 pathsToSearch: pathsToSearch,
                 selectPrereleaseOnly: false))
             {
-                // if (string.Equals(installedPkg.Name, "test_module", StringComparison.OrdinalIgnoreCase))
-                // {
-                //     // get normalized version now
-                //     string pkgNameVersionnew = String.Format("{0}{1}", installedPkg.Name, Utils.GetNormalizedVersionString(installedPkg.AdditionalMetadata["NormalizedVersion"], installedPkg.Prerelease));
-                //     tempbool = true;
-                // }
-                
-                // normalize version here instead of using installedPkg.Version.ToString()
                 string pkgNameVersion = String.Format("{0}{1}", installedPkg.Name, Utils.GetThreeDigitNormalizedVersionString(installedPkg.Version.ToString(), installedPkg.Prerelease));
                 if (!pkgsInstalledOnMachine.Contains(pkgNameVersion))
                 {

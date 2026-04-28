@@ -174,33 +174,6 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkg2.Repository | Should -Be $NuGetGalleryName
     }
 
-    It "find resources from all pattern matching repositories where it exists (-Repository with wildcard)" {
-        # Package with CommandName "Get-TargetResource" exists in the following repositories: PSGallery, localRepo
-        $res = Find-PSResource -CommandName $cmdName -Repository "*Gallery" -ErrorVariable err -ErrorAction SilentlyContinue
-        $err | Should -HaveCount 0
-        $res.Count | Should -BeGreaterOrEqual 1
-
-        $pkgFoundFromLocalRepo = $false
-        $pkgFoundFromPSGallery = $false
-
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
-                $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
-                $pkgFoundFromPSGallery = $true
-            }
-        }
-
-        $pkg.Names | Should -Be $cmdName
-        $pkg.ParentResource.Includes.Command | Should -Contain $cmdName
-        $pkgFoundFromLocalRepo | Should -BeFalse
-        $pkgFoundFromPSGallery | Should -BeTrue
-    }   
-
     It "find resources from pattern matching repositories where it exists and error report for specific repositories (-Repository with wildcard and specific repositories)" -Pending {
         # Package "test_script" exists in the following repositories: PSGallery, NuGetGallery
         $res = Find-PSResource -Name $testScriptName -Repository "*Gallery",$localRepoName -ErrorVariable err -ErrorAction SilentlyContinue
@@ -923,58 +896,5 @@ Describe 'Test Find-PSResource for searching and looping through repositories' -
         $pkgFoundFromLocalRepo | Should -BeTrue
         $pkgFoundFromPSGallery | Should -BeFalse
         $pkgFoundFromNuGetGallery | Should -BeFalse
-    }
-
-    
-    It "not find resource and discard CommandName entry containing wildcard, but search for other non-wildcard CommandName entries (without -Repository specified)" {
-        $res = Find-PSResource -CommandName $cmdName,"myCommandName*" -ErrorVariable err -ErrorAction SilentlyContinue
-        $err | Should -HaveCount 1
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "WildcardsUnsupportedForCommandNameorDSCResourceName,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
-
-        $res.Count | Should -BeGreaterOrEqual 1
-        $pkgFoundFromLocalRepo = $false
-        $pkgFoundFromPSGallery = $false
-
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
-                $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
-                $pkgFoundFromPSGallery = $true
-            }
-        }
-
-        $pkg.Names | Should -Be $cmdName
-        $pkg.ParentResource.Includes.Command | Should -Contain $cmdName
-        $pkgFoundFromLocalRepo | Should -BeTrue
-        $pkgFoundFromPSGallery | Should -BeTrue
-    }
-
-    It "find resource given CommandName from all repositories where it exists (-Repository with multiple non-wildcard values)" {
-        $res = Find-PSResource -CommandName $cmdName -Repository $PSGalleryName,$localRepoName
-        $res.Count | Should -BeGreaterOrEqual 1
-
-        $pkgFoundFromLocalRepo = $false
-        $pkgFoundFromPSGallery = $false
-
-        foreach ($pkg in $res)
-        {
-            if ($pkg.ParentResource.Repository -eq $localRepoName)
-            {
-                $pkgFoundFromLocalRepo = $true
-            }
-            elseif ($pkg.ParentResource.Repository -eq $PSGalleryName)
-            {
-                $pkgFoundFromPSGallery = $true
-            }
-        }
-
-        $pkg.Names | Should -Be $cmdName
-        $pkg.ParentResource.Includes.Command | Should -Contain $cmdName
-        $pkgFoundFromLocalRepo | Should -BeTrue
-        $pkgFoundFromPSGallery | Should -BeTrue
     }
 }

@@ -599,18 +599,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             // Add each pkg to _packagesOnMachine (ie pkgs fully installed on the machine).
                             _packagesOnMachine.Add($"{pkgName}{pkgInfo["pkgVersion"]}");
-
-                            // PSResourceInfo psResourceInfoPkg = pkgInfo["psResourceInfoPkg"] as PSResourceInfo;
-                            // psResourceInfoPkg.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
-                            // if (pkgVersion == null)
-                            // {
-                            //     // Not all NuGet providers (e.g. Artifactory, possibly others) send NormalizedVersion in NuGet package responses.
-                            //     // If they don't, we need to manually construct the combined version+prerelease from pkgToInstall.Version and the prerelease string.
-                            //     // Get three digit normalized version
-                            //     pkgVersion = Utils.GetThreeDigitNormalizedVersionString(psResourceInfoPkg.Version.ToString(), psResourceInfoPkg.Prerelease);
-                            // }
-                            
-                            //_packagesOnMachine.Add($"{pkgName}{pkgVersion}");
                         }
                     }
                 }
@@ -783,47 +771,40 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
   
             // -WhatIf processing.
             // TODO:: 
-            // if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
-            // {
-
-
-            //     if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
-            //     {
-                    
-            //         _cmdletPassedIn.WriteDebug($"BeginPackageInstall() - line 784");
-            //         updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
-            //         {
-            //             { "isModule", "" },
-            //             { "isScript", "" },
-            //             { "psResourceInfoPkg", pkgToInstall },
-            //             { "tempDirNameVersionPath", tempInstallPath },
-            //             { "pkgVersion", "" },
-            //             { "scriptPath", ""  },
-            //             { "installPath", "" }
-            //         });
-            //     }
-            // }
-            // else if (!_cmdletPassedIn.ShouldProcess($"Package to install: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
-            // {
-              
-
-
-            //     if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
-            //     {
-            //         updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
-            //         {
-            //             { "isModule", "" },
-            //             { "isScript", "" },
-            //             { "psResourceInfoPkg", pkgToInstall },
-            //             { "tempDirNameVersionPath", tempInstallPath },
-            //             { "pkgVersion", "" },
-            //             { "scriptPath", ""  },
-            //             { "installPath", "" }
-            //         });
-            //     }
-            // }
-            //else
-            //{
+            if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
+            {
+                if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
+                {                    
+                    updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    {
+                        { "isModule", "" },
+                        { "isScript", "" },
+                        { "psResourceInfoPkg", pkgToInstall },
+                        { "tempDirNameVersionPath", tempInstallPath },
+                        { "pkgVersion", "" },
+                        { "scriptPath", ""  },
+                        { "installPath", "" }
+                    });
+                }
+            }
+            else if (!_cmdletPassedIn.ShouldProcess($"Package to install: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
+            {
+                if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
+                {
+                    updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                    {
+                        { "isModule", "" },
+                        { "isScript", "" },
+                        { "psResourceInfoPkg", pkgToInstall },
+                        { "tempDirNameVersionPath", tempInstallPath },
+                        { "pkgVersion", "" },
+                        { "scriptPath", ""  },
+                        { "installPath", "" }
+                    });
+                }
+            }
+            else
+            {
                 // Concurrent updates, currently only implemented for v2 server repositories
                 // Find all dependencies
                 if (!skipDependencyCheck)
@@ -860,7 +841,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return packagesHash;
                     }
                 }
-            //}
+            }
 
             return updatedPackagesHash;
         }
@@ -901,8 +882,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
                         bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs) :
                             TryInstallToTempPath(responseStream, tempInstallPath, depPkgName, depPkgVersion, depPkg, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
-
-                        //Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
                         if (!installedToTempPathSuccessfully)
                         {
@@ -1149,7 +1128,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // This package is not a PowerShell package (eg a resource from the NuGet Gallery).
                     installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
 
-                        // TODO:: _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
+                        // TODO: pass in ConcurrentQueue to write out verbose message.
+                        // _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
                         isModule = true;
                 }
 
@@ -1507,6 +1487,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool DetectClobber(string pkgName, Hashtable parsedMetadataHashtable, out ErrorRecord error)
         {
+            // TODO: pass in ConcurrentQueue to write out debug message.
             //_cmdletPassedIn.WriteDebug("In InstallHelper::DetectClobber()");
             error = null;
             bool foundClobber = false;
@@ -1600,6 +1581,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private void DeleteExtraneousFiles(string packageName, string dirNameVersion)
         {
+            // TODO: pass in ConcurrentQueue to write out debug message.
            // _cmdletPassedIn.WriteDebug("In InstallHelper::DeleteExtraneousFiles()");
             // Deleting .nupkg SHA file, .nuspec, and .nupkg after unpacking the module
             // since we download as .zip for HTTP calls, we shouldn't have .nupkg* files

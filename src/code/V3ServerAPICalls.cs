@@ -328,7 +328,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallPackage()");  // TODO: is this a problem?
+            // TODO: pass in ConcurrentQueue to write out debug message.
+            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallPackage()");
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
             {
@@ -601,7 +602,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
-            
             return new FindResults(stringResponse: new string[] { latestVersionResponse }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
@@ -731,8 +731,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
-            // gets called from inside concurrency
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallVersion()"); // TODO: is this a problem?
+            // TODO: pass in ConcurrentQueue to write out debug message.
+            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallVersion()");
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
                 errRecord = new ErrorRecord(
@@ -753,7 +753,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Stream InstallHelper(string packageName, NuGetVersion version, out ErrorRecord errRecord)
         {
-            // gets called from concurrency
+            // TODO: pass in ConcurrentQueue to write out debug message.
             //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallHelper()");
             Stream pkgStream = null;
             bool getLatestVersion = true;
@@ -837,7 +837,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string[] GetVersionedPackageEntriesFromRegistrationsResource(string packageName, string propertyName, bool isSearch, out ErrorRecord errRecord)
         {
-            // gets called from concurrency
+            // TODO: pass in ConcurrentQueue to write out debug message.
             //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedPackageEntriesFromRegistrationsResource()");
             string[] responses = Utils.EmptyStrArray;
             Dictionary<string, string> resources = GetResourcesFromServiceIndex(out errRecord);
@@ -909,7 +909,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Dictionary<string, string> GetResourcesFromServiceIndex(out ErrorRecord errRecord)
         {
-            // gets called from concurrency
+            // TODO: pass in ConcurrentQueue to write out debug message.
             //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetResourcesFromServiceIndex()");
             Dictionary<string, string> resources = new Dictionary<string, string>();
             JsonElement[] resourcesArray = GetJsonElementArr($"{Repository.Uri}", resourcesName, out int totalHits, out errRecord);
@@ -970,6 +970,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string FindRegistrationsBaseUrl(Dictionary<string, string> resources, out ErrorRecord errRecord)
         {
+            // TODO: pass in ConcurrentQueue to write out debug message.
             //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindRegistrationsBaseUrl()");
             errRecord = null;
             string registrationsBaseUrl = String.Empty;
@@ -1128,6 +1129,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private JsonElement[] GetMetadataElementFromItemsElement(JsonElement itemsElement, string packageName, out ErrorRecord errRecord)
         {
+            // TODO: pass in ConcurrentQueue to write out debug message.
             //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetMetadataElementFromItemsElement()");
             errRecord = null;
             List<JsonElement> innerItemsList = new List<JsonElement>();
@@ -1160,6 +1162,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string[] GetMetadataElementsFromResponse(string response, string property, string packageName, out string upperVersion, out ErrorRecord errRecord)
         {
+            // TODO: pass in ConcurrentQueue to write out debug message.
             //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetMetadataElementsFromResponse()");
             errRecord = null;
             upperVersion = String.Empty;
@@ -1206,6 +1209,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             }
                             else
                             {
+                               // TODO: pass in ConcurrentQueue to write out debug message.
                                // _cmdletPassedIn.WriteDebug($"Package with name '{packageName}' did not have 'upper' property so package versions may not be in descending order.");
                             }
 
@@ -1292,6 +1296,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         private string[] GetVersionedResponsesFromRegistrationsResource(string registrationsBaseUrl, string packageName, string property, bool isSearch, out ErrorRecord errRecord)
         {
+            // TODO: pass in ConcurrentQueue to write out debug message.
             //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedResponsesFromRegistrationsResource()");
             List<string> versionedResponses = new List<string>();
             var requestPkgMapping = registrationsBaseUrl.EndsWith("/") ? $"{registrationsBaseUrl}{packageName.ToLower()}/index.json" : $"{registrationsBaseUrl}/{packageName.ToLower()}/index.json";
@@ -1340,8 +1345,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedResponse() - Exiting");
-
             return versionedResponseArr;
         }
 
@@ -1362,14 +1365,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return latestVersionFirst;
             }
 
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForSearch() - 2");
-
             string firstResponse = versionedResponses[0];
             string lastResponse = versionedResponses[versionResponsesCount - 1];
             NuGetVersion firstPkgVersion;
             NuGetVersion lastPkgVersion;
-
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForSearch() - 3");
 
             try
             {
@@ -1400,8 +1399,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return latestVersionFirst;
                     }
                 }
-                
-                _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForSearch() - 4");
 
                 using (JsonDocument lastResponseJson = JsonDocument.Parse(lastResponse))
                 {
@@ -1431,8 +1428,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                 }
 
-                _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForSearch() - 5");
-
                 if (firstPkgVersion < lastPkgVersion)
                 {
                     latestVersionFirst = false;
@@ -1459,6 +1454,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool IsLatestVersionFirstForInstall(string[] versionedResponses, string upperVersion, out ErrorRecord errRecord)
         {
+            // TODO: pass in ConcurrentQueue to write out debug message.
             //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForInstall()");
             errRecord = null;
             bool latestVersionFirst = true;
@@ -1595,12 +1591,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string HttpRequestCall(string requestUrlV3, out ErrorRecord errRecord)
         {
+            // TODO: pass in ConcurrentQueue to write out debug message.
             //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::HttpRequestCall()");
             errRecord = null;
             string response = string.Empty;
 
             try
             {
+                // TODO: pass in ConcurrentQueue to write out debug message.
                 //_cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV3}'");
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
 
@@ -1647,12 +1645,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private HttpContent HttpRequestCallForContent(string requestUrlV3, out ErrorRecord errRecord)
         {
+            // TODO: pass in ConcurrentQueue to write out debug message.
             //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::HttpRequestCallForContent()");
             errRecord = null;
             HttpContent content = null;
             try
             {
-               // _cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV3}'");
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
 
                 content = SendV3RequestForContentAsync(request, _sessionClient).GetAwaiter().GetResult();
@@ -1670,10 +1668,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (string.IsNullOrEmpty(content?.ToString()))
             {
+                // TODO: pass in ConcurrentQueue to write out debug message.
                 //_cmdletPassedIn.WriteDebug("Response is empty");
             }
-            
-            //_cmdletPassedIn.WriteDebug($"Returning from HttpRequestCallForContent");
 
             return content;
         }

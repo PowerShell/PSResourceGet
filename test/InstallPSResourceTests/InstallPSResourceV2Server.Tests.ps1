@@ -286,7 +286,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     }
 
     # It "Restore resource after reinstall fails" {
-    #     Install-PSResource -Name $testModuleName -Repository $TestGalleryName -TrustRepository
+    #     Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository
     #     $pkg = Get-InstalledPSResource $testModuleName
     #     $pkg.Name | Should -Contain $testModuleName
     #     $pkg.Version | Should -Contain "5.0.0.0"
@@ -299,7 +299,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
     #     try
     #     {
     #         # Reinstall of resource should fail with one of its files locked.
-    #         Install-PSResource -Name $testModuleName -Repository $TestGalleryName -TrustRepository -Reinstall -ErrorVariable ev -ErrorAction Silent
+    #         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Reinstall -ErrorVariable ev -ErrorAction Silent
     #         $ev.FullyQualifiedErrorId | Should -BeExactly 'InstallPackageFailed,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource'
     #     }
     #     finally
@@ -569,10 +569,8 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
     # Test that AuthenticodeCheck parameter displays warning on non-Windows
     It "Install with AuthenticodeCheck on non-Windows should display warning" -Skip:(Get-IsWindows) {
-        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -AuthenticodeCheck -WarningVariable warn -WarningAction SilentlyContinue -Verbose -Debug
-        Write-Verbose "warning:::: $($warn[0])"
+        Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -AuthenticodeCheck -WarningVariable warn -WarningAction SilentlyContinue
         $warn[0] | Should -Match "Authenticode check cannot be performed on Linux or MacOS"
-        
         $res = Get-InstalledPSResource $testModuleName
         $res.Name | Should -Be $testModuleName
     }
