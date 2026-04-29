@@ -337,6 +337,10 @@ Describe 'E2E tests for Repository resource' -Tags 'CI' {
 Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
     BeforeAll {
         SetupDsc
+
+        ## The installed modules will not be found in the Windows PowerShell module path because DSC will install them in the PowerShell 7 context.
+        ## Therefore, when running these tests on Windows PowerShell, we need to invoke PowerShell 7 explicitly
+        $isOnWindowsPowerShell = $PSVersionTable.PSVersion.Major -lt 6
     }
 
     It 'Can Install testmodule99' {
@@ -348,9 +352,14 @@ Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
         $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.install.dsc.yaml'
         & $script:dscExe -l trace config set -f $configPath
 
-        $psresource = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Version '0.0.93'
-        $psresource.Name | Should -Be 'testmodule99'
-        $psresource.Version | Should -Be '0.0.93'
+        if ($isOnWindowsPowerShell) {
+            $psresource = pwsh -Command "Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Version '0.0.93'"
+        }
+        else {
+            $psresource = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Version '0.0.93'
+        }
+            $psresource.Name | Should -Be 'testmodule99'
+            $psresource.Version | Should -Be '0.0.93'
     }
 
     It 'Can Uninstall testmodule99' {
@@ -359,7 +368,13 @@ Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
         $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.uninstall.dsc.yaml'
         & $script:dscExe config set -f $configPath
 
-        $psresource = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Version '0.0.93'
+        if ($isOnWindowsPowerShell) {
+            $psresource = pwsh -Command "Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Version '0.0.93'"
+        }
+        else {
+            $psresource = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue -Version '0.0.93'
+        }
+
         $psresource | Should -BeNullOrEmpty
     }
 
@@ -386,7 +401,13 @@ Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
         $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.moddeps.install.dsc.yaml'
         & $script:dscExe config set -f $configPath
 
-        $psresource = Get-PSResource -Name $modulelist -ErrorAction SilentlyContinue
+        if ($isOnWindowsPowerShell) {
+            $psresource = pwsh -Command "Get-PSResource -Name $modulelist -ErrorAction SilentlyContinue"
+        }
+        else {
+            $psresource = Get-PSResource -Name $modulelist -ErrorAction SilentlyContinue
+        }
+
         $psresource | Should -HaveCount 5
     }
 
@@ -399,7 +420,13 @@ Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
         $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.prerelease.install.dsc.yaml'
         & $script:dscExe config set -f $configPath
 
-        $psresource = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue
+        if ($isOnWindowsPowerShell) {
+            $psresource = pwsh -Command "Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue"
+        }
+        else {
+            $psresource = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue
+        }
+
         $psresource | Should -HaveCount 2
 
         $psresource | ForEach-Object {
@@ -420,7 +447,13 @@ Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
         $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.oneexisting.install.dsc.yaml'
         & $script:dscExe config set -f $configPath
 
-        $psresource = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue
+        if ($isOnWindowsPowerShell) {
+            $psresource = pwsh -Command "Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue"
+        }
+        else {
+            $psresource = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue
+        }
+
         $psresource | Should -HaveCount 2
 
         $psresource | ForEach-Object {
