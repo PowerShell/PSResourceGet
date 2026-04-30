@@ -95,7 +95,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             if (repoName.Equals("MAR", StringComparison.OrdinalIgnoreCase))
             {
-                errorMsg = "Cannot register MAR with -Name parameter. The MAR repository is automatically registered. Try: Reset-PSResourceRepository to restore default repositories.";
+                errorMsg = "Cannot register MAR with -Name parameter. Try: Register-PSResourceRepository -MicrosoftArtifactRegistry.";
                 return null;
             }
 

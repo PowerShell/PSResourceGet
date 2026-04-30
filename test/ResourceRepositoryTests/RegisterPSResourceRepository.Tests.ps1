@@ -85,6 +85,15 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $res.Priority | Should -Be 50
     }
 
+    It "register repository with MicrosoftArtifactRegistry parameter (MicrosoftArtifactRegistryParameterSet)" {
+        Unregister-PSResourceRepository -Name $MARName
+        $res = Register-PSResourceRepository -MicrosoftArtifactRegistry -PassThru
+        $res.Name | Should -Be $MARName
+        $res.Uri | Should -Be $MARUri
+        $res.Trusted | Should -Be True
+        $res.Priority | Should -Be 40
+    }
+
     It "register repository with PSGallery switch parameter value of false (PSGalleryParameterSet)" {
         Unregister-PSResourceRepository -Name $PSGalleryName
         $res = Register-PSResourceRepository -PSGallery:$false -PassThru
@@ -412,7 +421,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
 
     It "should throw error when trying to register repository with ApiVersion unknown" {
         {Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -ApiVersion "unknown" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
-        
+
         # Verify the repository was not created
         $repo = Get-PSResourceRepository $TestRepoName1 -ErrorAction SilentlyContinue
         $repo | Should -BeNullOrEmpty
