@@ -363,7 +363,7 @@ Describe 'Test Install-PSResource for MAR Repository' -tags 'CI' {
         try {
             $pkg = Install-PSResource -Name "Az.Accounts" -Repository "MAR" -PassThru -TrustRepository -Reinstall
             $pkg.Name | Should -Be "Az.Accounts"
-            $pkg.Version.Major | Should -BeGreaterThanOrEqualTo "5"
+            $pkg.Version.Major | Should -BeGreaterOrEqual 5
 
         }
         finally {
