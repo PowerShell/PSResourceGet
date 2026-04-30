@@ -19,8 +19,8 @@ $script:IsCoreCLR = $PSVersionTable.ContainsKey('PSEdition') -and $PSVersionTabl
 $script:PSGalleryName = 'PSGallery'
 $script:PSGalleryLocation = 'https://www.powershellgallery.com/api/v2'
 
-$script:MARName = 'MAR'
-$script:MARLocation = 'https://mcr.microsoft.com'
+$script:MARName = 'MicrosoftArtifactRegistry'
+$script:MARLocation = 'https://mcr.microsoft.com/'
 
 $script:NuGetGalleryName = 'NuGetGallery'
 $script:NuGetGalleryLocation = 'https://api.nuget.org/v3/index.json'

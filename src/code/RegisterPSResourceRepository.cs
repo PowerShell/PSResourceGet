@@ -30,10 +30,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private readonly string PSGalleryRepoName = "PSGallery";
         private readonly string MicrosoftArtifactRegistryRepoName = "MicrosoftArtifactRegistry";
-        private readonly string MicrosoftArtifactRegistryRepoUri = "https://artifactregistry.microsoft.com/api/v2";
+        private readonly string MicrosoftArtifactRegistryRepoUri = "https://mcr.microsoft.com";
         private readonly string PSGalleryRepoUri = "https://www.powershellgallery.com/api/v2";
         private const int DefaultPriority = 50;
         private const bool DefaultTrusted = false;
+        private const bool MARDefaultTrusted = true;
+        private const int MARDefaultPriority = 40;
         private const string NameParameterSet = "NameParameterSet";
         private const string PSGalleryParameterSet = "PSGalleryParameterSet";
         private const string RepositoriesParameterSet = "RepositoriesParameterSet";
@@ -97,7 +99,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         [Parameter(ParameterSetName = PSGalleryParameterSet)]
         [Parameter(ParameterSetName = MARParameterSet)]
         [ValidateRange(0, 100)]
-        public int Priority { get; set; } = DefaultPriority;
+        public int Priority { get; set; }
 
         /// <summary>
         /// Specifies the Api version of the repository to be set.
@@ -160,6 +162,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (MyInvocation.BoundParameters.ContainsKey(nameof(ApiVersion)))
             {
                 repoApiVersion = ApiVersion;
+            }
+
+            if (!MyInvocation.BoundParameters.ContainsKey(nameof(Priority)))
+            {
+                if (ParameterSetName.Equals(MARParameterSet, StringComparison.OrdinalIgnoreCase))
+                {
+                    Priority = MARDefaultPriority;
+                }
+                else
+                {
+                    Priority = DefaultPriority;
+                }
             }
 
             PSRepositoryInfo.CredentialProviderType? credentialProvider = _credentialProvider?.CredentialProvider;
@@ -236,7 +250,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         try
                         {
-                            items.Add(MicrosoftArtifactRegistryParameterSetHelper(Priority, Trusted));
+                            bool trustedValue = Trusted.IsPresent ? Trusted : MARDefaultTrusted;
+                            items.Add(MicrosoftArtifactRegistryParameterSetHelper(Priority, trustedValue));
                         }
                         catch (Exception e)
                         {

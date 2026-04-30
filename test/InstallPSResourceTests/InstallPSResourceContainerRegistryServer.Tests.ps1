@@ -359,15 +359,16 @@ Describe 'Test Install-PSResource for MAR Repository' -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    It "Should find resource given specific Name, Version null" {
+    It "Should install resource given specific Name, Version null" {
         try {
             $pkg = Install-PSResource -Name "Az.Accounts" -Repository "MAR" -PassThru -TrustRepository -Reinstall
             $pkg.Name | Should -Be "Az.Accounts"
-            $pkg.Version | Should -Be "3.0.4"
+            $pkg.Version.Major | Should -BeGreaterThanOrEqualTo "5"
+
         }
         finally {
             if ($pkg) {
-                Uninstall-PSResource -Name "Az.Accounts" -Version "3.0.4"
+                Uninstall-PSResource -Name "Az.Accounts" -Version $pkg.Version
             }
         }
     }

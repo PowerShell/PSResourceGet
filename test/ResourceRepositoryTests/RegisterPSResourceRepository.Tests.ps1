@@ -7,6 +7,8 @@ Import-Module $modPath -Force -Verbose
 
 Describe "Test Register-PSResourceRepository" -tags 'CI' {
     BeforeEach {
+        $MARName = Get-MARName
+        $MARUri = Get-MARLocation
         $PSGalleryName = Get-PSGalleryName
         $PSGalleryUri = Get-PSGalleryLocation
         $TestRepoName1 = "testRepository"

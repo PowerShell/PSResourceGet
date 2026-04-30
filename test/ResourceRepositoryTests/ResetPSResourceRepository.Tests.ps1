@@ -7,6 +7,8 @@ Import-Module $modPath -Force -Verbose
 
 Describe "Test Reset-PSResourceRepository" -tags 'CI' {
     BeforeEach {
+        $MARName = Get-MARName
+        $MARUri = Get-MARLocation
         $PSGalleryName = Get-PSGalleryName
         $PSGalleryUri = Get-PSGalleryLocation
         Get-NewPSResourceRepositoryFile
@@ -33,8 +35,8 @@ Describe "Test Reset-PSResourceRepository" -tags 'CI' {
         # Assert: Only PSGallery should exist
         $repos = Get-PSResourceRepository
         $repos.Count | Should -Be 2
-        $repos.Name | Should -Be $PSGalleryName
-        $repos.Uri | Should -Be $PSGalleryUri
+        $repos.Name | ForEach-Object { $_  | Should -BeIn @($PSGalleryName, $MARName) }
+        $repos.Uri | ForEach-Object { $_  | Should -BeIn @($PSGalleryUri, $MARUri) }
     }
 
     It "Reset repository store with PassThru parameter returns PSGallery" {
@@ -57,6 +59,8 @@ Describe "Test Reset-PSResourceRepository" -tags 'CI' {
         # Verify only PSGallery exists
         $repos = Get-PSResourceRepository
         $repos.Count | Should -Be 2
+        $repos.Name | ForEach-Object { $_  | Should -BeIn @($PSGalleryName, $MARName) }
+        $repos.Uri | ForEach-Object { $_  | Should -BeIn @($PSGalleryUri, $MARUri) }
     }
 
     It "Reset repository store should support -WhatIf" {
@@ -96,7 +100,7 @@ Describe "Test Reset-PSResourceRepository" -tags 'CI' {
         # Verify we can now read repositories
         $repos = Get-PSResourceRepository
         $repos.Count | Should -Be 2
-        $repos.Name | Should -Be $PSGalleryName
+        $repos.Name | ForEach-Object { $_  | Should -BeIn @($PSGalleryName, $MARName) }
     }
 
     It "Reset repository store when file doesn't exist should succeed" {
@@ -118,7 +122,7 @@ Describe "Test Reset-PSResourceRepository" -tags 'CI' {
         # Verify PSGallery is registered
         $repos = Get-PSResourceRepository
         $repos.Count | Should -Be 2
-        $repos.Name | Should -Be $PSGalleryName
+        $repos.Name | ForEach-Object { $_  | Should -BeIn @($PSGalleryName, $MARName) }
     }
 
     It "Reset repository store with multiple repositories should only keep PSGallery" {
@@ -144,6 +148,6 @@ Describe "Test Reset-PSResourceRepository" -tags 'CI' {
         # Assert: Only PSGallery should remain
         $reposAfter = Get-PSResourceRepository
         $reposAfter.Count | Should -Be 2
-        $reposAfter.Name | Should -Be $PSGalleryName
+        $reposAfter.Name | ForEach-Object { $_  | Should -BeIn @($PSGalleryName, $MARName) }
     }
 }

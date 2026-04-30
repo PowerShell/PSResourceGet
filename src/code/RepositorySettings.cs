@@ -26,7 +26,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         // The repository store file's location is currently only at '%LOCALAPPDATA%\PSResourceGet' for the user account.
         private const string PSGalleryRepoName = "PSGallery";
         private const string PSGalleryRepoUri = "https://www.powershellgallery.com/api/v2";
-        private const string MARRepoName = "MAR";
+        private const string MARRepoName = "MicrosoftArtifactRegistry";
         private const string MARRepoUri = "https://mcr.microsoft.com";
         private const int DefaultPriority = 50;
         private const int MARDefaultPriority = 40;
@@ -93,7 +93,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return null;
             }
 
-            if (repoName.Equals("MAR", StringComparison.OrdinalIgnoreCase))
+            if (repoName.Equals("MicrosoftArtifactRegistry", StringComparison.OrdinalIgnoreCase))
             {
                 errorMsg = "Cannot register MAR with -Name parameter. Try: Register-PSResourceRepository -MicrosoftArtifactRegistry.";
                 return null;
@@ -202,14 +202,14 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             // check MAR Uri is not trying to be set
-            if (repoName.Equals("MAR", StringComparison.OrdinalIgnoreCase) && repoUri != null)
+            if (repoName.Equals("MicrosoftArtifactRegistry", StringComparison.OrdinalIgnoreCase) && repoUri != null)
             {
                 errorMsg = "The MAR repository has a predefined Uri. Setting the -Uri parameter for this repository is not allowed. Please run 'Reset-PSResourceRepository' to restore default repositories.";
                 return null;
             }
 
             // check MAR CredentialInfo is not trying to be set
-            if (repoName.Equals("MAR", StringComparison.OrdinalIgnoreCase) && repoCredentialInfo != null)
+            if (repoName.Equals("MicrosoftArtifactRegistry", StringComparison.OrdinalIgnoreCase) && repoCredentialInfo != null)
             {
                 errorMsg = "Setting the -CredentialInfo parameter for MAR is not allowed. Run 'Reset-PSResourceRepository' to restore default repositories.";
                 return null;
