@@ -22,7 +22,7 @@ Describe "Test MAR Repository Registration" -tags 'CI' {
             $res = Get-PSResourceRepository -Name $MARName
             $res | Should -Not -BeNullOrEmpty
             $res.Name | Should -Be $MARName
-            $res.Uri | Should -Be "$MARUri/"
+            $res.Uri | Should -Be "$MARUri"
             $res.Trusted | Should -Be True
             $res.Priority | Should -Be 40
             $res.ApiVersion | Should -Be 'ContainerRegistry'
@@ -37,11 +37,11 @@ Describe "Test MAR Repository Registration" -tags 'CI' {
 
     Context "MAR name protection" {
         It "should not allow registering MAR with -Name parameter" {
-            { Register-PSResourceRepository -Name "MAR" -Uri "https://mcr.microsoft.com" -ErrorAction Stop } | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+            { Register-PSResourceRepository -Name $MARName -Uri "https://mcr.microsoft.com" -ErrorAction Stop } | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
         }
 
         It "should not allow registering MAR (case insensitive) with -Name parameter" {
-            { Register-PSResourceRepository -Name "mar" -Uri "https://mcr.microsoft.com" -ErrorAction Stop } | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+            { Register-PSResourceRepository -Name $MARName -Uri "https://mcr.microsoft.com" -ErrorAction Stop } | Should -Throw -ErrorId "ErrorInNameParameterSet,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
         }
 
         It "should not allow registering MAR with -Name parameter in hashtable" {
@@ -81,7 +81,7 @@ Describe "Test MAR Repository Registration" -tags 'CI' {
             $res = Get-PSResourceRepository -Name $MARName
             $res | Should -Not -BeNullOrEmpty
             $res.Name | Should -Be $MARName
-            $res.Uri | Should -Be "$MARUri/"
+            $res.Uri | Should -Be "$MARUri"
             $res.Trusted | Should -Be True
             $res.Priority | Should -Be 40
             $res.ApiVersion | Should -Be 'ContainerRegistry'
@@ -99,7 +99,7 @@ Describe "Test MAR Repository Registration" -tags 'CI' {
             $res = Get-PSResourceRepository -Name $MARName
             $res | Should -Not -BeNullOrEmpty
             $res.Name | Should -Be $MARName
-            $res.Uri | Should -Be "$MARUri/"
+            $res.Uri | Should -Be "$MARUri"
             $res.Trusted | Should -Be True
             $res.Priority | Should -Be 40
         }
