@@ -604,6 +604,6 @@ Describe 'Test Publish-PSResource for MAR Repository' -tags 'CI' {
         $psd1Path = Join-Path -Path $modulePath -ChildPath $fileName
         New-ModuleManifest -Path $psd1Path -ModuleVersion "1.0.0" -Description "NonExistent module"
 
-        { Publish-PSResource -Path $modulePath -Repository "MAR" -ErrorAction Stop } | Should -Throw -ErrorId "MARRepositoryPublishError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        { Publish-PSResource -Path $modulePath -Repository "MicrosoftArtifactRepository" -ErrorAction Stop } | Should -Throw -ErrorId "MARRepositoryPublishError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 }
