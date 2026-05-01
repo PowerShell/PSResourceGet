@@ -7,7 +7,7 @@ Import-Module $modPath -Force -Verbose
 Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 
     BeforeAll {
-        $MARName = Get-MAar
+        $MARName = Get-MarName
         $testModuleName = "test-module"
         $testModuleWith2DigitVersion = "test-2DigitPkg"
         $testModuleParentName = "test_parent_mod"
