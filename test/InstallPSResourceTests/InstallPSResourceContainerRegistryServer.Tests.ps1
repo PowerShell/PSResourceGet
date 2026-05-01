@@ -361,7 +361,7 @@ Describe 'Test Install-PSResource for MAR Repository' -tags 'CI' {
 
     It "Should install resource given specific Name, Version null" {
         try {
-            $pkg = Install-PSResource -Name "Az.Accounts" -Repository 'MicrosoftArtifactRepository' -PassThru -TrustRepository -Reinstall
+            $pkg = Install-PSResource -Name "Az.Accounts" -Repository 'MicrosoftArtifactRegistry' -PassThru -TrustRepository -Reinstall
             $pkg.Name | Should -Be "Az.Accounts"
             $pkg.Version.Major | Should -BeGreaterOrEqual 5
 
