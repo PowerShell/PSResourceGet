@@ -12,6 +12,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
     BeforeAll{
         $localRepo = "psgettestlocal"
         $localUNCRepo = 'psgettestlocal3'
+        $localPrivateRepo = "psgettestlocal5"
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
         $testModuleName3 = "Test_Local_Mod3"
@@ -346,5 +347,23 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         Save-PSResource -Name 'Az.KeyVault' -Version '6.3.1' -Repository $PSGalleryName -AsNupkg -Path $localRepoUriAddress -TrustRepository
         $res = Find-PSResource -Name 'Az.KeyVault' -Repository $localRepo
         $res.Version | Should -Be "6.3.1"
+    }
+
+    It "Find should not silently fail if network connection to local private repository cannot be established and remainder repositories should be searched" {
+        $privateRepo = Get-PSResourceRepository $localPrivateRepo
+        $res = Find-PSResource -Name $testModuleName -WarningVariable WarningVar -WarningAction SilentlyContinue
+        $WarningVar | Should -Not -BeNullOrEmpty
+        $WarningVar[0] | Should -Match "$($privateRepo.Uri.LocalPath)"
+        $res.Name | Should -Contain $testModuleName
+        $res.Version | Should -Be "1.0.0"
+    }
+
+    It "Find should not silently fail if network connection to local private repository cannot be established and package version was provided and remainder repositories should be searched" {
+        $privateRepo = Get-PSResourceRepository $localPrivateRepo
+        $res = Find-PSResource -Name $testModuleName -Version "1.0.0" -WarningVariable WarningVar -WarningAction SilentlyContinue
+        $WarningVar | Should -Not -BeNullOrEmpty
+        $WarningVar[0] | Should -Match "$($privateRepo.Uri.LocalPath)"
+        $res.Name | Should -Contain $testModuleName
+        $res.Version | Should -Be "1.0.0"
     }
 }
