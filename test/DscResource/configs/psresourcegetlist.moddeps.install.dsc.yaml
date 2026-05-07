@@ -1,0 +1,11 @@
+$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+resources:
+- name: Install Module with dependencies
+  type: Microsoft.PowerShell.PSResourceGet/PSResourceList
+  properties:
+    repositoryName: PSGallery
+    trustedRepository: true
+    resources:
+    - name: TestModuleWithDependencyA
+      version: '5.0'
+      _exist: true

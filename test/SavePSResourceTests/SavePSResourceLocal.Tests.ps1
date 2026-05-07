@@ -157,8 +157,8 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Save module, should search through all repositories and only install from the first repo containing the package" {
-        Save-PSResource -Name $moduleName3 -Version "0.0.93" -Path $SaveDir -TrustRepository -ErrorVariable ev
-        $ev | Should -BeNullOrEmpty
+        Save-PSResource -Name $moduleName3 -Version "0.0.93" -Path $SaveDir -TrustRepository -ErrorVariable ev -ErrorAction SilentlyContinue
+        $ev | Should -HaveCount 1 ## This comes from MAR not having the module so the error is thrown from that repository before falling back to the next repository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq "$moduleName3"
         $pkgDir | Should -Not -BeNullOrEmpty
     }

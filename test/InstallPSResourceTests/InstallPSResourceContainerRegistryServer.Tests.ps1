@@ -354,25 +354,24 @@ Describe 'Test Install-PSResource for Container Registry scenarios - Manual Vali
 }
 
 Describe 'Test Install-PSResource for MAR Repository' -tags 'CI' {
+
     BeforeAll {
-        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", "azure-powershell/");
-        Register-PSResourceRepository -Name "MAR" -Uri "https://mcr.microsoft.com" -ApiVersion "ContainerRegistry"
+        Get-NewPSResourceRepositoryFile
     }
-
     AfterAll {
-        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", $null);
-        Unregister-PSResourceRepository -Name "MAR"
+        Get-RevertPSResourceRepositoryFile
     }
 
-    It "Should find resource given specific Name, Version null" {
+    It "Should install resource given specific Name, Version null" {
         try {
-            $pkg = Install-PSResource -Name "Az.Accounts" -Repository "MAR" -PassThru -TrustRepository -Reinstall
+            $pkg = Install-PSResource -Name "Az.Accounts" -Repository 'MicrosoftArtifactRegistry' -PassThru -TrustRepository -Reinstall
             $pkg.Name | Should -Be "Az.Accounts"
-            $pkg.Version | Should -Be "3.0.4"
+            $pkg.Version.Major | Should -BeGreaterOrEqual 5
+
         }
         finally {
             if ($pkg) {
-                Uninstall-PSResource -Name "Az.Accounts" -Version "3.0.4" -SkipDependencyCheck
+                Uninstall-PSResource -Name "Az.Accounts" -Version $pkg.Version
             }
         }
     }

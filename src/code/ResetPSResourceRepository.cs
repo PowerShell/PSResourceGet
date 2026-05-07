@@ -10,7 +10,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// <summary>
     /// The Reset-PSResourceRepository cmdlet resets the repository store by creating a new PSRepositories.xml file.
     /// This is useful when the repository store becomes corrupted.
-    /// It will create a new repository store with only the PSGallery repository registered.
+    /// It will create a new repository store with PSGallery and MAR repositories registered.
     /// </summary>
     [Cmdlet(VerbsCommon.Reset,
         "PSResourceRepository",
@@ -39,8 +39,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 "PSResourceRepository.xml");
 
             WriteVerbose($"Resetting repository store at: {repositoryStorePath}");
-            
-            if (!ShouldProcess(repositoryStorePath, "Reset repository store and create new PSRepositories.xml file with PSGallery registered"))
+
+            if (!ShouldProcess(repositoryStorePath, "Reset repository store and create new PSRepositories.xml file with PSGallery and MAR registered"))
             {
                 return;
             }
@@ -57,7 +57,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return;
             }
 
-            WriteVerbose("Repository store reset successfully. PSGallery has been registered.");
+            WriteVerbose("Repository store reset successfully. PSGallery and MAR have been registered.");
 
             if (PassThru)
             {
