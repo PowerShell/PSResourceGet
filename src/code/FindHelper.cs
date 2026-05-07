@@ -1196,7 +1196,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         debugMsgs.Enqueue($"Finding dependency '{dep.Name}' version range '{dep.VersionRange}'");
                         FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     });
-                    // TODO: what is perf if parallel.ForEach is always run?
                 }
                 else
                 {

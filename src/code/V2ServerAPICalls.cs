@@ -409,7 +409,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override async Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            // TODO: pass all debug output into a list that can be written to console later.
             debugMsgs.Enqueue("In V2ServerAPICalls::FindNameAsync()");
             // Make sure to include quotations around the package name
 

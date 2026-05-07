@@ -72,7 +72,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override FindResults FindTags(string[] tags, bool includePrerelease, ResourceType _type, out ErrorRecord errRecord)
         {
             // TODO: pass in ConcurrentQueue to write out debug message.
-            //_cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindTags()");
+            _cmdletPassedIn.WriteDebug("In LocalServerApiCalls::FindTags()");
             FindResults tagFindResults = FindTagsHelper(tags, includePrerelease, out errRecord);
             if (tagFindResults.IsFindResultsEmpty())
             {

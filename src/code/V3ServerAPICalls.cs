@@ -732,7 +732,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
             // TODO: pass in ConcurrentQueue to write out debug message.
-            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallVersion()");
+            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallVersion()");
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
                 errRecord = new ErrorRecord(

@@ -770,22 +770,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ConcurrentDictionary<string, Hashtable> updatedPackagesHash = packagesHash;
   
             // -WhatIf processing.
-            // TODO:: 
             if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
-            {
-                if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
-                {                    
-                    updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
-                    {
-                        { "isModule", "" },
-                        { "isScript", "" },
-                        { "psResourceInfoPkg", pkgToInstall },
-                        { "tempDirNameVersionPath", tempInstallPath },
-                        { "pkgVersion", "" },
-                        { "scriptPath", ""  },
-                        { "installPath", "" }
-                    });
-                }
+            {               
+                updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
+                {
+                    { "isModule", "" },
+                    { "isScript", "" },
+                    { "psResourceInfoPkg", pkgToInstall },
+                    { "tempDirNameVersionPath", tempInstallPath },
+                    { "pkgVersion", "" },
+                    { "scriptPath", ""  },
+                    { "installPath", "" }
+                });
             }
             else if (!_cmdletPassedIn.ShouldProcess($"Package to install: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
             {

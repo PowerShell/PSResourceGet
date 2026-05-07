@@ -1398,84 +1398,96 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 }
                 string contents = System.IO.File.ReadAllText(filePath);
 
+                // Validate that the file content conforms to restricted language rules before execution.
+                // This parses the content into an AST and statically validates it only contains data-file-safe constructs (hashtables, arrays, literals, etc). 
+                // It throws a ParseException if anything disallowed is found, before any code is run.
+                ScriptBlock scriptBlock = ScriptBlock.Create(contents);
+                scriptBlock.CheckRestrictedLanguage(allowedCommands, allowedVariables, allowEnvironmentVariables);
+
                 // Parallel.ForEach calls into this method.
                 // Each thread needs its own runspace created to provide a separate environment for operations to run independently.
-                Runspace runspace = RunspaceFactory.CreateRunspace();
-                runspace.Open();
-                runspace.SessionStateProxy.LanguageMode = PSLanguageMode.ConstrainedLanguage;
-
-                // Save and set the default runspace for the current thread to prevent
-                // stale DefaultRunspace from a prior operation on this reused thread-pool thread.
-                Runspace previousDefaultRunspace = Runspace.DefaultRunspace;
-                try
+                using (Runspace runspace = RunspaceFactory.CreateRunspace())
                 {
-                    Runspace.DefaultRunspace = runspace;
+                    runspace.Open();
+                    runspace.SessionStateProxy.LanguageMode = PSLanguageMode.ConstrainedLanguage;
 
-                    using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+                    // Save and set the default runspace for the current thread to prevent
+                    // stale DefaultRunspace from a prior operation on this reused thread-pool thread.
+                    Runspace previousDefaultRunspace = Runspace.DefaultRunspace;
+                    try
                     {
-                        pwsh.Runspace = runspace;
+                        Runspace.DefaultRunspace = runspace;
 
-                        var cmd = new Command(
-                            command: contents,
-                            isScript: true,
-                            useLocalScope: true);
-                        cmd.MergeMyResults(
-                            myResult: PipelineResultTypes.Error | PipelineResultTypes.Warning | PipelineResultTypes.Verbose | PipelineResultTypes.Debug | PipelineResultTypes.Information,
-                            toResult: PipelineResultTypes.Output);
-                        pwsh.Commands.AddCommand(cmd);
-
-                        try
+                        using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                         {
-                            // Invoke the pipeline and retrieve the results
-                            var results = pwsh.Invoke();
+                            pwsh.Runspace = runspace;
 
-                            if (results[0] is PSObject pwshObj)
+                            var cmd = new Command(
+                                command: contents,
+                                isScript: true,
+                                useLocalScope: true);
+                            cmd.MergeMyResults(
+                                myResult: PipelineResultTypes.Error | PipelineResultTypes.Warning | PipelineResultTypes.Verbose | PipelineResultTypes.Debug | PipelineResultTypes.Information,
+                                toResult: PipelineResultTypes.Output);
+                            pwsh.Commands.AddCommand(cmd);
+
+                            try
                             {
-                                switch (pwshObj.BaseObject)
+                                // Invoke the pipeline and retrieve the results
+                                var results = pwsh.Invoke();
+
+                                if (results[0] is PSObject pwshObj)
                                 {
-                                    case ErrorRecord err:
-                                        //_cmdletPassedIn.WriteError(error);
-                                        break;
+                                    switch (pwshObj.BaseObject)
+                                    {
+                                        case ErrorRecord err:
+                                            //_cmdletPassedIn.WriteError(error);
+                                            break;
 
-                                    case WarningRecord warning:
-                                        //cmdlet.WriteWarning(warning.Message);
-                                        break;
+                                        case WarningRecord warning:
+                                            //cmdlet.WriteWarning(warning.Message);
+                                            break;
 
-                                    case VerboseRecord verbose:
-                                        //cmdlet.WriteVerbose(verbose.Message);
-                                        break;
+                                        case VerboseRecord verbose:
+                                            //cmdlet.WriteVerbose(verbose.Message);
+                                            break;
 
-                                    case DebugRecord debug:
-                                        //cmdlet.WriteDebug(debug.Message);
-                                        break;
+                                        case DebugRecord debug:
+                                            //cmdlet.WriteDebug(debug.Message);
+                                            break;
 
-                                    case InformationRecord info:
-                                        //cmdlet.WriteInformation(info);
-                                        break;
+                                        case InformationRecord info:
+                                            //cmdlet.WriteInformation(info);
+                                            break;
 
-                                    case Hashtable result:
-                                        dataFileInfo = result;
-                                        return true;
+                                        case Hashtable result:
+                                            dataFileInfo = result;
+                                            return true;
+                                    }
                                 }
                             }
+                            catch (Exception ex)
+                            {
+                                error = ex;
+                            }
                         }
-                        catch (Exception ex)
-                        {
-                            error = ex;
-                        }
+                        // Return false to indicate "we couldn't parse a valid Hashtable from this .psd1 file." 
+                        // The only success path is the 'case Hashtable result' branch above which does return true.
+                        return false;
                     }
-                    // Return false to indicate "we couldn't parse a valid Hashtable from this .psd1 file." 
-                    // The only success path is the 'case Hashtable result' branch above which does return true.
-                    return false;
+                    finally
+                    {
+                        // Always restore the previous default runspace for the current thread.
+                        Runspace.DefaultRunspace = previousDefaultRunspace;
+                    }
                 }
-                finally
-                {
-                    // Always restore the previous default runspace and close/dispose
-                    // the per-thread runspace, even on success (return true) or exception paths.
-                    Runspace.DefaultRunspace = previousDefaultRunspace;
-                    runspace.Close();
-                    runspace.Dispose();
-                }
+            }
+            catch (System.Management.Automation.ParseException parseEx)
+            {
+                error = new InvalidDataException(
+                    $"The file '{filePath}' cannot be parsed as a PowerShell data file. It contains disallowed language elements: {parseEx.Message}",
+                    parseEx);
+                return false;
             }
             catch (Exception ex)
             {
