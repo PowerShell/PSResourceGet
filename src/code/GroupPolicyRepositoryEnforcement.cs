@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Versioning;
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using Microsoft.Win32;
 
@@ -14,6 +15,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// <summary>
     /// This class is used to enforce group policy for repositories.
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public class GroupPolicyRepositoryEnforcement
     {
         const string userRoot = "HKEY_CURRENT_USER";
@@ -29,6 +31,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         ///
         /// <returns>True if the group policy is enabled, false otherwise.</returns>
+        [SupportedOSPlatform("windows")]
         public static bool IsGroupPolicyEnabled()
         {
             if (Environment.OSVersion.Platform != PlatformID.Win32NT)
@@ -57,6 +60,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         /// <returns>Array of allowed URIs.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the group policy is not enabled.</exception>
+        [SupportedOSPlatform("windows")]
         public static Uri[]? GetAllowedRepositoryURIs()
         {
             if (Environment.OSVersion.Platform != PlatformID.Win32NT)
@@ -92,6 +96,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
         }
 
+        [SupportedOSPlatform("windows")]
         internal static bool IsRepositoryAllowed(Uri repositoryUri)
         {
             bool isAllowed = false;
@@ -113,6 +118,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return isAllowed;
         }
 
+        [SupportedOSPlatform("windows")]
         private static List<KeyValuePair<string, Uri>>? ReadGPFromRegistry()
         {
             List<KeyValuePair<string, Uri>> allowedRepositories = new List<KeyValuePair<string, Uri>>();
@@ -169,7 +175,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                     throw new InvalidOperationException("Invalid registry value.");
                                 }
 
-                                string valueString = value.ToString();
+                                string? valueString = value.ToString();
+
+                                if (string.IsNullOrEmpty(valueString))
+                                {
+                                    throw new InvalidOperationException("Invalid registry value.");
+                                }
+
                                 var kvRegValue = ConvertRegValue(valueString);
                                 allowedRepositories.Add(kvRegValue);
                             }
