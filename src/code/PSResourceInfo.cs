@@ -3,6 +3,9 @@
 
 using Dbg = System.Diagnostics.Debug;
 using Microsoft.PowerShell.Commands;
+using NuGet.Frameworks;
+using NuGet.Packaging;
+using NuGet.Packaging.Core;
 using NuGet.Versioning;
 using System;
 using System.Collections;
@@ -10,6 +13,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Xml;
 
@@ -717,38 +721,91 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     metadata["PublishedDate"] = ParseHttpDateTime(publishedElement.ToString());
                 }
 
-                // Dependencies
+                // Dependencies  
+                // TFM-aware: select the best matching dependency group for the current runtime,
+                // rather than merging all groups into a flat list.
                 if (rootDom.TryGetProperty("dependencyGroups", out JsonElement dependencyGroupsElement))
                 {
                     List<Dependency> pkgDeps = new();
 
                     if (dependencyGroupsElement.ValueKind == JsonValueKind.Array)
                     {
+                        // Build a mapping of targetFramework -> dependencies for each group
+                        var groupMap = new List<(NuGetFramework framework, JsonElement groupElement)>();
+
                         foreach (JsonElement dependencyGroup in dependencyGroupsElement.EnumerateArray())
                         {
-                            if (dependencyGroup.TryGetProperty("dependencies", out JsonElement dependenciesElement))
+                            NuGetFramework groupFramework = NuGetFramework.AnyFramework;
+                            if (dependencyGroup.TryGetProperty("targetFramework", out JsonElement tfmElement))
                             {
-                                if (dependenciesElement.ValueKind == JsonValueKind.Array)
+                                string tfmString = tfmElement.GetString();
+                                if (!string.IsNullOrWhiteSpace(tfmString))
                                 {
-                                    foreach (
-                                        JsonElement dependency in dependenciesElement.EnumerateArray().Where(
-                                            x => x.TryGetProperty("id", out JsonElement idProperty) &&
-                                            !string.IsNullOrWhiteSpace(idProperty.GetString())
-                                        )
-                                    )
+                                    NuGetFramework parsed = NuGetFramework.Parse(tfmString);
+                                    if (parsed != null && !parsed.IsUnsupported)
                                     {
-                                        pkgDeps.Add(
-                                            new Dependency(
-                                                dependency.GetProperty("id").GetString(),
-                                                (
-                                                    VersionRange.TryParse(dependency.GetProperty("range").GetString(), out VersionRange versionRange) ?
-                                                    versionRange :
-                                                    VersionRange.All
-                                                )
-                                            )
-                                        );
+                                        groupFramework = parsed;
                                     }
                                 }
+                            }
+                            groupMap.Add((groupFramework, dependencyGroup));
+                        }
+
+                        // Select the best matching group using FrameworkReducer
+                        JsonElement? selectedGroupElement = null;
+                        try
+                        {
+                            if (groupMap.Count > 0)
+                            {
+                                NuGetFramework currentFramework = GetCurrentFrameworkForDeps();
+                                var reducer = new FrameworkReducer();
+                                NuGetFramework bestMatch = reducer.GetNearest(currentFramework, groupMap.Select(g => g.framework));
+                                
+                                if (bestMatch != null)
+                                {
+                                    selectedGroupElement = groupMap.FirstOrDefault(g => g.framework.Equals(bestMatch)).groupElement;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // If TFM selection fails, fall through to fallback
+                        }
+
+                        // Fallback: use the "any" / no-TFM group, or the first group
+                        if (selectedGroupElement == null)
+                        {
+                            var fallback = groupMap.FirstOrDefault(g =>
+                                g.framework == null ||
+                                g.framework.Equals(NuGetFramework.AnyFramework) ||
+                                g.framework.IsUnsupported);
+                            selectedGroupElement = fallback.groupElement.ValueKind != JsonValueKind.Undefined
+                                ? fallback.groupElement
+                                : groupMap.FirstOrDefault().groupElement;
+                        }
+
+                        // Parse dependencies from the selected group
+                        if (selectedGroupElement.HasValue &&
+                            selectedGroupElement.Value.TryGetProperty("dependencies", out JsonElement dependenciesElement) &&
+                            dependenciesElement.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (
+                                JsonElement dependency in dependenciesElement.EnumerateArray().Where(
+                                    x => x.TryGetProperty("id", out JsonElement idProperty) &&
+                                    !string.IsNullOrWhiteSpace(idProperty.GetString())
+                                )
+                            )
+                            {
+                                pkgDeps.Add(
+                                    new Dependency(
+                                        dependency.GetProperty("id").GetString(),
+                                        (
+                                            VersionRange.TryParse(dependency.GetProperty("range").GetString(), out VersionRange versionRange) ?
+                                            versionRange :
+                                            VersionRange.All
+                                        )
+                                    )
+                                );
                             }
                         }
                     }
@@ -1340,7 +1397,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     author: pkgMetadata["authors"] as String,
                     companyName: String.Empty,
                     copyright: pkgMetadata["copyright"] as String,
-                    dependencies: new Dependency[] { },
+                    dependencies: ParseNuspecDependencyGroups(pkgMetadata),
                     description: pkgMetadata["description"] as String,
                     iconUri: iconUri,
                     includes: includes,
@@ -1634,6 +1691,118 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             return dependencyList.ToArray();
+        }
+
+        /// <summary>
+        /// Parses NuGet dependency groups from the .nuspec metadata hashtable (populated by NuspecReader).
+        /// Performs TFM-aware selection: picks the best matching dependency group for the current runtime,
+        /// rather than merging all groups.
+        /// </summary>
+        /// <param name="pkgMetadata">Hashtable containing nuspec metadata, including a "dependencyGroups" key
+        /// with a List of PackageDependencyGroup objects.</param>
+        /// <returns>Array of Dependency objects for the best matching TFM group, or empty if no groups exist.</returns>
+        internal static Dependency[] ParseNuspecDependencyGroups(Hashtable pkgMetadata)
+        {
+            if (pkgMetadata == null || !pkgMetadata.ContainsKey("dependencyGroups"))
+            {
+                return new Dependency[] { };
+            }
+
+            var dependencyGroups = pkgMetadata["dependencyGroups"] as List<PackageDependencyGroup>;
+            if (dependencyGroups == null || dependencyGroups.Count == 0)
+            {
+                return new Dependency[] { };
+            }
+
+            // Determine the current runtime's target framework for TFM-aware selection
+            PackageDependencyGroup selectedGroup = null;
+            try
+            {
+                NuGetFramework currentFramework = GetCurrentFrameworkForDeps();
+
+                // Use FrameworkReducer to find the best matching dependency group
+                var reducer = new FrameworkReducer();
+                var groupFrameworks = dependencyGroups.Select(g => g.TargetFramework).ToList();
+                NuGetFramework bestMatch = reducer.GetNearest(currentFramework, groupFrameworks);
+
+                if (bestMatch != null)
+                {
+                    selectedGroup = dependencyGroups.FirstOrDefault(g => g.TargetFramework.Equals(bestMatch));
+                }
+            }
+            catch
+            {
+                // If TFM selection fails, fall through to fallback logic below
+            }
+
+            // Fallback: if no TFM match, use the group with no target framework (portable/any) or the first group
+            if (selectedGroup == null)
+            {
+                selectedGroup = dependencyGroups.FirstOrDefault(g =>
+                    g.TargetFramework == null ||
+                    g.TargetFramework.Equals(NuGetFramework.AnyFramework) ||
+                    g.TargetFramework.IsUnsupported) ?? dependencyGroups.First();
+            }
+
+            // Convert PackageDependency objects to our Dependency[] format
+            List<Dependency> deps = new List<Dependency>();
+            foreach (PackageDependency dep in selectedGroup.Packages)
+            {
+                if (!string.IsNullOrWhiteSpace(dep.Id))
+                {
+                    deps.Add(new Dependency(dep.Id, dep.VersionRange ?? VersionRange.All));
+                }
+            }
+
+            return deps.ToArray();
+        }
+
+        /// <summary>
+        /// Detects the current runtime's NuGetFramework for dependency group selection.
+        /// Since this assembly is compiled as net472, it must detect the actual host runtime
+        /// by parsing RuntimeInformation.FrameworkDescription rather than using Environment.Version
+        /// (which returns 4.0.30319.x even when running on .NET 8+ via compatibility shims).
+        /// </summary>
+        private static NuGetFramework GetCurrentFrameworkForDeps()
+        {
+            string runtimeDescription = RuntimeInformation.FrameworkDescription;
+
+            if (runtimeDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase))
+            {
+                // Windows PowerShell 5.1 — .NET Framework 4.x
+                return NuGetFramework.ParseFolder("net472");
+            }
+
+            // PowerShell 7+ on .NET Core/.NET 5+
+            // RuntimeInformation.FrameworkDescription format examples:
+            //   ".NET Core 3.1.0"  -> netcoreapp3.1
+            //   ".NET 6.0.5"       -> net6.0
+            //   ".NET 8.0.1"       -> net8.0
+            try
+            {
+                string versionPart = runtimeDescription;
+
+                if (versionPart.StartsWith(".NET Core ", StringComparison.OrdinalIgnoreCase))
+                {
+                    versionPart = versionPart.Substring(".NET Core ".Length);
+                }
+                else if (versionPart.StartsWith(".NET ", StringComparison.OrdinalIgnoreCase))
+                {
+                    versionPart = versionPart.Substring(".NET ".Length);
+                }
+
+                if (Version.TryParse(versionPart, out Version parsedVersion))
+                {
+                    return new NuGetFramework(".NETCoreApp", new Version(parsedVersion.Major, parsedVersion.Minor));
+                }
+            }
+            catch
+            {
+                // Fall through to default
+            }
+
+            // Fallback: default to netstandard2.0 which is broadly compatible
+            return NuGetFramework.ParseFolder("netstandard2.0");
         }
 
         internal static List<Dependency> ParseContainerRegistryDependencies(JsonElement requiredModulesElement, out string errorMsg)

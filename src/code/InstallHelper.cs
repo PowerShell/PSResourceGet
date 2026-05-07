@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using NuGet.Frameworks;
 using NuGet.Versioning;
 using System;
 using System.Collections;
@@ -48,6 +49,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool _noClobber;
         private bool _authenticodeCheck;
         private bool _savePkg;
+        private string _runtimeIdentifier;
+        private string _targetFramework;
+        private bool _mergeFilteredContent;
         List<string> _pathsToSearch;
         List<string> _pkgNamesToInstall;
         private string _tmpPath;
@@ -91,7 +95,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> pathsToInstallPkg,
             ScopeType? scope,
             string tmpPath,
-            HashSet<string> pkgsInstalled)
+            HashSet<string> pkgsInstalled,
+            string runtimeIdentifier = null,
+            string targetFramework = null)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::BeginInstallPackages()");
             _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; VersionRange: '{1}'; NuGetVersion: '{2}'; VersionType: '{3}'; Version: '{4}'; Prerelease: '{5}'; Repository: '{6}'; " +
@@ -133,6 +139,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _asNupkg = asNupkg;
             _includeXml = includeXml;
             _savePkg = savePkg;
+            _runtimeIdentifier = runtimeIdentifier;
+            _targetFramework = targetFramework;
             _pathsToInstallPkg = pathsToInstallPkg;
             _tmpPath = tmpPath ?? Path.GetTempPath();
 
@@ -416,6 +424,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     _cmdletPassedIn.WriteVerbose($"Attempting to move '{tempModuleVersionDir}' to '{finalModuleVersionDir}'");
                     Directory.CreateDirectory(newPathParent);
                     Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
+                }
+                else if (_mergeFilteredContent && Directory.Exists(finalModuleVersionDir))
+                {
+                    // Copy only new TFM/RID content into the existing install
+                    _cmdletPassedIn.WriteVerbose($"Merging additional platform content from '{tempModuleVersionDir}' into '{finalModuleVersionDir}'");
+                    Utils.MergeDirContents(tempModuleVersionDir, finalModuleVersionDir);
+                    Utils.DeleteDirectory(tempModuleVersionDir);
                 }
                 else
                 {
@@ -794,12 +809,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string currPkgNameVersion = $"{pkgToInstall.Name}{pkgToInstall.Version}";
                 if (_packagesOnMachine.Contains(currPkgNameVersion))
                 {
-                    _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
+                    // When -TargetFramework or -RuntimeIdentifier is explicitly specified, allow re-download
+                    // to merge the additional TFM/RID content into the existing install directory.
+                    bool hasExplicitOverride = !string.IsNullOrEmpty(_targetFramework) || !string.IsNullOrEmpty(_runtimeIdentifier);
+                    if (hasExplicitOverride)
+                    {
+                        _cmdletPassedIn.WriteVerbose($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed. " +
+                            $"Proceeding to merge additional platform content (TargetFramework='{_targetFramework}', RuntimeIdentifier='{_runtimeIdentifier}').");
+                        _mergeFilteredContent = true;
+                    }
+                    else
+                    {
+                        _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
 
-                    // Remove from tracking list of packages to install.
-                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
+                        // Remove from tracking list of packages to install.
+                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
 
-                    return packagesHash;
+                        return packagesHash;
+                    }
                 }
             }
 
@@ -1161,9 +1188,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
-        /// Extracts files from .nupkg
+        /// Extracts files from .nupkg with platform-aware filtering.
         /// Similar functionality as System.IO.Compression.ZipFile.ExtractToDirectory,
         /// but while ExtractToDirectory cannot overwrite files, this method can.
+        /// Additionally filters:
+        /// - Root-level RID folder entries (e.g., win-x64/) based on the current platform's RID
+        /// - lib/{tfm}/ entries to only extract the best matching Target Framework Moniker
         /// </summary>
         private bool TryExtractToDirectory(string zipPath, string extractPath, out ErrorRecord error)
         {
@@ -1182,8 +1212,56 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 using (ZipArchive archive = ZipFile.OpenRead(zipPath))
                 {
+                    // Determine best TFM for lib/ folder filtering
+                    // If user specified -TargetFramework, use that; otherwise auto-detect
+                    NuGetFramework bestLibFramework;
+                    if (!string.IsNullOrEmpty(_targetFramework))
+                    {
+                        bestLibFramework = NuGetFramework.ParseFolder(_targetFramework);
+                        if (bestLibFramework == null || bestLibFramework.IsUnsupported)
+                        {
+                            _cmdletPassedIn.WriteDebug($"Could not parse specified TargetFramework '{_targetFramework}', falling back to auto-detection.");
+                            bestLibFramework = GetBestLibFramework(archive);
+                        }
+                        else
+                        {
+                            _cmdletPassedIn.WriteDebug($"Using user-specified TargetFramework: {bestLibFramework.GetShortFolderName()}");
+                        }
+                    }
+                    else
+                    {
+                        bestLibFramework = GetBestLibFramework(archive);
+                    }
+
+                    // Warn if TFM filtering is skipping assemblies for a different .NET lineage
+                    // (e.g., installing on PS7/.NET 8 but package also has net472 for WinPS 5.1)
+                    if (bestLibFramework != null)
+                    {
+                        WarnIfCrossLineageTfmSkipped(archive, bestLibFramework);
+                    }
+
                     foreach (ZipArchiveEntry entry in archive.Entries.Where(entry => entry.CompressedLength > 0))
                     {
+                        // RID filtering: skip entries under incompatible platform RID folders
+                        {
+                            bool includeEntry = !string.IsNullOrEmpty(_runtimeIdentifier)
+                                ? RuntimePackageHelper.ShouldIncludeEntry(entry.FullName, _runtimeIdentifier)
+                                : RuntimePackageHelper.ShouldIncludeEntry(entry.FullName);
+
+                            if (!includeEntry)
+                            {
+                                _cmdletPassedIn.WriteDebug($"Skipping runtime entry not matching target platform: {entry.FullName}");
+                                continue;
+                            }
+                        }
+
+                        // TFM filtering: for lib/ entries, only extract the best matching TFM
+                        if (bestLibFramework != null && !ShouldIncludeLibEntry(entry.FullName, bestLibFramework))
+                        {
+                            _cmdletPassedIn.WriteDebug($"Skipping lib entry not matching target framework: {entry.FullName}");
+                            continue;
+                        }
+
                         // If a file has one or more parent directories.
                         if (entry.FullName.Contains(Path.DirectorySeparatorChar) || entry.FullName.Contains(Path.AltDirectorySeparatorChar))
                         {
@@ -1209,6 +1287,54 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             entry.ExtractToFile(destinationPath, overwrite: true);
                         }
                     }
+
+                    // Warn if an explicitly specified TFM or RID had no matching entries in the package
+                    if (!string.IsNullOrEmpty(_targetFramework) && bestLibFramework != null)
+                    {
+                        bool hasMatchingLib = archive.Entries.Any(e =>
+                        {
+                            string n = e.FullName.Replace('\\', '/');
+                            if (!n.StartsWith("lib/", StringComparison.OrdinalIgnoreCase)) return false;
+                            string[] s = n.Split('/');
+                            if (s.Length < 3 || string.IsNullOrEmpty(s[1])) return false;
+                            NuGetFramework fw = NuGetFramework.ParseFolder(s[1]);
+                            return fw != null && !fw.IsUnsupported && fw.Equals(bestLibFramework);
+                        });
+
+                        if (!hasMatchingLib)
+                        {
+                            var availableTfms = archive.Entries
+                                .Select(e => e.FullName.Replace('\\', '/'))
+                                .Where(n => n.StartsWith("lib/", StringComparison.OrdinalIgnoreCase))
+                                .Select(n => n.Split('/'))
+                                .Where(s => s.Length >= 3 && !string.IsNullOrEmpty(s[1]))
+                                .Select(s => s[1])
+                                .Distinct(StringComparer.OrdinalIgnoreCase);
+                            string available = string.Join(", ", availableTfms);
+                            _cmdletPassedIn.WriteWarning(
+                                $"The specified TargetFramework '{_targetFramework}' was not found in this package. " +
+                                $"No lib/ assemblies were installed. Available TFMs: {(string.IsNullOrEmpty(available) ? "none" : available)}");
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(_runtimeIdentifier))
+                    {
+                        bool hasMatchingRid = archive.Entries.Any(e =>
+                            RuntimePackageHelper.IsRidFolder(e.FullName.Replace('\\', '/').Split('/')[0]) &&
+                            RuntimePackageHelper.ShouldIncludeEntry(e.FullName, _runtimeIdentifier));
+
+                        if (!hasMatchingRid)
+                        {
+                            var availableRids = archive.Entries
+                                .Select(e => e.FullName.Replace('\\', '/').Split('/')[0])
+                                .Where(f => RuntimePackageHelper.IsRidFolder(f))
+                                .Distinct(StringComparer.OrdinalIgnoreCase);
+                            string available = string.Join(", ", availableRids);
+                            _cmdletPassedIn.WriteWarning(
+                                $"The specified RuntimeIdentifier '{_runtimeIdentifier}' was not found in this package. " +
+                                $"No platform-specific assets were installed. Available RIDs: {(string.IsNullOrEmpty(available) ? "none" : available)}");
+                        }
+                    }
                 }
             }
             catch (Exception e)
@@ -1223,6 +1349,223 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Determines the best matching Target Framework Moniker (TFM) from the lib/ folder entries in a zip archive.
+        /// Uses NuGet.Frameworks.FrameworkReducer to select the nearest compatible framework.
+        /// </summary>
+        /// <param name="archive">The zip archive to analyze.</param>
+        /// <returns>The best matching NuGetFramework, or null if no lib/ folders exist or no match is found.</returns>
+        private NuGetFramework GetBestLibFramework(ZipArchive archive)
+        {
+            // Collect all TFMs from lib/ folder entries
+            var libFrameworks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (ZipArchiveEntry entry in archive.Entries)
+            {
+                string normalizedName = entry.FullName.Replace('\\', '/');
+                if (normalizedName.StartsWith("lib/", StringComparison.OrdinalIgnoreCase))
+                {
+                    string[] segments = normalizedName.Split('/');
+                    if (segments.Length >= 3 && !string.IsNullOrEmpty(segments[1]))
+                    {
+                        libFrameworks.Add(segments[1]);
+                    }
+                }
+            }
+
+            if (libFrameworks.Count <= 1)
+            {
+                // Zero or one TFM — no filtering needed
+                return null;
+            }
+
+            try
+            {
+                // Detect the current runtime's target framework
+                NuGetFramework currentFramework = GetCurrentFramework();
+
+                // Parse all discovered TFMs
+                var parsedFrameworks = new List<NuGetFramework>();
+                foreach (string tfm in libFrameworks)
+                {
+                    NuGetFramework parsed = NuGetFramework.ParseFolder(tfm);
+                    if (parsed != null && !parsed.IsUnsupported)
+                    {
+                        parsedFrameworks.Add(parsed);
+                    }
+                }
+
+                if (parsedFrameworks.Count == 0)
+                {
+                    return null;
+                }
+
+                // Use FrameworkReducer to find the best match
+                var reducer = new FrameworkReducer();
+                NuGetFramework bestMatch = reducer.GetNearest(currentFramework, parsedFrameworks);
+
+                if (bestMatch != null)
+                {
+                    _cmdletPassedIn.WriteDebug($"Selected best matching TFM: {bestMatch.GetShortFolderName()} (from {string.Join(", ", libFrameworks)})");
+                }
+
+                return bestMatch;
+            }
+            catch (Exception e)
+            {
+                _cmdletPassedIn.WriteDebug($"TFM selection failed, extracting all lib/ folders: {e.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Determines if a zip entry from the lib/ folder should be included based on the best matching TFM.
+        /// Non-lib entries are always included.
+        /// </summary>
+        /// <param name="entryFullName">The full name of the zip entry.</param>
+        /// <param name="bestFramework">The best matching framework from GetBestLibFramework.</param>
+        /// <returns>True if the entry should be extracted.</returns>
+        private static bool ShouldIncludeLibEntry(string entryFullName, NuGetFramework bestFramework)
+        {
+            string normalizedName = entryFullName.Replace('\\', '/');
+
+            // Only filter entries inside lib/
+            if (!normalizedName.StartsWith("lib/", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            string[] segments = normalizedName.Split('/');
+            if (segments.Length < 3 || string.IsNullOrEmpty(segments[1]))
+            {
+                // lib/ root files (uncommon) — include them
+                return true;
+            }
+
+            string entryTfm = segments[1];
+            NuGetFramework entryFramework = NuGetFramework.ParseFolder(entryTfm);
+
+            if (entryFramework == null || entryFramework.IsUnsupported)
+            {
+                // Can't parse TFM, include to be safe
+                return true;
+            }
+
+            // Only include entries matching the best framework
+            return entryFramework.Equals(bestFramework);
+        }
+
+        /// <summary>
+        /// Gets the NuGetFramework for the current runtime environment.
+        /// Since this assembly is compiled as net472, it must detect the actual host runtime
+        /// by parsing RuntimeInformation.FrameworkDescription rather than using Environment.Version
+        /// (which returns 4.0.30319.x even when running on .NET 8+ via compatibility shims).
+        /// </summary>
+        private static NuGetFramework GetCurrentFramework()
+        {
+            string runtimeDescription = RuntimeInformation.FrameworkDescription;
+
+            if (runtimeDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase))
+            {
+                // Windows PowerShell 5.1 — .NET Framework 4.x
+                return NuGetFramework.ParseFolder("net472");
+            }
+
+            // PowerShell 7+ on .NET Core/.NET 5+
+            // RuntimeInformation.FrameworkDescription format examples:
+            //   ".NET Core 3.1.0"  -> netcoreapp3.1
+            //   ".NET 6.0.5"       -> net6.0
+            //   ".NET 8.0.1"       -> net8.0
+            //   ".NET 9.0.0"       -> net9.0
+            try
+            {
+                string versionPart = runtimeDescription;
+
+                // Strip prefix to get just the version number
+                if (versionPart.StartsWith(".NET Core ", StringComparison.OrdinalIgnoreCase))
+                {
+                    versionPart = versionPart.Substring(".NET Core ".Length);
+                }
+                else if (versionPart.StartsWith(".NET ", StringComparison.OrdinalIgnoreCase))
+                {
+                    versionPart = versionPart.Substring(".NET ".Length);
+                }
+
+                if (Version.TryParse(versionPart, out Version parsedVersion))
+                {
+                    return new NuGetFramework(".NETCoreApp", new Version(parsedVersion.Major, parsedVersion.Minor));
+                }
+            }
+            catch
+            {
+                // Fall through to default
+            }
+
+            // Fallback: default to netstandard2.0 which is broadly compatible
+            return NuGetFramework.ParseFolder("netstandard2.0");
+        }
+
+        /// <summary>
+        /// Emits a warning if TFM filtering will skip assemblies for a different .NET lineage.
+        /// For example, when installing on PowerShell 7 (.NET Core), if the package also contains
+        /// .NET Framework assemblies (net472), those will be skipped — which means the module
+        /// won't work if later used on Windows PowerShell 5.1.
+        /// </summary>
+        private void WarnIfCrossLineageTfmSkipped(ZipArchive archive, NuGetFramework bestFramework)
+        {
+            try
+            {
+                bool bestIsNetCore = bestFramework.Framework.Equals(".NETCoreApp", StringComparison.OrdinalIgnoreCase);
+                bool bestIsNetFramework = bestFramework.Framework.Equals(".NETFramework", StringComparison.OrdinalIgnoreCase);
+
+                // Only warn when we're on one lineage and skipping the other
+                if (!bestIsNetCore && !bestIsNetFramework)
+                {
+                    return;
+                }
+
+                // Scan lib/ folders for a TFM from the other lineage
+                var skippedLineageTfms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (ZipArchiveEntry entry in archive.Entries)
+                {
+                    string normalizedName = entry.FullName.Replace('\\', '/');
+                    if (normalizedName.StartsWith("lib/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string[] segments = normalizedName.Split('/');
+                        if (segments.Length >= 3 && !string.IsNullOrEmpty(segments[1]))
+                        {
+                            NuGetFramework entryFw = NuGetFramework.ParseFolder(segments[1]);
+                            if (entryFw != null && !entryFw.IsUnsupported && !entryFw.Equals(bestFramework))
+                            {
+                                bool entryIsNetCore = entryFw.Framework.Equals(".NETCoreApp", StringComparison.OrdinalIgnoreCase);
+                                bool entryIsNetFramework = entryFw.Framework.Equals(".NETFramework", StringComparison.OrdinalIgnoreCase);
+
+                                // Detect cross-lineage: we're on Core and skipping Framework, or vice versa
+                                if ((bestIsNetCore && entryIsNetFramework) || (bestIsNetFramework && entryIsNetCore))
+                                {
+                                    skippedLineageTfms.Add(segments[1]);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (skippedLineageTfms.Count > 0)
+                {
+                    string skippedList = string.Join(", ", skippedLineageTfms);
+                    string otherHost = bestIsNetCore ? "Windows PowerShell 5.1" : "PowerShell 7+";
+                    string skippedTfm = skippedLineageTfms.First();
+                    _cmdletPassedIn.WriteWarning(
+                        $"This package contains assemblies for {skippedList} which were not installed because " +
+                        $"the current runtime selected {bestFramework.GetShortFolderName()}. " +
+                        $"If you also use this module on {otherHost}, run: Install-PSResource -Name <ModuleName> -TargetFramework '{skippedTfm}'");
+                }
+            }
+            catch
+            {
+                // Non-critical warning — don't let it fail the install
+            }
         }
 
         /// <summary>
