@@ -184,6 +184,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::ProcessRepositories()");
             List<PSResourceInfo> allPkgsInstalled = new();
+            bool containsWildcard = false;
             if (repository != null && repository.Length != 0)
             {
                 // Write error and disregard repository entries containing wildcards.
@@ -199,7 +200,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 // If repository entries includes wildcards and non-wildcard names, write terminating error
                 // Ex: -Repository *Gallery, localRepo
-                bool containsWildcard = false;
                 bool containsNonWildcard = false;
                 foreach (string repoName in repository)
                 {
@@ -221,6 +221,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ErrorCategory.InvalidArgument,
                         _cmdletPassedIn));
                 }
+            }
+            else
+            {
+                containsWildcard = true;
             }
 
             // Get repositories to search.
@@ -289,7 +293,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
                 _networkCredential = currentRepository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
 
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
+                bool writeWarningsForRepo = containsWildcard;
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential, writeWarningsForRepo);
 
                 if (currentServer == null)
                 {
@@ -537,7 +542,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                                         errRecord: out ErrorRecord errRecord);
 
                     // At this point parent package is installed to temp path.
-                    if (errRecord != null)
+                    if (errRecord != null && !currentServer.WriteWarnings)
                     {
                         if (errRecord.FullyQualifiedErrorId.Equals("PackageNotFound"))
                         {
