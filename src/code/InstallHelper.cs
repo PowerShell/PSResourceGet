@@ -558,6 +558,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     Hashtable parentPkgInfo = packagesHash[parentPackage] as Hashtable;
                     PSResourceInfo parentPkgObj = parentPkgInfo["psResourceInfoPkg"] as PSResourceInfo;
+                    string[] externalModuleDependencies = parentPkgInfo["externalModuleDependencies"] as string[];
 
                     if (!skipDependencyCheck)
                     {
@@ -565,7 +566,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         if (parentPkgObj.Dependencies.Length > 0)
                         {
                             bool depFindFailed = false;
-                            foreach (PSResourceInfo depPkg in findHelper.FindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, repository))
+                            foreach (PSResourceInfo depPkg in findHelper.FindDependencyPackages(currentServer, currentResponseUtil, parentPkgObj, externalModuleDependencies, repository))
                             {
                                 if (depPkg == null)
                                 {
@@ -824,7 +825,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         { "tempDirNameVersionPath", tempInstallPath },
                         { "pkgVersion", "" },
                         { "scriptPath", ""  },
-                        { "installPath", "" }
+                        { "installPath", "" },
+                        { "externalModuleDependencies", Utils.EmptyStrArray }
                     });
                 }
             }
@@ -840,7 +842,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         { "tempDirNameVersionPath", tempInstallPath },
                         { "pkgVersion", "" },
                         { "scriptPath", ""  },
-                        { "installPath", "" }
+                        { "installPath", "" },
+                        { "externalModuleDependencies", Utils.EmptyStrArray }
                     });
                 }
             }
@@ -933,6 +936,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cmdletPassedIn.WriteDebug("In InstallHelper::TryInstallToTempPath()");
             error = null;
             updatedPackagesHash = packagesHash;
+            string[] externalModuleDependencies = Utils.EmptyStrArray;
             try
             {
                 var pathToFile = Path.Combine(tempInstallPath, $"{pkgName}.{normalizedPkgVersion}.zip");
@@ -1004,6 +1008,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         return false;
                     }
 
+                    if (!RetrieveExternalModuleDependenciesForModule(pkgName, parsedMetadataHashtable, out externalModuleDependencies, out error))
+                    {
+                        return false;
+                    }
+
                     // Accept License verification
                     if (!CallAcceptLicense(pkgToInstall, moduleManifest, tempInstallPath, pkgVersion, out error))
                     {
@@ -1022,7 +1031,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Scripts", StringComparison.InvariantCultureIgnoreCase));
 
-                    // is script
                     if (!PSScriptFileInfo.TryTestPSScriptFileInfo(
                         scriptFileInfoPath: scriptPath,
                         parsedScript: out PSScriptFileInfo scriptToInstall,
@@ -1042,6 +1050,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         return false;
                     }
+
+                    externalModuleDependencies = scriptToInstall.ScriptMetadataComment.ExternalModuleDependencies;
                 }
                 else
                 {
@@ -1075,7 +1085,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         { "tempDirNameVersionPath", tempDirNameVersion },
                         { "pkgVersion", pkgVersion },
                         { "scriptPath", scriptPath  },
-                        { "installPath", installPath }
+                        { "installPath", installPath },
+                        { "externalModuleDependencies", externalModuleDependencies }
                     });
                 }
 
@@ -1111,6 +1122,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cmdletPassedIn.WriteDebug("In InstallHelper::TrySaveNupkgToTempPath()");
             error = null;
             updatedPackagesHash = packagesHash;
+            string[] externalModuleDependencies = Utils.EmptyStrArray;
 
             try
             {
@@ -1119,6 +1131,85 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 responseStream.Seek(0, System.IO.SeekOrigin.Begin);
                 responseStream.CopyTo(fs);
                 fs.Close();
+
+                var pkgVersion = pkgToInstall.Version.ToString();
+                var tempDirNameVersion = Path.Combine(tempInstallPath, pkgName, pkgVersion);
+                Directory.CreateDirectory(tempDirNameVersion);
+
+                if (!TryExtractToDirectory(pathToFile, tempDirNameVersion, out error))
+                {
+                    return false;
+                }
+
+                var moduleManifest = Path.Combine(tempDirNameVersion, pkgName + PSDataFileExt);
+                var scriptPath = Path.Combine(tempDirNameVersion, pkgName + PSScriptFileExt);
+
+                bool isModule = File.Exists(moduleManifest);
+                bool isScript = File.Exists(scriptPath);
+
+                if (!isModule && !isScript)
+                {
+                    scriptPath = "";
+                }
+
+                if (isModule)
+                {
+                    if (!File.Exists(moduleManifest))
+                    {
+                        error = new ErrorRecord(
+                            new ArgumentException("Package '{pkgName}' could not be installed: Module manifest file: {moduleManifest} does not exist. This is not a valid PowerShell module."),
+                            "PSDataFileNotExistError",
+                            ErrorCategory.ReadError,
+                            _cmdletPassedIn);
+
+                        return false;
+                    }
+
+                    if (!Utils.TryReadManifestFile(
+                        manifestFilePath: moduleManifest,
+                        manifestInfo: out Hashtable parsedMetadataHashtable,
+                        error: out Exception manifestReadError))
+                    {
+                        error = new ErrorRecord(
+                            manifestReadError,
+                            "ManifestFileReadParseError",
+                            ErrorCategory.ReadError,
+                            _cmdletPassedIn);
+
+                        return false;
+                    }
+
+                    if (!RetrieveExternalModuleDependenciesForModule(pkgName, parsedMetadataHashtable, out externalModuleDependencies, out error))
+                    {
+                        return false;
+                    }
+                }
+                else if(isScript)
+                {
+                    if (!PSScriptFileInfo.TryTestPSScriptFileInfo(
+                        scriptFileInfoPath: scriptPath,
+                        parsedScript: out PSScriptFileInfo scriptToInstall,
+                        out ErrorRecord[] parseScriptFileErrors,
+                        out string[] _))
+                    {
+                        foreach (ErrorRecord parseError in parseScriptFileErrors)
+                        {
+                            _cmdletPassedIn.WriteError(parseError);
+                        }
+
+                        error = new ErrorRecord(
+                            new InvalidOperationException($"PSScriptFile could not be parsed"),
+                            "PSScriptParseError",
+                            ErrorCategory.ReadError,
+                            _cmdletPassedIn);
+
+                        return false;
+                    }
+
+                    externalModuleDependencies = scriptToInstall.ScriptMetadataComment.ExternalModuleDependencies;
+                }
+
+                DeleteExtraneousFiles(pkgName, tempDirNameVersion);
 
                 string installPath = _pathsToInstallPkg.First();
                 if (_includeXml)
@@ -1140,7 +1231,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         { "tempDirNameVersionPath", tempInstallPath },
                         { "pkgVersion", "" },
                         { "scriptPath", ""  },
-                        { "installPath", installPath }
+                        { "installPath", installPath },
+                        { "externalModuleDependencies", externalModuleDependencies }
                     });
                 }
 
@@ -1529,6 +1621,39 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 _cmdletPassedIn.WriteDebug($"Deleting '{packageDirToDelete}'");
                 Utils.DeleteDirectory(packageDirToDelete);
             }
+        }
+
+        private bool RetrieveExternalModuleDependenciesForModule(string pkgName, Hashtable moduleMetadata, out string[] externalModuleDependencies,  out ErrorRecord error)
+        {
+            error = null;
+            externalModuleDependencies = Utils.EmptyStrArray;
+            List<string> externalModuleDependenciesForPkg = new List<string>();
+
+            Hashtable privateData = moduleMetadata.ContainsKey("PrivateData") ? moduleMetadata["PrivateData"] as Hashtable : new Hashtable(StringComparer.OrdinalIgnoreCase);
+            Hashtable psData = privateData.ContainsKey("PSData") ? privateData["PSData"] as Hashtable : new Hashtable(StringComparer.OrdinalIgnoreCase);
+            object[] externalModDepObjects = psData.ContainsKey("ExternalModuleDependencies") ? psData["ExternalModuleDependencies"] as object[] : new object[0];
+            if (externalModDepObjects != null)
+            {
+                foreach (var dep in externalModDepObjects)
+                {
+                    string dependencyName = dep as string;
+                    if (dependencyName.Contains("="))
+                    {
+                        error = new ErrorRecord(
+                        new ArgumentException($"Package '{pkgName}' could not be installed: ExternalModuleDependencies should only contain module names, not other metadata. Invalid entry: '{dependencyName}'"),
+                        "ExternalModuleDependencyInvalidEntry",
+                        ErrorCategory.ReadError,
+                        _cmdletPassedIn);
+
+                        return false;
+                    }
+
+                    externalModuleDependenciesForPkg.Add(dependencyName);
+                }
+            }
+
+            externalModuleDependencies = externalModuleDependenciesForPkg.ToArray();
+            return true;
         }
 
         #endregion

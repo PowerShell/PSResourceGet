@@ -1024,7 +1024,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 foreach (PSResourceInfo currentPkg in parentPkgs)
                 {
                     _cmdletPassedIn.WriteDebug($"Finding dependency packages for '{currentPkg.Name}'");
-                    foreach (PSResourceInfo pkgDep in FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository))
+                    string[] emptyExternalModuleDependencies = Utils.EmptyStrArray;
+                    foreach (PSResourceInfo pkgDep in FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, emptyExternalModuleDependencies, repository))
                     {
                         yield return pkgDep;
                     }
@@ -1100,6 +1101,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
             PSResourceInfo currentPkg,
+            string[] externalModuleDependencies,
             PSRepositoryInfo repository)
         {
             if (currentPkg.Dependencies.Length > 0)
@@ -1108,6 +1110,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     PSResourceInfo depPkg = null;
 
+                    if (externalModuleDependencies.Contains(dep.Name, StringComparer.OrdinalIgnoreCase))
+                    {
+                        _cmdletPassedIn.WriteVerbose($"Dependency '{dep.Name}' is listed as an external module dependency, skipping search/install for this dependency.");
+                        continue;
+                    }
+
+                    string[] emptyExternalModuleDependencies = Utils.EmptyStrArray;
                     if (dep.VersionRange.Equals(VersionRange.All))
                     {
                         FindResults responses = currentServer.FindName(dep.Name, includePrerelease: true, _type, out ErrorRecord errRecord);
@@ -1153,7 +1162,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (!_packagesFound.ContainsKey(depPkg.Name))
                         {
-                            foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                            foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, emptyExternalModuleDependencies, repository))
                             {
                                 yield return depRes;
                             }
@@ -1164,7 +1173,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             // _packagesFound has depPkg.name in it, but the version is not the same
                             if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
                             {
-                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, emptyExternalModuleDependencies, repository))
                                 {
                                     yield return depRes;
                                 }
@@ -1217,7 +1226,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (!_packagesFound.ContainsKey(depPkg.Name))
                         {
-                            foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                            foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, emptyExternalModuleDependencies, repository))
                             {
                                 yield return depRes;
                             }
@@ -1228,7 +1237,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             // _packagesFound has depPkg.name in it, but the version is not the same
                             if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
                             {
-                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, emptyExternalModuleDependencies, repository))
                                 {
                                     yield return depRes;
                                 }
@@ -1299,7 +1308,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (!_packagesFound.ContainsKey(depPkg.Name))
                         {
-                            foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                            foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, emptyExternalModuleDependencies, repository))
                             {
                                 yield return depRes;
                             }
@@ -1310,7 +1319,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             // _packagesFound has depPkg.name in it, but the version is not the same
                             if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
                             {
-                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
+                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, emptyExternalModuleDependencies, repository))
                                 {
                                     yield return depRes;
                                 }
