@@ -1629,8 +1629,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             externalModuleDependencies = Utils.EmptyStrArray;
             List<string> externalModuleDependenciesForPkg = new List<string>();
 
-            Hashtable privateData = moduleMetadata.ContainsKey("PrivateData") ? moduleMetadata["PrivateData"] as Hashtable : new Hashtable(StringComparer.InvariantCultureIgnoreCase);
-            Hashtable psData = privateData.ContainsKey("PSData") ? privateData["PSData"] as Hashtable : new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+            Hashtable privateData = moduleMetadata.ContainsKey("PrivateData") ? moduleMetadata["PrivateData"] as Hashtable : new Hashtable(StringComparer.OrdinalIgnoreCase);
+            Hashtable psData = privateData.ContainsKey("PSData") ? privateData["PSData"] as Hashtable : new Hashtable(StringComparer.OrdinalIgnoreCase);
             object[] externalModDepObjects = psData.ContainsKey("ExternalModuleDependencies") ? psData["ExternalModuleDependencies"] as object[] : new object[0];
             if (externalModDepObjects != null)
             {

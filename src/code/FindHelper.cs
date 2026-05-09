@@ -1024,7 +1024,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 foreach (PSResourceInfo currentPkg in parentPkgs)
                 {
                     _cmdletPassedIn.WriteDebug($"Finding dependency packages for '{currentPkg.Name}'");
-                    string[] emptyExternalModuleDependencies = new string[0];
+                    string[] emptyExternalModuleDependencies = Utils.EmptyStrArray;
                     foreach (PSResourceInfo pkgDep in FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, emptyExternalModuleDependencies, repository))
                     {
                         yield return pkgDep;
@@ -1116,7 +1116,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         continue;
                     }
 
-                    string[] emptyExternalModuleDependencies = new string[0];
+                    string[] emptyExternalModuleDependencies = Utils.EmptyStrArray;
                     if (dep.VersionRange.Equals(VersionRange.All))
                     {
                         FindResults responses = currentServer.FindName(dep.Name, includePrerelease: true, _type, out ErrorRecord errRecord);
