@@ -13,13 +13,14 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         $testModuleName = "test_module"
         $testModuleName2 = "test_module2"
         $testModuleName3 = "TestModule99"
+        $testModuleName4 = "TestModulePrerelease"
         $PackageManagement = "PackageManagement"
         Get-NewPSResourceRepositoryFile
         Get-PSResourceRepository
     }
 
     AfterEach {
-       Uninstall-PSResource "test_module", "TestModule99", "TestModuleWithLicense", "test_module2", "test_script" -Version "*" -ErrorAction SilentlyContinue -SkipDependencyCheck
+       Uninstall-PSResource "test_module", "TestModule99", "TestModuleWithLicense", "test_module2", "test_script", "TestModulePrerelease" -Version "*" -ErrorAction SilentlyContinue -SkipDependencyCheck
     }
 
     AfterAll {
@@ -208,6 +209,20 @@ Describe 'Test HTTP Update-PSResource for V2 Server Protocol' -tags 'CI' {
         }
 
         $isPkgUpdated | Should -Be $true
+    }
+
+    It "Update prerelease version to next version when prerelease label is only differing factor between versions" {
+        # $testModuleName4 (TestModulePrerelease) has versions: 0.0.4-beta, 0.0.4. Updating should respect prerelease label
+        Install-PSResource -Name $testModuleName4 -Version "0.0.4-beta" -Repository $PSGalleryName -TrustRepository
+        $res = Get-InstalledPSResource -Name $testModuleName4
+        $res.Name | Should -Be $testModuleName4
+        $res.Version | Should -Contain "0.0.4"
+        $res.Prerelease | Should -Be "beta"
+
+        Update-PSResource -Name $testModuleName4 -Repository $PSGalleryName -TrustRepository
+        $res2 = Get-InstalledPSResource -Name $testModuleName4
+        $res2.Version | Should -Contain "0.0.4"
+        $res2.Prerelease | Should -BeNullOrEmpty
     }
 
     # Windows only
