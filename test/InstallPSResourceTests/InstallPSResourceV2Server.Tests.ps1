@@ -75,7 +75,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
 
     It "Should not install resource given nonexistent name" {
         Install-PSResource -Name "NonExistentModule" -Repository $PSGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource "NonExistentModule"
+        $pkg = Get-InstalledPSResource "NonExistentModule" -ErrorAction SilentlyContinue
         $pkg.Name | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
@@ -127,7 +127,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         }
         $Error[0].FullyQualifiedErrorId | Should -Be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -183,7 +183,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $pkg.Name | Should -Be "TestModuleWithDependencyC"
         $pkg.Version | Should -Be "1.0"
 
-        $pkg = Get-InstalledPSResource "TestModuleWithDependencyB", "TestModuleWithDependencyD"
+        $pkg = Get-InstalledPSResource "TestModuleWithDependencyB", "TestModuleWithDependencyD" -ErrorAction SilentlyContinue
         $pkg | Should -BeNullOrEmpty
     }
 
@@ -325,7 +325,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         $pkg.Version | Should -Be "0.0.1"
 
         Install-PSResource -Name $clobberTestModule2 -Repository $PSGalleryName -TrustRepository -NoClobber -ErrorVariable ev -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource $clobberTestModule2
+        $pkg = Get-InstalledPSResource $clobberTestModule2 -ErrorAction SilentlyContinue
         $pkg | Should -BeNullOrEmpty
         $ev.Count | Should -Be 1
         $ev[0] | Should -Be "'ClobberTestModule2' package could not be installed with error: The following commands are already available on this system: 'Test-Command2, Test-Command2'. This module 'ClobberTestModule2' may override the existing commands. If you still want to install this module 'ClobberTestModule2', remove the -NoClobber parameter."
@@ -354,7 +354,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'CI' {
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -WhatIf
         $? | Should -BeTrue
 
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -662,7 +662,7 @@ Describe 'Test Install-PSResource for V2 Server scenarios' -tags 'ManualValidati
     }
 
     AfterEach {
-        Uninstall-PSResource $testModuleName, $testModuleName2 -ErrorAction SilentlyContinue
+        Uninstall-PSResource $testModuleName, $testModuleName2 -ErrorAction SilentlyContinue -SkipDependencyCheck
     }
 
     AfterAll {

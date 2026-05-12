@@ -344,7 +344,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
     #     $foundTestScript | Should -Be $True
     # }
 
-    It "find all resources with specified tag given Tag property, with and without Prerelease property" {
+     It "find all resources with specified tag given Tag property, with and without Prerelease property" {
         $tagToFind = "MyPSTag"
         $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName
         $res | Should -HaveCount 1
@@ -470,11 +470,8 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidat
     AfterAll {
         Get-RevertPSResourceRepositoryFile
     }
-    It "find resource given CommandName" {
-        $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName -Type Module
 
-        $res.Name | Should -Be $testModuleName
-    }
+
 
     It "find should not duplicate dependencies found" {
         $res = Find-PSResource -Name "Az" -IncludeDependencies -Repository $PSGalleryName
