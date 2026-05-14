@@ -114,6 +114,7 @@ function DoBuild
                 'NuGet.Protocol'
                 'NuGet.Versioning'
                 'System.Buffers'
+                'System.ClientModel'
                 'System.Diagnostics.DiagnosticSource'
                 'System.IO.FileSystem.AccessControl'
                 'System.Memory.Data'

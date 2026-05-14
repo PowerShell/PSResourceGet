@@ -15,6 +15,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         private static readonly HashSet<string> NetFrameworkLoadFromPath = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            "System.Buffers",
+            "System.ClientModel",
             "System.Runtime.CompilerServices.Unsafe",
             "System.Memory",
             "System.Diagnostics.DiagnosticSource",
