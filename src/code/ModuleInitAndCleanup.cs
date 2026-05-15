@@ -17,6 +17,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             "System.Buffers",
             "System.ClientModel",
+            "System.Numerics.Vectors",
             "System.Runtime.CompilerServices.Unsafe",
             "System.Memory",
             "System.Diagnostics.DiagnosticSource",
