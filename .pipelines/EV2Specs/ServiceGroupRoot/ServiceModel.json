@@ -1,0 +1,52 @@
+{
+  "$schema": "https://ev2schema.azure.net/schemas/2020-04-01/regionAgnosticServiceModel.json",
+  "contentVersion": "1.0.0.0",
+  "serviceMetadata": {
+    "serviceIdentifier": "00000000-0000-0000-0000-000000000000",
+    "serviceGroup": "Microsoft.Azure.PSCore.PSResourceGet",
+    "serviceSpecificationPath": "ServiceSpecification.json",
+    "serviceGroupSpecificationPath": "ServiceGroupSpecification.json",
+    "environment": "$config(environment)",
+    "displayName":"PSResourceGet-Ev2Release-MAR",
+    "tenantId":"$config(tenantid)"
+  },
+  "subscriptionProvisioning": {
+    "rolloutParametersPath": "Parameters\\subscriptionProvisioning.rolloutParameters.json",
+    "scopeTags": [
+      {
+        "name": "scope.tag.subscriptionprovisioning"
+      }
+    ]
+  },
+  "serviceResourceGroupDefinitions": [
+    {
+      "name": "OneBranch-PSResourceGet-RGDef",
+      "azureResourceGroupName": "$config(azureResourceGroup)",
+      "subscriptionKey": "$config(subscription.subscriptionkey)",
+      "serviceResourceDefinitions": [
+        {
+          "name": "PSResourceGetMARReleaseShell",
+          "composedOf": {
+            "extension": {
+              "rolloutParametersPath": "PSResourceGetReleaseMAR.Rollout.json",
+              "shell": [
+                {
+                  "type": "Run",
+                  "properties": {
+                    "imageName": "adm-azurelinux-30-l",
+                    "imageVersion": "v2"
+                  }
+                }
+              ]
+            }
+          },
+          "scopeTags": [
+            {
+              "name": "Global"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
