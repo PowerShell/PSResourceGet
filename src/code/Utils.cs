@@ -1394,7 +1394,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 {
                     throw new PSArgumentNullException(nameof(filePath));
                 }
-                string contents = System.IO.File.ReadAllText(filePath);
+                string contents = File.ReadAllText(filePath);
 
                 // Validate that the file content conforms to restricted language rules before execution.
                 // This parses the content into an AST and statically validates it only contains data-file-safe constructs (hashtables, arrays, literals, etc). 

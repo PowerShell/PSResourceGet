@@ -1028,8 +1028,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 File.Delete(pathToFile);
 
-                var moduleManifest = Path.Combine(tempDirNameVersion, pkgName + PSDataFileExt);
-                var scriptPath = Path.Combine(tempDirNameVersion, pkgName + PSScriptFileExt);
+                string moduleManifest = Path.Combine(tempDirNameVersion, pkgName + PSDataFileExt);
+                string scriptPath = Path.Combine(tempDirNameVersion, pkgName + PSScriptFileExt);
 
                 bool isModule = File.Exists(moduleManifest);
                 bool isScript = File.Exists(scriptPath);
@@ -1065,6 +1065,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             return false;
                         }
+
+                    // Get module actual name with correct casing
+                    string moduleManifestActualFileName = Path.GetFileNameWithoutExtension(
+                        Directory.GetFiles(
+                            tempDirNameVersion,
+                            $"{pkgName}.psd1"
+                        )[0]
+                    );
+                    _cmdletPassedIn.WriteVerbose($"pkgName: \"{pkgName}\", actual name of manifest: \"${moduleManifestActualFileName}");
 
                     if (!Utils.TryReadManifestFile(
                         manifestFilePath: moduleManifest,
@@ -1118,12 +1127,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                         return false;
                     }
+
+                    // Get script actual name with correct casing
+                    string scriptActualFileName = Path.GetFileNameWithoutExtension(
+                        Directory.GetFiles(
+                            tempDirNameVersion,
+                            $"{pkgName}.ps1"
+                        )[0]
+                    );
+                    _cmdletPassedIn.WriteVerbose($"pkgName: \"{pkgName}\", actual name of script: \"{scriptActualFileName}\"");
                 }
                 else
                 {
                     // This package is not a PowerShell package (eg a resource from the NuGet Gallery).
                     installPath = _pathsToInstallPkg.Find(path => path.EndsWith("Modules", StringComparison.InvariantCultureIgnoreCase));
 
+                    _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
+                    isModule = true;
+
+                    // Get actual name from .nuspec file
+                    string resourceNuspecFileName = Path.GetFileNameWithoutExtension(
+                        Directory.GetFiles(
+                            tempDirNameVersion,
+                            $"{pkgName}.nuspec"
+                        )[0]
+                    );
+                    _cmdletPassedIn.WriteVerbose($"pkgName: \"{pkgName}\", actual name of nuspec file: \"{resourceNuspecFileName}\"");
                         // TODO: pass in ConcurrentQueue to write out verbose message.
                         // _cmdletPassedIn.WriteVerbose($"This resource is not a PowerShell package and will be installed to the modules path: {installPath}.");
                         isModule = true;
