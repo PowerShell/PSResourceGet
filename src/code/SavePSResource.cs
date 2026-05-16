@@ -216,7 +216,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 case InputObjectParameterSet:
                     foreach (PSResourceInfo inputObj in InputObject)
                     {
-                        string normalizedVersionString = Utils.GetNormalizedVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
+                        string normalizedVersionString = Utils.GetFullVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
                         ProcessSaveHelper(
                             pkgNames: new string[] { inputObj.Name },
                             pkgVersion: normalizedVersionString,

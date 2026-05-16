@@ -26,8 +26,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         // The repository store file's location is currently only at '%LOCALAPPDATA%\PSResourceGet' for the user account.
         private const string PSGalleryRepoName = "PSGallery";
         private const string PSGalleryRepoUri = "https://www.powershellgallery.com/api/v2";
+        private const string MARRepoName = "MicrosoftArtifactRegistry";
+        private const string MARRepoUri = "https://mcr.microsoft.com";
         private const int DefaultPriority = 50;
+        private const int MARDefaultPriority = 40;
         private const bool DefaultTrusted = false;
+        private const bool MARDefaultTrusted = true;
         private const string RepositoryFileName = "PSResourceRepository.xml";
         private static readonly string RepositoryPath = Path.Combine(Environment.GetFolderPath(
             Environment.SpecialFolder.LocalApplicationData), "PSResourceGet");
@@ -63,6 +67,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // Add PSGallery to the newly created store
                 Uri psGalleryUri = new Uri(PSGalleryRepoUri);
                 Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null, repoCredentialProvider: CredentialProviderType.None, APIVersion.V2, force: false);
+
+                // Add MAR to the newly created store
+                Uri marUri = new Uri(MARRepoUri);
+                Add(MARRepoName, marUri, MARDefaultPriority, MARDefaultTrusted, repoCredentialInfo: null, repoCredentialProvider: CredentialProviderType.None, APIVersion.ContainerRegistry, force: false);
             }
 
             // Open file (which should exist now), if cannot/is corrupted then throw error
@@ -82,6 +90,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase))
             {
                 errorMsg = "Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery";
+                return null;
+            }
+
+            if (repoName.Equals("MicrosoftArtifactRegistry", StringComparison.OrdinalIgnoreCase))
+            {
+                errorMsg = "Cannot register MAR with -Name parameter. Try: Register-PSResourceRepository -MicrosoftArtifactRegistry.";
                 return null;
             }
 
@@ -184,6 +198,20 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             if (repoName.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) && repoCredentialInfo != null)
             {
                 errorMsg = "Setting the -CredentialInfo parameter for PSGallery is not allowed. Run 'Register-PSResourceRepository -PSGallery' to register the PowerShell Gallery.";
+                return null;
+            }
+
+            // check MAR Uri is not trying to be set
+            if (repoName.Equals("MicrosoftArtifactRegistry", StringComparison.OrdinalIgnoreCase) && repoUri != null)
+            {
+                errorMsg = "The MAR repository has a predefined Uri. Setting the -Uri parameter for this repository is not allowed. Please run 'Reset-PSResourceRepository' to restore default repositories.";
+                return null;
+            }
+
+            // check MAR CredentialInfo is not trying to be set
+            if (repoName.Equals("MicrosoftArtifactRegistry", StringComparison.OrdinalIgnoreCase) && repoCredentialInfo != null)
+            {
+                errorMsg = "Setting the -CredentialInfo parameter for MAR is not allowed. Run 'Reset-PSResourceRepository' to restore default repositories.";
                 return null;
             }
 
@@ -907,6 +935,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // Add PSGallery to the newly created store
                 Uri psGalleryUri = new Uri(PSGalleryRepoUri);
                 PSRepositoryInfo psGalleryRepo = Add(PSGalleryRepoName, psGalleryUri, DefaultPriority, DefaultTrusted, repoCredentialInfo: null, repoCredentialProvider: CredentialProviderType.None, APIVersion.V2, force: false);
+
+                // Add MAR to the newly created store
+                Uri marUri = new Uri(MARRepoUri);
+                Add(MARRepoName, marUri, MARDefaultPriority, MARDefaultTrusted, repoCredentialInfo: null, repoCredentialProvider: CredentialProviderType.None, APIVersion.ContainerRegistry, force: false);
 
                 // Clean up backup file on success
                 if (!string.IsNullOrEmpty(backupFilePath) && File.Exists(backupFilePath))

@@ -331,7 +331,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
     #     $foundTestScript | Should -Be $True
     # }
 
-    It "find all resources with specified tag given Tag property, with and without Prerelease property" {
+     It "find all resources with specified tag given Tag property, with and without Prerelease property" {
         $tagToFind = "MyPSTag"
         $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName
         $res | Should -HaveCount 1

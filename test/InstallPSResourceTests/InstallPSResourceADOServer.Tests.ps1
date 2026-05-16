@@ -29,12 +29,11 @@ Describe 'Test Install-PSResource for ADO V3Server scenarios' -tags 'CI' {
     @{Name = "Test_local_m*"; ErrorId = "NameContainsWildcard" },
     @{Name = "Test?local", "Test[local"; ErrorId = "ErrorFilteringNamesForUnsupportedWildcards" }
 
-    It "Should not install resource with wildcard in name" -TestCases $testCases {
+    It "Should not install resource with wildcard in name -- $Name" -TestCases $testCases {
         param($Name, $ErrorId)
-        Install-PSResource -Name $Name -Repository $ADORepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Install-PSResource -Name $Name -Repository $ADORepoName -ErrorVariable err -ErrorAction SilentlyContinue -PassThru
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
-        $res = Get-InstalledPSResource $testModuleName
         $res | Should -BeNullOrEmpty
     }
 

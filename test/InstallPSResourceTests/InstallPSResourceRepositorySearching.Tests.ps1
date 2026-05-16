@@ -36,8 +36,9 @@ Describe 'Test Install-PSResource for searching and looping through repositories
 
     It "install resources from highest priority repository where it exists (without -Repository specified)" {
         # Package "test_module" exists in the following repositories (in this order): localRepo, PSGallery, NuGetGallery
+        # Package does not exist on MAR to we need to skip when validating that the highest priority repository is used
         $res = Install-PSResource -Name $testModuleName -TrustRepository -SkipDependencyCheck -ErrorVariable err -ErrorAction SilentlyContinue -PassThru
-        $err | Should -HaveCount 0
+        $err | Should -HaveCount 1 ## This comes from MAR
 
         $res | Should -Not -BeNullOrEmpty
         $res.Repository | Should -Be $localRepoName
@@ -45,8 +46,9 @@ Describe 'Test Install-PSResource for searching and looping through repositories
 
     It "install resources from hightest priority repository where it exists and not write errors for repositories where it does not exist (without -Repository specified)" {
         # Package "test_script" exists in the following repositories: PSGallery, NuGetGallery
+        # Package does not exist on MAR to we need to skip when validating that the highest priority repository is used
         Install-PSResource -Name $testScriptName -TrustRepository -SkipDependencyCheck -ErrorVariable err -ErrorAction SilentlyContinue
-        $err | Should -HaveCount 0
+        $err | Should -HaveCount 1 ## This comes from MAR
 
         $res = Get-InstalledPSResource $testScriptName
         $res | Should -Not -BeNullOrEmpty
@@ -55,7 +57,7 @@ Describe 'Test Install-PSResource for searching and looping through repositories
 
     It "should install resources that exist and not install ones that do not exist while reporting error (without -Repository specified)" {
         Install-PSResource -Name $testScriptName,"NonExistentModule" -TrustRepository -SkipDependencyCheck -ErrorVariable err -ErrorAction SilentlyContinue
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+        "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" | Should -BeIn $err.FullyQualifiedErrorId
 
         $res = Get-InstalledPSResource $testScriptName
         $res | Should -Not -BeNullOrEmpty
@@ -64,13 +66,13 @@ Describe 'Test Install-PSResource for searching and looping through repositories
 
     It "should not install resource given nonexistent Name (without -Repository specified)" {
         Install-PSResource -Name "NonExistentModule" -TrustRepository -SkipDependencyCheck -ErrorVariable err -ErrorAction SilentlyContinue
-        $err | Should -HaveCount 1
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+        $err | Should -HaveCount 2 ## One error comes from MAR
+        "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource" | Should -BeIn $err.FullyQualifiedErrorId
     }
 
     It "install multiple resources from highest priority repository where it exists (without -Repository specified)" {
         $res = Install-PSResource -Name "test_module", "test_module2" -TrustRepository -SkipDependencyCheck -ErrorVariable err -ErrorAction SilentlyContinue -PassThru
-        $err | Should -HaveCount 0
+        $err | Should -HaveCount 2 ## This comes from MAR
         $res | Should -Not -BeNullOrEmpty
 
         $pkg1 = $res[0]

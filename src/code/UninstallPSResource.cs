@@ -140,7 +140,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     foreach (PSResourceInfo inputObj in InputObject)
                     {
                         string inputObjectPrerelease = inputObj.Prerelease;
-                        string inputObjectVersion = String.IsNullOrEmpty(inputObjectPrerelease) ? inputObj.Version.ToString() : Utils.GetNormalizedVersionString(versionString: inputObj.Version.ToString(), prerelease: inputObjectPrerelease);
+                        string inputObjectVersion = String.IsNullOrEmpty(inputObjectPrerelease) ? inputObj.Version.ToString() : Utils.GetFullVersionString(versionString: inputObj.Version.ToString(), prerelease: inputObjectPrerelease);
                         if (!Utils.TryParseVersionOrVersionRange(
                             version: inputObjectVersion,
                             versionRange: out _versionRange))

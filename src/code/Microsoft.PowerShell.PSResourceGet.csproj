@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.16.0" />
+    <PackageReference Include="Azure.Identity" Version="1.17.1" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="NuGet.Commands" Version="6.14.0" />
     <PackageReference Include="NuGet.Common" Version="6.14.0" />
@@ -23,9 +23,11 @@
     <PackageReference Include="NuGet.ProjectModel" Version="6.14.0" />
     <PackageReference Include="NuGet.Protocol" Version="6.14.0" />
     <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" />
+    <PackageReference Include="System.Buffers" Version="4.6.1" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.1" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="6.0.5" />
     <PackageReference Include="System.Text.Json" Version="8.0.6" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />        
     <Reference Include="System.Web" />
   </ItemGroup>
 

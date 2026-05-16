@@ -381,7 +381,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     continue;
                 }
 
-                string repoNuGetVersionString = Utils.GetNormalizedVersionString(repositoryPackage.Version.ToString(), repositoryPackage.Prerelease);
+                string repoNuGetVersionString = Utils.GetFullVersionString(repositoryPackage.Version.ToString(), repositoryPackage.Prerelease);
                 // If the current package is out of range, install it with the correct version.
                 if (!NuGetVersion.TryParse(repoNuGetVersionString, out NuGetVersion repoVersion))
                 {

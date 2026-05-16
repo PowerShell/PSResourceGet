@@ -38,6 +38,12 @@ function DoBuild {
         Copy-Item -Path $File -Destination $BuildOutPath -Force
     }
 
+    Write-Verbose -Verbose -Message "Copying psresourceget.ps1 to '$BuildOutPath'"
+    Copy-Item -Path "${SrcPath}/dsc/psresourceget.ps1" -Dest "$BuildOutPath" -Force
+
+    Write-Verbose -Verbose -Message "Copying resource manifests to '$BuildOutPath'"
+    Copy-Item -Path "${SrcPath}/dsc/*.resource.json" -Dest "$BuildOutPath" -Force
+
     # Build and place binaries
     if (Test-Path -Path "${SrcPath}/code") {
         Write-Verbose -Verbose -Message "Building assembly and copying to '$BuildOutPath'"
@@ -99,6 +105,7 @@ function DoBuild {
                 'NuGet.Protocol'
                 'NuGet.Versioning'
                 'System.Buffers'
+                'System.ClientModel'
                 'System.Diagnostics.DiagnosticSource'
                 'System.IO.FileSystem.AccessControl'
                 'System.Memory.Data'

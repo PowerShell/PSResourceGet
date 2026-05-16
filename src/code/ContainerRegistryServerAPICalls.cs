@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -81,6 +82,16 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         #region Overridden Methods
 
+        public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            throw new NotImplementedException("FindVersionAsync is not implemented for ContainerRegistryServerAPICalls.");
+        }
+
+        public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            throw new NotImplementedException("FindVersionGlobbingAsync is not implemented for ContainerRegistryServerAPICalls.");   
+        }
+
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
         /// </summary>
@@ -144,6 +155,12 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             return new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResult.ToArray(), responseType: containerRegistryFindResponseType);
+        }
+
+
+        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            throw new NotImplementedException("FindNameAsync is not implemented for ContainerRegistryServerAPICalls.");
         }
 
         /// <summary>
@@ -300,6 +317,19 @@ namespace Microsoft.PowerShell.PSResourceGet
             string packageNameForInstall = PrependMARPrefix(packageName);
             results = InstallVersion(packageNameForInstall, packageVersion, out errRecord);
             return results;
+        }
+
+        /// <summary>
+        /// Installs a specific package asynchronously.
+        /// User may request to install package with or without providing version (as seen in examples below), but prior to calling this method the package is located and package version determined.
+        /// Therefore, package version should not be null in this method.
+        /// Name: no wildcard support.
+        /// Examples: Install "PowerShellGet" -Version "3.5.0-alpha"
+        ///           Install "PowerShellGet" -Version "3.0.0"
+        /// </summary>
+        public override Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            throw new NotImplementedException("FindNameAsync is not implemented for ContainerRegistryServerAPICalls.");
         }
 
         /// <summary>
