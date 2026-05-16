@@ -1,25 +1,27 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
-using NuGet.Versioning;
-using System.Threading.Tasks;
-using System.Net;
-using System.Management.Automation;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
 using System.Collections.ObjectModel;
-using System.Net.Http.Headers;
+using System.IO;
 using System.Linq;
-using Microsoft.PowerShell.PSResourceGet.Cmdlets;
-using System.Text;
+using System.Management.Automation;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Microsoft.PowerShell.PSResourceGet.Cmdlets;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PSResourceGet
 {
@@ -53,6 +55,8 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         const string containerRegistryRepositoryListTemplate = "https://{0}/v2/_catalog"; // 0 - registry
 
+        private string _cachedContainterRegistryToken = null;
+
         #endregion
 
         #region Constructor
@@ -67,6 +71,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                 Credentials = networkCredential
             };
 
+            _cachedContainterRegistryToken = null;
+
             _sessionClient = new HttpClient(handler);
             _sessionClient.Timeout = TimeSpan.FromMinutes(10);
             _sessionClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgentString);
@@ -74,7 +80,17 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         #endregion
 
-        #region Overriden Methods
+        #region Overridden Methods
+
+        public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            throw new NotImplementedException("FindVersionAsync is not implemented for ContainerRegistryServerAPICalls.");
+        }
+
+        public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            throw new NotImplementedException("FindVersionGlobbingAsync is not implemented for ContainerRegistryServerAPICalls.");   
+        }
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
@@ -125,7 +141,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// Find method which allows for searching for single name and returns latest version.
         /// Name: no wildcard support
         /// Examples: Search "PowerShellGet"
-        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease dependening on user preference)
+        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease depending on user preference)
         /// </summary>
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
@@ -139,6 +155,12 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             return new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResult.ToArray(), responseType: containerRegistryFindResponseType);
+        }
+
+
+        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            throw new NotImplementedException("FindNameAsync is not implemented for ContainerRegistryServerAPICalls.");
         }
 
         /// <summary>
@@ -298,6 +320,19 @@ namespace Microsoft.PowerShell.PSResourceGet
         }
 
         /// <summary>
+        /// Installs a specific package asynchronously.
+        /// User may request to install package with or without providing version (as seen in examples below), but prior to calling this method the package is located and package version determined.
+        /// Therefore, package version should not be null in this method.
+        /// Name: no wildcard support.
+        /// Examples: Install "PowerShellGet" -Version "3.5.0-alpha"
+        ///           Install "PowerShellGet" -Version "3.0.0"
+        /// </summary>
+        public override Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            throw new NotImplementedException("FindNameAsync is not implemented for ContainerRegistryServerAPICalls.");
+        }
+
+        /// <summary>
         /// Installs a package with version specified.
         /// Version can be prerelease or stable.
         /// </summary>
@@ -327,7 +362,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return null;
             }
 
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false, out errRecord);
             if (errRecord != null)
             {
                 return null;
@@ -375,13 +410,19 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// If no credential provided at registration then, check if the ACR endpoint can be accessed without a token. If not, try using Azure.Identity to get the az access token, then ACR refresh token and then ACR access token.
         /// Note: Access token can be empty if the repository is unauthenticated
         /// </summary>
-        internal string GetContainerRegistryAccessToken(bool needCatalogAccess, out ErrorRecord errRecord)
+        internal string GetContainerRegistryAccessToken(bool needCatalogAccess, bool isPushOperation, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessToken()");
             string accessToken = string.Empty;
             string containerRegistryAccessToken = string.Empty;
             string tenantID = string.Empty;
             errRecord = null;
+
+            if (!string.IsNullOrEmpty(_cachedContainterRegistryToken))
+            {
+                _cmdletPassedIn.WriteVerbose("Using cached container registry access token.");
+                return _cachedContainterRegistryToken;
+            }
 
             var repositoryCredentialInfo = Repository.CredentialInfo;
             if (repositoryCredentialInfo != null)
@@ -397,7 +438,10 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             else
             {
-                bool isRepositoryUnauthenticated = IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), needCatalogAccess, out errRecord, out accessToken);
+                // A container registry repository is determined to be unauthenticated if it allows anonymous pull access. However, push operations always require authentication.
+                bool isRepositoryUnauthenticated = isPushOperation ? false : IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), needCatalogAccess, out errRecord, out accessToken);
+                _cmdletPassedIn.WriteInformation($"Value of isRepositoryUnauthenticated: {isRepositoryUnauthenticated}", new string[] { "PSRGContainerRegistryUnauthenticatedCheck" });
+
                 _cmdletPassedIn.WriteDebug($"Is repository unauthenticated: {isRepositoryUnauthenticated}");
 
                 if (errRecord != null)
@@ -444,18 +488,21 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return null;
             }
 
+            _cmdletPassedIn.WriteVerbose("Container registry access token retrieved.");
+            _cachedContainterRegistryToken = containerRegistryAccessToken;
+
             return containerRegistryAccessToken;
         }
 
         /// <summary>
         /// Checks if container registry repository is unauthenticated.
         /// </summary>
-        internal bool IsContainerRegistryUnauthenticated(string containerRegistyUrl, bool needCatalogAccess, out ErrorRecord errRecord, out string anonymousAccessToken)
+        internal bool IsContainerRegistryUnauthenticated(string containerRegistryUrl, bool needCatalogAccess, out ErrorRecord errRecord, out string anonymousAccessToken)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::IsContainerRegistryUnauthenticated()");
             errRecord = null;
             anonymousAccessToken = string.Empty;
-            string endpoint = $"{containerRegistyUrl}/v2/";
+            string endpoint = $"{containerRegistryUrl}/v2/";
             HttpResponseMessage response;
             try
             {
@@ -496,7 +543,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                                 _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
 
-                                // we dont check the errorrecord here because we want to return false if we get a 401 and not throw an error
+                                // we don't check the error record here because we want to return false if we get a 401 and not throw an error
                                 _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
                                 ErrorRecord errRecordTemp = null;
 
@@ -643,7 +690,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         }
 
         /// <summary>
-        /// Get the blob for the package (ie repository in container registry terms) from the repositroy (ie registry in container registry terms)
+        /// Get the blob for the package (ie repository in container registry terms) from the repository (ie registry in container registry terms)
         /// Used when installing the package
         /// </summary>
         internal async Task<HttpContent> GetContainerRegistryBlobAsync(string packageName, string digest, string containerRegistryAccessToken)
@@ -688,7 +735,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindAllRepositories()");
             string repositoryListUrl = string.Format(containerRegistryRepositoryListTemplate, Registry);
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-            return GetHttpResponseJObjectUsingDefaultHeaders(repositoryListUrl, HttpMethod.Get, defaultHeaders, out errRecord);
+            return GetHttpResponseJObjectUsingDefaultHeaders(repositoryListUrl, HttpMethod.Get, defaultHeaders, out errRecord, usePagination: true);
         }
 
         /// <summary>
@@ -697,37 +744,38 @@ namespace Microsoft.PowerShell.PSResourceGet
         internal Hashtable GetContainerRegistryMetadata(string packageName, string exactTagVersion, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryMetadata()");
-            Hashtable requiredVersionResponse = new Hashtable();
+            Hashtable requiredVersionResponse = new();
 
-            var foundTags = FindContainerRegistryManifest(packageName, exactTagVersion, containerRegistryAccessToken, out errRecord);
+            JObject foundTags = FindContainerRegistryManifest(packageName, exactTagVersion, containerRegistryAccessToken, out errRecord);
             if (errRecord != null)
             {
                 return requiredVersionResponse;
             }
 
-            /*   Response returned looks something like:
-             *    {
-             *     "schemaVersion": 2,
-             *     "config": {
-             *       "mediaType": "application/vnd.unknown.config.v1+json",
-             *       "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-             *       "size": 0
-             *     },
-             *     "layers": [
-             *       {
-             *         "mediaType": "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip'",
-             *         "digest": "sha256:7c55c7b66cb075628660d8249cc4866f16e34741c246a42ed97fb23ccd4ea956",
-             *         "size": 3533,
-             *         "annotations": {
-             *           "org.opencontainers.image.title": "test_module.1.0.0.nupkg",
-             *           "metadata": "{\"GUID\":\"45219bf4-10a4-4242-92d6-9bfcf79878fd\",\"FunctionsToExport\":[],\"CompanyName\":\"Anam\",\"CmdletsToExport\":[],\"VariablesToExport\":\"*\",\"Author\":\"Anam Navied\",\"ModuleVersion\":\"1.0.0\",\"Copyright\":\"(c) Anam Navied. All rights reserved.\",\"PrivateData\":{\"PSData\":{\"Tags\":[\"Test\",\"CommandsAndResource\",\"Tag2\"]}},\"RequiredModules\":[],\"Description\":\"This is a test module, for PSGallery team internal testing. Do not take a dependency on this package. This version contains tags for the package.\",\"AliasesToExport\":[]}"
-             *         }
-             *       }
-             *     ]
-             *   }
-             */
+            /*
+                Response returned looks something like:
+                {
+                    "schemaVersion": 2,
+                    "config": {
+                        "mediaType": "application/vnd.unknown.config.v1+json",
+                        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                        "size": 0
+                    },
+                    "layers": [
+                        {
+                            "mediaType": "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip'",
+                            "digest": "sha256:7c55c7b66cb075628660d8249cc4866f16e34741c246a42ed97fb23ccd4ea956",
+                            "size": 3533,
+                            "annotations": {
+                                "org.opencontainers.image.title": "test_module.1.0.0.nupkg",
+                                "metadata": "{\"GUID\":\"45219bf4-10a4-4242-92d6-9bfcf79878fd\",\"FunctionsToExport\":[],\"CompanyName\":\"Anam\",\"CmdletsToExport\":[],\"VariablesToExport\":\"*\",\"Author\":\"Anam Navied\",\"ModuleVersion\":\"1.0.0\",\"Copyright\":\"(c) Anam Navied. All rights reserved.\",\"PrivateData\":{\"PSData\":{\"Tags\":[\"Test\",\"CommandsAndResource\",\"Tag2\"]}},\"RequiredModules\":[],\"Description\":\"This is a test module, for PSGallery team internal testing. Do not take a dependency on this package. This version contains tags for the package.\",\"AliasesToExport\":[]}"
+                            }
+                        }
+                    ]
+                }
+            */
 
-            var serverPkgInfo = GetMetadataProperty(foundTags, packageName, out errRecord);
+            ContainerRegistryInfo serverPkgInfo = GetMetadataProperty(foundTags, packageName, out errRecord);
             if (errRecord != null)
             {
                 return requiredVersionResponse;
@@ -739,6 +787,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 {
                     string pkgVersionString = String.Empty;
                     JsonElement rootDom = metadataJSONDoc.RootElement;
+
                     if (rootDom.TryGetProperty("ModuleVersion", out JsonElement pkgVersionElement))
                     {
                         // module metadata will have "ModuleVersion" property
@@ -830,7 +879,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             errRecord = null;
             ContainerRegistryInfo serverPkgInfo = null;
 
-            var layers = foundTags["layers"];
+            JToken layers = foundTags["layers"];
             if (layers == null || layers[0] == null)
             {
                 errRecord = new ErrorRecord(
@@ -842,7 +891,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return serverPkgInfo;
             }
 
-            var annotations = layers[0]["annotations"];
+            JToken annotations = layers[0]["annotations"];
             if (annotations == null)
             {
                 errRecord = new ErrorRecord(
@@ -855,7 +904,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             // Check for package name
-            var pkgTitleJToken = annotations["org.opencontainers.image.title"];
+            JToken pkgTitleJToken = annotations["org.opencontainers.image.title"];
             if (pkgTitleJToken == null)
             {
                 errRecord = new ErrorRecord(
@@ -880,7 +929,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             // Check for package metadata
-            var pkgMetadataJToken = annotations["metadata"];
+            JToken pkgMetadataJToken = annotations["metadata"];
             if (pkgMetadataJToken == null)
             {
                 errRecord = new ErrorRecord(
@@ -892,10 +941,10 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return serverPkgInfo;
             }
 
-            var metadata = pkgMetadataJToken.ToString();
+            string metadata = pkgMetadataJToken.ToString();
 
             // Check for package artifact type
-            var resourceTypeJToken = annotations["resourceType"];
+            JToken resourceTypeJToken = annotations["resourceType"];
             var resourceType = resourceTypeJToken != null ? resourceTypeJToken.ToString() : "None";
 
             return new ContainerRegistryInfo(metadataPkgName, metadata, resourceType);
@@ -915,7 +964,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException("Error occured while trying to create manifest: " + e.Message);
+                throw new HttpRequestException("Error occurred while trying to create manifest: " + e.Message);
             }
         }
 
@@ -930,14 +979,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+                throw new HttpRequestException("Error occurred while trying to retrieve response: " + e.Message);
             }
         }
 
         /// <summary>
         /// Get response object when using default headers in the request.
         /// </summary>
-        internal JObject GetHttpResponseJObjectUsingDefaultHeaders(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders, out ErrorRecord errRecord)
+        internal JObject GetHttpResponseJObjectUsingDefaultHeaders(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders, out ErrorRecord errRecord, bool usePagination = false)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetHttpResponseJObjectUsingDefaultHeaders()");
             try
@@ -946,7 +995,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                 HttpRequestMessage request = new HttpRequestMessage(method, url);
                 SetDefaultHeaders(defaultHeaders);
 
-                return SendRequestAsync(request).GetAwaiter().GetResult();
+                var response = usePagination ? SendRequestAsyncWithPagination(request) : SendRequestAsync(request);
+                return response.GetAwaiter().GetResult();
             }
             catch (ResourceNotFoundException e)
             {
@@ -1010,6 +1060,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                         return null;
                     }
 
+                    // codeql[cs/sensitive-data-transmission] This is expected PSResourceGet behavior to create the content of the request which is only transmitted to the server, not the user. This information is also not exposed back to the user via error or verbose messaging.
                     request.Content = new StringContent(content);
                     request.Content.Headers.Clear();
                     if (contentHeaders != null)
@@ -1072,7 +1123,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException("Error occured while trying to retrieve response header: " + e.Message);
+                throw new HttpRequestException("Error occurred while trying to retrieve response header: " + e.Message);
             }
         }
 
@@ -1115,7 +1166,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception e)
             {
-                throw new SendRequestException($"Error occured while sending request to Container Registry server for content with: {e.GetType()} '{e.Message}'", e);
+                throw new SendRequestException($"Error occurred while sending request to Container Registry server for content with: {e.GetType()} '{e.Message}'", e);
             }
         }
 
@@ -1131,7 +1182,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception e)
             {
-                throw new SendRequestException($"Error occured while sending request to Container Registry server with: {e.GetType()} '{e.Message}'", e);
+                throw new SendRequestException($"Error occurred while sending request to Container Registry server with: {e.GetType()} '{e.Message}'", e);
             }
 
             switch (response.StatusCode)
@@ -1152,6 +1203,72 @@ namespace Microsoft.PowerShell.PSResourceGet
             return JsonConvert.DeserializeObject<JObject>(await response.Content.ReadAsStringAsync());
         }
 
+        private async Task<JObject> SendRequestAsyncWithPagination(HttpRequestMessage initialMessage)
+        {
+            HttpResponseMessage response;
+            string nextUrl = initialMessage.RequestUri.ToString();
+            string urlBase = initialMessage.RequestUri.Scheme + "://" + initialMessage.RequestUri.Host;
+            JObject finalResult = new JObject();
+            JArray allRepositories = new JArray();
+
+            do
+            {
+                var message = new HttpRequestMessage(HttpMethod.Get, nextUrl);
+                try
+                {
+                    response = await _sessionClient.SendAsync(message);
+                }
+                catch (Exception e)
+                {
+                    throw new SendRequestException($"Error occurred while sending request to Container Registry server with: {e.GetType()} '{e.Message}'", e);
+                }
+
+                switch (response.StatusCode)
+                {
+                    case HttpStatusCode.OK:
+                        break;
+                    case HttpStatusCode.Unauthorized:
+                        throw new UnauthorizedException($"Response returned status code: {response.ReasonPhrase}.");
+                    case HttpStatusCode.NotFound:
+                        throw new ResourceNotFoundException($"Response returned status code package: {response.ReasonPhrase}.");
+                    default:
+                        throw new Exception($"Response returned error with status code {response.StatusCode}: {response.ReasonPhrase}.");
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var json = JObject.Parse(content);
+                var repositories = json["repositories"] as JArray;
+                if (repositories != null)
+                {
+                    allRepositories.Merge(repositories);
+                }
+
+                // Check for Link header to continue pagination
+                if (response.Headers.TryGetValues("Link", out var linkHeaders))
+                {
+                    var linkHeader = string.Join(",", linkHeaders);
+                    var match = Regex.Match(linkHeader, @"<([^>]+)>;\s*rel=""next""");
+                    var nextUrlPart = match.Success ? match.Groups[1].Value : null;
+                    if (!string.IsNullOrEmpty(nextUrlPart))
+                    {
+                        nextUrl = urlBase + nextUrlPart;
+                    }
+                    else
+                    {
+                        nextUrl = null;
+                    }
+                }
+                else
+                {
+                    nextUrl = null;
+                }
+
+            } while (!string.IsNullOrEmpty(nextUrl));
+
+            finalResult["repositories"] = allRepositories;
+            return finalResult;
+        }
+
         /// <summary>
         /// Send request to get response headers.
         /// </summary>
@@ -1165,7 +1282,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (HttpRequestException e)
             {
-                throw new HttpRequestException("Error occured while trying to retrieve response: " + e.Message);
+                throw new HttpRequestException("Error occurred while trying to retrieve response: " + e.Message);
             }
         }
 
@@ -1196,7 +1313,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception e)
             {
-                throw new SendRequestException($"Error occured while uploading module to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
+                throw new SendRequestException($"Error occurred while uploading module to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
             }
         }
 
@@ -1246,7 +1363,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             // Get access token (includes refresh tokens)
             _cmdletPassedIn.WriteVerbose($"Get access token for container registry server.");
-            var containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, out errRecord);
+            var containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: true, out errRecord);
             if (errRecord != null)
             {
                 return false;
@@ -1484,7 +1601,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(
-                    new UploadBlobException($"Error occured while uploading package manifest to ContainerRegistry: {e.GetType()} '{e.Message}'", e),
+                    new UploadBlobException($"Error occurred while uploading package manifest to ContainerRegistry: {e.GetType()} '{e.Message}'", e),
                     "PackageManifestUploadError",
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
@@ -1673,7 +1790,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception e)
             {
-                throw new UploadBlobException($"Error occured while starting to upload the blob location used for publishing to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
+                throw new UploadBlobException($"Error occurred while starting to upload the blob location used for publishing to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
             }
         }
 
@@ -1691,7 +1808,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
             catch (Exception e)
             {
-                throw new UploadBlobException($"Error occured while uploading module to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
+                throw new UploadBlobException($"Error occurred while uploading module to ContainerRegistry: {e.GetType()} '{e.Message}'", e);
             }
         }
 
@@ -1711,7 +1828,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string packageNameLowercase = packageName.ToLower();
 
             string packageNameForFind = PrependMARPrefix(packageNameLowercase);
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false,out errRecord);
             if (errRecord != null)
             {
                 return emptyHashResponses;
@@ -1823,7 +1940,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindPackages()");
             errRecord = null;
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: true, out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: true, isPushOperation: false, out errRecord);
             if (errRecord != null)
             {
                 return emptyResponseResults;

@@ -345,15 +345,16 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         $repo.Priority | Should -Be 25
     }
 
-    It "should not change ApiVersion of repository if -ApiVersion parameter was not used" {
+    It "should throw error when trying to set ApiVersion to unknown" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         $repo = Get-PSResourceRepository $TestRepoName1
         $repoApiVersion = $repo.ApiVersion
         $repoApiVersion | Should -Be "local"
 
-        Set-PSResourceRepository -Name $TestRepoName1 -ApiVersion "unknown" -ErrorVariable err -ErrorAction SilentlyContinue
+        {Set-PSResourceRepository -Name $TestRepoName1 -ApiVersion "unknown" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.SetPSResourceRepository"
+        
+        # Verify the repository ApiVersion was not changed
         $repo = Get-PSResourceRepository $TestRepoName1
-        $repo.ApiVersion | Should -Be "unknown"
-        $err.Count | Should -Be 0
+        $repo.ApiVersion | Should -Be "local"
     }
 }

@@ -7,6 +7,8 @@ Import-Module $modPath -Force -Verbose
 
 Describe "Test Register-PSResourceRepository" -tags 'CI' {
     BeforeEach {
+        $MARName = Get-MARName
+        $MARUri = Get-MARLocation
         $PSGalleryName = Get-PSGalleryName
         $PSGalleryUri = Get-PSGalleryLocation
         $TestRepoName1 = "testRepository"
@@ -26,7 +28,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
 
         $randomSecret = [System.IO.Path]::GetRandomFileName()
         $randomPassword = [System.IO.Path]::GetRandomFileName()
-        
+
         $credentialInfo1 = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("testvault", $randomSecret)
         $secureString = ConvertTo-SecureString $randomPassword -AsPlainText -Force
         $credential = New-Object pscredential ("testusername", $secureString)
@@ -42,7 +44,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         Get-RemoveTestDirs($tmpDirPaths)
     }
 
-    It "register repository given Name, Uri (bare minimum for NameParmaterSet)" {
+    It "register repository given Name, Uri (bare minimum for NameParameterSet)" {
         $res = Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -PassThru
         $res.Name | Should -Be $TestRepoName1
         $Res.Uri.LocalPath | Should -Contain $tmpDir1Path
@@ -83,6 +85,21 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $res.Uri | Should -Be $PSGalleryUri
         $res.Trusted | Should -Be False
         $res.Priority | Should -Be 50
+    }
+
+    It "register repository with MicrosoftArtifactRegistry parameter (MicrosoftArtifactRegistryParameterSet)" {
+        Unregister-PSResourceRepository -Name $MARName
+        $res = Register-PSResourceRepository -MicrosoftArtifactRegistry -PassThru
+        $res.Name | Should -Be $MARName
+        $res.Uri | Should -Be $MARUri
+        $res.Trusted | Should -Be True
+        $res.Priority | Should -Be 40
+    }
+
+    It "register repository with PSGallery switch parameter value of false (PSGalleryParameterSet)" {
+        Unregister-PSResourceRepository -Name $PSGalleryName
+        $res = Register-PSResourceRepository -PSGallery:$false -PassThru
+        $res  | Should -BeNullOrEmpty
     }
 
     It "register repository with PSGallery, Trusted parameters (PSGalleryParameterSet)" {
@@ -268,7 +285,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $correctHashtable1 = @{Name = $TestRepoName2; Uri = $tmpDir2Path; Trusted = $True}
         $correctHashtable2 = @{Name = $TestRepoName3; Uri = $tmpDir3Path; Trusted = $True; Priority = 20}
         $correctHashtable3 = @{PSGallery = $True; Priority = 30};
-        $IncorrectHashTable = @{Name = $PSGalleryName; Uri = $tmpDir1Path};  
+        $IncorrectHashTable = @{Name = $PSGalleryName; Uri = $tmpDir1Path};
 
         $arrayOfHashtables = $correctHashtable1, $correctHashtable2, $IncorrectHashTable, $correctHashtable3
         Unregister-PSResourceRepository -Name $PSGalleryName
@@ -367,7 +384,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $res.Name | Should -Be "localFileShareTestRepo"
         $res.Uri.LocalPath | Should -Contain "\\hcgg.rest.of.domain.name\test\ITxx\team\NuGet\"
     }
-    
+
     It "throws error if CredentialInfo is passed in with Credential property without SecretManagement module setup" {
         { Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $credentialInfo2 -ErrorAction SilentlyContinue } | Should -Throw
 
@@ -378,7 +395,7 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
     It "should register a repository with a hashtable passed in as CredentialInfo" {
         $hashtable = @{VaultName = "testvault"; SecretName = $randomSecret}
 
-        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $hashtable 
+        Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -Trusted -Priority 20 -CredentialInfo $hashtable
 
         $res = Get-PSResourceRepository -Name $TestRepoName1
         $res.CredentialInfo.VaultName | Should -Be "testvault"
@@ -402,6 +419,14 @@ Describe "Test Register-PSResourceRepository" -tags 'CI' {
         $res.Name | Should -Be $TestRepoName1
         $res.Uri.LocalPath | Should -Contain $tmpDir1Path
         $res.ApiVersion | Should -Be 'v2'
+    }
+
+    It "should throw error when trying to register repository with ApiVersion unknown" {
+        {Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path -ApiVersion "unknown" -ErrorAction Stop} | Should -Throw -ErrorId "ParameterArgumentValidationError,Microsoft.PowerShell.PSResourceGet.Cmdlets.RegisterPSResourceRepository"
+
+        # Verify the repository was not created
+        $repo = Get-PSResourceRepository $TestRepoName1 -ErrorAction SilentlyContinue
+        $repo | Should -BeNullOrEmpty
     }
 
     It "should register container registry repository with correct ApiVersion" {

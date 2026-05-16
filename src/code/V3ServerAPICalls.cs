@@ -14,6 +14,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections;
 using System.Management.Automation;
+using System.Collections.Concurrent;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -40,7 +41,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private static readonly string catalogEntryProperty = "catalogEntry";
         private static readonly string packageContentProperty = "packageContent";
         // MyGet.org repository responses from SearchQueryService have a peculiarity where the totalHits property int returned is 10,000 + actual number of hits.
-        // This is intentional on their end and "is to preserve the uninterupted pagination of NuGet within Visual Studio 2015".
+        // This is intentional on their end and "is to preserve the uninterrupted pagination of NuGet within Visual Studio 2015".
         private readonly int myGetTotalHitsBuffer = 10000;
 
         #endregion
@@ -55,7 +56,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             bool token = false;
 
-            if(networkCredential != null) 
+            if(networkCredential != null)
             {
                 token = String.Equals("token", networkCredential.UserName) ? true : false;
             };
@@ -71,7 +72,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             } else {
 
                 handler.Credentials = networkCredential;
-                
+
                 _sessionClient = new HttpClient(handler);
             };
 
@@ -86,7 +87,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region Overriden Methods
+        #region Overridden Methods
+
+        public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            throw new NotImplementedException("FindVersionAsync is not implemented for V3ServerAPICalls.");
+        }
+
+        public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            throw new NotImplementedException("FindVersionAsync is not implemented for V3ServerAPICalls.");
+        }
 
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
@@ -153,6 +164,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindName()");
             return FindNameHelper(packageName, tags: Utils.EmptyStrArray, includePrerelease, type, out errRecord);
+        }
+
+        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            throw new NotImplementedException("FindVersionAsync is not implemented for V3ServerAPICalls.");
         }
 
         /// <summary>
@@ -312,7 +328,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallPackage()");
+            // TODO: pass in ConcurrentQueue to write out debug message.
+            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallPackage()");
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
             {
@@ -325,8 +342,20 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return results;
             }
 
-            results = InstallVersion(packageName, packageVersion, out errRecord);
-            return results;
+            return InstallVersion(packageName, packageVersion, out errRecord);
+        }
+
+        /// <summary>
+        /// Installs a specific package asynchronously.
+        /// User may request to install package with or without providing version (as seen in examples below), but prior to calling this method the package is located and package version determined.
+        /// Therefore, package version should not be null in this method.
+        /// Name: no wildcard support.
+        /// Examples: Install "PowerShellGet" -Version "3.5.0-alpha"
+        ///           Install "PowerShellGet" -Version "3.0.0"
+        /// </summary>
+        public override Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            throw new NotImplementedException("InstallPackageAsync is not implemented for NuGetServerAPICalls.");
         }
 
         #endregion
@@ -573,7 +602,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
-
             return new FindResults(stringResponse: new string[] { latestVersionResponse }, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
         }
 
@@ -703,6 +731,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Stream InstallVersion(string packageName, string version, out ErrorRecord errRecord)
         {
+            // TODO: pass in ConcurrentQueue to write out debug message.
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallVersion()");
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
@@ -724,7 +753,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Stream InstallHelper(string packageName, NuGetVersion version, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallHelper()");
+            // TODO: pass in ConcurrentQueue to write out debug message.
+            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::InstallHelper()");
             Stream pkgStream = null;
             bool getLatestVersion = true;
             if (version != null)
@@ -797,7 +827,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            return content.ReadAsStreamAsync().Result;
+            return content.ReadAsStreamAsync().GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -807,7 +837,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string[] GetVersionedPackageEntriesFromRegistrationsResource(string packageName, string propertyName, bool isSearch, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedPackageEntriesFromRegistrationsResource()");
+            // TODO: pass in ConcurrentQueue to write out debug message.
+            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedPackageEntriesFromRegistrationsResource()");
             string[] responses = Utils.EmptyStrArray;
             Dictionary<string, string> resources = GetResourcesFromServiceIndex(out errRecord);
             if (errRecord != null)
@@ -878,7 +909,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private Dictionary<string, string> GetResourcesFromServiceIndex(out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetResourcesFromServiceIndex()");
+            // TODO: pass in ConcurrentQueue to write out debug message.
+            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetResourcesFromServiceIndex()");
             Dictionary<string, string> resources = new Dictionary<string, string>();
             JsonElement[] resourcesArray = GetJsonElementArr($"{Repository.Uri}", resourcesName, out int totalHits, out errRecord);
             if (errRecord != null)
@@ -920,7 +952,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 catch (Exception e)
                 {
                     errRecord = new ErrorRecord(
-                        new Exception($"Exception parsing service index JSON for respository '{Repository.Name}' with error: {e.Message}"),
+                        new Exception($"Exception parsing service index JSON for repository '{Repository.Name}' with error: {e.Message}"),
                         "GetResourcesFromServiceIndexFailure",
                         ErrorCategory.InvalidResult,
                         this);
@@ -938,7 +970,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string FindRegistrationsBaseUrl(Dictionary<string, string> resources, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindRegistrationsBaseUrl()");
+            // TODO: pass in ConcurrentQueue to write out debug message.
+            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindRegistrationsBaseUrl()");
             errRecord = null;
             string registrationsBaseUrl = String.Empty;
 
@@ -1096,7 +1129,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private JsonElement[] GetMetadataElementFromItemsElement(JsonElement itemsElement, string packageName, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetMetadataElementFromItemsElement()");
+            // TODO: pass in ConcurrentQueue to write out debug message.
+            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetMetadataElementFromItemsElement()");
             errRecord = null;
             List<JsonElement> innerItemsList = new List<JsonElement>();
 
@@ -1128,7 +1162,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string[] GetMetadataElementsFromResponse(string response, string property, string packageName, out string upperVersion, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetMetadataElementsFromResponse()");
+            // TODO: pass in ConcurrentQueue to write out debug message.
+            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetMetadataElementsFromResponse()");
             errRecord = null;
             upperVersion = String.Empty;
             List<string> versionedPkgResponses = new List<string>();
@@ -1174,7 +1209,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             }
                             else
                             {
-                                _cmdletPassedIn.WriteDebug($"Package with name '{packageName}' did not have 'upper' property so package versions may not be in descending order.");
+                               // TODO: pass in ConcurrentQueue to write out debug message.
+                               // _cmdletPassedIn.WriteDebug($"Package with name '{packageName}' did not have 'upper' property so package versions may not be in descending order.");
                             }
 
                             innerItemsElements.AddRange(innerItemsFromItemsElement);
@@ -1260,7 +1296,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         private string[] GetVersionedResponsesFromRegistrationsResource(string registrationsBaseUrl, string packageName, string property, bool isSearch, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedResponsesFromRegistrationsResource()");
+            // TODO: pass in ConcurrentQueue to write out debug message.
+            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedResponsesFromRegistrationsResource()");
             List<string> versionedResponses = new List<string>();
             var requestPkgMapping = registrationsBaseUrl.EndsWith("/") ? $"{registrationsBaseUrl}{packageName.ToLower()}/index.json" : $"{registrationsBaseUrl}/{packageName.ToLower()}/index.json";
 
@@ -1314,7 +1351,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Returns true if the metadata entries are arranged in descending order with respect to the package's version.
         /// ADO feeds usually return version entries in descending order, but Nuget.org repository returns them in ascending order.
-        /// Package versions will reflect prerelease preference, but upper version and lower version would not so we don't use them for comparision.
+        /// Package versions will reflect prerelease preference, but upper version and lower version would not so we don't use them for comparison.
         /// </summary>
         private bool IsLatestVersionFirstForSearch(string[] versionedResponses, out ErrorRecord errRecord)
         {
@@ -1413,11 +1450,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Returns true if the nupkg URI entries for each package version are arranged in descending order with respect to the package's version.
         /// ADO feeds usually return version entries in descending order, but Nuget.org repository returns them in ascending order.
-        /// Entries do not reflect prerelease preference so all versions (including prerelease) are being considered here, so upper version (including prerelease) can be used for comparision.
+        /// Entries do not reflect prerelease preference so all versions (including prerelease) are being considered here, so upper version (including prerelease) can be used for comparison.
         /// </summary>
         private bool IsLatestVersionFirstForInstall(string[] versionedResponses, string upperVersion, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForInstall()");
+            // TODO: pass in ConcurrentQueue to write out debug message.
+            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForInstall()");
             errRecord = null;
             bool latestVersionFirst = true;
 
@@ -1553,13 +1591,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private string HttpRequestCall(string requestUrlV3, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::HttpRequestCall()");
+            // TODO: pass in ConcurrentQueue to write out debug message.
+            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::HttpRequestCall()");
             errRecord = null;
             string response = string.Empty;
 
             try
             {
-                _cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV3}'");
+                // TODO: pass in ConcurrentQueue to write out debug message.
+                //_cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV3}'");
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
 
                 response = SendV3RequestAsync(request, _sessionClient).GetAwaiter().GetResult();
@@ -1605,12 +1645,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private HttpContent HttpRequestCallForContent(string requestUrlV3, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::HttpRequestCallForContent()");
+            // TODO: pass in ConcurrentQueue to write out debug message.
+            //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::HttpRequestCallForContent()");
             errRecord = null;
             HttpContent content = null;
             try
             {
-                _cmdletPassedIn.WriteDebug($"Request url is '{requestUrlV3}'");
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
 
                 content = SendV3RequestForContentAsync(request, _sessionClient).GetAwaiter().GetResult();
@@ -1628,7 +1668,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (string.IsNullOrEmpty(content?.ToString()))
             {
-                _cmdletPassedIn.WriteDebug("Response is empty");
+                // TODO: pass in ConcurrentQueue to write out debug message.
+                //_cmdletPassedIn.WriteDebug("Response is empty");
             }
 
             return content;

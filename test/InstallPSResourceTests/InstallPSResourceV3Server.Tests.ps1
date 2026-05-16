@@ -71,9 +71,9 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $pkg.Name | Should -Be $pkgNames
     }
 
-    It 'Should not install resource given nonexistant name' {
-        Install-PSResource -Name 'NonExistantModule' -Repository $NuGetGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource 'NonExistantModule' -ErrorAction SilentlyContinue
+    It 'Should not install resource given nonexistent name' {
+        Install-PSResource -Name 'NonExistentModule' -Repository $NuGetGalleryName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
+        $pkg = Get-InstalledPSResource 'NonExistentModule' -ErrorAction SilentlyContinue
         $pkg.Name | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly 'InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource'
@@ -310,6 +310,19 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $res3.Version | Should -Be '0.0.93'
     }
 
+    It 'Install module using -RequiredResource with TrustRepository in hashtable' {
+        # This test verifies that TrustRepository specified in -RequiredResource hashtable is respected
+        Install-PSResource -RequiredResource @{
+            'TestModule99' = @{
+                'repository' = $NuGetGalleryName
+                'trustrepository' = 'true'
+            }
+        }
+        $res = Get-InstalledPSResource -Name 'TestModule99'
+        $res.Name | Should -Be 'TestModule99'
+        $res.Version | Should -Be '0.0.93'
+    }
+
     It 'Install modules using -RequiredResource with JSON string' {
         $rrJSON = "{
             'test_module': {
@@ -378,7 +391,7 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'CI' {
         $res3.Name | Should -Be 'testModule99'
         $res3.Version | Should -Be '0.0.93'
     }
-    
+
     It "Install module and its dependencies" {
         $res = Install-PSResource 'TestModuleWithDependencyE' -Repository $NuGetGalleryName -TrustRepository -PassThru
         $res.Length | Should -Be 4

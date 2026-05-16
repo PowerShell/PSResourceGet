@@ -29,12 +29,11 @@ Describe 'Test Install-PSResource for ADO V3Server scenarios' -tags 'CI' {
                  @{Name="Test_local_m*";            ErrorId="NameContainsWildcard"},
                  @{Name="Test?local","Test[local";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
 
-    It "Should not install resource with wildcard in name" -TestCases $testCases {
+    It "Should not install resource with wildcard in name -- $Name" -TestCases $testCases {
         param($Name, $ErrorId)
-        Install-PSResource -Name $Name -Repository $ADORepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Install-PSResource -Name $Name -Repository $ADORepoName -ErrorVariable err -ErrorAction SilentlyContinue -PassThru
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
-        $res = Get-InstalledPSResource $testModuleName
         $res | Should -BeNullOrEmpty
     }
 
@@ -59,9 +58,9 @@ Describe 'Test Install-PSResource for ADO V3Server scenarios' -tags 'CI' {
         $pkg.Name | Should -Be $pkgNames
     }
 
-    It "Should not install resource given nonexistant name" {
-        Install-PSResource -Name "NonExistantModule" -Repository $ADORepoName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource "NonExistantModule"
+    It "Should not install resource given nonexistent name" {
+        Install-PSResource -Name "NonExistentModule" -Repository $ADORepoName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
+        $pkg = Get-InstalledPSResource "NonExistentModule"
         $pkg | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"

@@ -100,6 +100,8 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         # Path to specifically to that invalid test nupkgs folder
         $script:testNupkgsFolderPath = Join-Path $script:testFilesFolderPath -ChildPath "testNupkgs"
+
+        $script:PSGalleryName = "PSGallery"
     }
     AfterEach {
         if(!(Test-Path $script:PublishModuleBase))
@@ -344,6 +346,25 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Version | Should -Be $correctVersion
     }
 
+    It "Publish a package should always require authentication" {
+        $version = "15.0.0"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $ACRRepoName -InformationVariable RegistryUnauthenticated
+
+        $results = Find-PSResource -Name $script:PublishModuleName -Repository $ACRRepoName
+        $results | Should -Not -BeNullOrEmpty
+        $results[0].Name | Should -Be $script:PublishModuleName
+        $results[0].Version | Should -Be $version
+
+        if ($usingAzAuth)
+        {
+            $RegistryUnauthenticated | Should -Not -BeNullOrEmpty
+            $RegistryUnauthenticated[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
+            $RegistryUnauthenticated[0].MessageData | Should -Be "Value of isRepositoryUnauthenticated: False"
+        }
+    }
+
     It "Publish a script"{
         $scriptVersion = "1.0.0"
         $params = @{
@@ -467,7 +488,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
     }
 
     It "Should write error and not publish script when Description block altogether is missing" {
-        # we expect .ps1 files to have a separate comment block for .DESCRIPTION property, not to be included in the PSScriptInfo commment block
+        # we expect .ps1 files to have a separate comment block for .DESCRIPTION property, not to be included in the PSScriptInfo comment block
         $scriptName = "InvalidScriptMissingDescriptionCommentBlock.ps1"
 
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
@@ -515,6 +536,22 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         $results[0].Version | Should -Be $version
     }
 
+    It "not Publish a resource when ModulePrefix is given for a Repository that is not of type ContainerRegistry" {
+        $version = "1.0.0"
+        $modulePrefix = "unlisted"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        { Publish-PSResource -Path $script:PublishModuleBase -Repository $script:PSGalleryName -ModulePrefix $modulePrefix -ErrorAction Stop } | Should -Throw "ModulePrefix parameter can only be provided for a registered repository of type 'ContainerRegistry'"
+    }
+
+    It "not Publish a resource when ModulePrefix is provided without Repository parameter" {
+        $version = "1.0.0"
+        $modulePrefix = "unlisted"
+        New-ModuleManifest -Path (Join-Path -Path $script:PublishModuleBase -ChildPath "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        { Publish-PSResource -Path $script:PublishModuleBase -ModulePrefix $modulePrefix -ErrorAction Stop } | Should -Throw "ModulePrefix parameter can only be provided with the Repository parameter."
+    }
+
     It "Publish a package given NupkgPath to a package with .psd1" {
         $packageName = "temp-testmodule-nupkgpath"
         $version = "1.0.0.0"
@@ -553,14 +590,12 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 }
 
 Describe 'Test Publish-PSResource for MAR Repository' -tags 'CI' {
-    BeforeAll {
-        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", "azure-powershell/");
-        Register-PSResourceRepository -Name "MAR" -Uri "https://mcr.microsoft.com" -ApiVersion "ContainerRegistry"
-    }
 
+    BeforeAll {
+        Get-NewPSResourceRepositoryFile
+    }
     AfterAll {
-        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", $null);
-        Unregister-PSResourceRepository -Name "MAR"
+        Get-RevertPSResourceRepositoryFile
     }
 
     It "Should find resource given specific Name, Version null" {
@@ -569,6 +604,6 @@ Describe 'Test Publish-PSResource for MAR Repository' -tags 'CI' {
         $psd1Path = Join-Path -Path $modulePath -ChildPath $fileName
         New-ModuleManifest -Path $psd1Path -ModuleVersion "1.0.0" -Description "NonExistent module"
 
-        { Publish-PSResource -Path $modulePath -Repository "MAR" -ErrorAction Stop } | Should -Throw -ErrorId "MARRepositoryPublishError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
+        { Publish-PSResource -Path $modulePath -Repository "MicrosoftArtifactRegistry" -ErrorAction Stop } | Should -Throw -ErrorId "MARRepositoryPublishError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
     }
 }

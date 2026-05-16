@@ -17,6 +17,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// It returns nothing.
     /// </summary>
     [Cmdlet(VerbsData.Save, "PSResource", DefaultParameterSetName = "IncludeXmlParameterSet", SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.Low)]
+    [Alias("svres")]
     public sealed class SavePSResource : PSCmdlet
     {
         #region Members
@@ -215,7 +216,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 case InputObjectParameterSet:
                     foreach (var inputObj in InputObject)
                     {
-                        string normalizedVersionString = Utils.GetNormalizedVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
+                        string normalizedVersionString = Utils.GetFullVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
                         ProcessSaveHelper(
                             pkgNames: new string[] { inputObj.Name },
                             pkgVersion: normalizedVersionString,

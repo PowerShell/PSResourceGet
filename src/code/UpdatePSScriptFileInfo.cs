@@ -182,7 +182,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 ThrowTerminatingError(new ErrorRecord(
                     new ArgumentException("File path needs to end with a .ps1 extension. Example: C:/Users/john/x/MyScript.ps1"),
-                    "InvalidOrNonExistantPath",
+                    "InvalidOrNonExistentPath",
                     ErrorCategory.InvalidArgument,
                     this));
             }
@@ -207,7 +207,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ErrorCategory.InvalidArgument,
                     this));
             }
-            
+
             ModuleSpecification[] validatedRequiredModuleSpecifications = Array.Empty<ModuleSpecification>();
             if (RequiredModules != null && RequiredModules.Length > 0)
             {
@@ -241,7 +241,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     WriteError(error);
                 }
 
-                return; 
+                return;
             }
 
             bool signatureRemoved = false;
@@ -256,7 +256,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ErrorCategory.InvalidOperation,
                         this));
                 }
-                
+
                 signatureRemoved = true;
             }
 
@@ -290,14 +290,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return;
             }
-                  
+
             string tempScriptPath = null;
             try
             {
                 tempScriptPath = System.IO.Path.GetTempFileName();
 
-                File.WriteAllLines(tempScriptPath, updatedPSScriptFileContents); 
-                File.Copy(tempScriptPath, resolvedPath, overwrite: true);     
+                File.WriteAllLines(tempScriptPath, updatedPSScriptFileContents);
+                File.Copy(tempScriptPath, resolvedPath, overwrite: true);
             }
             catch(Exception e)
             {

@@ -1,14 +1,5 @@
-#################################################################################
-#                               OneBranch Pipelines                             #
-# This pipeline was created by EasyStart from a sample located at:              #
-#   https://aka.ms/obpipelines/easystart/samples                                #
-# Documentation:  https://aka.ms/obpipelines                                    #
-# Yaml Schema:    https://aka.ms/obpipelines/yaml/schema                        #
-# Retail Tasks:   https://aka.ms/obpipelines/tasks                              #
-# Support:        https://aka.ms/onebranchsup                                   #
-#################################################################################
 name: PSResourceGet-Release-$(Build.BuildId)
-trigger: none # https://aka.ms/obpipelines/triggers
+trigger: none 
 pr:
   branches:
     include:
@@ -36,7 +27,7 @@ resources:
       ref: refs/heads/main
 
 extends:
-  template: v2/OneBranch.Official.CrossPlat.yml@onebranchTemplates # https://aka.ms/obpipelines/templates
+  template: v2/OneBranch.Official.CrossPlat.yml@onebranchTemplates 
   parameters:
     featureFlags:
       WindowsHostVersion: '1ESWindows2022'
@@ -49,18 +40,16 @@ extends:
         enabled: true
         packageName: Microsoft.PowerShell.PSResourceGet
       codeql:
+        tsaEnabled: true
         compiled:
           enabled: true
-      asyncSdl: # https://aka.ms/obpipelines/asyncsdl
+      credscan:
         enabled: true
-        forStages: [stagebuild]
-        credscan:
-          enabled: true
-          scanFolder:  $(Build.SourcesDirectory)\PSResourceGet
-        binskim:
-          enabled: true
-        apiscan:
-          enabled: false
+        scanFolder:  $(Build.SourcesDirectory)\PSResourceGet
+      binskim:
+        enabled: true
+      apiscan:
+        enabled: false
 
     stages:
     - stage: stagebuild
@@ -122,7 +111,7 @@ extends:
             ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
           inputs:
             Enabled: true
-            AnalyzeInPipeline: true
+            AnalyzeInPipeline: false
             Language: csharp
 
         # this is installing .NET
@@ -220,6 +209,8 @@ extends:
           type: windows
         steps:
         - checkout: self
+          env:
+            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
         - pwsh: |
             if (-not (Test-Path $(repoRoot)/.config/tsaoptions.json)) {
@@ -227,29 +218,48 @@ extends:
               throw "tsaoptions.json does not exist under $(repoRoot)/.config"
             }
           displayName: Test if tsaoptions.json exists
+          env:
+            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
         - task: DownloadPipelineArtifact@2
           displayName: 'Download build files'
           inputs:
             targetPath: $(signOutPath)
             artifact: drop_stagebuild_jobbuild
+          env:
+            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
         - pwsh: |
             Set-Location "$(signOutPath)"
             Write-Host "Contents of signOutPath:"
             Get-ChildItem $(signOutPath) -Recurse
           displayName: Capture artifacts directory structure
+          env:
+            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
         - pwsh: |
             # This need to be done before set-location so the module from PSHome is loaded
             Import-Module -Name Microsoft.PowerShell.PSResourceGet -Force
 
             Set-Location "$(signOutPath)\Microsoft.PowerShell.PSResourceGet"
-            $null = New-Item -ItemType Directory -Path "$(signOutPath)\PublishedNupkg" -Force
+            $publishPath = Join-Path $(signOutPath) -ChildPath 'PublishedNupkg'
 
-            Register-PSResourceRepository -Name 'localRepo' -Uri "$(signOutPath)\PublishedNupkg"
+            $null = New-Item -ItemType Directory -Path $publishPath -Force
+
+            Register-PSResourceRepository -Name 'localRepo' -Uri $publishPath
             Publish-PSResource -Path "$(signOutPath)\Microsoft.PowerShell.PSResourceGet" -Repository 'localRepo' -Verbose
+            Write-Output "##vso[task.setvariable variable=publishPath]$publishPath"
           displayName: Create nupkg for publishing
+          env:
+            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
+
+        - pwsh: |
+            Set-Location '$(publishPath)'
+            Write-Host "Contents of signOutPath:"
+            Get-ChildItem '$(publishPath)' -Recurse
+          displayName: Find Nupkg Pre Signing
+          env:
+            ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.
 
         - task: onebranch.pipeline.signing@1
           displayName: Sign nupkg
@@ -257,18 +267,18 @@ extends:
             command: 'sign'
             signing_profile: external_distribution
             files_to_sign: '**\*.nupkg'
-            search_root: "$(signOutPath)\PublishedNupkg"
+            search_root: '$(publishPath)'
 
         - pwsh: |
-            Set-Location "$(signOutPath)\PublishedNupkg"
+            Set-Location '$(publishPath)'
             Write-Host "Contents of signOutPath:"
-            Get-ChildItem "$(signOutPath)" -Recurse
-          displayName: Find Nupkg
+            Get-ChildItem '$(publishPath)' -Recurse
+          displayName: Find Nupkg Post Signing
 
         - task: CopyFiles@2
           displayName: "Copy nupkg to ob_outputDirectory - '$(ob_outputDirectory)'"
           inputs:
-            Contents: $(signOutPath)\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg
+            Contents: $(publishPath)\Microsoft.PowerShell.PSResourceGet.*.nupkg
             TargetFolder: $(ob_outputDirectory)
 
         - pwsh: |

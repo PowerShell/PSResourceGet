@@ -336,8 +336,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // and ExternalModuleDependencies are all properties within a hashtable property called 'PSData'
             // which is within another hashtable property called 'PrivateData'
             // All of the properties mentioned above have their own parameter in 'New-ModuleManifest', so
-            // we will parse out these values from the parsedMetadata and create entries for each one in individualy.
-            // This way any values that were previously specified here will get transfered over to the new manifest.
+            // we will parse out these values from the parsedMetadata and create entries for each one in individually.
+            // This way any values that were previously specified here will get transferred over to the new manifest.
             // Example of the contents of PSData:
             // PrivateData = @{
             //         PSData = @{
@@ -422,7 +422,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 parsedMetadata["ExternalModuleDependencies"] = psData["ExternalModuleDependencies"];
             }
 
-            // Now we need to remove 'PSData' becaues if we leave this value in the hashtable,
+            // Now we need to remove 'PSData' because if we leave this value in the hashtable,
             // New-ModuleManifest will keep this value and also attempt to create a new value for 'PSData'
             // and then complain that there's two keys within the PrivateData hashtable.
             // This is due to the issue of New-ModuleManifest when the PrivateData entry is a nested hashtable (https://github.com/PowerShell/PowerShell/issues/5922).
@@ -653,7 +653,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 catch (Exception e)
                 {
                     errorRecord = new ErrorRecord(
-                        new ArgumentException($"Error occured while running 'New-ModuleManifest': {e.Message}"),
+                        new ArgumentException($"Error occurred while running 'New-ModuleManifest': {e.Message}"),
                         "ErrorExecutingNewModuleManifest",
                         ErrorCategory.InvalidArgument,
                         this);
@@ -695,7 +695,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private void CreateModuleManifestForWinPSHelper(Hashtable parsedMetadata, string resolvedManifestPath, out ErrorRecord errorRecord)
         {
             // Note on priority of values:
-            // If -PrivateData parameter was provided with the cmdlet & .psd1 file PrivateData already had values, the passed in -PrivateData values replace those previosuly there.
+            // If -PrivateData parameter was provided with the cmdlet & .psd1 file PrivateData already had values, the passed in -PrivateData values replace those previously there.
             // any direct parameters supplied by the user (i.e ProjectUri) [takes priority over but in mix-and-match fashion] over -> -PrivateData parameter [takes priority over but in replacement fashion] over -> original .psd1 file's PrivateData values (complete replacement)
             errorRecord = null;
             string[] tags = Utils.EmptyStrArray;
@@ -1004,7 +1004,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     Utils.DeleteDirectory(tmpParentPath);
 
                     errorRecord = new ErrorRecord(
-                        new ArgumentException($"Error occured while running 'New-ModuleManifest': {e.Message}"),
+                        new ArgumentException($"Error occurred while running 'New-ModuleManifest': {e.Message}"),
                         "ErrorExecutingNewModuleManifest",
                         ErrorCategory.InvalidArgument,
                         this);

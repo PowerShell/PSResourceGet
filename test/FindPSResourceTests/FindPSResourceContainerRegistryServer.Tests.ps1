@@ -6,25 +6,25 @@ Import-Module $modPath -Force -Verbose
 
 Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 
-    BeforeAll{
+    BeforeAll {
+        $MARName = Get-MarName
         $testModuleName = "test-module"
         $testModuleWith2DigitVersion = "test-2DigitPkg"
         $testModuleParentName = "test_parent_mod"
         $testModuleDependencyName = "test_dependency_mod"
         $testScriptName = "test-script"
+        $testModuleWithIncludes = "test-resourcewithincludes"
         $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io"
         Get-NewPSResourceRepositoryFile
 
         $usingAzAuth = $env:USINGAZAUTH -eq 'true'
 
-        if ($usingAzAuth)
-        {
+        if ($usingAzAuth) {
             Write-Verbose -Verbose "Using Az module for authentication"
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -Verbose
         }
-        else
-        {
+        else {
             $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
         }
@@ -41,27 +41,27 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
     }
 
-    It "Should not find resource given nonexistant Name" {
+    It "Should not find resource given nonexistent Name" {
         # FindName()
-        $res = Find-PSResource -Name NonExistantModule -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name NonExistentModule -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
         $res | Should -BeNullOrEmpty
     }
 
-    $testCases2 = @{Version="[5.0.0.0]";           ExpectedVersions=@("5.0.0");                              Reason="validate version, exact match"},
-                  @{Version="5.0.0.0";             ExpectedVersions=@("5.0.0");                              Reason="validate version, exact match without bracket syntax"},
-                  @{Version="[1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, exact range inclusive"},
-                  @{Version="(1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("3.0.0");                              Reason="validate version, exact range exclusive"},
-                  @{Version="(1.0.0.0,)";          ExpectedVersions=@("3.0.0", "5.0.0");                     Reason="validate version, minimum version exclusive"},
-                  @{Version="[1.0.0.0,)";          ExpectedVersions=@("1.0.0", "3.0.0", "5.0.0");            Reason="validate version, minimum version inclusive"},
-                  @{Version="(,3.0.0.0)";          ExpectedVersions=@("1.0.0");                              Reason="validate version, maximum version exclusive"},
-                  @{Version="(,3.0.0.0]";          ExpectedVersions=@("1.0.0", "3.0.0");                     Reason="validate version, maximum version inclusive"},
-                  @{Version="[1.0.0.0, 5.0.0.0)";  ExpectedVersions=@("1.0.0", "3.0.0");                     Reason="validate version, mixed inclusive minimum and exclusive maximum version"}
-                  @{Version="(1.0.0.0, 5.0.0.0]";  ExpectedVersions=@("3.0.0", "5.0.0");                     Reason="validate version, mixed exclusive minimum and inclusive maximum version"}
+    $testCases2 = @{Version = "[5.0.0.0]"; ExpectedVersions = @("5.0.0"); Reason = "validate version, exact match" },
+    @{Version = "5.0.0.0"; ExpectedVersions = @("5.0.0"); Reason = "validate version, exact match without bracket syntax" },
+    @{Version = "[1.0.0.0, 5.0.0.0]"; ExpectedVersions = @("1.0.0", "3.0.0", "5.0.0"); Reason = "validate version, exact range inclusive" },
+    @{Version = "(1.0.0.0, 5.0.0.0)"; ExpectedVersions = @("3.0.0"); Reason = "validate version, exact range exclusive" },
+    @{Version = "(1.0.0.0,)"; ExpectedVersions = @("3.0.0", "5.0.0"); Reason = "validate version, minimum version exclusive" },
+    @{Version = "[1.0.0.0,)"; ExpectedVersions = @("1.0.0", "3.0.0", "5.0.0"); Reason = "validate version, minimum version inclusive" },
+    @{Version = "(,3.0.0.0)"; ExpectedVersions = @("1.0.0"); Reason = "validate version, maximum version exclusive" },
+    @{Version = "(,3.0.0.0]"; ExpectedVersions = @("1.0.0", "3.0.0"); Reason = "validate version, maximum version inclusive" },
+    @{Version = "[1.0.0.0, 5.0.0.0)"; ExpectedVersions = @("1.0.0", "3.0.0"); Reason = "validate version, mixed inclusive minimum and exclusive maximum version" }
+    @{Version = "(1.0.0.0, 5.0.0.0]"; ExpectedVersions = @("3.0.0", "5.0.0"); Reason = "validate version, mixed exclusive minimum and inclusive maximum version" }
 
-    It "Find resource when given Name to <Reason> <Version>" -TestCases $testCases2{
+    It "Find resource when given Name to <Reason> <Version>" -TestCases $testCases2 {
         # FindVersionGlobbing()
         param($Version, $ExpectedVersions)
         $res = Find-PSResource -Name $testModuleName -Version $Version -Repository $ACRRepoName
@@ -174,6 +174,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
     It "Should find all resources given Name '*'" {
         # FindAll()
         $res = Find-PSResource -Name "*" -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $err | Should -BeNullOrEmpty
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterThan 0
     }
@@ -262,51 +263,71 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $res.ReleaseNotes.Length | Should -Not -Be 0
         $res.Tags.Length | Should -Be 5
     }
+
+    It "Should find resource and its associated Includes property" {
+        $res = Find-PSResource $testModuleWithIncludes -Repository $ACRRepoName
+        $res.Includes | Should -Not -BeNullOrEmpty
+        $res.Includes.Cmdlet | Should -Be "cmdlet1"
+        $res.Includes.Command | Should -Be "cmd1"
+        $res.Includes.DscResource | Should -Be "dsc1"
+    }
 }
 
 Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
+
     BeforeAll {
-        Register-PSResourceRepository -Name "MAR" -Uri "https://mcr.microsoft.com" -ApiVersion "ContainerRegistry"
+        Get-NewPSResourceRepositoryFile
     }
 
     AfterAll {
-        Unregister-PSResourceRepository -Name "MAR"
+        Get-RevertPSResourceRepositoryFile
     }
 
     It "Should find resource given specific Name, Version null" {
-        $res = Find-PSResource -Name "Az.Accounts" -Repository "MAR"
+        $res = Find-PSResource -Name "Az.Accounts" -Repository $MarName
         $res.Name | Should -Be "Az.Accounts"
         $res.Version | Should -BeGreaterThan ([Version]"4.0.0")
     }
 
     It "Should find resource and its dependency given specific Name and Version" {
-        $res = Find-PSResource -Name "Az.Storage" -Version "8.0.0" -Repository "MAR"
+        $res = Find-PSResource -Name "Az.Storage" -Version "8.0.0" -Repository $MarName
         $res.Dependencies.Length | Should -Be 1
         $res.Dependencies[0].Name | Should -Be "Az.Accounts"
     }
 
     It "Should find Azpreview resource and it's dependency given specific Name and Version" {
-        $res = Find-PSResource -Name "Azpreview" -Version "13.2.0" -Repository "MAR"
+        $res = Find-PSResource -Name "Azpreview" -Version "13.2.0" -Repository $MarName
         $res.Dependencies.Length | Should -Not -Be 0
     }
 
     It "Should find resource with wildcard in Name" {
-        $res = Find-PSResource -Name "Az.App*" -Repository "MAR"
+        $res = Find-PSResource -Name "Az.App*" -Repository $MarName
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterThan 1
     }
 
     It "Should find all resource with wildcard in Name" {
-        $res = Find-PSResource -Name "*" -Repository "MAR"
+        $res = Find-PSResource -Name "*" -Repository $MarName
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterThan 1
     }
+
+    It "Should find version range for Az dependencies" {
+        # Target known version to know the output from the API won't change
+        $res = Find-PSResource -Repository $MarName -Name 'Az' -Version '14.4.0'
+
+        # Version defined by "ModuleVersion"
+        $res.Dependencies.Where{$_.'Name' -eq 'Az.Accounts'}.'VersionRange'.ToString() | Should -Be '[5.3.0, )'
+
+        # Version defined by "RequiredVersion"
+        $res.Dependencies.Where{$_.'Name' -eq 'Az.Resources'}.'VersionRange'.ToString() | Should -Be '[8.1.0, 8.1.0]'
+    }
 }
 
-# Skip this test fo
+# Skip this test for Windows PowerShell
 Describe 'Test Find-PSResource for unauthenticated ACR repository' -tags 'CI' {
     BeforeAll {
-        $skipOnWinPS =  $PSVersionTable.PSVersion.Major -eq 5
+        $skipOnWinPS = $PSVersionTable.PSVersion.Major -eq 5
 
         if (-not $skipOnWinPS) {
             Register-PSResourceRepository -Name "Unauthenticated" -Uri "https://psresourcegetnoauth.azurecr.io/" -ApiVersion "ContainerRegistry"

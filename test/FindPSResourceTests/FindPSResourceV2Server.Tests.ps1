@@ -12,7 +12,6 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
     BeforeAll{
         $PSGalleryName = Get-PSGalleryName
         $testModuleName = "test_module"
-        $testModuleNameWithUnlistedVersion = "test_module10"
         $testScriptName = "test_script"
         $commandName = "Get-TargetResource"
         $dscResourceName = "SystemLocale"
@@ -31,8 +30,8 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "5.0.0.0"
     }
 
-    It "should not find resource given nonexistant Name" {
-        $res = Find-PSResource -Name NonExistantModule -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
+    It "should not find resource given nonexistent Name" {
+        $res = Find-PSResource -Name NonExistentModule -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -345,7 +344,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
     #     $foundTestScript | Should -Be $True
     # }
 
-    It "find all resources with specified tag given Tag property, with and without Prerelease property" {
+     It "find all resources with specified tag given Tag property, with and without Prerelease property" {
         $tagToFind = "MyPSTag"
         $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName
         $res | Should -HaveCount 1
@@ -358,7 +357,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Find-PSResource -CommandName $commandName -Repository $PSGalleryName
         $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
-            $item.Names | Should -Be $commandName    
+            $item.Names | Should -Be $commandName
             $item.ParentResource.Includes.Command | Should -Contain $commandName
         }
     }
@@ -367,11 +366,11 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res = Find-PSResource -DscResourceName $dscResourceName -Repository $PSGalleryName
         $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
-            $item.Names | Should -Be $dscResourceName    
+            $item.Names | Should -Be $dscResourceName
             $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
         }
     }
-    
+
     It "find resource, but only show listed versions" {
         # testmodule99 version 1.0.0-beta1 is unlisted
         $res = Find-PSResource -Name "testmodule99" -Repository $PSGalleryName
@@ -384,7 +383,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
     It "find all resources within a version range, including prereleases" {
         $res = Find-PSResource -Name "PSReadLine" -Version "(2.0,2.1)" -Prerelease -Repository $PSGalleryName
         $res | Should -Not -BeNullOrEmpty
-        $res.Count | Should -BeGreaterOrEqual 7 
+        $res.Count | Should -BeGreaterOrEqual 7
     }
 
     It "find a specific version using NuGet versioning bracket syntax" {
@@ -413,11 +412,50 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $err.Count | Should -Be 0
     }
 
-    It "should not find and write error when finding package version that is unlisted" {
-        $res = Find-PSResource -Name $testModuleNameWithUnlistedVersion -Version "1.0.0.0" -Repository $PSGalleryName -ErrorVariable err -ErrorAction SilentlyContinue
-        $res | Should -HaveCount 0
-        $err | Should -HaveCount 1
+    It "find should not return a module that has all unlisted versions, given full name and no version (i.e non wildcard name)" {
+        # FindName() scenario
+        # 'test_completelyunlisted' only has version 0.0.1, which is unlisted
+        $res = Find-PSResource -Name "test_completelyunlisted" -Repository $PSGalleryName -ErrorVariable err
+        $res | Should -BeNullOrEmpty
+        $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+
+    It "find should return a module version even if all versions are unlisted, given full name and version (i.e non wildcard name)" {
+        # FindVersion() scenario
+        # test_completelyunlisted has 1 version, 0.0.1, which is unlisted
+        $res = Find-PSResource -Name "test_completelyunlisted" -Version "0.0.1" -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "0.0.1"
+    }
+
+    It "find should return an unlisted module, where the module has a mix of listed and unlisted versions, given full name and version (i.e non wildcard name)" {
+        # FindVersion scenario
+        # 'test_unlisted' version 0.0.3 is unlisted
+        $res = Find-PSResource -Name "test_unlisted" -Version "0.0.3" -Repository $PSGalleryName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "0.0.3"
+    }
+
+    It "find should not return an unlisted module with it was requested with wildcards in the name" {
+        # FindNameGlobbing() scenario
+        # 'test_completelyunlisted' has all unlisted versions -> should not be returned
+        # whereas 'test_unlisted' has a listed version and 'test_notunlisted' has all listed versions -> should be returned
+        $res = Find-PSResource -Name "test_*unlisted" -Repository $PSGalleryName
+        $res.Count | Should -Be 2
+        $res.Name | Should -Contain 'test_unlisted'
+        $res.Name | Should -Contain 'test_notunlisted'
+    }
+
+    It "Find resource that takes a dependency on package with specific version" {
+        $moduleName = 'test-nugetversion-parent'
+        $version = '4.0.0'
+        $depPkgName = 'test-nugetversion'
+
+        $res = Find-PSResource -Name $moduleName -Version $version -Repository $PSGalleryName -IncludeDependencies
+        $res.Count | Should -Be 2
+        $res.Name | Should -Contain $moduleName
+        $res.Name | Should -Contain $depPkgName
     }
 }
 
@@ -432,11 +470,8 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidat
     AfterAll {
         Get-RevertPSResourceRepositoryFile
     }
-    It "find resource given CommandName" {
-        $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName -Type Module
 
-        $res.Name | Should -Be $testModuleName
-    }
+
 
     It "find should not duplicate dependencies found" {
         $res = Find-PSResource -Name "Az" -IncludeDependencies -Repository $PSGalleryName

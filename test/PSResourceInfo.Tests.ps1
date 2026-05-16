@@ -40,7 +40,7 @@ Describe "Write PSGetModuleInfo xml file" -tags 'CI' {
         { [Microsoft.PowerShell.PSResourceGet.UtilClasses.TestHooks]::WritePSGetResourceInfo($fileToWrite, $psGetInfo) } | Should -Not -Throw
     }
 
-    It "Verifes written file can be read successfully" {
+    It "Verifies written file can be read successfully" {
         $newGetInfo = [Microsoft.PowerShell.PSResourceGet.UtilClasses.TestHooks]::ReadPSGetResourceInfo($fileToWrite)
         CheckForExpectedPSGetInfo $newGetInfo
     }

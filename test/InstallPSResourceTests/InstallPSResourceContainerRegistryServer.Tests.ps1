@@ -1,6 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# Note: when running tests locally set $env:USINGAZAUTH = $true to use AzAuth for authentication to ACR
+# otherwise tests will use SecretStore and require environment variable TENANTID to be set to the tenant of the ACR. 
+# For CI, AzAuth is used for authentication.
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
@@ -50,7 +53,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         Install-PSResource -Name $Name -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -124,9 +127,9 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg.Name | Should -Be $pkgNames
     }
 
-    It "Should not install resource given nonexistant name" {
-        Install-PSResource -Name "NonExistantModule" -Repository $ACRRepoName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource "NonExistantModule"
+    It "Should not install resource given nonexistent name" {
+        Install-PSResource -Name "NonExistentModule" -Repository $ACRRepoName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
+        $pkg = Get-InstalledPSResource "NonExistentModule" -ErrorAction SilentlyContinue
         $pkg | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
@@ -166,7 +169,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $Version = "(1.0.0.0)"
         { Install-PSResource -Name $testModuleName -Version $Version -Repository $ACRRepoName -TrustRepository -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction Ignore
         $res | Should -BeNullOrEmpty
     }
 
@@ -351,25 +354,24 @@ Describe 'Test Install-PSResource for Container Registry scenarios - Manual Vali
 }
 
 Describe 'Test Install-PSResource for MAR Repository' -tags 'CI' {
+
     BeforeAll {
-        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", "azure-powershell/");
-        Register-PSResourceRepository -Name "MAR" -Uri "https://mcr.microsoft.com" -ApiVersion "ContainerRegistry"
+        Get-NewPSResourceRepositoryFile
     }
-
     AfterAll {
-        [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("MARPrefix", $null);
-        Unregister-PSResourceRepository -Name "MAR"
+        Get-RevertPSResourceRepositoryFile
     }
 
-    It "Should find resource given specific Name, Version null" {
+    It "Should install resource given specific Name, Version null" {
         try {
-            $pkg = Install-PSResource -Name "Az.Accounts" -Repository "MAR" -PassThru -TrustRepository -Reinstall
+            $pkg = Install-PSResource -Name "Az.Accounts" -Repository 'MicrosoftArtifactRegistry' -PassThru -TrustRepository -Reinstall
             $pkg.Name | Should -Be "Az.Accounts"
-            $pkg.Version | Should -Be "3.0.4"
+            $pkg.Version.Major | Should -BeGreaterOrEqual 5
+
         }
         finally {
             if ($pkg) {
-                Uninstall-PSResource -Name "Az.Accounts" -Version "3.0.4"
+                Uninstall-PSResource -Name "Az.Accounts" -Version $pkg.Version
             }
         }
     }

@@ -27,13 +27,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region Overriden Methods
-        public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults)
+        #region Overridden Methods
+        public override IEnumerable<PSResourceResult> ConvertToPSResourceResult(FindResults responseResults, bool isResourceRequestedWithWildcard = false)
         {
             // in FindHelper:
             // serverApi.FindName() -> return responses, and out errRecord
             // check outErrorRecord
-            // 
+            //
             // v2Converter.ConvertToPSResourceInfo(responses) -> return PSResourceResult
             // check resourceResult for error, write if needed
             string[] responses = responseResults.StringResponse;
@@ -58,8 +58,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         yield return new PSResourceResult(returnedObject: null, exception: parseException, isTerminatingError: false);
                     }
 
+                    // For V2 resources, specifically PSGallery, return unlisted version resources only when not requested with wildcard name
                     // Unlisted versions will have a published year as 1900 or earlier.
-                    if (!psGetInfo.PublishedDate.HasValue || psGetInfo.PublishedDate.Value.Year > 1900)
+                    if (!isResourceRequestedWithWildcard || !psGetInfo.PublishedDate.HasValue || psGetInfo.PublishedDate.Value.Year > 1900)
                     {
                         yield return new PSResourceResult(returnedObject: psGetInfo, exception: null, isTerminatingError: false);
                     }
@@ -84,7 +85,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             XmlNodeList entryNode = doc.GetElementsByTagName("entry");
 
             XmlNode[] nodes = new XmlNode[entryNode.Count];
-            for (int i = 0; i < entryNode.Count; i++) 
+            for (int i = 0; i < entryNode.Count; i++)
             {
                 XmlNode node = entryNode[i];
                 nodes[i] = node;

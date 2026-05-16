@@ -10,7 +10,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
     /// <summary>
     /// The Unregister-PSResourceRepository cmdlet replaces the Unregister-PSRepository cmdlet from V2.
-    /// It unregisters a repository for the current user.
+    /// It un-registers a repository for the current user.
     /// </summary>
 
     [Cmdlet(VerbsLifecycle.Unregister,
