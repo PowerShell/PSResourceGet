@@ -41,10 +41,8 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0") {
                 $isPkgUpdated = $true
             }
         }
@@ -60,14 +58,11 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
 
         $isPkgUpdated = $false
         $isCorrectRepo = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0") {
                 $isPkgUpdated = $true
 
-                if ($pkg.Repository -eq $localRepo2)
-                {
+                if ($pkg.Repository -eq $localRepo2) {
                     $isCorrectRepo = $true
                 }
             }
@@ -84,19 +79,14 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         Update-PSResource -Name "test_local*" -Repository $localRepo -TrustRepository
         $res = Get-InstalledPSResource -Name "test_local*" -Version "5.0.0"
 
-        $inputHashtable = @{test_module = "1.0.0"; test_module2 = "1.0.0"}
+        $inputHashtable = @{test_module = "1.0.0"; test_module2 = "1.0.0" }
         $isTest_ModuleUpdated = $false
         $isTest_Module2Updated = $false
-        foreach ($item in $res)
-        {
-            if ([System.Version]$item.Version -gt [System.Version]$inputHashtable[$item.Name])
-            {
-                if ($item.Name -like $moduleName)
-                {
+        foreach ($item in $res) {
+            if ([System.Version]$item.Version -gt [System.Version]$inputHashtable[$item.Name]) {
+                if ($item.Name -like $moduleName) {
                     $isTest_ModuleUpdated = $true
-                }
-                elseif ($item.Name -like $moduleName2)
-                {
+                } elseif ($item.Name -like $moduleName2) {
                     $isTest_Module2Updated = $true
                 }
             }
@@ -112,10 +102,8 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         Update-PSResource -Name $moduleName -Version "5.0.0" -Repository $localRepo -TrustRepository
         $res = Get-InstalledPSResource -Name $moduleName
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -eq [System.Version]"5.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -eq [System.Version]"5.0.0") {
                 $isPkgUpdated = $true
             }
         }
@@ -129,10 +117,8 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         Update-PSResource -Name $moduleName -Version "3.*" -Repository $localRepo -TrustRepository
         $res = Get-InstalledPSResource -Name $moduleName
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -eq [System.Version]"3.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -eq [System.Version]"3.0.0") {
                 $isPkgUpdated = $true
             }
         }
@@ -151,10 +137,8 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $pkg.InstalledLocation.Contains("Documents") | Should -Be $true
                 $isPkgUpdated = $true
             }
@@ -174,10 +158,8 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         $res.Version | Should -Contain "5.0.0"
 
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $pkg.ModuleBase.Contains("Program") | Should -Be $true
                 $isPkgUpdated = $true
             }
@@ -194,10 +176,8 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $pkg.InstalledLocation.Contains("Documents") | Should -Be $true
                 $isPkgUpdated = $true
             }
@@ -218,10 +198,8 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $pkg.InstalledLocation.Contains("$env:HOME/.local") | Should -Be $true
                 $isPkgUpdated = $true
             }
@@ -241,10 +219,8 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $pkg.InstalledLocation.Contains("usr") | Should -Be $true
                 $isPkgUpdated = $true
             }
@@ -265,10 +241,8 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $pkg.InstalledLocation.Contains("$env:HOME/.local") | Should -Be $true
                 $isPkgUpdated = $true
             }
@@ -301,10 +275,8 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
         $res = Get-InstalledPSResource -Name $moduleName
 
         $isPkgUpdated = $false
-        foreach ($pkg in $res)
-        {
-            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0")
-            {
+        foreach ($pkg in $res) {
+            if ([System.Version]$pkg.Version -gt [System.Version]"1.0.0.0") {
                 $isPkgUpdated = $true
             }
         }

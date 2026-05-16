@@ -28,7 +28,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         #region Methods
 
         protected override void EndProcessing()
-        {            
+        {
             if (!Path.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
             {
                 ThrowTerminatingError(new ErrorRecord(
@@ -38,7 +38,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this));
             }
 
-            var resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
+            System.Collections.ObjectModel.Collection<string> resolvedPaths = GetResolvedProviderPathFromPSPath(Path, out ProviderInfo provider);
             if (resolvedPaths.Count != 1)
             {
                 ThrowTerminatingError(new ErrorRecord(
@@ -64,7 +64,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     exMessage += Environment.NewLine + error.Exception.Message;
                 }
-                
+
                 ThrowTerminatingError(new ErrorRecord(
                     new PSArgumentException(exMessage),
                     "InvalidPSScriptFile",

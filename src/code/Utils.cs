@@ -142,7 +142,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// </summary>
         public static string[] GetStringArray(ArrayList list)
         {
-            if (list == null) { return null; }
+            if (list == null)
+            { return null; }
 
             var strArray = new string[list.Count];
             for (int i = 0; i < list.Count; i++)
@@ -405,7 +406,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
            out VersionRange versionRange)
         {
             versionRange = null;
-            if (version == null) { return false; }
+            if (version == null)
+            { return false; }
 
             if (version.Trim().Equals("*"))
             {
@@ -603,7 +605,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
-                    var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
+                    Collection<PSModuleInfo> module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
                             new Hashtable() {
                                 { "Name", "Microsoft.PowerShell.SecretManagement"},
                                 { "PassThru", true}
@@ -611,7 +613,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
                     {
-                        foreach (var err in pwsh.Streams.Error)
+                        foreach (ErrorRecord err in pwsh.Streams.Error)
                         {
                             cmdletPassedIn.WriteError(err);
                         }
@@ -633,7 +635,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
 
                     pwsh.Commands.Clear();
-                    var results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Get-Secret").AddParameters(
+                    Collection<object> results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Get-Secret").AddParameters(
                         new Hashtable() {
                             { "Vault", repositoryCredentialInfo.VaultName },
                             { "Name", repositoryCredentialInfo.SecretName }
@@ -641,7 +643,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
                     {
-                        foreach (var err in pwsh.Streams.Error)
+                        foreach (ErrorRecord err in pwsh.Streams.Error)
                         {
                             cmdletPassedIn.WriteError(err);
                         }
@@ -721,7 +723,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
                 {
-                    var token = dCred.GetTokenAsync(tokenRequestContext, cts.Token).GetAwaiter().GetResult();
+                    AccessToken token = dCred.GetTokenAsync(tokenRequestContext, cts.Token).GetAwaiter().GetResult();
                     return token.Token;
                 }
             }
@@ -753,7 +755,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return null;
             }
 
-            var results = PowerShellInvoker.InvokeScriptWithHost<object>(
+            Collection<object> results = PowerShellInvoker.InvokeScriptWithHost<object>(
                 cmdlet: cmdletPassedIn,
                 script: @"
                     param (
@@ -823,7 +825,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
-                    var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
+                    Collection<PSModuleInfo> module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
                             new Hashtable() {
                                 { "Name", "Microsoft.PowerShell.SecretManagement"},
                                 { "PassThru", true}
@@ -831,7 +833,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
                     {
-                        foreach (var err in pwsh.Streams.Error)
+                        foreach (ErrorRecord err in pwsh.Streams.Error)
                         {
                             cmdletPassedIn.WriteError(err);
                         }
@@ -853,7 +855,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
 
                     pwsh.Commands.Clear();
-                    var results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Set-Secret").AddParameters(
+                    Collection<object> results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Set-Secret").AddParameters(
                         new Hashtable() {
                             { "Secret", repositoryCredentialInfo.Credential},
                             { "Vault", repositoryCredentialInfo.VaultName },
@@ -862,7 +864,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
                     {
-                        foreach (var err in pwsh.Streams.Error)
+                        foreach (ErrorRecord err in pwsh.Streams.Error)
                         {
                             cmdletPassedIn.WriteError(err);
                         }
@@ -892,7 +894,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
-                    var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
+                    Collection<PSModuleInfo> module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
                         new Hashtable() {
                             { "Name", "Microsoft.PowerShell.SecretManagement"},
                             { "PassThru", true},
@@ -901,7 +903,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
                     {
-                        foreach (var err in pwsh.Streams.Error)
+                        foreach (ErrorRecord err in pwsh.Streams.Error)
                         {
                             cmdletPassedIn.WriteError(err);
                         }
@@ -939,7 +941,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
                 {
-                    var module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
+                    Collection<PSModuleInfo> module = pwsh.AddCommand("Microsoft.PowerShell.Core\\Import-Module").AddParameters(
                         new Hashtable() {
                             { "Name", "Microsoft.PowerShell.SecretManagement"},
                             { "PassThru", true}
@@ -947,7 +949,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
                     {
-                        foreach (var err in pwsh.Streams.Error)
+                        foreach (ErrorRecord err in pwsh.Streams.Error)
                         {
                             cmdletPassedIn.WriteError(err);
                         }
@@ -961,14 +963,14 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
 
                     pwsh.Commands.Clear();
-                    var results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Test-SecretVault").AddParameters(
+                    Collection<bool> results = pwsh.AddCommand("Microsoft.PowerShell.SecretManagement\\Test-SecretVault").AddParameters(
                         new Hashtable() {
                             { "Name", repositoryCredentialInfo.VaultName }
                         }).Invoke<bool>();
 
                     if (pwsh.HadErrors || pwsh.Streams.Error.Count > 0)
                     {
-                        foreach (var err in pwsh.Streams.Error)
+                        foreach (ErrorRecord err in pwsh.Streams.Error)
                         {
                             cmdletPassedIn.WriteError(err);
                         }
@@ -1712,7 +1714,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         public static SecureString ConvertToSecureString(string input)
         {
-            if (input == null) {
+            if (input == null)
+            {
                 throw new ArgumentNullException(nameof(input));
             }
 
@@ -2111,11 +2114,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             try
             {
                 XmlNodeList elemList = nuspecXmlDocument.GetElementsByTagName("metadata");
-                for(int i = 0; i < elemList.Count; i++)
+                for (int i = 0; i < elemList.Count; i++)
                 {
                     XmlNode metadataInnerXml = elemList[i];
 
-                    for(int j= 0; j<metadataInnerXml.ChildNodes.Count; j++)
+                    for (int j = 0; j < metadataInnerXml.ChildNodes.Count; j++)
                     {
                         string key = metadataInnerXml.ChildNodes[j].LocalName;
                         string value = metadataInnerXml.ChildNodes[j].InnerText;
@@ -2148,7 +2151,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             errRecord = null;
             XmlDocument doc = new XmlDocument();
             doc.PreserveWhitespace = true;
-            try { doc.Load(filePath); }
+            try
+            { doc.Load(filePath); }
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(
@@ -2223,7 +2227,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 // We are running trusted script.
                 iss.LanguageMode = PSLanguageMode.FullLanguage;
                 // Import the current PowerShellGet module.
-                var modPathObjects = cmdlet.InvokeCommand.InvokeScript(
+                Collection<PSObject> modPathObjects = cmdlet.InvokeCommand.InvokeScript(
                     script: "(Microsoft.PowerShell.Core\\Get-Module -Name Microsoft.PowerShell.PSResourceGet).Path");
                 string modPath = (modPathObjects.Count > 0 &&
                                   modPathObjects[0].BaseObject is string modPathStr)
@@ -2265,12 +2269,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 try
                 {
                     // Invoke the script.
-                    var results = ps.Invoke();
+                    Collection<PSObject> results = ps.Invoke();
 
                     // Extract expected output types from results pipeline.
-                    foreach (var psItem in results)
+                    foreach (PSObject psItem in results)
                     {
-                        if (psItem == null || psItem.BaseObject == null) { continue; }
+                        if (psItem == null || psItem.BaseObject == null)
+                        { continue; }
 
                         switch (psItem.BaseObject)
                         {
@@ -2299,7 +2304,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                                 break;
 
                             case T[] resultArray:
-                                foreach (var item in resultArray)
+                                foreach (T item in resultArray)
                                 {
                                     returnCollection.Add(item);
                                 }
@@ -2369,7 +2374,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             // If any file authenticode signatures are not valid, return false.
-            foreach (var signatureObject in authenticodeSignatures)
+            foreach (PSObject signatureObject in authenticodeSignatures)
             {
                 Signature signature = (Signature)signatureObject.BaseObject;
                 if (!signature.Status.Equals(SignatureStatus.Valid))

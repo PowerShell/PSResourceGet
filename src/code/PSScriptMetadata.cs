@@ -114,7 +114,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 author = Environment.UserName;
             }
 
-            Version = !String.IsNullOrEmpty(version) ? new NuGetVersion (version) : new NuGetVersion("1.0.0.0");
+            Version = !String.IsNullOrEmpty(version) ? new NuGetVersion(version) : new NuGetVersion("1.0.0.0");
             Guid = (guid == null || guid == Guid.Empty) ? Guid.NewGuid() : guid;
             Author = !String.IsNullOrEmpty(author) ? author : Environment.UserName;
             CompanyName = companyName;
@@ -134,7 +134,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// This constructor is called by internal cmdlet methods and creates a PSScriptFileInfo with default values
         /// for the parameters. Calling a method like PSScriptMetadata.ParseContentIntoObj() would then populate those properties.
         /// </summary>
-        internal PSScriptMetadata() {}
+        internal PSScriptMetadata() { }
 
         #endregion
 
@@ -178,39 +178,39 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             string[] delimiter = new string[]{" ", ","};
 
             Uri parsedLicenseUri = null;
-            if (!String.IsNullOrEmpty((string) parsedMetadata["LICENSEURI"]))
+            if (!String.IsNullOrEmpty((string)parsedMetadata["LICENSEURI"]))
             {
-                if (!Uri.TryCreate((string) parsedMetadata["LICENSEURI"], UriKind.Absolute, out parsedLicenseUri))
+                if (!Uri.TryCreate((string)parsedMetadata["LICENSEURI"], UriKind.Absolute, out parsedLicenseUri))
                 {
                     msgsList.Add($"LicenseUri property {(string) parsedMetadata["LICENSEURI"]} could not be created as a Uri");
                 }
             }
 
             Uri parsedProjectUri = null;
-            if (!String.IsNullOrEmpty((string) parsedMetadata["PROJECTURI"]))
+            if (!String.IsNullOrEmpty((string)parsedMetadata["PROJECTURI"]))
             {
-                if (!Uri.TryCreate((string) parsedMetadata["PROJECTURI"], UriKind.Absolute, out parsedProjectUri))
+                if (!Uri.TryCreate((string)parsedMetadata["PROJECTURI"], UriKind.Absolute, out parsedProjectUri))
                 {
-                    msgsList.Add($"ProjectUri property {(string) parsedMetadata["PROJECTURI"]} could not be created as Uri");
+                    msgsList.Add($"ProjectUri property {(string)parsedMetadata["PROJECTURI"]} could not be created as Uri");
                 }
             }
 
             Uri parsedIconUri = null;
-            if (!String.IsNullOrEmpty((string) parsedMetadata["ICONURI"]))
+            if (!String.IsNullOrEmpty((string)parsedMetadata["ICONURI"]))
             {
-                if (!Uri.TryCreate((string) parsedMetadata["ICONURI"], UriKind.Absolute, out parsedIconUri))
+                if (!Uri.TryCreate((string)parsedMetadata["ICONURI"], UriKind.Absolute, out parsedIconUri))
                 {
-                    msgsList.Add($"IconUri property {(string) parsedMetadata["ICONURI"]} could not be created as Uri");
+                    msgsList.Add($"IconUri property {(string)parsedMetadata["ICONURI"]} could not be created as Uri");
                 }
             }
 
             // now populate PSScriptMetadata object properties with parsed metadata
-            Author = (string) parsedMetadata["AUTHOR"];
-            Version = new NuGetVersion((string) parsedMetadata["VERSION"]);
-            Guid = new Guid((string) parsedMetadata["GUID"]);
+            Author = (string)parsedMetadata["AUTHOR"];
+            Version = new NuGetVersion((string)parsedMetadata["VERSION"]);
+            Guid = new Guid((string)parsedMetadata["GUID"]);
 
-            CompanyName = (string) parsedMetadata["COMPANYNAME"] ?? String.Empty;
-            Copyright = (string) parsedMetadata["COPYRIGHT"] ?? String.Empty;
+            CompanyName = (string)parsedMetadata["COMPANYNAME"] ?? String.Empty;
+            Copyright = (string)parsedMetadata["COPYRIGHT"] ?? String.Empty;
 
             LicenseUri = parsedLicenseUri;
             ProjectUri = parsedProjectUri;
@@ -323,7 +323,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             List<ErrorRecord> errorsList = new List<ErrorRecord>();
 
-            if (!parsedMetadata.ContainsKey("VERSION") || String.IsNullOrEmpty((string) parsedMetadata["VERSION"]) || String.Equals(((string) parsedMetadata["VERSION"]).Trim(), String.Empty))
+            if (!parsedMetadata.ContainsKey("VERSION") || String.IsNullOrEmpty((string)parsedMetadata["VERSION"]) || String.Equals(((string)parsedMetadata["VERSION"]).Trim(), String.Empty))
             {
                 errorsList.Add(new ErrorRecord(
                     new ArgumentException("PSScript file is missing the required Version property"),
@@ -332,7 +332,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     null));
             }
 
-            if (!parsedMetadata.ContainsKey("AUTHOR") || String.IsNullOrEmpty((string) parsedMetadata["AUTHOR"]) || String.Equals(((string) parsedMetadata["AUTHOR"]).Trim(), String.Empty))
+            if (!parsedMetadata.ContainsKey("AUTHOR") || String.IsNullOrEmpty((string)parsedMetadata["AUTHOR"]) || String.Equals(((string)parsedMetadata["AUTHOR"]).Trim(), String.Empty))
             {
                 errorsList.Add(new ErrorRecord(
                     new ArgumentException("PSScript file is missing the required Author property"),
@@ -341,7 +341,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     null));
             }
 
-            if (!parsedMetadata.ContainsKey("GUID") || String.IsNullOrEmpty((string) parsedMetadata["GUID"]) || String.Equals(((string) parsedMetadata["GUID"]).Trim(), String.Empty))
+            if (!parsedMetadata.ContainsKey("GUID") || String.IsNullOrEmpty((string)parsedMetadata["GUID"]) || String.Equals(((string)parsedMetadata["GUID"]).Trim(), String.Empty))
             {
                 errorsList.Add(new ErrorRecord(
                     new ArgumentException("PSScript file is missing the required Guid property"),
@@ -506,27 +506,33 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 Author = author;
             }
 
-            if (!String.IsNullOrEmpty(companyName)){
+            if (!String.IsNullOrEmpty(companyName))
+            {
                 CompanyName = companyName;
             }
 
-            if (!String.IsNullOrEmpty(copyright)){
+            if (!String.IsNullOrEmpty(copyright))
+            {
                 Copyright = copyright;
             }
 
-            if (tags != null && tags.Length != 0){
+            if (tags != null && tags.Length != 0)
+            {
                 Tags = tags;
             }
 
-            if (licenseUri != null && !licenseUri.Equals(default(Uri))){
+            if (licenseUri != null && !licenseUri.Equals(default(Uri)))
+            {
                 LicenseUri = licenseUri;
             }
 
-            if (projectUri != null && !projectUri.Equals(default(Uri))){
+            if (projectUri != null && !projectUri.Equals(default(Uri)))
+            {
                 ProjectUri = projectUri;
             }
 
-            if (iconUri != null && !iconUri.Equals(default(Uri))){
+            if (iconUri != null && !iconUri.Equals(default(Uri)))
+            {
                 IconUri = iconUri;
             }
 

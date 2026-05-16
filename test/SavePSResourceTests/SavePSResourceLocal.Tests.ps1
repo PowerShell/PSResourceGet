@@ -9,7 +9,7 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
 
     BeforeAll {
         $localRepo = "psgettestlocal"
-		$localUNCRepo = "psgettestlocal3"
+        $localUNCRepo = "psgettestlocal3"
         $moduleName = "test_local_mod"
         $moduleName2 = "test_local_mod2"
         $moduleName3 = "testModule99"
@@ -24,7 +24,7 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
 
         $SaveDir = Join-Path $TestDrive 'SavedResources'
         $saveItem = New-Item -Item Directory $SaveDir -Force
-		$SaveDirUNC = $saveItem.FullName -Replace '^(.):', '\\localhost\$1$'
+        $SaveDirUNC = $saveItem.FullName -Replace '^(.):', '\\localhost\$1$'
     }
 
     AfterEach {
@@ -43,21 +43,21 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         (Get-ChildItem $pkgDir.FullName) | Should -HaveCount 1
     }
 
-	It "Save specific module resource by name from UNC repository" {
+    It "Save specific module resource by name from UNC repository" {
         Save-PSResource -Name $moduleName -Repository $localUNCRepo -Path $SaveDir -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
         $pkgDir | Should -Not -BeNullOrEmpty
         (Get-ChildItem $pkgDir.FullName) | Should -HaveCount 1
     }
 
-	It "Save specific module resource by name to a UNC path" {
+    It "Save specific module resource by name to a UNC path" {
         Save-PSResource -Name $moduleName -Repository $localRepo -Path $SaveDirUNC -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDirUNC | Where-Object Name -eq $moduleName
         $pkgDir | Should -Not -BeNullOrEmpty
         (Get-ChildItem $pkgDir.FullName) | Should -HaveCount 1
     }
 
-	It "Save specific module resource by name from UNC repository to a UNC path" {
+    It "Save specific module resource by name from UNC repository to a UNC path" {
         Save-PSResource -Name $moduleName -Repository $localUNCRepo -Path $SaveDirUNC -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDirUNC | Where-Object Name -eq $moduleName
         $pkgDir | Should -Not -BeNullOrEmpty
@@ -113,13 +113,13 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
         $pkgDirVersion.Name | Should -Be "1.0.0"
     }
 
-   It "Should save resource given name and exact range inclusive [1.0.0, 3.0.0]" {
-       Save-PSResource -Name $moduleName -Version "[1.0.0, 3.0.0]" -Repository $localRepo -Path $SaveDir -TrustRepository
-       $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
-       $pkgDir | Should -Not -BeNullOrEmpty
-       $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
-       $pkgDirVersion.Name | Should -Be "3.0.0"
-   }
+    It "Should save resource given name and exact range inclusive [1.0.0, 3.0.0]" {
+        Save-PSResource -Name $moduleName -Version "[1.0.0, 3.0.0]" -Repository $localRepo -Path $SaveDir -TrustRepository
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName
+        $pkgDir | Should -Not -BeNullOrEmpty
+        $pkgDirVersion = Get-ChildItem -Path $pkgDir.FullName
+        $pkgDirVersion.Name | Should -Be "3.0.0"
+    }
 
     It "Should save resource given name and exact range exclusive (1.0.0, 5.0.0)" {
         Save-PSResource -Name $moduleName -Version "(1.0.0, 5.0.0)" -Repository $localRepo -Path $SaveDir -TrustRepository
@@ -130,11 +130,10 @@ Describe 'Test Save-PSResource for local repositories' -tags 'CI' {
     }
 
     It "Should not save resource with incorrectly formatted version such as exclusive version (1.0.0.0)" {
-        $Version="(1.0.0.0)"
+        $Version = "(1.0.0.0)"
         try {
             Save-PSResource -Name $moduleName -Version $Version -Repository $localRepo -Path $SaveDir -ErrorAction SilentlyContinue -TrustRepository
-        }
-        catch
+        } catch
         {}
 
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -eq $moduleName

@@ -25,12 +25,9 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
         $usingAzAuth = $env:USINGAZAUTH -eq 'true'
 
-        if ($usingAzAuth)
-        {
+        if ($usingAzAuth) {
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -Verbose
-        }
-        else
-        {
+        } else {
             $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
         }
@@ -44,9 +41,9 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    $testCases = @{Name="*";                        ErrorId="NameContainsWildcard"},
-                 @{Name="Test-mod*";                ErrorId="NameContainsWildcard"},
-                 @{Name="Test?modu","Test[module";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
+    $testCases = @{Name = "*"; ErrorId = "NameContainsWildcard" },
+    @{Name = "Test-mod*"; ErrorId = "NameContainsWildcard" },
+    @{Name = "Test?modu", "Test[module"; ErrorId = "ErrorFilteringNamesForUnsupportedWildcards" }
 
     It "Should not install resource with wildcard in name" -TestCases $testCases {
         param($Name, $ErrorId)
@@ -367,7 +364,6 @@ Describe 'Test Install-PSResource for MAR Repository' -tags 'CI' {
             $pkg = Install-PSResource -Name "Az.Accounts" -Repository 'MicrosoftArtifactRegistry' -PassThru -TrustRepository -Reinstall
             $pkg.Name | Should -Be "Az.Accounts"
             $pkg.Version.Major | Should -BeGreaterOrEqual 5
-
         }
         finally {
             if ($pkg) {

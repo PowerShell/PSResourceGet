@@ -1,11 +1,11 @@
+**/BenchmarkDotNet.Artifacts/
+.vs
+out
+src/code/.vs
 src/code/bin
 src/code/obj
 srcOld/code/bin
 srcOld/code/obj
-out
-test/**/obj
 test/**/bin
-.vs
-.vscode
-src/code/.vs
+test/**/obj
 test/testFiles/testScripts/test.ps1

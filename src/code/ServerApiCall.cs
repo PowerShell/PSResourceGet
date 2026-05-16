@@ -33,10 +33,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             HttpClientHandler handler = new HttpClientHandler();
             bool token = false;
 
-            if(networkCredential != null)
+            if (networkCredential != null)
             {
                 token = String.Equals("token", networkCredential.UserName) ? true : false;
-            };
+            }
+            ;
 
             if (token)
             {
@@ -45,12 +46,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 _sessionClient = new HttpClient(handler);
                 _sessionClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
-            } else {
+            }
+            else
+            {
 
                 handler.Credentials = networkCredential;
 
                 _sessionClient = new HttpClient(handler);
-            };
+            }
+            ;
             _sessionClient.Timeout = TimeSpan.FromMinutes(10);
 
         }

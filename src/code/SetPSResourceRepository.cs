@@ -171,7 +171,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             List<PSRepositoryInfo> items = new List<PSRepositoryInfo>();
 
-            switch(ParameterSetName)
+            switch (ParameterSetName)
             {
                 case NameParameterSet:
                     try
@@ -229,7 +229,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (PassThru)
             {
-                foreach(PSRepositoryInfo item in items)
+                foreach (PSRepositoryInfo item in items)
                 {
                     WriteObject(item);
                 }
@@ -296,13 +296,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             isSet = false;
             if (repo.ContainsKey("Trusted"))
             {
-                repoTrusted = (bool) repo["Trusted"];
+                repoTrusted = (bool)repo["Trusted"];
                 isSet = true;
             }
 
             PSCredentialInfo repoCredentialInfo = null;
             if (repo.ContainsKey("CredentialInfo") &&
-                !Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject) repo["CredentialInfo"],
+                !Utils.TryCreateValidPSCredentialInfo(credentialInfoCandidate: (PSObject)repo["CredentialInfo"],
                     cmdletPassedIn: this,
                     repoCredentialInfo: out repoCredentialInfo,
                     errorRecord: out ErrorRecord errorRecord1))
@@ -316,7 +316,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-                var updatedRepo = RepositorySettings.UpdateRepositoryStore(repo["Name"].ToString(),
+                PSRepositoryInfo updatedRepo = RepositorySettings.UpdateRepositoryStore(repo["Name"].ToString(),
                     repoUri,
                     repo.ContainsKey("Priority") ? Convert.ToInt32(repo["Priority"].ToString()) : DefaultPriority,
                     repoTrusted,

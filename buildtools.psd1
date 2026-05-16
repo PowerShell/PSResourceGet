@@ -3,28 +3,28 @@
 
 @{
     # Script module or binary module file associated with this manifest.
-    RootModule = '.\buildtools.psm1'
+    RootModule           = '.\buildtools.psm1'
 
     # Version number of this module.
-    ModuleVersion = '1.0.0'
+    ModuleVersion        = '1.0.0'
 
     # Supported PSEditions
     CompatiblePSEditions = @('Core')
 
     # ID used to uniquely identify this module
-    GUID = 'fcdd259e-1163-4da2-8bfa-ce36a839f337'
+    GUID                 = 'fcdd259e-1163-4da2-8bfa-ce36a839f337'
 
     # Author of this module
-    Author = 'Microsoft Corporation'
+    Author               = 'Microsoft Corporation'
 
     # Company or vendor of this module
-    CompanyName = 'Microsoft Corporation'
+    CompanyName          = 'Microsoft Corporation'
 
     # Copyright statement for this module
-    Copyright = '(c) Microsoft Corporation. All rights reserved.'
+    Copyright            = '(c) Microsoft Corporation. All rights reserved.'
 
     # Description of the functionality provided by this module
-    Description = "Build utilities."
+    Description          = 'Build utilties.'
 
     # Modules that must be imported into the global environment prior to importing this module
     #RequiredModules = @(
@@ -34,18 +34,18 @@
     #)
 
     # Minimum version of the PowerShell engine required by this module
-    PowerShellVersion = '5.1'
+    PowerShellVersion    = '5.1'
 
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
-    CmdletsToExport = @()
+    CmdletsToExport      = @()
 
     # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-    FunctionsToExport = @(
+    FunctionsToExport    = @(
         'Get-BuildConfiguration', 'Invoke-ModuleBuild', 'Publish-ModulePackage', 'Install-ModulePackageForTest', 'Invoke-ModuleTests', 'Invoke-ModuleTestsACR')
 
     # Variables to export from this module
-    VariablesToExport = '*'
+    VariablesToExport    = '*'
 
     # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
-    AliasesToExport = @()
+    AliasesToExport      = @()
 }

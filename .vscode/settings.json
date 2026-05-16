@@ -1,6 +1,19 @@
 {
-    "csharp.semanticHighlighting.enabled": true,
-    "dotnet.automaticallyCreateSolutionInWorkspace": false,
-    "omnisharp.enableEditorConfigSupport": true,
-    "omnisharp.enableRoslynAnalyzers": true
+  "[csharp]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
+  },
+  "[powershell]": {
+    "editor.defaultFormatter": "ms-vscode.powershell",
+    "files.trimTrailingWhitespace": true
+  },
+  "csharp.semanticHighlighting.enabled": true,
+  "editor.insertSpaces": true,
+  "dotnet.automaticallyCreateSolutionInWorkspace": false,
+  "omnisharp.enableEditorConfigSupport": true,
+  "omnisharp.enableRoslynAnalyzers": true,
+  "powershell.codeFormatting.preset": "OTBS",
+  "powershell.codeFormatting.whitespaceAfterSeparator": true,
+  "powershell.codeFormatting.whitespaceAroundOperator": true,
+  "powershell.codeFormatting.whitespaceBeforeOpenBrace": true,
+  "powershell.codeFormatting.whitespaceBeforeOpenParen": true
 }

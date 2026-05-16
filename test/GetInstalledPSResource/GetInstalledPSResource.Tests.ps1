@@ -7,7 +7,7 @@ Import-Module $modPath -Force -Verbose
 
 Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
 
-    BeforeAll{
+    BeforeAll {
         $PSGalleryName = Get-PSGalleryName
         $testModuleName = "test_module"
         $testScriptName = "test_script"
@@ -52,10 +52,10 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
     }
 
     It "Get resource when given Name to <Reason> <Version>" -TestCases @(
-        @{Name="*est_modul*";    ExpectedName=$testModuleName; Reason="validate name, with wildcard at beginning and end of name: *est_modul*"},
-        @{Name="test_mod*";      ExpectedName=$testModuleName; Reason="validate name, with wildcard at end of name: test_mod*"},
-        @{Name="*est_module";    ExpectedName=$testModuleName; Reason="validate name, with wildcard at beginning of name: *est_module"},
-        @{Name="tes*ule";        ExpectedName=$testModuleName; Reason="validate name, with wildcard in middle of name: tes*ule"}
+        @{Name = "*est_modul*"; ExpectedName = $testModuleName; Reason = "validate name, with wildcard at beginning and end of name: *est_modul*" },
+        @{Name = "test_mod*"; ExpectedName = $testModuleName; Reason = "validate name, with wildcard at end of name: test_mod*" },
+        @{Name = "*est_module"; ExpectedName = $testModuleName; Reason = "validate name, with wildcard at beginning of name: *est_module" },
+        @{Name = "tes*ule"; ExpectedName = $testModuleName; Reason = "validate name, with wildcard in middle of name: tes*ule" }
     ) {
         param($Version, $ExpectedVersion)
         $pkgs = Get-InstalledPSResource -Name $Name

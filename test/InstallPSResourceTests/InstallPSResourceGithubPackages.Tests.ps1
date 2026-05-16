@@ -30,9 +30,9 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
         Get-RevertPSResourceRepositoryFile
     }
 
-    $testCases = @{Name="*";                          ErrorId="NameContainsWildcard"},
-                 @{Name="Test_m*";                    ErrorId="NameContainsWildcard"},
-                 @{Name="Test?module","Test[module";  ErrorId="ErrorFilteringNamesForUnsupportedWildcards"}
+    $testCases = @{Name = "*"; ErrorId = "NameContainsWildcard" },
+    @{Name = "Test_m*"; ErrorId = "NameContainsWildcard" },
+    @{Name = "Test?module", "Test[module"; ErrorId = "ErrorFilteringNamesForUnsupportedWildcards" }
 
     It "Should not install resource with wildcard in name" -TestCases $testCases {
         param($Name, $ErrorId)
@@ -106,8 +106,7 @@ Describe 'Test Install-PSResource for GitHub packages' -tags 'CI' {
         $Version = "(1.0.0.0)"
         try {
             Install-PSResource -Name $testModuleName -Version $Version -Repository $GithubPackagesRepoName -Credential $credential -TrustRepository -ErrorAction SilentlyContinue
-        }
-        catch
+        } catch
         {}
         $Error[0].FullyQualifiedErrorId | Should -be "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
