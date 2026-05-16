@@ -257,7 +257,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
-        #region Method Overrides
+        #region Method override - Begin
 
         protected override void BeginProcessing()
         {
@@ -266,7 +266,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             RepositorySettings.CheckRepositoryStore();
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
-            List<string> pathsToSearch = Utils.GetAllResourcePaths(this, Scope);
+            List<string> pathsToSearch = _pathsToInstallPkg;
             // Only need to find packages installed if -Reinstall is not passed in
             _packagesOnMachine = Reinstall ? new HashSet<string>(StringComparer.CurrentCultureIgnoreCase) : Utils.GetInstalledPackages(pathsToSearch, this);
 
@@ -275,6 +275,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _installHelper = new InstallHelper(cmdletPassedIn: this, networkCredential: networkCred);
         }
 
+        #endregion
+
+        #region Method Override - Process
         protected override void ProcessRecord()
         {
             switch (ParameterSetName)
@@ -359,7 +362,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     catch (Exception)
                     {
                         ThrowTerminatingError(new ErrorRecord(
-                            new ArgumentException($"Argument for parameter -RequiredResourceFile is not in proper json or hashtable format.  Make sure argument is either a valid .json or .psd1 file."),
+                            new ArgumentException($"Argument for parameter -RequiredResourceFile is not in proper json or hashtable format. Make sure argument is either a valid .json or .psd1 file."),
                             "RequiredResourceFileNotInProperJsonFormat",
                             ErrorCategory.InvalidData,
                             this));
