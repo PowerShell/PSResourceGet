@@ -13,6 +13,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         $testScriptName = "test_script"
         $testModuleName2 = "testmodule99"
         $PackageManagement = "PackageManagement"
+        $testModuleNameWithLicense = "ModuleRequireLicenseAcceptance"
         Get-NewPSResourceRepositoryFile
 
         $SaveDir = Join-Path $TestDrive 'SavedResources'
@@ -51,7 +52,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
         (Get-ChildItem $pkgDirs[1].FullName) | Should -HaveCount 1
     }
 
-    It "Should not save resource given nonexistant name" {
+    It "Should not save resource given nonexistent name" {
         Save-PSResource -Name NonExistentModule -Repository $PSGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue -TrustRepository
         $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ "NonExistentModule"
         $pkgDir.Name | Should -BeNullOrEmpty
@@ -153,7 +154,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
 
     It "Save module as a nupkg" {
         Save-PSResource -Name $testModuleName -Version "1.0.0" -Repository $PSGalleryName -Path $SaveDir -AsNupkg -TrustRepository
-        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ "test_module.1.0.0.nupkg"
+        $pkgDir = Get-ChildItem -Path $SaveDir | Where-Object Name -EQ "test_module.1.0.0.0.nupkg"
         $pkgDir | Should -Not -BeNullOrEmpty
     }
 
@@ -174,7 +175,7 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
     }
 
     It "Save script without using -IncludeXML" {
-        Save-PSResource -Name $testScriptName -Repository $PSGalleryName -Path $SaveDir -TrustRepository | Should -Not -Throw
+        { Save-PSResource -Name $testScriptName -Repository $PSGalleryName -Path $SaveDir -TrustRepository } | Should -Not -Throw
 
         $SavedScriptFile = Join-Path -Path $SaveDir -ChildPath "$testScriptName.ps1"
         Test-Path -Path $SavedScriptFile -PathType 'Leaf' | Should -BeTrue
@@ -197,15 +198,19 @@ Describe 'Test HTTP Save-PSResource for V2 Server Protocol' -tags 'CI' {
     It "Save module that is not authenticode signed" -Skip:(!(Get-IsWindows)) {
         Save-PSResource -Name $testModuleName -Version "5.0.0" -AuthenticodeCheck -Repository $PSGalleryName -TrustRepository -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
-        $err[0].FullyQualifiedErrorId | Should -BeExactly "InstallPackageFailure,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
+        $err[0].FullyQualifiedErrorId | Should -Contain "GetAuthenticodeSignatureError,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource"
     }
 
     # Save resource that requires license
     It "Save resource that requires accept license with -AcceptLicense flag" {
-        Save-PSResource -Repository $TestGalleryName -TrustRepository -Path $SaveDir `
-            -Name $testModuleName2 -AcceptLicense
-        $pkg = Get-InstalledPSResource -Path $SaveDir -Name $testModuleName2
-        $pkg.Name | Should -Be $testModuleName2
-        $pkg.Version | Should -Be "0.0.1.0"
+        $pkg = Save-PSResource -Repository $PSGalleryName -TrustRepository -Path $SaveDir -Name $testModuleNameWithLicense -AcceptLicense -PassThru
+        $pkg.Name | Should -Be $testModuleNameWithLicense
+        $pkg.Version | Should -Be "2.0"
+    }
+
+    It "Not save module that has path separator in name" {
+        Save-PSResource -Name "/$testModuleName" -Repository $PSGalleryName -Path $SaveDir -ErrorVariable err -ErrorAction SilentlyContinue -TrustRepository
+        $err.Count | Should -BeGreaterThan 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly 'ErrorFilteringNamesForUnsupportedWildcards,Microsoft.PowerShell.PSResourceGet.Cmdlets.SavePSResource'
     }
 }

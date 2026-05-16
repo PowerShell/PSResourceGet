@@ -1,4 +1,102 @@
-## [1.1.0-RC1](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-preview2...v1.1.0-RC1) - 2024-09-13
+# Preview Changelog
+
+## [1.2.0-rc3](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-rc2..v1.2.0-rc3) - 2026-02-06
+
+## Bug fix
+- Packages that depend on a specific version should search for the dependency with NormalizedVersion (#1941)
+
+## [1.2.0-rc2](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-rc1..v1.2.0-rc2) - 2026-02-05
+
+## Bug fix
+- For packages that depend on a specific version, use an exact version instead of a version range. (#1937)
+
+## [1.2.0-rc1](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview5..v1.2.0-rc1) - 2026-01-14
+
+## Bug fix
+- `WhatIf` parameter should respect provided value instead of simply checking presence (#1925)
+
+## [1.2.0-preview5](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview4..v1.2.0-preview5) - 2025-12-05
+
+### New Features
+- Add `Reset-PSResourceRepository` cmdlet to recover from corrupted repository store (#1895)
+- Improve performance of `ContainerRegistry` repositories by caching token (#1920)
+
+## Bug fix
+- Ensure `Update-PSResource` does not re-install dependency packages which already satisfy dependency criteria (#1919)
+- Retrieve non-anonymous access token when publishing to ACR (#1918)
+- Filter out path separators when passing in package names as a parameter for any cmdlet (#1916)
+- Respect `TrustRepository` parameter when using `-RequiredResource` with `Install-PSResource` (#1910)
+- Fix bug with 'PSModuleInfo' property deserialization when validating module manifest (#1909) 
+- Prevent users from setting ApiVersion to 'Unknown' in `Set-PSResourceRepository` and `Register-PSResourceRepository` (#1892)
+
+## [1.2.0-preview4](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview3..v1.2.0-preview4) - 2025-11-04
+
+## Bug fix
+
+- Fix typos in numerous files (#1875 Thanks @SamErde!)
+- MAR fails to parse RequiredVersion for dependencies (#1876 Thanks @o-l-a-v!)
+- Get-InstalledPSResource -Path don't throw if no subdirectories were found (#1877 Thanks @o-l-a-v!)
+- Handle boolean correctly in RequiredResourceFile for prerelease key (#1843 Thanks @o-l-a-v!)
+- Fix CodeQL configuration (#1886)
+- Add cmdlet aliases: gres, usres, and svres (#1888)
+- Add warning when AuthenticodeCheck is used on non-Windows platforms (#1891)
+- Fix Compress-PSResource ignoring .gitkeep and other dotfiles (#1889)
+- Add CodeQL suppression for ContainerRegistryServerAPICalls (#1897)
+- Fix broken Install-PSResource test with warning condition incorrect (#1899)
+- Uninstall-PSResource should not fail silently when resource was not found or prerelease criteria not met (#1898)
+- Uninstall-PSResource should delete subdirectories without Access Denied error on OneDrive (#1860)
+
+## [1.2.0-preview3](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview2..v1.2.0-preview3) - 2025-09-12
+
+### New Features
+- Pagination for MCR catalog items (#1870)
+
+### Bug Fix
+- Bug fix for CLM issues (#1869)
+- Update `-ModulePrefix` to be a static parameter (#1868)
+- Bug fix for populating all `#Requires` fields in `Update-PSScriptFileInfo` (#1863)
+- Bug fix for populating `Includes` metadata for packages from container registry repositories (#1861)
+- Bug fix for `Find-PSResource` and `Install-PSResource` not retrieving unlisted package versions (#1859)
+
+
+## [1.2.0-preview2](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-preview1..v1.2.0-preview2) - 2025-07-21
+
+### New Features
+- Integration of the Azure Artifacts Credential Provider for ADO feeds (#1765)
+
+### Bug Fix
+- Bug fixes for NuGet v3 dependencies (#1841 Thanks @o-l-a-v!)
+- Bug fix for temporary installation path failure when installing PSResources on Linux machines (#1842 Thanks @o-l-a-v!)
+
+## [1.2.0-preview1](https://github.com/PowerShell/PSResourceGet/compare/v1.1.1..v1.2.0-preview1) - 2025-06-26
+
+### New Features
+- Dependency support for PSResources in v3 repositories (#1778 Thanks @o-l-a-v!)
+
+### Bug Fix
+- Updated dependencies and added connection timeout to improve CI tests reliability (#1829)
+- Improvements in `ContainerRegistry` repositories in listing repository catalog  (#1831)
+- Wildcard attribute added to `-Repository` parameter of `Install-PSResource` (#1808)
+
+## ## [1.1.0-rc3](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-RC2...v1.1.0-rc3) - 2024-11-15
+
+### Bug Fix
+- Include missing commits
+
+## [1.1.0-RC2](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-RC1...v1.1.0-RC2) - 2024-10-30
+
+### New Features
+- Full Microsoft Artifact Registry integration (#1741)
+
+### Bug Fixes
+
+- Update to use OCI v2 APIs for Container Registry (#1737)
+- Bug fixes for finding and installing from local repositories on Linux machines (#1738)
+- Bug fix for finding package name with 4 part version from local repositories (#1739)
+
+# Preview Changelog
+
+## [1.1.0-RC1](https://github.com/PowerShell/PSResourceGet/compare/v1.1.0-preview2...v1.1.0-RC1) - 2024-10-22
 
 ### New Features
 
@@ -8,9 +106,9 @@
 
 - Fix packaging name matching when searching in local repositories (#1731)
 - `Compress-PSResource` `-PassThru` now passes `FileInfo` instead of string (#1720)
-- Fix for `Compress-PSResource` not properly compressing scripts  (#1719) 
+- Fix for `Compress-PSResource` not properly compressing scripts  (#1719)
 - Add `AcceptLicense` to Save-PSResource (#1718 Thanks @o-l-a-v!)
-- Better support for NuGet v2 feeds (#1713 Thanks @o-l-a-v!)
+- Better support for Azure DevOps Artifacts NuGet v2 feeds (#1713 Thanks @o-l-a-v!)
 - Better handling of `-WhatIf` support in `Install-PSResource` (#1531 Thanks @o-l-a-v!)
 - Fix for some nupkgs failing to extract due to empty directories (#1707 Thanks @o-l-a-v!)
 - Fix for searching for `-Name *` in `Find-PSResource` (#1706 Thanks @o-l-a-v!)
@@ -25,7 +123,7 @@
 
 ### Bug Fixes
 
-- Add prerelease string when NormalizedVersion doesn't exist, but prelease string does (#1681 Thanks @sean-r-williams)
+- Add prerelease string when NormalizedVersion doesn't exist, but prerelease string does (#1681 Thanks @sean-r-williams)
 - Add retry logic when deleting files (#1667 Thanks @o-l-a-v!)
 - Fix broken PAT token use (#1672)
 - Updated error messaging for authenticode signature failures (#1701)
@@ -34,11 +132,10 @@
 
 ### New Features
 
-- Support for Azure Container Registries (#1495, #1497-#1499, #1501, #1502, #1505, #1522, #1545, #1548, #1550, #1554, #1560, #1567, 
-#1573, #1576, #1587, #1588, #1589, #1594, #1598, #1600, #1602, #1604, #1615)
+- Support for Azure Container Registries (#1495, #1497-#1499, #1501, #1502, #1505, #1522, #1545, #1548, #1550, #1554, #1560, #1567, #1573, #1576, #1587, #1588, #1589, #1594, #1598, #1600, #1602, #1604, #1615)
 
 ### Bug Fixes
 
 - Fix incorrect request URL when installing resources from ADO (#1597 Thanks @anytonyoni!)
 - Fix for swallowed exceptions (#1569)
-- Fix for PSResourceGet not working in Constrained Languange Mode (#1564)
+- Fix for PSResourceGet not working in Constrained Language Mode (#1564)

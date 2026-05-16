@@ -21,7 +21,9 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System;
+using System.Threading.Tasks;
+using System.Xml;
+using System.Collections.Concurrent;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -123,7 +125,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return "'" + CodeGeneration.EscapeSingleQuotedStringContent(name) + "'";
         }
 
-        public static string[] GetStringArrayFromString(string[] delimeter, string stringToConvertToArray)
+        public static string[] GetStringArrayFromString(string[] delimiter, string stringToConvertToArray)
         {
             // This will be a string where entries are separated by space.
             if (String.IsNullOrEmpty(stringToConvertToArray))
@@ -131,7 +133,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 return Utils.EmptyStrArray;
             }
 
-            return stringToConvertToArray.Split(delimeter, StringSplitOptions.RemoveEmptyEntries);
+            return stringToConvertToArray.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
         }
 
         /// <summary>
@@ -188,12 +190,17 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                     if (name.Contains("?") || name.Contains("["))
                     {
-                        errorMsgsList.Add(String.Format("-Name with wildcards '?' and '[' are not supported for this cmdlet so Name entry: {0} will be discarded.", name));
+                        errorMsgsList.Add(String.Format("-Name with wildcards '?' and '[' are not supported for this cmdlet so Name entry: '{0}' will be discarded.", name));
                         continue;
                     }
 
                     isContainWildcard = true;
                     namesWithSupportedWildcards.Add(name);
+                }
+                else if(name.StartsWith("/") || name.StartsWith("\\"))
+                {
+                    errorMsgsList.Add(String.Format("-Name starting with path separator '/' or '\\' is not supported for this cmdlet so Name entry: '{0}' will be discarded.", name));
+                    continue;
                 }
                 else
                 {
@@ -311,13 +318,61 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return true;
         }
 
-        public static string GetNormalizedVersionString(
+        ///need this for cache
+        public static string GetThreeDigitNormalizedVersionString(
             string versionString,
             string prerelease)
         {
-            // versionString may be like 1.2.0.0 or 1.2.0
+            // versionString may be like 1.2.0.0 or 1.2.0 or 1.2
             // prerelease    may be      null    or "alpha1"
             // possible passed in examples:
+            // versionString: "1.2"                           <- container registry 2 digit version
+            // versionString: "1.2"     prerelease: "alpha1"  <- container registry 2 digit version
+            // versionString: "1.2.0"   prerelease: "alpha1"
+            // versionString: "1.2.0"   prerelease: ""        <- doubtful though
+            // versionString: "1.2.0.0" prerelease: "alpha1"
+            // versionString: "1.2.0.0" prerelease: ""
+
+            int numVersionDigits = versionString.Split('.').Count();
+
+            if (numVersionDigits == 2)
+            {
+                // versionString: "1.2"   prerelease: "alpha1" -> 1.2.0-alpha1
+                // versionString: "1.2"   prerelease: "" -> 1.2.0
+                return String.IsNullOrEmpty(prerelease) ? versionString + ".0" : versionString + ".0-" + prerelease;
+            }
+            else if (numVersionDigits == 3)
+            {
+                // versionString: "1.2.0" prerelease: "alpha1" -> 1.2.0-alpha1
+                // versionString: "1.2.0" prerelease: "" -> 1.2.0
+                return String.IsNullOrEmpty(prerelease) ? versionString : versionString + "-" + prerelease;
+            }
+            else if (numVersionDigits == 4)
+            {
+                // if last digit is 0, truncated it 
+                // if it's not 0, just leave it
+                // versionString: "1.2.0.0" prerelease: "alpha1" -> 1.2.0-alpha1
+                // versionString: "1.2.0.1" prerelease: "" -> 1.2.0.1
+                if (versionString.EndsWith(".0"))
+                {
+                    versionString = versionString.Substring(0, versionString.LastIndexOf('.'));
+                }                
+
+                return String.IsNullOrEmpty(prerelease) ? versionString : versionString + "-" + prerelease;
+            }
+
+            return versionString;
+        }
+
+        public static string GetFullVersionString(
+            string versionString,
+            string prerelease)
+        {
+            // versionString may be like 1.2.0.0 or 1.2.0 or 1.2
+            // prerelease    may be      null    or "alpha1"
+            // possible passed in examples:
+            // versionString: "1.2"                           <- container registry 2 digit version
+            // versionString: "1.2"     prerelease: "alpha1"  <- container registry 2 digit version
             // versionString: "1.2.0"   prerelease: "alpha1"
             // versionString: "1.2.0"   prerelease: ""        <- doubtful though
             // versionString: "1.2.0.0" prerelease: "alpha1"
@@ -330,9 +385,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             int numVersionDigits = versionString.Split('.').Count();
 
-            if (numVersionDigits == 3)
+            if (numVersionDigits == 2 || numVersionDigits == 3)
             {
-                // versionString: "1.2.0" prerelease: "alpha1"
+                // versionString: "1.2.0" prerelease: "alpha1" -> 1.2.0-alpha1
+                // versionString: "1.2"   prerelease: "alpha1" -> 1.2-alpha1
                 return versionString + "-" + prerelease;
             }
             else if (numVersionDigits == 4)
@@ -645,25 +701,41 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
-        public static string GetAzAccessToken()
+        public static string GetAzAccessToken(PSCmdlet cmdletPassedIn)
         {
             var credOptions = new DefaultAzureCredentialOptions
             {
                 ExcludeEnvironmentCredential = true,
-                ExcludeVisualStudioCodeCredential = true,
                 ExcludeVisualStudioCredential = true,
                 ExcludeWorkloadIdentityCredential = true,
                 ExcludeManagedIdentityCredential = true, // ManagedIdentityCredential makes the experience slow
-                ExcludeSharedTokenCacheCredential = true, // SharedTokenCacheCredential is not supported on macOS
                 ExcludeAzureCliCredential = false,
                 ExcludeAzurePowerShellCredential = false,
                 ExcludeInteractiveBrowserCredential = false
             };
 
+            // codeql[cs/security/identity/default-azure-credential-use] DefaultAzureCredential is not being used to create a credential in a production environment (i.e hosted server). It is created locally for a PSResourceGet command invocation, intended to be short-lived, and supports multiple authentication mechanisms which cannot be predicted and isolated for the invocation beforehand.
             var dCred = new DefaultAzureCredential(credOptions);
             var tokenRequestContext = new TokenRequestContext(new string[] { "https://management.azure.com/.default" });
-            var token = dCred.GetTokenAsync(tokenRequestContext).Result;
-            return token.Token;
+
+            try
+            {
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
+                {
+                    var token = dCred.GetTokenAsync(tokenRequestContext, cts.Token).GetAwaiter().GetResult();
+                    return token.Token;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                cmdletPassedIn.WriteWarning("Timeout occurred while acquiring Azure access token.");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                cmdletPassedIn.WriteWarning($"Failed to acquire Azure access token: {ex.Message}");
+                return null;
+            }
         }
 
         public static string GetContainerRegistryAccessTokenFromSecretManagement(
@@ -928,7 +1000,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
-        public static NetworkCredential SetNetworkCredential(
+        public static NetworkCredential SetSecretManagementNetworkCredential(
             PSRepositoryInfo repository,
             NetworkCredential networkCredential,
             PSCmdlet cmdletPassedIn)
@@ -944,6 +1016,34 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 networkCredential = new NetworkCredential(repoCredential.UserName, repoCredential.Password);
 
                 cmdletPassedIn.WriteVerbose("credential successfully read from vault and set for repository: " + repository.Name);
+            }
+
+            return networkCredential;
+        }
+
+        #endregion
+
+        #region Credential methods
+
+        public static NetworkCredential SetCredentialProviderNetworkCredential(
+            PSRepositoryInfo repository,
+            NetworkCredential networkCredential,
+            PSCmdlet cmdletPassedIn)
+        {
+            // Explicitly passed in Credential takes precedence over repository credential provider.
+            if (networkCredential == null)
+            {
+                cmdletPassedIn.WriteVerbose("Attempting to retrieve credentials from Azure Artifacts Credential Provider.");
+                PSCredential repoCredential = CredentialProvider.GetCredentialsFromProvider(repository.Uri, cmdletPassedIn);
+                if (repoCredential == null)
+                {
+                    cmdletPassedIn.WriteVerbose("Unable to retrieve credentials from Azure Artifacts Credential Provider.  Network credentials are null.");
+                }
+                else
+                {
+                    networkCredential = new NetworkCredential(repoCredential.UserName, repoCredential.Password);
+                    cmdletPassedIn.WriteVerbose("Credential successfully read from Azure Artifacts Credential Provider for repository: " + repository.Name);
+                }
             }
 
             return networkCredential;
@@ -1166,7 +1266,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return s_tempHome;
         }
 
-        private readonly static Version PSVersion6 = new Version(6, 0);
         private static void GetStandardPlatformPaths(
             PSCmdlet psCmdlet,
             out string localUserDir,
@@ -1174,7 +1273,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                string powerShellType = (psCmdlet.Host.Version >= PSVersion6) ? "PowerShell" : "WindowsPowerShell";
+                string powerShellType = ((psCmdlet.GetVariableValue("PSEdition") as string) == "Core") ? "PowerShell" : "WindowsPowerShell";
                 localUserDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), powerShellType);
                 allUsersDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), powerShellType);
             }
@@ -1194,7 +1293,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         public static bool GetIsWindowsPowerShell(PSCmdlet psCmdlet)
         {
-            return psCmdlet.Host.Version < PSVersion6;
+            return ((psCmdlet.GetVariableValue("PSEdition") as string) != "Core");
         }
 
         /// <summary>
@@ -1221,7 +1320,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 pathsToSearch: pathsToSearch,
                 selectPrereleaseOnly: false))
             {
-                string pkgNameVersion = String.Format("{0}{1}", installedPkg.Name, installedPkg.Version.ToString());
+                string pkgNameVersion = String.Format("{0}{1}", installedPkg.Name, Utils.GetThreeDigitNormalizedVersionString(installedPkg.Version.ToString(), installedPkg.Prerelease));
                 if (!pkgsInstalledOnMachine.Contains(pkgNameVersion))
                 {
                     pkgsInstalledOnMachine.Add(pkgNameVersion);
@@ -1231,11 +1330,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return pkgsInstalledOnMachine;
         }
 
-        internal static void GetMetadataFilesFromPath(string dirPath, string packageName, out string psd1FilePath, out string ps1FilePath, out string nuspecFilePath)
+        internal static void GetMetadataFilesFromPath(string dirPath, string packageName, out string psd1FilePath, out string ps1FilePath, out string nuspecFilePath, out string properCasingPkgName)
         {
             psd1FilePath = String.Empty;
             ps1FilePath = String.Empty;
             nuspecFilePath = String.Empty;
+            properCasingPkgName = packageName;
 
             var discoveredFiles = Directory.GetFiles(dirPath, "*.*", SearchOption.AllDirectories);
             string pkgNamePattern = $"{packageName}*";
@@ -1244,21 +1344,52 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             {
                 if (rgx.IsMatch(file))
                 {
-                    if (file.EndsWith("psd1"))
+                    string fileName = Path.GetFileName(file);
+                    if (fileName.EndsWith("psd1"))
                     {
-                        psd1FilePath = file;
+                        if (string.Compare($"{packageName}.psd1", fileName, StringComparison.OrdinalIgnoreCase) == 0)
+                        {
+                            properCasingPkgName = Path.GetFileNameWithoutExtension(file);
+                            psd1FilePath = file;
+                        }
                     }
                     else if (file.EndsWith("nuspec"))
                     {
-                        nuspecFilePath = file;
+                        if (string.Compare($"{packageName}.nuspec", fileName, StringComparison.OrdinalIgnoreCase) == 0)
+                        {
+                            properCasingPkgName = Path.GetFileNameWithoutExtension(file);
+                            nuspecFilePath = file;
+                        }
                     }
                     else if (file.EndsWith("ps1"))
                     {
-                        ps1FilePath = file;
+                        if (string.Compare($"{packageName}.ps1", fileName, StringComparison.OrdinalIgnoreCase) == 0)
+                        {
+                            properCasingPkgName = Path.GetFileNameWithoutExtension(file);
+                            ps1FilePath = file;
+                        }
                     }
                 }
             }
         }
+
+        internal static bool TryGetCaseInsensitiveFilePath(string directory, string fileName, out string fileFound)
+        {
+            fileFound = String.Empty;
+            var files = Directory.GetFiles(directory);
+            foreach (var file in files)
+            {
+                if (string.Equals(Path.GetFileName(file), fileName, StringComparison.OrdinalIgnoreCase))
+                {
+                    fileFound = file;
+                    return true;
+                }
+            }
+
+            // File not found
+            return false;
+        }
+
         #endregion
 
         #region PSDataFile parsing
@@ -1268,7 +1399,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// <summary>
         /// Read psd1 manifest file contents and return as Hashtable object.
         /// </summary>
-        /// <param name="manifestFilePath">File path to manfiest psd1 file.</param>
+        /// <param name="manifestFilePath">File path to manifest psd1 file.</param>
         /// <param name="manifestInfo">Hashtable of manifest file contents.</param>
         /// <param name="error">Error exception on failure.</param>
         /// <returns>True on success.</returns>
@@ -1306,7 +1437,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 out resourceInfo,
                 out error);
         }
-
         private static bool TryReadPSDataFile(
             string filePath,
             string[] allowedVariables,
@@ -1315,37 +1445,109 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             out Hashtable dataFileInfo,
             out Exception error)
         {
+            dataFileInfo = null;
+            error = null;
             try
             {
                 if (filePath is null)
                 {
                     throw new PSArgumentNullException(nameof(filePath));
                 }
-
                 string contents = System.IO.File.ReadAllText(filePath);
-                var scriptBlock = System.Management.Automation.ScriptBlock.Create(contents);
 
-                // Ensure that the content script block is safe to convert into a PSDataFile Hashtable.
-                // This will throw for unsafe content.
-                scriptBlock.CheckRestrictedLanguage(
-                    allowedCommands: allowedCommands,
-                    allowedVariables: allowedVariables,
-                    allowEnvironmentVariables: allowEnvironmentVariables);
+                // Validate that the file content conforms to restricted language rules before execution.
+                // This parses the content into an AST and statically validates it only contains data-file-safe constructs (hashtables, arrays, literals, etc). 
+                // It throws a ParseException if anything disallowed is found, before any code is run.
+                ScriptBlock scriptBlock = ScriptBlock.Create(contents);
+                scriptBlock.CheckRestrictedLanguage(allowedCommands, allowedVariables, allowEnvironmentVariables);
 
-                // Convert contents into PSDataFile Hashtable by executing content as script.
-                object result = scriptBlock.InvokeReturnAsIs();
-                if (result is PSObject psObject)
+                // Parallel.ForEach calls into this method.
+                // Each thread needs its own runspace created to provide a separate environment for operations to run independently.
+                using (Runspace runspace = RunspaceFactory.CreateRunspace())
                 {
-                    result = psObject.BaseObject;
-                }
+                    runspace.Open();
+                    runspace.SessionStateProxy.LanguageMode = PSLanguageMode.ConstrainedLanguage;
 
-                dataFileInfo = (Hashtable)result;
-                error = null;
-                return true;
+                    // Save and set the default runspace for the current thread to prevent
+                    // stale DefaultRunspace from a prior operation on this reused thread-pool thread.
+                    Runspace previousDefaultRunspace = Runspace.DefaultRunspace;
+                    try
+                    {
+                        Runspace.DefaultRunspace = runspace;
+
+                        using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+                        {
+                            pwsh.Runspace = runspace;
+
+                            var cmd = new Command(
+                                command: contents,
+                                isScript: true,
+                                useLocalScope: true);
+                            cmd.MergeMyResults(
+                                myResult: PipelineResultTypes.Error | PipelineResultTypes.Warning | PipelineResultTypes.Verbose | PipelineResultTypes.Debug | PipelineResultTypes.Information,
+                                toResult: PipelineResultTypes.Output);
+                            pwsh.Commands.AddCommand(cmd);
+
+                            try
+                            {
+                                // Invoke the pipeline and retrieve the results
+                                var results = pwsh.Invoke();
+
+                                if (results[0] is PSObject pwshObj)
+                                {
+                                    switch (pwshObj.BaseObject)
+                                    {
+                                        case ErrorRecord err:
+                                            //_cmdletPassedIn.WriteError(error);
+                                            break;
+
+                                        case WarningRecord warning:
+                                            //cmdlet.WriteWarning(warning.Message);
+                                            break;
+
+                                        case VerboseRecord verbose:
+                                            //cmdlet.WriteVerbose(verbose.Message);
+                                            break;
+
+                                        case DebugRecord debug:
+                                            //cmdlet.WriteDebug(debug.Message);
+                                            break;
+
+                                        case InformationRecord info:
+                                            //cmdlet.WriteInformation(info);
+                                            break;
+
+                                        case Hashtable result:
+                                            dataFileInfo = result;
+                                            return true;
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                error = ex;
+                            }
+                        }
+                        // Return false to indicate "we couldn't parse a valid Hashtable from this .psd1 file." 
+                        // The only success path is the 'case Hashtable result' branch above which does return true.
+                        return false;
+                    }
+                    finally
+                    {
+                        // Always restore the previous default runspace for the current thread.
+                        Runspace.DefaultRunspace = previousDefaultRunspace;
+                    }
+                }
+            }
+            catch (System.Management.Automation.ParseException parseEx)
+            {
+                error = new InvalidDataException(
+                    $"The file '{filePath}' cannot be parsed as a PowerShell data file. It contains disallowed language elements: {parseEx.Message}",
+                    parseEx);
+                return false;
             }
             catch (Exception ex)
             {
-                dataFileInfo = null;
                 error = ex;
                 return false;
             }
@@ -1354,7 +1556,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public static bool ValidateModuleManifest(string moduleManifestPath, out string errorMsg)
         {
             errorMsg = string.Empty;
-            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create())
+            using (System.Management.Automation.PowerShell pwsh = System.Management.Automation.PowerShell.Create(RunspaceMode.CurrentRunspace))
             {
                 // use PowerShell cmdlet Test-ModuleManifest
                 // TODO: Test-ModuleManifest will throw an error if RequiredModules specifies a module that does not exist
@@ -1374,37 +1576,37 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     }
                     else
                     {
-                        errorMsg = $"Error occured while running 'Test-ModuleManifest': {e.Message}";
+                        errorMsg = $"Error occurred while running 'Test-ModuleManifest': {e.Message}";
                         return false;
                     }
                 }
 
+                // Validate the result object directly
+                if (results.Any())
+                {
+                    PSModuleInfo psModuleInfoObj = results[0].BaseObject as PSModuleInfo;
+                    if (string.IsNullOrWhiteSpace(psModuleInfoObj.Author))
+                    {
+                        errorMsg = "No author was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        return false;
+                    }
+                    else if (string.IsNullOrWhiteSpace(psModuleInfoObj.Description))
+                    {
+                        errorMsg = "No description was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        return false;
+                    }
+                    else if (psModuleInfoObj.Version == null)
+                    {
+                        errorMsg = "No version or an incorrectly formatted version was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
+                        return false;
+                    }
+                }
+                
+                // Check for any errors from Test-ModuleManifest
                 if (pwsh.HadErrors)
                 {
-                    if (results.Any())
-                    {
-                        PSModuleInfo psModuleInfoObj = results[0].BaseObject as PSModuleInfo;
-                        if (string.IsNullOrWhiteSpace(psModuleInfoObj.Author))
-                        {
-                            errorMsg = "No author was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
-                        }
-                        else if (string.IsNullOrWhiteSpace(psModuleInfoObj.Description))
-                        {
-                            errorMsg = "No description was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
-                        }
-                        else if (psModuleInfoObj.Version == null)
-                        {
-                            errorMsg = "No version or an incorrectly formatted version was provided in the module manifest. The module manifest must specify a version, author and description. Run 'Test-ModuleManifest' to validate the file.";
-                        }
-                    }
-
-                    if (string.IsNullOrEmpty(errorMsg))
-                    {
-                        // Surface any inner error messages
-                        var innerErrorMsg = (pwsh.Streams.Error.Count > 0) ? pwsh.Streams.Error[0].ToString() : string.Empty;
-                        errorMsg = $"Module manifest file validation failed with error: {innerErrorMsg}. Run 'Test-ModuleManifest' to validate the module manifest.";
-                    }
-
+                    var innerErrorMsg = (pwsh.Streams.Error.Count > 0) ? pwsh.Streams.Error[0].ToString() : string.Empty;
+                    errorMsg = $"Module manifest file validation failed with error: {innerErrorMsg}. Run 'Test-ModuleManifest' to validate the module manifest.";
                     return false;
                 }
             }
@@ -1567,6 +1769,54 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return moduleSpecCreatedSuccessfully;
         }
 
+        public static SecureString ConvertToSecureString(string input)
+        {
+            if (input == null) {
+                throw new ArgumentNullException(nameof(input));
+            }
+
+            SecureString secureString = new SecureString();
+            foreach (char c in input)
+            {
+                secureString.AppendChar(c);
+            }
+
+            secureString.MakeReadOnly();
+
+            return secureString;
+        }
+
+        public static void EnqueueIfNotNull<T>(ConcurrentQueue<T> queue, T value)
+            where T : class
+        {
+            if (value != null)
+            {
+                queue.Enqueue(value);
+            }
+        }
+
+
+        public static void WriteOutConcurrentQueue(PSCmdlet cmdletPassedIn, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+
+            while (errorMsgs.TryDequeue(out ErrorRecord error))
+            {
+                cmdletPassedIn.WriteError(error);
+            }
+            while (warningMsgs.TryDequeue(out string warningMsg))
+            {
+                cmdletPassedIn.WriteWarning(warningMsg);
+            }
+            while (debugMsgs.TryDequeue(out string debugMsg))
+            {
+                cmdletPassedIn.WriteDebug(debugMsg);
+            }
+            while (verboseMsgs.TryDequeue(out string verboseMsg))
+            {
+                cmdletPassedIn.WriteVerbose(verboseMsg);
+            }
+        }
+
         #endregion
 
         #region Directory and File
@@ -1620,6 +1870,16 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
+        private static void SetAttributesHelper(DirectoryInfo directory)
+        {
+            foreach (var subDirectory in directory.GetDirectories())
+            {
+                subDirectory.Attributes = FileAttributes.Normal;
+                SetAttributesHelper(subDirectory);
+            }
+
+            directory.Attributes = FileAttributes.Normal;
+        }
         /// <Summary>
         /// Deletes a directory and its contents
         /// This is a workaround for .NET Directory.Delete(), which can fail with WindowsPowerShell
@@ -1628,6 +1888,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// </Summary>
         public static void DeleteDirectory(string dirPath)
         {
+            if (!Directory.Exists(dirPath))
+            {
+                throw new Exception($"Path '{dirPath}' that was attempting to be deleted does not exist.");
+            }
+
             // Remove read only file attributes first
             foreach (var dirFilePath in Directory.GetFiles(dirPath, "*", SearchOption.AllDirectories))
             {
@@ -1636,6 +1901,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     File.SetAttributes(dirFilePath, File.GetAttributes(dirFilePath) & ~FileAttributes.ReadOnly);
                 }
             }
+
+            DirectoryInfo rootDir = new DirectoryInfo(dirPath);
+            SetAttributesHelper(rootDir);
+
             // Delete directory recursive, try multiple times before throwing ( #1662 )
             int maxAttempts = 5;
             int msDelay = 5;
@@ -1651,6 +1920,17 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     if (attempt < maxAttempts && (ex is IOException || ex is UnauthorizedAccessException))
                     {
                         Thread.Sleep(msDelay);
+                    }
+                    else if (ex is System.IO.IOException)
+                    {
+                        string psVersion = System.Management.Automation.Runspaces.Runspace.DefaultRunspace.Version.ToString();
+                        if (ex.Message.Contains("The directory is not empty") && psVersion.StartsWith("5"))
+                        {
+                            // there is a known bug with WindowsPowerShell and OneDrive based module paths, where .NET Directory.Delete() will throw a 'The directory is not empty.' error.
+                            throw new Exception(string.Format("Cannot uninstall module with OneDrive based path on Windows PowerShell due to .NET issue. Try installing and uninstalling using PowerShell 7+ if using OneDrive."), ex);
+                        }
+
+                        throw new Exception(string.Format("Access denied to path while deleting path {0}", dirPath), ex);
                     }
                     else
                     {
@@ -1725,7 +2005,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             var relsDirToDelete = Path.Combine(dirNameVersion, "_rels");
             var packageDirToDelete = Path.Combine(dirNameVersion, "package");
 
-            // Unforunately have to check if each file exists because it may or may not be there
+            // Unfortunately have to check if each file exists because it may or may not be there
             if (File.Exists(nuspecToDelete))
             {
                 callingCmdlet.WriteVerbose(string.Format("Deleting '{0}'", nuspecToDelete));
@@ -1871,6 +2151,73 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                     fileStream.Close();
                 }
             }
+        }
+
+        #endregion
+
+        #region Nuspec file parsing methods
+
+        public static Hashtable GetMetadataFromNuspec(string nuspecFilePath, PSCmdlet cmdletPassedIn, out ErrorRecord errorRecord)
+        {
+            Hashtable nuspecHashtable = new Hashtable(StringComparer.InvariantCultureIgnoreCase);
+
+            XmlDocument nuspecXmlDocument = LoadXmlDocument(nuspecFilePath, cmdletPassedIn, out errorRecord);
+            if (errorRecord != null)
+            {
+                return nuspecHashtable;
+            }
+
+            try
+            {
+                XmlNodeList elemList = nuspecXmlDocument.GetElementsByTagName("metadata");
+                for(int i = 0; i < elemList.Count; i++)
+                {
+                    XmlNode metadataInnerXml = elemList[i];
+
+                    for(int j= 0; j<metadataInnerXml.ChildNodes.Count; j++)
+                    {
+                        string key = metadataInnerXml.ChildNodes[j].LocalName;
+                        string value = metadataInnerXml.ChildNodes[j].InnerText;
+
+                        if (!nuspecHashtable.ContainsKey(key))
+                        {
+                            nuspecHashtable.Add(key, value);
+                        }
+                    }
+
+                }
+            }
+            catch (Exception e)
+            {
+                errorRecord = new ErrorRecord(
+                    exception: e,
+                    "GetHashtableForNuspecFailure",
+                    ErrorCategory.ReadError,
+                    cmdletPassedIn);
+            }
+
+            return nuspecHashtable;
+        }
+
+        /// <summary>
+        /// Method that loads file content into XMLDocument. Used when reading .nuspec file.
+        /// </summary>
+        public static XmlDocument LoadXmlDocument(string filePath, PSCmdlet cmdletPassedIn, out ErrorRecord errRecord)
+        {
+            errRecord = null;
+            XmlDocument doc = new XmlDocument();
+            doc.PreserveWhitespace = true;
+            try { doc.Load(filePath); }
+            catch (Exception e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "LoadXmlDocumentFailure",
+                    ErrorCategory.ReadError,
+                    cmdletPassedIn);
+            }
+
+            return doc;
         }
 
         #endregion
@@ -2044,13 +2391,13 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             string pkgName,
             string tempDirNameVersion,
             PSCmdlet cmdletPassedIn,
-            out ErrorRecord errorRecord)
+            ConcurrentQueue<ErrorRecord> errorMsgs,
+            ConcurrentQueue<string> warningMsgs)
         {
-            errorRecord = null;
-
             // Because authenticode and catalog verifications are only applicable on Windows, we allow all packages by default to be installed on unix systems.
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
+                warningMsgs.Enqueue("Authenticode check cannot be performed on Linux or MacOS.");
                 return true;
             }
 
@@ -2059,24 +2406,24 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             try
             {
                 string[] listOfExtensions = { "*.ps1", "*.psd1", "*.psm1", "*.mof", "*.cat", "*.ps1xml" };
-                authenticodeSignatures = cmdletPassedIn.InvokeCommand.InvokeScript(
-                    script: @"param (
-                                      [string] $tempDirNameVersion,
-                                      [string[]] $listOfExtensions
-                                 )
-                                 Get-ChildItem $tempDirNameVersion -Recurse -Include $listOfExtensions | Get-AuthenticodeSignature -ErrorAction SilentlyContinue",
-                    useNewScope: true,
-                    writeToPipeline: System.Management.Automation.Runspaces.PipelineResultTypes.None,
-                    input: null,
-                    args: new object[] { tempDirNameVersion, listOfExtensions });
+                using (var pwsh = System.Management.Automation.PowerShell.Create(RunspaceMode.CurrentRunspace))
+                {
+                    authenticodeSignatures = pwsh.AddCommand("Get-ChildItem")
+                        .AddParameter("Path", tempDirNameVersion)
+                        .AddParameter("Recurse")
+                        .AddParameter("Include", listOfExtensions)
+                        .AddCommand("Get-AuthenticodeSignature")
+                        .AddParameter("ErrorAction", "SilentlyContinue")
+                        .Invoke();
+                }
             }
             catch (Exception e)
             {
-                errorRecord = new ErrorRecord(
+                errorMsgs.Enqueue(new ErrorRecord(
                     new ArgumentException(e.Message),
                     "GetAuthenticodeSignatureError",
                     ErrorCategory.InvalidResult,
-                    cmdletPassedIn);
+                    cmdletPassedIn));
 
                 return false;
             }
@@ -2087,11 +2434,11 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 Signature signature = (Signature)signatureObject.BaseObject;
                 if (!signature.Status.Equals(SignatureStatus.Valid))
                 {
-                    errorRecord = new ErrorRecord(
+                    errorMsgs.Enqueue(new ErrorRecord(
                         new ArgumentException($"The signature status for '{pkgName}' file '{Path.GetFileName(signature.Path)}' is '{signature.Status}'. Status message: '{signature.StatusMessage}'"),
                         "GetAuthenticodeSignatureError",
                         ErrorCategory.InvalidResult,
-                        cmdletPassedIn);
+                        cmdletPassedIn));
 
                     return false;
                 }

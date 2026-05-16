@@ -18,7 +18,7 @@ Describe "Test Test-PSScriptFileInfo" -tags 'CI' {
         $script:testScriptsFolderPath = Join-Path $testFilesFolderPath -ChildPath "testScripts"
     }
 
-    It "determine script file with minimal required fields as valid" {    
+    It "determine script file with minimal required fields as valid" {
         $scriptFilePath = Join-Path -Path $tmpDir1Path -ChildPath "testscript.ps1"
         $scriptDescription = "this is a test script"
         New-PSScriptFileInfo -Path $scriptFilePath -Description $scriptDescription
@@ -64,18 +64,18 @@ Describe "Test Test-PSScriptFileInfo" -tags 'CI' {
         $scriptName = "ScriptWithoutEmptyLinesInMetadata.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
-        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true        
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
 
     It "determine script without empty lines between comment blocks is valid" {
         $scriptName = "ScriptWithoutEmptyLinesBetweenCommentBlocks.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
-        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true        
+        Test-PSScriptFileInfo $scriptFilePath | Should -Be $true
     }
 
     It "determine script file with varying case sensitivity for Script Metadata or Help Comment keys is valid" {
-        $scriptName = "VaryingCaseSensisityKeysScript.ps1"
+        $scriptName = "VaryingCaseSensitivityKeysScript.ps1"
         $scriptFilePath = Join-Path $script:testScriptsFolderPath -ChildPath $scriptName
 
         Test-PSScriptFileInfo $scriptFilePath | Should -Be $true

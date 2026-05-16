@@ -23,7 +23,7 @@ param (
     [ValidateSet("Debug", "Release")]
     [string] $BuildConfiguration = "Debug",
 
-    [ValidateSet("netstandard2.0", "net472")]
+    [ValidateSet("net472")]
     [string] $BuildFramework = "net472"
 )
 

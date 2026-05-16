@@ -52,25 +52,22 @@ Please use the [PowerShell Gallery](https://www.powershellgallery.com) to get th
 
 ### Build the project
 
-```powershell
-# Build for the net472 framework
-PS C:\Repos\PSResourceGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework net472
+Note:  Please ensure you have the exact version of the .NET SDK installed. The current version can be found in the [global.json](https://github.com/PowerShell/PSResourceGet/blob/master/global.json) and installed from the [.NET website](https://dotnet.microsoft.com/en-us/download).
+  ```powershell
+  # Build for the net472 framework
+  PS C:\Repos\PSResourceGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework net472
+  ```
 
-# Build for the netstandard2.0 framework
-PS C:\Repos\PSResourceGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework netstandard2.0
-```
+### Run functional tests
 
-### Publish the module to a local repository
-=======
-* Run functional tests
-
-```powershell
-PS C:\Repos\PSResourceGet> Invoke-Pester
-```
-
-```powershell
-PS C:\Repos\PSResourceGet> Invoke-Pester <file-name>
-```
+* Run all tests
+  ```powershell
+  PS C:\Repos\PSResourceGet> Invoke-Pester
+  ```
+* Run an individual test
+  ```powershell
+  PS C:\Repos\PSResourceGet> Invoke-Pester <file-name>
+  ```
 
 ### Import the built module into a new PowerShell session
 
@@ -83,6 +80,11 @@ C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet
 c:\> PowerShell
 C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet\PSResourceGet.psd1
 ```
+## Module Support Lifecycle 
+Microsoft.PowerShell.PSResourceGet follows the support lifecycle of the version of PowerShell that it ships in. 
+For example, PSResourceGet 1.0.x shipped in PowerShell 7.4 which is an LTS release so it will be supported for 3 years.
+Preview versions of the module, or versions that ship in preview versions of PowerShell are not supported.
+Versions of PSResourceGet that do not ship in a version of PowerShell will be fixed forward.
 
 ## Code of Conduct
 

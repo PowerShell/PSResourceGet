@@ -53,6 +53,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Specifies the repositories from which to search for the resource to be installed.
         /// </summary>
+        [SupportsWildcards]
         [Parameter(ParameterSetName = NameParameterSet, ValueFromPipelineByPropertyName = true)]
         [Parameter(ParameterSetName = InputObjectParameterSet, ValueFromPipelineByPropertyName = true)]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
@@ -292,13 +293,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     break;
 
                 case InputObjectParameterSet:
-                    foreach (var inputObj in InputObject) {
-                        string normalizedVersionString = Utils.GetNormalizedVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
+                    foreach (var inputObj in InputObject)
+                    {
+                        string normalizedVersionString = Utils.GetFullVersionString(inputObj.Version.ToString(), inputObj.Prerelease);
                         ProcessInstallHelper(
                             pkgNames: new string[] { inputObj.Name },
                             pkgVersion: normalizedVersionString,
                             pkgPrerelease: inputObj.IsPrerelease,
-                            pkgRepository: new string[]{ inputObj.Repository },
+                            pkgRepository: new string[] { inputObj.Repository },
                             pkgCredential: Credential,
                             reqResourceParams: null);
                     }
@@ -354,7 +356,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 break;
 
                             case ResourceFileType.UnknownFile:
-                                throw new PSInvalidOperationException("Unkown file type. Required resource file must be either a json or psd1 data file.");
+                                throw new PSInvalidOperationException("Unknown file type. Required resource file must be either a json or psd1 data file.");
                         }
                     }
                     catch (Exception)
@@ -432,8 +434,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WriteDebug("In InstallPSResource::RequiredResourceHelper()");
             foreach (DictionaryEntry entry in reqResourceHash)
             {
-                InstallPkgParams pkgParams = new InstallPkgParams();
+                InstallPkgParams pkgParams = new();
                 PSCredential pkgCredential = Credential;
+                string pkgVersion = String.Empty;
+                bool isPrerelease = false;
 
                 // The package name will be the key for the inner hashtable and is present for all scenarios,
                 // including the scenario where only package name is specified
@@ -452,8 +456,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
-                string pkgVersion = String.Empty;
-                if (!(entry.Value is Hashtable pkgInstallInfo))
+                if (entry.Value is not Hashtable pkgInstallInfo)
                 {
                     var requiredResourceHashtableInputFormatError = new ErrorRecord(
                         new ArgumentException($"The RequiredResource input with name '{pkgName}' does not have a valid value, the value must be a hashtable."),
@@ -469,7 +472,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 // Install-PSResource -RequiredResource @ { MyPackage = @{ version = '1.2.3', repository = 'PSGallery' } }
                 if (pkgInstallInfo.Count != 0)
                 {
-                    var pkgParamNames = pkgInstallInfo.Keys;
+                    ICollection pkgParamNames = pkgInstallInfo.Keys;
 
                     foreach (string paramName in pkgParamNames)
                     {
@@ -487,19 +490,33 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                     }
 
-                    if (pkgParams.Scope == ScopeType.AllUsers)
+                    if (pkgParams.Scope.HasValue && pkgParams.Scope.Value == ScopeType.AllUsers)
                     {
-                        _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, pkgParams.Scope);
+                        _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, pkgParams.Scope.Value);
                     }
 
                     pkgVersion = pkgInstallInfo["version"] == null ? String.Empty : pkgInstallInfo["version"].ToString();
+
+                    // Prerelease - Handle both string and boolean
+                    object prereleaseObj = pkgInstallInfo.ContainsKey("prerelease") ? pkgInstallInfo["prerelease"] : null;
+                    if (prereleaseObj != null)
+                    {
+                        if (prereleaseObj is bool b)
+                        {
+                            isPrerelease = b;
+                        }
+                        else if (prereleaseObj is string s)
+                        {
+                            isPrerelease = s.Equals("true", StringComparison.OrdinalIgnoreCase);
+                        }
+                    }
                 }
 
                 ProcessInstallHelper(
                     pkgNames: new string[] { pkgName },
                     pkgVersion: pkgVersion,
-                    pkgPrerelease: pkgParams.Prerelease,
-                    pkgRepository: pkgParams.Repository != null ? new string[] { pkgParams.Repository } : new string[]{},
+                    pkgPrerelease: isPrerelease,
+                    pkgRepository: pkgParams.Repository != null ? new string[] { pkgParams.Repository } : new string[] { },
                     pkgCredential: pkgCredential,
                     reqResourceParams: pkgParams);
             }
@@ -508,7 +525,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private void ProcessInstallHelper(string[] pkgNames, string pkgVersion, bool pkgPrerelease, string[] pkgRepository, PSCredential pkgCredential, InstallPkgParams reqResourceParams)
         {
             WriteDebug("In InstallPSResource::ProcessInstallHelper()");
-            var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries:false, out string[] errorMsgs, out bool nameContainsWildcard);
+            var inputNameToInstall = Utils.ProcessNameWildcards(pkgNames, removeWildcardEntries: false, out string[] errorMsgs, out bool nameContainsWildcard);
             if (nameContainsWildcard)
             {
                 WriteError(new ErrorRecord(
@@ -551,7 +568,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this));
             }
 
-            var installedPkgs = _installHelper.BeginInstallPackages(
+            // When reqResourceParams is provided (via -RequiredResource), use its properties
+            // instead of the cmdlet-level parameters. Only use the property if it was explicitly set (not null).
+            bool acceptLicense = reqResourceParams?.AcceptLicense ?? AcceptLicense;
+            bool quiet = reqResourceParams?.Quiet ?? Quiet;
+            bool reinstall = reqResourceParams?.Reinstall ?? Reinstall;
+            bool trustRepository = reqResourceParams?.TrustRepository ?? TrustRepository;
+            bool noClobber = reqResourceParams?.NoClobber ?? NoClobber;
+            bool skipDependencyCheck = reqResourceParams?.SkipDependencyCheck ?? SkipDependencyCheck;
+            ScopeType scope = reqResourceParams?.Scope ?? Scope;
+
+            IEnumerable<PSResourceInfo> installedPkgs = _installHelper.BeginInstallPackages(
                 names: pkgNames,
                 versionRange: versionRange,
                 nugetVersion: nugetVersion,
@@ -559,19 +586,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 versionString: Version,
                 prerelease: pkgPrerelease,
                 repository: pkgRepository,
-                acceptLicense: AcceptLicense,
-                quiet: Quiet,
-                reinstall: Reinstall,
+                acceptLicense: acceptLicense,
+                quiet: quiet,
+                reinstall: reinstall,
                 force: false,
-                trustRepository: TrustRepository,
-                noClobber: NoClobber,
+                trustRepository: trustRepository,
+                noClobber: noClobber,
                 asNupkg: false,
                 includeXml: true,
-                skipDependencyCheck: SkipDependencyCheck,
+                skipDependencyCheck: skipDependencyCheck,
                 authenticodeCheck: AuthenticodeCheck,
                 savePkg: false,
                 pathsToInstallPkg: _pathsToInstallPkg,
-                scope: Scope,
+                scope: scope,
                 tmpPath: _tmpPath,
                 pkgsInstalled: _packagesOnMachine);
 

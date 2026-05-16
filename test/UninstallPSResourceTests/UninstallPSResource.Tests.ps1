@@ -110,6 +110,32 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $pkgs.Version | Should -Not -Contain "1.0.0"
     }
 
+    It "Do not uninstall existing module when requested version does not exist and write warning instead" {
+        Uninstall-PSResource -Name $testModuleName -Version "9.9.9" -SkipDependencyCheck -WarningVariable warn -WarningAction SilentlyContinue
+
+        # Module should still be present since no prerelease versions were found
+        $res = Get-InstalledPSResource -Name $testModuleName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be $testModuleName
+
+        # Warning should have been written
+        $warn.Count | Should -Be 1
+        $warn[0] | Should -Match "Cannot uninstall version"
+    }
+
+    It "Do not uninstall existing module when requested version range does not exist and write warning instead" {
+        Uninstall-PSResource -Name $testModuleName -Version "[9.9.9, 10.0.0]" -SkipDependencyCheck -WarningVariable warn -WarningAction SilentlyContinue
+
+        # Module should still be present since no prerelease versions were found
+        $res = Get-InstalledPSResource -Name $testModuleName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be $testModuleName
+
+        # Warning should have been written
+        $warn.Count | Should -Be 1
+        $warn[0] | Should -Match "Cannot uninstall version"
+    }
+
     $testCases = @{Version="[1.0.0.0]";          ExpectedVersion="1.0.0.0"; Reason="validate version, exact match"},
                  @{Version="1.0.0.0";            ExpectedVersion="1.0.0.0"; Reason="validate version, exact match without bracket syntax"},
                  @{Version="[1.0.0.0, 5.0.0.0]"; ExpectedVersion="5.0.0.0"; Reason="validate version, exact range inclusive"},
@@ -132,8 +158,8 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $pkgs.Version | Should -Not -Contain $Version
     }
 
-    $testCases2 =  @{Version='[1.*.0]';         Description="version with wilcard in middle"},
-                @{Version='[*.0.0.0]';       Description="version with wilcard at start"},
+    $testCases2 =  @{Version='[1.*.0]';         Description="version with wildcard in middle"},
+                @{Version='[*.0.0.0]';       Description="version with wildcard at start"},
                 @{Version='[1.*.0.0]';       Description="version with wildcard at second digit"},
                 @{Version='[1.0.*.0]';       Description="version with wildcard at third digit"}
                 @{Version='[1.0.0.*]';       Description="version with wildcard at end"},
@@ -173,7 +199,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
 
     It "Not uninstall non-prerelease version module when similar prerelease version is specified" {
         # test_module has a version 5.0.0.0, but no version 5.0.0-preview.
-        # despite the core version part being the same this uninstall on a nonexistant prerelease version should not be successful
+        # despite the core version part being the same this uninstall on a nonexistent prerelease version should not be successful
         Install-PSResource -Name $testModuleName -Version "5.0.0.0" -Repository $PSGalleryName -TrustRepository
         Uninstall-PSResource -Name $testModuleName -Version "5.0.0-preview" -ErrorAction SilentlyContinue -SkipDependencyCheck
         $res = Get-InstalledPSResource -Name $testModuleName -Version "5.0.0.0"
@@ -235,6 +261,35 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $stableVersionPkgs.Count | Should -Be 2
     }
 
+    It "Write warning when using -Prerelease flag with only stable versions installed" {
+        # $testModuleName (test_module2) only has stable versions installed
+        $pkg = Get-InstalledPSResource $testModuleName
+        $pkg | Should -Not -BeNullOrEmpty
+
+        # Try to uninstall with -Prerelease flag, should show warning
+        Uninstall-PSResource -Name $testModuleName -Prerelease -SkipDependencyCheck -WarningVariable warn -WarningAction SilentlyContinue
+
+        # Module should still be present since no prerelease versions were found
+        $res = Get-InstalledPSResource -Name $testModuleName
+        $res | Should -Not -BeNullOrEmpty
+        $res.Name | Should -Be $testModuleName
+        $res.Version | Should -Be $pkg.Version
+
+        # Warning should have been written
+        $warn.Count | Should -Be 1
+        $warn[0] | Should -Match "Cannot uninstall prerelease version"
+    }
+
+    It "Write warning when multiple modules are requested to be uninstalled but one does not exist" {
+        Uninstall-PSResource $testModuleName, "nonExistantModule" -SkipDependencyCheck -WarningVariable warn -WarningAction SilentlyContinue
+        $res = Get-InstalledPSResource -Name $testModuleName
+        $res | Should -BeNullOrEmpty
+
+        # Warning should have been written
+        $warn.Count | Should -Be 1
+        $warn[0] | Should -Match "Cannot uninstall version"        
+    }
+
     It "Uninstall module using -WhatIf, should not uninstall the module" {
         Start-Transcript .\testUninstallWhatIf.txt
         Uninstall-PSResource -Name $testModuleName -WhatIf -SkipDependencyCheck
@@ -243,7 +298,7 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $pkg = Get-InstalledPSResource $testModuleName -Version "5.0.0.0"
         $pkg.Version | Should -Be "5.0.0.0"
 
-        $match = Get-Content .\testUninstallWhatIf.txt | 
+        $match = Get-Content .\testUninstallWhatIf.txt |
             select-string -pattern "What if: Performing the operation ""Uninstall-PSResource"" on target ""Uninstall resource 'test_module2', version '5.0.0.0', from path '" -SimpleMatch
 
         $match -ne $null
@@ -339,5 +394,9 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         $pkg = Get-Module $testModuleName -ListAvailable
         $pkg.Name | Should -Be $testModuleName
         $pkg.Path.ToString().Contains("Documents") | Should -Be $true
+    }
+
+    It "Get definition for alias 'usres'" {
+        (Get-Alias usres).Definition | Should -BeExactly 'Uninstall-PSResource'
     }
 }

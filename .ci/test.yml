@@ -5,6 +5,7 @@ parameters:
   powershellExecutable: pwsh
   buildDirectory: '.'
   useAzAuth: false
+  DSCVersion: '3.2.0-rc.1'
 
 jobs:
 - job: ${{ parameters.jobName }}
@@ -20,6 +21,11 @@ jobs:
         Register-SecretVault -Name SecretStore -ModuleName Microsoft.PowerShell.SecretStore -DefaultVault
     displayName: Install Secret store
     condition: eq(${{ parameters.useAzAuth }}, false)
+
+  - task: NuGetAuthenticate@1
+    displayName: Install Azure Artifacts Credential Provider
+    inputs:
+      forceReinstallCredentialProvider: true
 
   - task: DownloadBuildArtifacts@0
     displayName: 'Download artifacts'
@@ -48,7 +54,7 @@ jobs:
   - ${{ parameters.powershellExecutable }}: |
       $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
       Write-Verbose -Verbose "Install Microsoft.PowerShell.PSResourceGet to temp module path"
-      Save-Module -Name Microsoft.PowerShell.PSResourceGet -MinimumVersion 0.9.0-rc1 -Path $modulePath -AllowPrerelease -Force
+      Save-Module -Name Microsoft.PowerShell.PSResourceGet -Path $modulePath -Force -Verbose
       Write-Verbose -Verbose "Install Pester 4.X to temp module path"
       Save-Module -Name "Pester" -MaximumVersion 4.99 -Path $modulePath -Force
     displayName: Install Microsoft.PowerShell.PSResourceGet and Pester
@@ -59,9 +65,90 @@ jobs:
       Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
       Import-Module -Name (Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1') -Force
       #
-      Install-ModulePackageForTest -PackagePath "$(System.ArtifactsDirectory)"
+      Install-ModulePackageForTest -PackagePath "$(System.ArtifactsDirectory)" -ErrorAction stop -Verbose
     displayName: Install module for test from downloaded artifact
     workingDirectory: ${{ parameters.buildDirectory }}
+
+  - task: AzurePowerShell@5
+    inputs:
+      azureSubscription: PSResourceGetACR
+      azurePowerShellVersion: LatestVersion
+      ScriptType: InlineScript
+      pwsh: true
+      inline: |
+        Write-Verbose -Verbose "Setting up secret for Azure Artifacts Credential Provider"
+        $azt = (Get-AzAccessToken).Token | ConvertFrom-SecureString -AsPlainText
+
+        Write-Verbose -Verbose "Setting up Azure Artifacts Credential Provider secret - token - $azt"
+
+        $ADORepoName = "psrg-credprovidertest"
+        $ADORepoUri = "https://pkgs.dev.azure.com/powershell-rel/PSResourceGet/_packaging/psrg-credprovidertest/nuget/v2"
+
+        $endpointCredsObj = @{ endpointCredentials = @( @{ endpoint = $ADoRepoURI; password = $azt })}
+        $VSS_NUGET_EXTERNAL_FEED_ENDPOINTS = $endpointCredsObj | ConvertTo-Json -Compress
+
+        Write-Verbose -Verbose "Setting VSS_NUGET_EXTERNAL_FEED_ENDPOINTS environment variable $VSS_NUGET_EXTERNAL_FEED_ENDPOINTS"
+
+        $vstsCommandString = "vso[task.setvariable variable=VSS_NUGET_EXTERNAL_FEED_ENDPOINTS]$VSS_NUGET_EXTERNAL_FEED_ENDPOINTS"
+        Write-Host "sending " + $vstsCommandString
+        Write-Host "##$vstsCommandString"
+
+    displayName: 'Setup Azure Artifacts Credential Provider secret'
+    condition: eq(${{ parameters.useAzAuth }}, false)
+
+  - pwsh: |
+      $version = '${{ parameters.DSCVersion }}'
+      $packageName = "DSC-$version"
+      $ext = 'tar.gz'
+      $executableName = 'dsc'
+      $executableExt = if ($IsWindows) { '.exe' } else { '' }
+
+      $uri = if ($IsWindows) {
+        $ext = 'zip'
+        "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-pc-windows-msvc.zip"
+      } elseif ($IsLinux) {
+        "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-linux.tar.gz"
+      }
+      elseif ($IsMacOS) {
+        "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-apple-darwin.tar.gz"
+
+      }
+      else {
+        throw "Unsupported OS platform"
+      }
+
+      $destPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath "$packageName.$ext"
+
+      Write-Verbose -Verbose "Downloading DSC v3 from $uri to $destPath"
+
+      Invoke-WebRequest -Uri $uri -OutFile $destPath
+
+      if ($IsWindows) {
+        Expand-Archive -Path $destPath -DestinationPath $env:AGENT_TEMPDIRECTORY -Force -Verbose
+      }
+      else {
+        tar -xzf $destPath -C $env:AGENT_TEMPDIRECTORY
+      }
+
+      $executableFileName = $executableName + $executableExt
+
+      $executable = Get-ChildItem -Path $env:AGENT_TEMPDIRECTORY -File -Recurse -Verbose | Where-Object { $_.Name -eq $executableFileName } | Select-Object -First 1
+
+      if (-not $executable) {
+        throw "Could not find dsc executable in the downloaded package"
+      }
+
+      $dscRoot = Split-Path -Path $executable.FullName -Parent
+
+      $vstsCommandString = "vso[task.setvariable variable=DSC_ROOT]$dscRoot"
+      Write-Host "sending " + $vstsCommandString
+      Write-Host "##$vstsCommandString"
+
+    displayName: 'Install latest DSC v3'
+
+  - pwsh: |
+      Get-ChildItem -Path env: | Out-String -width 9999 -Stream | Write-Verbose -Verbose
+    displayName: Capture environment
 
   - task: AzurePowerShell@5
     inputs:
@@ -107,10 +194,12 @@ jobs:
     inputs:
       azureSubscription: PSResourceGetACR
       azurePowerShellVersion: LatestVersion
+      pwsh: true
       ScriptType: InlineScript
       inline: |
         $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
         $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+
         Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
         Import-Module -Name (Join-Path -Path '${{ parameters.buildDirectory }}' -ChildPath 'buildtools.psd1') -Force
         Invoke-ModuleTestsACR -Type Functional

@@ -24,7 +24,7 @@
     Copyright = '(c) Microsoft Corporation. All rights reserved.'
 
     # Description of the functionality provided by this module
-    Description = "Build utilties."
+    Description = "Build utilities."
 
     # Modules that must be imported into the global environment prior to importing this module
     #RequiredModules = @(

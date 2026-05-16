@@ -1,6 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# Note: when running tests locally set $env:USINGAZAUTH = $true to use AzAuth for authentication to ACR
+# otherwise tests will use SecretStore and require environment variable TENANTID to be set to the tenant of the ACR. 
+# For CI, AzAuth is used for authentication.
 $ProgressPreference = "SilentlyContinue"
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
@@ -10,6 +13,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     BeforeAll {
         $testModuleName = "test-module"
         $testModuleName2 = "test-module2"
+        $testModuleWith2DigitVersion = "test-2DigitPkg"
         $testCamelCaseModuleName = "test-camelCaseModule"
         $testCamelCaseScriptName = "test-camelCaseScript"
         $testModuleParentName = "test_parent_mod"
@@ -33,7 +37,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     }
 
     AfterEach {
-        Uninstall-PSResource $testModuleName, $testModuleName2, $testCamelCaseModuleName, $testScriptName, $testCamelCaseScriptName -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
+        Uninstall-PSResource $testModuleName, $testModuleName2, $testCamelCaseModuleName, $testScriptName, $testCamelCaseScriptName, $testModuleWith2DigitVersion -Version "*" -SkipDependencyCheck -ErrorAction SilentlyContinue
     }
 
     AfterAll {
@@ -49,7 +53,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         Install-PSResource -Name $Name -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "$ErrorId,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
     }
 
@@ -75,6 +79,47 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg.Version | Should -BeExactly "1.0.0"
     }
 
+    It "Install resource when version contains different number of digits than the normalized version- 1 digit specified" {
+        # the resource has version "1.0", but querying with any equivalent version should work
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1" -Repository $ACRRepoName -TrustRepository
+        $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "1.0"
+    }
+
+    It "Install resource when version contains different number of digits than the normalized version- 2 digits specified" {
+        # the resource has version "1.0", but querying with any equivalent version should work
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.0" -Repository $ACRRepoName -TrustRepository
+        $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "1.0"
+    }
+
+    It "Install resource when version contains different number of digits than the normalized version- 3 digits specified" {
+        # the resource has version "1.0", but querying with any equivalent version should work
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.0.0" -Repository $ACRRepoName -TrustRepository
+        $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "1.0"
+    }
+
+    It "Install resource when version contains different number of digits than the normalized version- 4 digits specified" {
+        # the resource has version "1.0", but querying with any equivalent version should work
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.0.0.0" -Repository $ACRRepoName -TrustRepository
+        $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "1.0"
+    }
+
+    It "Install resource where version specified is a prerelease version" {
+        # the resource has version "1.0", but querying with any equivalent version should work
+        Install-PSResource -Name $testModuleWith2DigitVersion -Version "1.5-alpha" -Prerelease -Repository $ACRRepoName -TrustRepository
+        $res = Get-InstalledPSResource -Name $testModuleWith2DigitVersion
+        $res | Should -Not -BeNullOrEmpty
+        $res.Version | Should -Be "1.5"
+        $res.Prerelease | Should -Be "alpha"
+    }
+
     It "Install multiple resources by name" {
         $pkgNames = @($testModuleName, $testModuleName2)
         Install-PSResource -Name $pkgNames -Repository $ACRRepoName -TrustRepository
@@ -82,9 +127,9 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $pkg.Name | Should -Be $pkgNames
     }
 
-    It "Should not install resource given nonexistant name" {
-        Install-PSResource -Name "NonExistantModule" -Repository $ACRRepoName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
-        $pkg = Get-InstalledPSResource "NonExistantModule"
+    It "Should not install resource given nonexistent name" {
+        Install-PSResource -Name "NonExistentModule" -Repository $ACRRepoName -TrustRepository -ErrorVariable err -ErrorAction SilentlyContinue
+        $pkg = Get-InstalledPSResource "NonExistentModule" -ErrorAction SilentlyContinue
         $pkg | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "ResourceNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
@@ -124,7 +169,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
         $Version = "(1.0.0.0)"
         { Install-PSResource -Name $testModuleName -Version $Version -Repository $ACRRepoName -TrustRepository -ErrorAction SilentlyContinue } | Should -Throw -ErrorId "IncorrectVersionFormat,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
 
-        $res = Get-InstalledPSResource $testModuleName
+        $res = Get-InstalledPSResource $testModuleName -ErrorAction Ignore
         $res | Should -BeNullOrEmpty
     }
 
@@ -137,7 +182,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
 
     It "Install resource with a dependency (should install both parent and dependency)" {
         Install-PSResource -Name $testModuleParentName -Repository $ACRRepoName -TrustRepository
-        
+
         $parentPkg = Get-InstalledPSResource $testModuleParentName
         $parentPkg.Name | Should -Be $testModuleParentName
         $parentPkg.Version | Should -Be "1.0.0"
@@ -261,7 +306,7 @@ Describe 'Test Install-PSResource for ACR scenarios' -tags 'CI' {
     }
 }
 
-Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidationOnly' {
+Describe 'Test Install-PSResource for Container Registry scenarios - Manual Validation' -tags 'ManualValidationOnly' {
 
     BeforeAll {
         $testModuleName = "TestModule"
@@ -305,5 +350,29 @@ Describe 'Test Install-PSResource for V3Server scenarios' -tags 'ManualValidatio
         $pkg.Name | Should -Be $testModuleName
 
         Set-PSResourceRepository PoshTestGallery -Trusted
+    }
+}
+
+Describe 'Test Install-PSResource for MAR Repository' -tags 'CI' {
+
+    BeforeAll {
+        Get-NewPSResourceRepositoryFile
+    }
+    AfterAll {
+        Get-RevertPSResourceRepositoryFile
+    }
+
+    It "Should install resource given specific Name, Version null" {
+        try {
+            $pkg = Install-PSResource -Name "Az.Accounts" -Repository 'MicrosoftArtifactRegistry' -PassThru -TrustRepository -Reinstall
+            $pkg.Name | Should -Be "Az.Accounts"
+            $pkg.Version.Major | Should -BeGreaterOrEqual 5
+
+        }
+        finally {
+            if ($pkg) {
+                Uninstall-PSResource -Name "Az.Accounts" -Version $pkg.Version
+            }
+        }
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 
 using Dbg = System.Diagnostics.Debug;
@@ -18,7 +19,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         "PSResourceRepository",
         DefaultParameterSetName = NameParameterSet,
         SupportsShouldProcess = true)]
-    public sealed class SetPSResourceRepository : PSCmdlet
+    public sealed class SetPSResourceRepository : PSCmdlet, IDynamicParameters
     {
         #region Members
 
@@ -26,6 +27,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private const string RepositoriesParameterSet = "RepositoriesParameterSet";
         private const int DefaultPriority = -1;
         private Uri _uri;
+        private CredentialProviderDynamicParameters _credentialProvider;
 
         #endregion
 
@@ -33,7 +35,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Specifies the name of the repository to be set.
-        /// </sumamry>
+        /// </summary>
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = NameParameterSet, HelpMessage = "Name of the repository to set properties for.")]
         [ArgumentCompleter(typeof(RepositoryNameCompleter))]
         [ValidateNotNullOrEmpty]
@@ -41,7 +43,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Specifies the location of the repository to be set.
-        /// </sumamry>
+        /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         [ValidateNotNullOrEmpty]
         public string Uri { get; set; }
@@ -84,8 +86,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Specifies the Api version of the repository to be set.
-        /// </sumamry>
+        /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
+        [ValidateSet("V2", "V3", "Local", "NugetServer", "ContainerRegistry")]
         public PSRepositoryInfo.APIVersion ApiVersion { get; set; }
 
         /// <summary>
@@ -102,6 +105,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #endregion
 
+        #region DynamicParameters
+
+        public object GetDynamicParameters()
+        {
+            PSRepositoryInfo repository = RepositorySettings.Read(new[] { Name }, out string[] _).FirstOrDefault();
+            // Dynamic parameter '-CredentialProvider' should not appear for PSGallery, MAR, or any container registry repository.
+            // It should also not appear when using the 'Repositories' parameter set.
+            if (repository is not null &&
+                (repository.Name.Equals("PSGallery", StringComparison.OrdinalIgnoreCase) ||
+                repository.Name.Equals("MicrosoftArtifactRegistry", StringComparison.OrdinalIgnoreCase) ||
+                ParameterSetName.Equals(RepositoriesParameterSet) ||
+                repository.IsContainerRegistry()))
+            {
+                return null;
+            }
+
+            _credentialProvider = new CredentialProviderDynamicParameters();
+            return _credentialProvider;
+        }
+
+        #endregion
+
         #region Private methods
 
         protected override void BeginProcessing()
@@ -111,17 +136,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            // determine if either 1 of 5 values are attempting to be set: Uri, Priority, Trusted, APIVerison, CredentialInfo.
+            // determine if either 1 of 5 values are attempting to be set: Uri, Priority, Trusted, APIVersion, CredentialInfo.
             // if none are (i.e only Name parameter was provided, write error)
             if (ParameterSetName.Equals(NameParameterSet) &&
                 !MyInvocation.BoundParameters.ContainsKey(nameof(Uri)) &&
                 !MyInvocation.BoundParameters.ContainsKey(nameof(Priority)) &&
                 !MyInvocation.BoundParameters.ContainsKey(nameof(Trusted)) &&
                 !MyInvocation.BoundParameters.ContainsKey(nameof(ApiVersion)) &&
-                !MyInvocation.BoundParameters.ContainsKey(nameof(CredentialInfo)))
+                !MyInvocation.BoundParameters.ContainsKey(nameof(CredentialInfo)) &&
+                !MyInvocation.BoundParameters.ContainsKey(nameof(CredentialProvider)))
             {
                 ThrowTerminatingError(new ErrorRecord(
-                    new ArgumentException("Must set Uri, Priority, Trusted, ApiVersion, or CredentialInfo parameter"),
+                    new ArgumentException("Must set Uri, Priority, Trusted, ApiVersion, CredentialInfo, or CredentialProvider parameter"),
                     "SetRepositoryParameterBindingFailure",
                     ErrorCategory.InvalidArgument,
                     this));
@@ -141,6 +167,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repoApiVersion = ApiVersion;
             }
 
+            PSRepositoryInfo.CredentialProviderType? credentialProvider = _credentialProvider?.CredentialProvider;
+
             List<PSRepositoryInfo> items = new List<PSRepositoryInfo>();
 
             switch(ParameterSetName)
@@ -148,18 +176,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 case NameParameterSet:
                     try
                     {
-                        items.Add(RepositorySettings.UpdateRepositoryStore(Name, 
-                            _uri, 
+                        items.Add(RepositorySettings.UpdateRepositoryStore(Name,
+                            _uri,
                             Priority,
-                            Trusted, 
+                            Trusted,
                             isSet,
                             DefaultPriority,
                             repoApiVersion,
                             CredentialInfo,
+                            credentialProvider,
                             this,
                             out string errorMsg));
 
-                        if (!string.IsNullOrEmpty(errorMsg))  
+                        if (!string.IsNullOrEmpty(errorMsg))
                         {
                             ThrowTerminatingError(new ErrorRecord(
                                 new PSInvalidOperationException(errorMsg),
@@ -279,9 +308,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     errorRecord: out ErrorRecord errorRecord1))
             {
                 WriteError(errorRecord1);
-                
+
                 return null;
             }
+
+            PSRepositoryInfo.CredentialProviderType? credentialProvider = _credentialProvider?.CredentialProvider;
 
             try
             {
@@ -293,6 +324,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     DefaultPriority,
                     ApiVersion,
                     repoCredentialInfo,
+                    credentialProvider,
                     this,
                     out string errorMsg);
 

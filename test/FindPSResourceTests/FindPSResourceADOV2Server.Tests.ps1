@@ -14,7 +14,7 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $ADOV2RepoName = "PSGetTestingPublicFeed"
         $ADOV2RepoUri = "https://pkgs.dev.azure.com/powershell/PowerShell/_packaging/psresourceget-public-test-ci/nuget/v2"
         Get-NewPSResourceRepositoryFile
-        Register-PSResourceRepository -Name $ADOV2RepoName -Uri $ADOV2RepoUri
+        Register-PSResourceRepository -Name $ADOV2RepoName -Uri $ADOV2RepoUri -CredentialProvider "None"
     }
 
     AfterAll {
@@ -27,8 +27,8 @@ Describe 'Test HTTP Find-PSResource for ADO V2 Server Protocol' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
     }
 
-    It "Should not find resource given nonexistant Name" {
-        $res = Find-PSResource -Name NonExistantModule -Repository $ADOV2RepoName -ErrorVariable err -ErrorAction SilentlyContinue
+    It "Should not find resource given nonexistent Name" {
+        $res = Find-PSResource -Name NonExistentModule -Repository $ADOV2RepoName -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -BeGreaterThan 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"

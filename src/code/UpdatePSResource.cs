@@ -25,6 +25,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     {
         #region Members
         private List<string> _pathsToInstallPkg;
+        private HashSet<string> _packagesOnMachine;
         private CancellationTokenSource _cancellationTokenSource;
         private FindHelper _findHelper;
         private InstallHelper _installHelper;
@@ -157,6 +158,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             RepositorySettings.CheckRepositoryStore();
 
             _pathsToInstallPkg = Utils.GetAllInstallationPaths(this, Scope);
+            List<string> pathsToSearch = Utils.GetAllResourcePaths(this, Scope);
+            _packagesOnMachine = Utils.GetInstalledPackages(pathsToSearch, this);
             _cancellationTokenSource = new CancellationTokenSource();
             var networkCred = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
 
@@ -216,7 +219,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 pathsToInstallPkg: _pathsToInstallPkg,
                 scope: Scope,
                 tmpPath: _tmpPath,
-                pkgsInstalled: new HashSet<string>(StringComparer.InvariantCultureIgnoreCase));
+                pkgsInstalled: _packagesOnMachine);
 
             if (PassThru)
             {
@@ -378,7 +381,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     continue;
                 }
 
-                string repoNuGetVersionString = Utils.GetNormalizedVersionString(repositoryPackage.Version.ToString(), repositoryPackage.Prerelease);
+                string repoNuGetVersionString = Utils.GetFullVersionString(repositoryPackage.Version.ToString(), repositoryPackage.Prerelease);
                 // If the current package is out of range, install it with the correct version.
                 if (!NuGetVersion.TryParse(repoNuGetVersionString, out NuGetVersion repoVersion))
                 {

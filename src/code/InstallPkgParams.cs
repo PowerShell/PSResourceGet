@@ -11,15 +11,15 @@ public class InstallPkgParams
     public string Name { get; set; }
     public VersionRange Version { get; set; }
     public string Repository { get; set; }
-    public bool AcceptLicense { get; set; } 
+    public bool? AcceptLicense { get; set; } 
     public bool Prerelease { get; set; }
-    public ScopeType Scope { get; set; }
-    public bool Quiet { get; set; }
-    public bool Reinstall { get; set; }
+    public ScopeType? Scope { get; set; }
+    public bool? Quiet { get; set; }
+    public bool? Reinstall { get; set; }
     public bool Force { get; set; }
-    public bool TrustRepository { get; set; }
-    public bool NoClobber { get; set; }
-    public bool SkipDependencyCheck { get; set; }
+    public bool? TrustRepository { get; set; }
+    public bool? NoClobber { get; set; }
+    public bool? SkipDependencyCheck { get; set; }
 
 
 
@@ -67,8 +67,10 @@ public class InstallPkgParams
                 break;
 
             case "acceptlicense":
-                bool.TryParse(propertyValue, out bool acceptLicenseTmp);
-                AcceptLicense = acceptLicenseTmp;
+                if (!string.IsNullOrWhiteSpace(propertyValue) && bool.TryParse(propertyValue, out bool acceptLicenseTmp))
+                {
+                    AcceptLicense = acceptLicenseTmp;
+                }
                 break;
 
             case "prerelease":
@@ -82,28 +84,38 @@ public class InstallPkgParams
                 break;
 
             case "quiet":
-                bool.TryParse(propertyValue, out bool quietTmp);
-                Quiet = quietTmp;
+                if (!string.IsNullOrWhiteSpace(propertyValue) && bool.TryParse(propertyValue, out bool quietTmp))
+                {
+                    Quiet = quietTmp;
+                }
                 break;
 
             case "reinstall":
-                bool.TryParse(propertyValue, out bool reinstallTmp);
-                Reinstall = reinstallTmp;
+                if (!string.IsNullOrWhiteSpace(propertyValue) && bool.TryParse(propertyValue, out bool reinstallTmp))
+                {
+                    Reinstall = reinstallTmp;
+                }
                 break;
 
             case "trustrepository":
-                bool.TryParse(propertyValue, out bool trustRepositoryTmp);
-                TrustRepository = trustRepositoryTmp;
+                if (!string.IsNullOrWhiteSpace(propertyValue) && bool.TryParse(propertyValue, out bool trustRepositoryTmp))
+                {
+                    TrustRepository = trustRepositoryTmp;
+                }
                 break;
 
             case "noclobber":
-                bool.TryParse(propertyValue, out bool noClobberTmp);
-                NoClobber = noClobberTmp;
+                if (!string.IsNullOrWhiteSpace(propertyValue) && bool.TryParse(propertyValue, out bool noClobberTmp))
+                {
+                    NoClobber = noClobberTmp;
+                }
                 break;
 
             case "skipdependencycheck":
-                bool.TryParse(propertyValue, out bool skipDependencyCheckTmp);
-                SkipDependencyCheck = skipDependencyCheckTmp;
+                if (!string.IsNullOrWhiteSpace(propertyValue) && bool.TryParse(propertyValue, out bool skipDependencyCheckTmp))
+                {
+                    SkipDependencyCheck = skipDependencyCheckTmp;
+                }
                 break;
 
             default:

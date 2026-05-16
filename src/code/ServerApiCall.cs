@@ -9,7 +9,10 @@ using System.Management.Automation;
 using System.Net;
 using System.Net.Http;
 using System.Text;
-
+using System.Runtime.ExceptionServices;
+using System.Management.Automation;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -84,6 +87,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public abstract FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord);
 
         /// <summary>
+        /// Find method which allows for async searching for package by single name and returns latest version.
+        /// Name: no wildcard support
+        /// Examples: Search "PowerShellGet"
+        /// </summary>
+        public abstract Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs);
+
+        /// <summary>
         /// Find method which allows for searching for package by single name and tag and returns latest version.
         /// Name: no wildcard support
         /// Examples: Search "PowerShellGet" -Tag "provider"
@@ -96,6 +106,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Examples: Search "PowerShell*"
         /// </summary>
         public abstract FindResults FindNameGlobbing(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord);
+
+        /// <summary>
+        /// Find method which allows for async searching for single name with version range.
+        /// Name: no wildcard support
+        /// Version: supports wildcards
+        /// Examples: Search "PowerShellGet" "[3.0.0.0, 5.0.0.0]"
+        ///           Search "PowerShellGet" "3.*"
+        /// </summary>
+        public abstract Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs);
 
         /// <summary>
         /// Find method which allows for searching for single name with wildcards and tag and returns latest version.
@@ -121,6 +140,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public abstract FindResults FindVersion(string packageName, string version, ResourceType type, out ErrorRecord errRecord);
 
         /// <summary>
+        /// Find method which allows for async searching for single name with specific version.
+        /// Name: no wildcard support
+        /// Version: no wildcard support
+        /// Examples: Search "PowerShellGet" "2.2.5"
+        /// </summary>
+        public abstract Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs);
+
+        /// <summary>
         /// Find method which allows for searching for single name with specific version.
         /// Name: no wildcard support
         /// Version: no wildcard support
@@ -141,6 +168,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         ///                             then find the exact version to install, then call into install version
         /// </summary>
         public abstract Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord);
+
+        /// <summary>
+        /// Installs specific package asynchronously.
+        /// Name: no wildcard support.
+        /// Examples: Install "PowerShellGet"
+        ///           Install "PowerShellGet" -Version "3.0.0"
+        ///           Install "PowerShellGet" -Version "3.0.0-beta24"
+        /// Implementation Note:   if not prerelease: https://www.powershellgallery.com/api/v2/package/powershellget (Returns latest stable)
+        ///                        if prerelease, the calling method should first call IFindPSResource.FindName(),
+        ///                             then find the exact version to install, then call into install version
+        /// </summary>
+        public abstract Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs);
+
 
         #endregion
 

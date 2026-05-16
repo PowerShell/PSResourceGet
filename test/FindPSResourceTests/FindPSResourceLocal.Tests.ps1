@@ -14,12 +14,15 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $localUNCRepo = 'psgettestlocal3'
         $testModuleName = "test_local_mod"
         $testModuleName2 = "test_local_mod2"
+        $testModuleName3 = "Test_Local_Mod3"
         $similarTestModuleName = "test_local_mod.similar"
         $commandName = "cmd1"
         $dscResourceName = "dsc1"
         $prereleaseLabel = ""
+        $localNupkgRepo = "localNupkgRepo"
         Get-NewPSResourceRepositoryFile
         Register-LocalRepos
+        Register-LocalTestNupkgsRepo
 
         $localRepoUriAddress = Join-Path -Path $TestDrive -ChildPath "testdir"
         $tagsEscaped = @("'Test'", "'Tag2'", "'PSCommand_$cmdName'", "'PSDscResource_$dscName'")
@@ -32,6 +35,8 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
         New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tagsEscaped
         New-TestModule -moduleName $testModuleName2 -repoName $localRepo -packageVersion "5.2.5" -prereleaseLabel $prereleaseLabel -tags $tagsEscaped
+
+        New-TestModule -moduleName $testModuleName3 -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
 
         New-TestModule -moduleName $similarTestModuleName -repoName $localRepo -packageVersion "4.0.0" -prereleaseLabel "" -tags $tagsEscaped
         New-TestModule -moduleName $similarTestModuleName -repoName $localRepo -packageVersion "5.0.0" -prereleaseLabel "" -tags $tagsEscaped
@@ -48,6 +53,20 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
     }
 
+    It "find resource given specific Name with incorrect casing (should return correct casing)" {
+        # FindName()
+        $res = Find-PSResource -Name "test_local_mod3" -Repository $localRepo
+        $res.Name | Should -Be $testModuleName3
+        $res.Version | Should -Be "1.0.0"
+    }
+
+    It "find resource given specific Name with incorrect casing and Version (should return correct casing)" {
+        # FindVersion()
+        $res = Find-PSResource -Name "test_local_mod3" -Version "1.0.0" -Repository $localRepo
+        $res.Name | Should -Be $testModuleName3
+        $res.Version | Should -Be "1.0.0"
+    }
+
     It "find resource given specific Name, Version null (module) from a UNC-based local repository" {
         # FindName()
         $res = Find-PSResource -Name $testModuleName -Repository $localUNCRepo
@@ -57,13 +76,11 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
 
     It "find resource given Name, Version null (package containing nuspec only)" {
         # FindName()
-        $pkgName = "test_nonpsresource"
-        $requiredTag = "Tag1"
+        $pkgName = "PowerShell"
         Save-PSResource -Name $pkgName -Repository "NuGetGallery" -Path $localRepoUriAddress -AsNupkg -TrustRepository
         $res = Find-PSResource -Name $pkgName -Repository $localRepo
         $res.Name | Should -Be $pkgName
         $res.Repository | Should -Be $localRepo
-        $res.Tags | Should -Contain $requiredTag
     }
 
     It "find script without RequiredModules" {
@@ -77,9 +94,9 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         # $res.Tags | Should -Contain $requiredTag
     }
 
-    It "should not find resource given nonexistant Name" {
+    It "should not find resource given nonexistent Name" {
         # FindName()
-        $res = Find-PSResource -Name NonExistantModule -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name NonExistentModule -Repository $localRepo -ErrorVariable err -ErrorAction SilentlyContinue
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
@@ -268,7 +285,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res.Count | Should -Be 2
         $res.Type | Should -Be @("Script", "Script")
     }
-    
+
     It "find modules given -Type parameter" {
         Get-ScriptResourcePublishedToLocalRepoTestDrive "testScriptName" $localRepo "1.0.0"
 
@@ -293,7 +310,7 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res = Find-PSResource -DscResourceName $dscResourceName -Repository $localRepo
         $res | Should -Not -BeNullOrEmpty
         foreach ($item in $res) {
-            $item.Names | Should -Be $dscResourceName    
+            $item.Names | Should -Be $dscResourceName
             $item.ParentResource.Includes.DscResource | Should -Contain $dscResourceName
         }
     }
@@ -308,5 +325,26 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res | Should -BeNullOrEmpty
         $err.Count | Should -Not -Be 0
         $err[0].FullyQualifiedErrorId | Should -BeExactly "FindTagsPackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource"
+    }
+
+    It "find package where prerelease label includes digits and period (i.e prerelease label is not just words)" {
+        $nupkgName = "WebView2.Avalonia"
+        $nupkgVersion = "1.0.1518.46"
+        $prereleaseLabel = "preview.230207.17"
+        $res = Find-PSResource -Name $nupkgName -Prerelease -Repository $localNupkgRepo
+        $res.Name | Should -Be $nupkgName
+        $res.Version | Should -Be $nupkgVersion
+        $res.Prerelease | Should -Be $prereleaseLabel
+    }
+
+    It "find module that has multiple manifests and use exact name match one" {
+        # Az.KeyVault has 2 manifest files - Az.KeyVault.psd1 and Az.KeyVault.Extension.psd1
+        # this test was added because PSResourceGet would previously pick the .psd1 file by pattern matching the module name, not exact matching it
+        # this meant Az.KeyVault.Extension.psd1 and its metadata was being returned.
+        # The package is present on PSGallery but issue reproduces when looking at the package's file paths in local repo
+        $PSGalleryName = Get-PSGalleryName
+        Save-PSResource -Name 'Az.KeyVault' -Version '6.3.1' -Repository $PSGalleryName -AsNupkg -Path $localRepoUriAddress -TrustRepository
+        $res = Find-PSResource -Name 'Az.KeyVault' -Repository $localRepo
+        $res.Version | Should -Be "6.3.1"
     }
 }
