@@ -4,7 +4,7 @@
 
 ### New Features
 - Add `MAR` as default registered repository (#1955)
-- Add concurrent (parrallel) execution for `Install-PSResource` workflows (#1950)
+- Add concurrent (parallel) execution for `Install-PSResource` workflows (#1950)
 - Add DSC V3 resource for PSResourceGet (#1852)
 
 ## Bug fix
