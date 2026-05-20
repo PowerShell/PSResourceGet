@@ -1,6 +1,6 @@
 # Preview Changelog
 
-## [1.3.0-preview1](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0..v1.3.0-preview1) - 2025-05-19
+## [1.3.0-preview1](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0..v1.3.0-preview1) - 2026-05-19
 
 ### New Features
 - Add `MAR` as default registered repository (#1955)
