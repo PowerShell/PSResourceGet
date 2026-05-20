@@ -167,6 +167,31 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         (Get-ChildItem $script:repositoryPath).FullName | Should -Be $expectedPath
     }
 
+    It "Publish a module with ExternalModuleDependencies should automatically skip that dependency" {
+        $version = "1.0.0"
+        $moduleName = "test_ext_dep_module"
+        $externalDepName = "Appx"
+        $requiredModName = "test_module10"
+        $requiredModVersion = "2.0.0"
+
+        # First publish RequiredModule dependency
+        $requiredModulePath = Join-Path -Path $script:PublishModuleBase -ChildPath $requiredModName.psd1
+        New-ModuleManifest -Path $requiredModulePath -Description "$requiredModName test" -ModuleVersion $requiredModVersion
+        Publish-PSResource -Path $requiredModulePath -Repository $testRepository2
+        $res = Find-PSResource $requiredModName -Version $requiredModVersion -Repository $testRepository2
+        $res.Name | Should -Be $requiredModName
+        $res.Version | Should -Be $requiredModVersion
+
+        # Next publish module which lists $requiredModName and an external module dependency under 'RequiredModules' section
+        $testModulePath = Join-Path -Path $script:PublishModuleBase -ChildPath $moduleName.psd1
+        New-ModuleManifest -Path $testModulePath -ModuleVersion $version -Description "$moduleName module" -RequiredModules @( @{ ModuleName = $requiredModName; ModuleVersion = $requiredModVersion }, $externalDepName) -ExternalModuleDependencies $externalDepName
+        $manifest = Test-ModuleManifest $testModulePath
+        $manifest.PrivateData.PSData.ExternalModuleDependencies | Should -Contain $externalDepName
+        Publish-PSResource -Path $testModulePath -Repository $testRepository2
+        $res2 = Find-PSResource $moduleName -Repository $testRepository2
+        $res2.Name | Should -Be $moduleName
+    }
+
 	#region Local Source Path
     It "Publish a module with -Path and -Repository" {
         $version = "1.0.0"

@@ -885,7 +885,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cmdletPassedIn.WriteDebug("In PublishHelper::CreateNuspec()");
 
             bool isModule = resourceType != ResourceType.Script;
-            requiredModules = new Hashtable();
+            requiredModules = new Hashtable(StringComparer.OrdinalIgnoreCase);
 
             if (parsedMetadataHash == null || parsedMetadataHash.Count == 0)
             {
@@ -946,6 +946,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         if (privateData["PSData"] is Hashtable psData)
                         {
+                            if (psData.ContainsKey("ExternalModuleDependencies"))
+                            {
+                                if (psData["ExternalModuleDependencies"] is string externalModuleDepNameStr)
+                                {
+                                    parsedMetadataHash["ExternalModuleDependencies"] = new string[]{ externalModuleDepNameStr };
+                                }
+                                else if(psData["ExternalModuleDependencies"] is string[] externalModuleDepNameArr)
+                                {
+                                    parsedMetadataHash["ExternalModuleDependencies"] = externalModuleDepNameArr;
+                                }
+                            }
+
                             if (psData.ContainsKey("prerelease") && psData["prerelease"] is string preReleaseVersion)
                             {
                                 if (!string.IsNullOrEmpty(preReleaseVersion))
