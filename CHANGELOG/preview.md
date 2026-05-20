@@ -10,7 +10,7 @@
 ## Bug fix
 - Bump `Azure.Identity` from `1.17.1` to `1.17.2`(#1994)
 - Bump `Azure.Identity` from `1.14.2` to `1.17.1` and remove deprecated DefaultAzureCredentialOptions from constructor (#1987)
-- Make flakey CI tests more lenient (#1976)
+- Make flaky CI tests more lenient (#1976)
 - Fixing the logic to determine if the current PowerShell session is Windows PowerShell or PowerShell Core (#1974 Thanks @Borgquite!)
 - Include local-copy prerelease string when deciding update applicability in `Update-PSResource` (#1954 Thanks @sean-r-williams!)
 
