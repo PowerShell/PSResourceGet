@@ -1,5 +1,19 @@
 # Preview Changelog
 
+## [1.3.0-preview1](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0..v1.3.0-preview1) - 2025-05-19
+
+### New Features
+- Add `MAR` as default registered repository (#1955)
+- Add concurrent (parrallel) execution for `Install-PSResource` workflows (#1950)
+- Add DSC V3 resource for PSResourceGet (#1852)
+
+## Bug fix
+- Bump `Azure.Identity` from `1.17.1` to `1.17.2`(#1994)
+- Bump `Azure.Identity` from `1.14.2` to `1.17.1` and remove deprecated DefaultAzureCredentialOptions from constructor (#1987)
+- Make flakey CI tests more lenient (#1976)
+- Fixing the logic to determine if the current PowerShell session is Windows PowerShell or PowerShell Core (#1974 Thanks @Borgquite!)
+- Include local-copy prerelease string when deciding update applicability in `Update-PSResource` (#1954 Thanks @sean-r-williams!)
+
 ## [1.2.0-rc3](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0-rc2..v1.2.0-rc3) - 2026-02-06
 
 ## Bug fix
