@@ -285,6 +285,52 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
         $testResult = & $script:dscExe resource test --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
         $testResult.inDesiredState | Should -BeFalse
     }
+
+    It 'Get returns actual installed version when installed version does not satisfy requested version' {
+        # Install 1.0.0 but request 5.0.0 - get should return the actual installed version (1.0.0)
+        Install-PSResource -Name $script:testModuleName -Version '1.0.0' -Repository $script:localRepo -Reinstall -TrustRepository -ErrorAction SilentlyContinue
+        Uninstall-PSResource -Name $script:testModuleName -Version '5.0.0' -ErrorAction SilentlyContinue
+
+        $psResourceListParams = @{
+            repositoryName = $script:localRepo
+            resources      = @(
+                @{
+                    name    = $script:testModuleName
+                    version = '5.0.0'
+                }
+            )
+        }
+
+        $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
+        $getResult = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $getResult.actualState.resources.Count | Should -Be 1
+        $getResult.actualState.resources[0].name | Should -BeExactly $script:testModuleName
+        $getResult.actualState.resources[0].version | Should -BeExactly '1.0.0'
+        $getResult.actualState.resources[0]._exist | Should -BeTrue
+    }
+
+    It 'Get prefers installed version that satisfies requested version range when multiple versions are installed' {
+        # Install both 1.0.0 and 5.0.0 but request 5.0.0 - get should prefer the satisfying version (5.0.0)
+        Install-PSResource -Name $script:testModuleName -Version '1.0.0' -Repository $script:localRepo -Reinstall -TrustRepository -ErrorAction SilentlyContinue
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -Reinstall -TrustRepository -ErrorAction SilentlyContinue
+
+        $psResourceListParams = @{
+            repositoryName = $script:localRepo
+            resources      = @(
+                @{
+                    name    = $script:testModuleName
+                    version = '5.0.0'
+                }
+            )
+        }
+
+        $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
+        $getResult = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $getResult.actualState.resources.Count | Should -Be 1
+        $getResult.actualState.resources[0].name | Should -BeExactly $script:testModuleName
+        $getResult.actualState.resources[0].version | Should -BeExactly '5.0.0'
+        $getResult.actualState.resources[0]._exist | Should -BeTrue
+    }
 }
 
 Describe 'E2E tests for Repository resource' -Tags 'CI' {
