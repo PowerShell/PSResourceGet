@@ -243,6 +243,37 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
         $setResult.afterState.resources[1].version | Should -Be '5.0.0'
     }
 
+    It 'Set operation stdout contains only valid JSON and is not contaminated by warning messages' {
+        # Simple regression test as it is hard to predict a warning message but we want to ensure they do not break DSC's JSON parsing. This test does not verify that warnings are emitted when expected, 
+        # only that if they are emitted they do not reach stdout.
+        Uninstall-PSResource -Name $script:testModuleName -ErrorAction SilentlyContinue
+
+        $psResourceListParams = @{
+            repositoryName    = $script:localRepo
+            trustedRepository = $true
+            resources         = @(
+                @{
+                    name    = $script:testModuleName
+                    version = '1.0.0'
+                }
+            )
+        }
+
+        $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
+
+        # Capture only stdout; stderr carries DSC trace messages and is intentionally discarded
+        $stdoutLines = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json 2>$null
+
+        # No stdout line should contain warning text or ANSI escape sequences
+        $stdoutLines | Where-Object { $_ } | ForEach-Object {
+            $_ | Should -Not -Match 'WARNING:'
+            $_ | Should -Not -Match '\x1b\['
+        }
+
+        # stdout must be parseable as JSON without error
+        { $stdoutLines | ConvertFrom-Json -ErrorAction Stop } | Should -Not -Throw
+    }
+
     It 'Can test a PSResourceList resource instance with resources' {
         $psResourceListParams = @{
             repositoryName = $script:localRepo
