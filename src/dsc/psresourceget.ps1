@@ -589,7 +589,7 @@ function SetPSResourceList {
             $cmdWarnings = $null
             Uninstall-PSResource -Name $_.Name -Scope $scope -ErrorAction Stop -WarningVariable cmdWarnings
             foreach ($w in $cmdWarnings) {
-                Write-Trace -message $w.Message -level warn
+                Write-Trace -message ([string]$w) -level warn
             }
         }
         $resourcesChanged = $true
@@ -621,7 +621,7 @@ function SetPSResourceList {
                 $cmdWarnings = $null
                 Install-PSResource -Name $_.Name -Version $_.Version -Scope $scope -Repository $repositoryName -ErrorAction Stop -TrustRepository:$inputObj.trustedRepository -Prerelease:$usePrerelease -Reinstall -WarningVariable cmdWarnings
                 foreach ($w in $cmdWarnings) {
-                    Write-Trace -message $w.Message -level warn
+                    Write-Trace -message ([string]$w) -level warn
                 }
             } catch {
                 Write-Trace -level error -message "Failed to install resource '$name' with version '$version'. Error: $($_.Exception.Message)"
