@@ -344,26 +344,20 @@ function GetPSResourceList {
 
     $resourcesExist = @()
 
-    foreach ($resource in $allPSResources) {
-        foreach ($inputResource in $inputResources) {
-            if ($resource.Name -eq $inputResource.Name) {
-                Write-Trace -message "Found matching resource for input: $($inputResource.Name). Checking version constraints. Input version: $($inputResource.Version), Resource version: $($resource.Version)" -level debug
-                if ($inputResource.Version) {
-                    # Use the NuGet.Versioning package if available, otherwise do a simple comparison
-                    try {
-                        if (SatisfiesVersion -version $resource.Version -versionRange $inputResource.Version) {
-                            $resourcesExist += $resource
-                        }
-                    }
-                    catch {
-                        Write-Trace -message "Error checking version constraints for resource: $($inputResource.Name). Error details: $($_.Exception.Message)" -level debug
-                        # Fallback: simple string comparison (not full NuGet range support)
-                        if ($resource.Version.ToString() -eq $inputResource.Version) {
-                            $resourcesExist += $resource
-                        }
-                    }
-                }
+    foreach ($inputResource in $inputResources) {
+        $matchingResources = $allPSResources | Where-Object { $_.Name -eq $inputResource.Name }
+
+        if ($matchingResources) {
+            # Prefer a version that satisfies the requested range; fall back to any installed version
+            $preferred = if ($inputResource.Version) {
+                $matchingResources | Where-Object {
+                    try { SatisfiesVersion -version $_.Version -versionRange $inputResource.Version } catch { $false }
+                } | Select-Object -First 1
             }
+
+            $toAdd = if ($preferred) { $preferred } else { $matchingResources | Select-Object -First 1 }
+            Write-Trace -message "Found matching resource for input: $($inputResource.Name). Returning version: $($toAdd.Version)" -level debug
+            $resourcesExist += $toAdd
         }
     }
 
