@@ -161,12 +161,17 @@ class PSResourceList {
     }
 
     [string] ToJson() {
-        $resourceJsonItems = if ($this.resources) {
-            @($this.resources | ForEach-Object { $_.ToJson() })
+        $resourceObjects = if ($this.resources) {
+            @($this.resources | ForEach-Object {
+                [string[]]$excludeProps = @('_inDesiredState')
+                if ($null -eq $_._metadata) { $excludeProps += '_metadata' }
+                $_ | Select-Object -ExcludeProperty $excludeProps
+            })
         } else { @() }
-        $resourcesArrayJson = '[' + ($resourceJsonItems -join ',') + ']'
-        $repoNameJson = $this.repositoryName | ConvertTo-Json -Compress
-        $retVal = "{`"repositoryName`":$repoNameJson,`"resources`":$resourcesArrayJson}"
+        $retVal = [ordered]@{
+            repositoryName = $this.repositoryName
+            resources      = [object[]]$resourceObjects
+        } | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
         Write-Trace -message "Serializing PSResourceList to JSON. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level debug
         Write-Trace -message "Serialized JSON: $retVal" -level trace
         return $retVal
@@ -174,14 +179,19 @@ class PSResourceList {
 
     [string] ToJsonForTest() {
         Write-Trace -message "Serializing PSResourceList to JSON for test output. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level debug
-        $resourceJsonItems = if ($this.resources) {
-            @($this.resources | ForEach-Object { $_.ToJsonForTest() })
+        $resourceObjects = if ($this.resources) {
+            @($this.resources | ForEach-Object {
+                [string[]]$excludeProps = @()
+                if ($null -eq $_._metadata) { $excludeProps += '_metadata' }
+                if ($excludeProps.Count -gt 0) { $_ | Select-Object -ExcludeProperty $excludeProps } else { $_ }
+            })
         } else { @() }
-        $resourcesArrayJson = '[' + ($resourceJsonItems -join ',') + ']'
-        $repoNameJson = $this.repositoryName | ConvertTo-Json -Compress
-        $trustedStr = ($this.trustedRepository).ToString().ToLower()
-        $inDesiredStr = ($this._inDesiredState).ToString().ToLower()
-        $retVal = "{`"repositoryName`":$repoNameJson,`"resources`":$resourcesArrayJson,`"trustedRepository`":$trustedStr,`"_inDesiredState`":$inDesiredStr}"
+        $retVal = [ordered]@{
+            repositoryName    = $this.repositoryName
+            resources         = [object[]]$resourceObjects
+            trustedRepository = $this.trustedRepository
+            _inDesiredState   = $this._inDesiredState
+        } | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
         Write-Trace -message "Serialized JSON: $retVal" -level trace
         return $retVal
     }
@@ -568,7 +578,14 @@ function WhatIfPSResourceList {
         if (-not $resourceDesiredState._exist -and $null -ne $currentResource -and $currentResource._exist) {
             $msg = "Would uninstall resource '$name'"
             Write-Trace -message "WhatIf: $msg." -level debug
-            $resource = [PSResource]::new($name)
+            $resource = [PSResource]::new(
+                $currentResource.name,
+                $currentResource.version,
+                $currentResource.scope,
+                $currentResource.repositoryName,
+                $currentResource.preRelease
+            )
+            $resource._exist = $false
             $resource._metadata = [pscustomobject]@{ whatIf = @($msg) }
             $projectedResources += $resource
         }
