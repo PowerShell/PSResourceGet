@@ -10,7 +10,8 @@ param(
     [ValidateSet('get', 'set', 'test', 'delete', 'export')]
     [string]$Operation,
     [Parameter(ValueFromPipeline)]
-    $stdinput
+    $stdinput,
+    [switch]$WhatIf
 )
 
 enum Scope {
@@ -42,6 +43,7 @@ class PSResource {
     [bool]$preRelease
     [bool]$_exist
     [bool]$_inDesiredState
+    [object]$_metadata
 
     PSResource([string]$name, [string]$version, [Scope]$scope, [string]$repositoryName, [bool]$preRelease) {
         $this.name = $name
@@ -98,14 +100,18 @@ class PSResource {
     }
 
     [string] ToJson() {
-        $retVal = ($this | Select-Object -ExcludeProperty _inDesiredState | ConvertTo-Json -Compress -EnumsAsStrings)
+        [string[]]$excludeProps = @('_inDesiredState')
+        if ($null -eq $this._metadata) { $excludeProps += '_metadata' }
+        $retVal = ($this | Select-Object -ExcludeProperty $excludeProps | ConvertTo-Json -Compress -EnumsAsStrings)
         Write-Trace -message "Serializing PSResource to JSON. Name: $($this.name), Version: $($this.version), Scope: $($this.scope), RepositoryName: $($this.repositoryName), PreRelease: $($this.preRelease), _exist: $($this._exist)" -level debug
         Write-Trace -message "Serialized JSON: $retVal" -level trace
         return $retVal
     }
 
     [string] ToJsonForTest() {
-        return ($this | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings)
+        [string[]]$excludeProps = @()
+        if ($null -eq $this._metadata) { $excludeProps += '_metadata' }
+        return ($this | Select-Object -ExcludeProperty $excludeProps | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings)
     }
 }
 
@@ -155,23 +161,39 @@ class PSResourceList {
     }
 
     [string] ToJson() {
-        $resourceJson = if ($this.resources) { ($this.resources | ForEach-Object { $_.ToJson() }) -join ',' } else { '' }
-        $resourceJson = "[$resourceJson]"
-        $jsonString = "{'repositoryName': '$($this.repositoryName)','resources': $resourceJson}"
-        $jsonString = $jsonString -replace "'", '"'
-        $retVal =  $jsonString | ConvertFrom-Json | ConvertTo-Json -Compress -EnumsAsStrings
-
+        $resourceObjects = if ($this.resources) {
+            @($this.resources | ForEach-Object {
+                [string[]]$excludeProps = @('_inDesiredState')
+                if ($null -eq $_._metadata) { $excludeProps += '_metadata' }
+                $_ | Select-Object -ExcludeProperty $excludeProps
+            })
+        } else { @() }
+        $retVal = [ordered]@{
+            repositoryName = $this.repositoryName
+            resources      = [object[]]$resourceObjects
+        } | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
         Write-Trace -message "Serializing PSResourceList to JSON. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level debug
         Write-Trace -message "Serialized JSON: $retVal" -level trace
-
         return $retVal
     }
 
     [string] ToJsonForTest() {
         Write-Trace -message "Serializing PSResourceList to JSON for test output. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level debug
-        $jsonForTest = $this | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
-        Write-Trace -message "Serialized JSON: $jsonForTest" -level trace
-        return $jsonForTest
+        $resourceObjects = if ($this.resources) {
+            @($this.resources | ForEach-Object {
+                [string[]]$excludeProps = @()
+                if ($null -eq $_._metadata) { $excludeProps += '_metadata' }
+                if ($excludeProps.Count -gt 0) { $_ | Select-Object -ExcludeProperty $excludeProps } else { $_ }
+            })
+        } else { @() }
+        $retVal = [ordered]@{
+            repositoryName    = $this.repositoryName
+            resources         = [object[]]$resourceObjects
+            trustedRepository = $this.trustedRepository
+            _inDesiredState   = $this._inDesiredState
+        } | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
+        Write-Trace -message "Serialized JSON: $retVal" -level trace
+        return $retVal
     }
 }
 
@@ -538,10 +560,67 @@ function ExportOperation {
     }
 }
 
-function SetPSResourceList {
+function WhatIfPSResourceList {
     param(
         $inputObj
     )
+
+    $repositoryName = $inputObj.repositoryName
+    $currentState = GetPSResourceList -inputObj $inputObj
+    $projectedResources = @()
+    $inputObj.resources | ForEach-Object {
+        $resourceDesiredState = ConvertInputToPSResource -inputObj $_ -repositoryName $repositoryName
+        $name = $resourceDesiredState.name
+        $version = $resourceDesiredState.version
+        $scope = if ($resourceDesiredState.scope) { $resourceDesiredState.scope } else { [Scope]'CurrentUser' }
+        $currentResource = $currentState.resources | Where-Object { $_.name -eq $name } | Select-Object -First 1
+
+        if (-not $resourceDesiredState._exist -and $null -ne $currentResource -and $currentResource._exist) {
+            $msg = "Would uninstall resource '$name'"
+            Write-Trace -message "WhatIf: $msg." -level debug
+            $resource = [PSResource]::new(
+                $currentResource.name,
+                $currentResource.version,
+                $currentResource.scope,
+                $currentResource.repositoryName,
+                $currentResource.preRelease
+            )
+            $resource._exist = $false
+            $resource._metadata = [pscustomobject]@{ whatIf = @($msg) }
+            $projectedResources += $resource
+        }
+        elseif ($resourceDesiredState._exist -and ($null -eq $currentResource -or -not $currentResource._exist)) {
+            $versionStr = if ($version) { $version } else { 'latest' }
+            $msg = "Would install resource '$name' version '$versionStr'"
+            Write-Trace -message "WhatIf: $msg." -level debug
+            $resource = [PSResource]::new($name, $versionStr, [Scope]$scope, $repositoryName, $resourceDesiredState.preRelease)
+            $resource._metadata = [pscustomobject]@{ whatIf = @($msg) }
+            $projectedResources += $resource
+        }
+        else {
+            Write-Trace -message "WhatIf: Resource '$name' is already in desired state." -level debug
+            if ($null -ne $currentResource) {
+                $projectedResources += $currentResource
+            }
+            else {
+                $projectedResources += $resourceDesiredState
+            }
+        }
+    }
+
+    $list = [PSResourceList]::new($repositoryName, $projectedResources, $currentState.trustedRepository)
+    $list.ToJson()
+}
+
+function SetPSResourceList {
+    param(
+        $inputObj,
+        [switch]$WhatIf
+    )
+
+    if ($WhatIf) {
+        return WhatIfPSResourceList -inputObj $inputObj
+    }
 
     $repositoryName = $inputObj.repositoryName
     $resourcesToUninstall = @()
@@ -690,7 +769,7 @@ function SetOperation {
             Write-Trace -level error -message "Set operation is not implemented for PSResource resource."
             exit [ExitCode]::SetNotImplemented
         }
-        'psresourcelist' { return SetPSResourceList -inputObj $inputObj }
+        'psresourcelist' { return SetPSResourceList -inputObj $inputObj -WhatIf:$WhatIf }
         default {
             Write-Trace -level error -message "Unknown ResourceType: $ResourceType"
             exit [ExitCode]::UnknownResourceType

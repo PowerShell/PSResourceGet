@@ -32,10 +32,12 @@
       "-ExecutionPolicy",
       "Bypass",
       "-Command",
-      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation set; exit $LASTEXITCODE"
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation set",
+      { "whatIfArg": "-WhatIf" }
     ],
     "input": "stdin",
-    "return": "stateAndDiff"
+    "return": "stateAndDiff",
+    "whatIfReturns": "state"
   },
   "export": {
     "executable": "pwsh",
@@ -161,6 +163,20 @@
             },
             "_inDesiredState": {
               "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json"
+            },
+            "_metadata": {
+              "type": "object",
+              "title": "Metadata",
+              "description": "Metadata populated during what-if operations.",
+              "readOnly": true,
+              "additionalProperties": false,
+              "properties": {
+                "whatIf": {
+                  "type": "array",
+                  "description": "Messages describing what the set operation would do.",
+                  "items": { "type": "string" }
+                }
+              }
             }
           }
         },
