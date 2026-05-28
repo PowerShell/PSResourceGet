@@ -89,7 +89,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     ThrowTerminatingError(new ErrorRecord(
                         new PSArgumentException($"Error: Could not resolve provided Path argument '{Path}' into a single path."),
-
                         "ErrorInvalidPathArgument",
                         ErrorCategory.InvalidArgument,
                         this));
@@ -121,7 +120,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var namesToSearch = Utils.ProcessNameWildcards(Name, removeWildcardEntries:false, out string[] errorMsgs, out bool _);
+            var namesToSearch = Utils.ProcessNameWildcards(Name, removeWildcardEntries: false, out string[] errorMsgs, out bool _);
             foreach (string error in errorMsgs)
             {
                 WriteError(new ErrorRecord(
