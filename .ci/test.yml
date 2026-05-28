@@ -12,7 +12,8 @@ jobs:
     vmImage: ${{ parameters.imageName }}
   displayName: ${{ parameters.displayName }}
   variables:
-    - GITHUB_TOKEN: $(GITHUB_TOKEN)
+    - name: GITHUB_TOKEN
+      value: $(GITHUB_TOKEN)
   steps:
   - ${{ parameters.powershellExecutable }}: |
         Install-Module -Name 'Microsoft.PowerShell.SecretManagement' -force -SkipPublisherCheck -AllowClobber
