@@ -11,6 +11,8 @@ jobs:
   pool:
     vmImage: ${{ parameters.imageName }}
   displayName: ${{ parameters.displayName }}
+  variables:
+    - GITHUB_TOKEN: $(GITHUB_TOKEN)
   steps:
   - ${{ parameters.powershellExecutable }}: |
         Install-Module -Name 'Microsoft.PowerShell.SecretManagement' -force -SkipPublisherCheck -AllowClobber
@@ -96,38 +98,13 @@ jobs:
     condition: eq(${{ parameters.useAzAuth }}, false)
 
   - pwsh: |
-      # $version = '${{ parameters.DSCVersion }}'
-      # $packageName = "DSC-$version"
-      # $ext = 'tar.gz'
-      # $executableName = 'dsc'
-      # $executableExt = if ($IsWindows) { '.exe' } else { '' }
-
-      # $uri = if ($IsWindows) {
-      #   $ext = 'zip'
-      #   "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-pc-windows-msvc.zip"
-      # } elseif ($IsLinux) {
-      #   "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-linux.tar.gz"
-      # }
-      # elseif ($IsMacOS) {
-      #   "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-apple-darwin.tar.gz"
-
-      # }
-      # else {
-      #   throw "Unsupported OS platform"
-      # }
-
-      # $destPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath "$packageName.$ext"
-
-      # Write-Verbose -Verbose "Downloading DSC v3 from $uri to $destPath"
-
-      # Invoke-WebRequest -Uri $uri -OutFile $destPath
-
       $repo = "PowerShell/DSC"
       $api  = "https://api.github.com/repos/$repo/releases"
 
       $headers = @{
           "User-Agent" = "pwsh"
           "Accept"     = "application/vnd.github+json"
+          "Authorization" = "Bearer $env:GITHUB_TOKEN"
       }
 
       # Get releases
@@ -194,6 +171,8 @@ jobs:
       Write-Host "##$vstsCommandString"
 
     displayName: 'Install latest DSC v3'
+    env:
+      GITHUB_TOKEN: $(GITHUB_TOKEN)
 
   - pwsh: |
       Get-ChildItem -Path env: | Out-String -width 9999 -Stream | Write-Verbose -Verbose
