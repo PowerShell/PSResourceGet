@@ -5,7 +5,6 @@ parameters:
   powershellExecutable: pwsh
   buildDirectory: '.'
   useAzAuth: false
-  DSCVersion: '3.2.0-rc.1'
 
 jobs:
 - job: ${{ parameters.jobName }}
@@ -97,38 +96,88 @@ jobs:
     condition: eq(${{ parameters.useAzAuth }}, false)
 
   - pwsh: |
-      $version = '${{ parameters.DSCVersion }}'
-      $packageName = "DSC-$version"
-      $ext = 'tar.gz'
-      $executableName = 'dsc'
-      $executableExt = if ($IsWindows) { '.exe' } else { '' }
+      # $version = '${{ parameters.DSCVersion }}'
+      # $packageName = "DSC-$version"
+      # $ext = 'tar.gz'
+      # $executableName = 'dsc'
+      # $executableExt = if ($IsWindows) { '.exe' } else { '' }
 
-      $uri = if ($IsWindows) {
-        $ext = 'zip'
-        "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-pc-windows-msvc.zip"
-      } elseif ($IsLinux) {
-        "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-linux.tar.gz"
+      # $uri = if ($IsWindows) {
+      #   $ext = 'zip'
+      #   "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-pc-windows-msvc.zip"
+      # } elseif ($IsLinux) {
+      #   "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-linux.tar.gz"
+      # }
+      # elseif ($IsMacOS) {
+      #   "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-apple-darwin.tar.gz"
+
+      # }
+      # else {
+      #   throw "Unsupported OS platform"
+      # }
+
+      # $destPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath "$packageName.$ext"
+
+      # Write-Verbose -Verbose "Downloading DSC v3 from $uri to $destPath"
+
+      # Invoke-WebRequest -Uri $uri -OutFile $destPath
+
+      $repo = "PowerShell/DSC"
+      $api  = "https://api.github.com/repos/$repo/releases"
+
+      $headers = @{
+          "User-Agent" = "pwsh"
+          "Accept"     = "application/vnd.github+json"
       }
-      elseif ($IsMacOS) {
-        "https://github.com/PowerShell/DSC/releases/download/v$version/DSC-$version-x86_64-apple-darwin.tar.gz"
 
-      }
-      else {
-        throw "Unsupported OS platform"
-      }
+      # Get releases
+      $releases = Invoke-RestMethod -Uri $api -Headers $headers
 
-      $destPath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath "$packageName.$ext"
+      # Pick latest by publish date (handles prerelease vs stable automatically)
+      $latest = $releases |
+          Sort-Object published_at -Descending |
+          Select-Object -First 1
 
-      Write-Verbose -Verbose "Downloading DSC v3 from $uri to $destPath"
-
-      Invoke-WebRequest -Uri $uri -OutFile $destPath
+      Write-Host "Latest version: $($latest.tag_name) (prerelease=$($latest.prerelease))"
 
       if ($IsWindows) {
-        Expand-Archive -Path $destPath -DestinationPath $env:AGENT_TEMPDIRECTORY -Force -Verbose
+          $assetFilter = "windows-msvc"   # adjust as needed
+      }
+      elseif ($IsMacOs) {
+          $assetFilter = "apple-darwin"   # adjust as needed
       }
       else {
-        tar -xzf $destPath -C $env:AGENT_TEMPDIRECTORY
+          $assetFilter = "linux"   # adjust as needed
       }
+
+      $assets = $latest.assets |
+          Where-Object { $_.name -match $assetFilter }
+
+      Write-Host "Filtered assets: $($assets.Count)"
+
+      $selectedAsset = $assets | Select-Object -First 1
+
+      Write-Host "Selected asset: $($selectedAsset.name)"
+
+      $outFile = Join-Path $PWD $selectedAsset.name
+
+      Write-Host "Downloading $($selectedAsset.name)"
+
+      Invoke-WebRequest `
+          -Uri $selectedAsset.browser_download_url `
+          -Headers @{ "User-Agent"="pwsh" } `
+          -OutFile $outFile
+
+
+      if ($IsWindows) {
+        Expand-Archive -Path $outFile -DestinationPath $env:AGENT_TEMPDIRECTORY -Force -Verbose
+      }
+      else {
+        tar -xzf $outFile -C $env:AGENT_TEMPDIRECTORY
+      }
+
+      $executableName = 'dsc'
+      $executableExt = if ($IsWindows) { '.exe' } else { '' }
 
       $executableFileName = $executableName + $executableExt
 
