@@ -141,13 +141,13 @@ jobs:
       Write-Host "Latest version: $($latest.tag_name) (prerelease=$($latest.prerelease))"
 
       if ($IsWindows) {
-          $assetFilter = "windows-msvc"   # adjust as needed
+          $assetFilter = "x86_64-pc-windows-msvc"
       }
       elseif ($IsMacOs) {
-          $assetFilter = "apple-darwin"   # adjust as needed
+          $assetFilter = "x86_64-apple-darwin"
       }
       else {
-          $assetFilter = "linux"   # adjust as needed
+          $assetFilter = "x86_64-linux"
       }
 
       $assets = $latest.assets |
