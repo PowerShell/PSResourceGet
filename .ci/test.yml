@@ -131,7 +131,7 @@ jobs:
       }
 
       # Get releases
-      $releases = Invoke-RestMethod -Uri $api -Headers $headers -RetryIntervalSec 10 -MaximumRetryCount 3
+      $releases = Invoke-RestMethod -Uri $api -Headers $headers -RetryIntervalSec 30 -MaximumRetryCount 10
 
       # Pick latest by publish date (handles prerelease vs stable automatically)
       $latest = $releases |
