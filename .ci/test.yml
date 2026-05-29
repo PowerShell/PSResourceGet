@@ -12,8 +12,7 @@ jobs:
     vmImage: ${{ parameters.imageName }}
   displayName: ${{ parameters.displayName }}
   variables:
-    - name: GITHUB_TOKEN
-      value: $(GITHUB_TOKEN)
+  - group: InstallDSC
   steps:
   - ${{ parameters.powershellExecutable }}: |
         Install-Module -Name 'Microsoft.PowerShell.SecretManagement' -force -SkipPublisherCheck -AllowClobber
