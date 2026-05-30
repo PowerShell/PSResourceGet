@@ -1206,9 +1206,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (currentPkg.Dependencies.Length > 0)
             {
-                // If finding more than 5 packages, do so concurrently
-                //const int PARALLEL_THRESHOLD = 5; // TODO: Trottle limit from user, defaults to 5; 
                 int processorCount = Environment.ProcessorCount;
+                // Use parallel dependency resolution for V2 repositories when the dependency count exceeds the processor count.
                 int parallelThreshold = InternalHooks.FindDependencyPackagesParallelThreshold >= 0 ? InternalHooks.FindDependencyPackagesParallelThreshold : processorCount;
                 int maxDegreeOfParallelism = processorCount * 4;
                 if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2 && currentPkg.Dependencies.Length > parallelThreshold)
