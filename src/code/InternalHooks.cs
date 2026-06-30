@@ -17,6 +17,8 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         internal static string MARPrefix;
 
+        internal static int FindDependencyPackagesParallelThreshold = -1;
+
         public static void SetTestHook(string property, object value)
         {
             var fieldInfo = typeof(InternalHooks).GetField(property, BindingFlags.Static | BindingFlags.NonPublic);

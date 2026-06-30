@@ -121,7 +121,14 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         #    TestModuleWithDependencyB >= 1.0.0.0
         #    TestModuleWithDependencyD <= 1.0.0.0
 
-        $resWithDependencies = Find-PSResource -Name "TestModuleWithDependencyE" -IncludeDependencies -Repository $PSGalleryName
+        try {
+            [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("FindDependencyPackagesParallelThreshold", 0)
+            $resWithDependencies = Find-PSResource -Name "TestModuleWithDependencyE" -IncludeDependencies -Repository $PSGalleryName
+        }
+        finally {
+            [Microsoft.PowerShell.PSResourceGet.UtilClasses.InternalHooks]::SetTestHook("FindDependencyPackagesParallelThreshold", -1)
+        }
+
         $resWithDependencies | Should -HaveCount 4
 
         $foundParentPkgE = $false
