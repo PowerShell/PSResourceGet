@@ -127,7 +127,6 @@ function DoBuild
                 'System.ClientModel'
                 'System.Diagnostics.DiagnosticSource'
                 'System.Formats.Asn1'
-                'System.IO.FileSystem.AccessControl'
                 'System.IO.Pipelines'
                 'System.Memory.Data'
                 'System.Memory'
