@@ -89,14 +89,43 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Overridden Methods
 
+        /// <summary>
+        /// Async find method which allows for searching for single name with specific version.
+        /// Name: no wildcard support
+        /// Version: no wildcard support
+        /// Examples: Search "NuGet.Server.Core" "3.0.0-beta"
+        /// This is the concurrent (parallel) counterpart of FindVersion().
+        /// </summary>
         public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            throw new NotImplementedException("FindVersionAsync is not implemented for V3ServerAPICalls.");
+            debugMsgs.Enqueue("In V3ServerAPICalls::FindVersionAsync()");
+            FindResults findResponse = FindVersionHelper(packageName, version, tags: Utils.EmptyStrArray, type, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+            }
+
+            return Task.FromResult(findResponse);
         }
 
+        /// <summary>
+        /// Async find method which allows for searching for single name with version range.
+        /// Name: no wildcard support
+        /// Version: supports wildcards
+        /// Examples: Search "NuGet.Server.Core" "[1.0.0.0, 5.0.0.0]"
+        ///           Search "NuGet.Server.Core" "3.*"
+        /// This is the concurrent (parallel) counterpart of FindVersionGlobbing().
+        /// </summary>
         public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            throw new NotImplementedException("FindVersionAsync is not implemented for V3ServerAPICalls.");
+            debugMsgs.Enqueue("In V3ServerAPICalls::FindVersionGlobbingAsync()");
+            FindResults findResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, getOnlyLatest, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+            }
+
+            return Task.FromResult(findResponse);
         }
 
         /// <summary>
@@ -166,9 +195,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return FindNameHelper(packageName, tags: Utils.EmptyStrArray, includePrerelease, type, out errRecord);
         }
 
+        /// <summary>
+        /// Async find method which allows for searching for single name and returns latest version.
+        /// Name: no wildcard support
+        /// Examples: Search "Newtonsoft.Json"
+        /// This is the concurrent (parallel) counterpart of FindName().
+        /// </summary>
         public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            throw new NotImplementedException("FindVersionAsync is not implemented for V3ServerAPICalls.");
+            debugMsgs.Enqueue("In V3ServerAPICalls::FindNameAsync()");
+            FindResults findResponse = FindNameHelper(packageName, tags: Utils.EmptyStrArray, includePrerelease, type, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+            }
+
+            return Task.FromResult(findResponse);
         }
 
         /// <summary>
@@ -239,6 +281,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
+            // TODO: pass in ConcurrentQueue for debug messages so this is thread-safe when called from FindVersionGlobbingAsync().
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindVersionGlobbing()");
             string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, catalogEntryProperty, isSearch: true, out errRecord);
             if (errRecord != null)
@@ -267,6 +310,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion) && versionRange.Satisfies(pkgVersion))
                         {
+                            // TODO: pass in ConcurrentQueue for debug messages so this is thread-safe when called from FindVersionGlobbingAsync(). ?
                             _cmdletPassedIn.WriteDebug($"Package version parsed as '{pkgVersion}' satisfies the version range");
                             if (!pkgVersion.IsPrerelease || includePrerelease)
                             {
@@ -353,9 +397,34 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Examples: Install "PowerShellGet" -Version "3.5.0-alpha"
         ///           Install "PowerShellGet" -Version "3.0.0"
         /// </summary>
-        public override Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        public override async Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            throw new NotImplementedException("InstallPackageAsync is not implemented for NuGetServerAPICalls.");
+            debugMsgs.Enqueue("In V3ServerAPICalls::InstallPackageAsync()");
+            Stream results = new MemoryStream();
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    exception: new ArgumentNullException($"Package version could not be found for {packageName}"),
+                    "PackageVersionNullOrEmptyError",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
+                return results;
+            }
+
+            if (!NuGetVersion.TryParse(packageVersion, out NuGetVersion requiredVersion))
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ArgumentException($"Version {packageVersion} to be installed is not a valid NuGet version."),
+                    "InstallVersionFailure",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
+                return results;
+            }
+
+            results = await InstallHelperAsync(packageName, requiredVersion, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+            return results;
         }
 
         #endregion
@@ -514,6 +583,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         private FindResults FindNameHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
+            // TODO: pass in ConcurrentQueue for debug messages so this is thread-safe when called from FindNameAsync(). ?
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameHelper()");
             string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, catalogEntryProperty, isSearch: true, out errRecord);
             if (errRecord != null)
@@ -553,6 +623,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
                         {
+                            // ?
                             _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
                             if (!pkgVersion.IsPrerelease || includePrerelease)
                             {
@@ -610,6 +681,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private FindResults FindVersionHelper(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
         {
+            // TODO: pass in ConcurrentQueue for debug messages so this is thread-safe when called from FindVersionAsync(). ?
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindVersionHelper()");
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
@@ -621,7 +693,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
-            _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{requiredVersion}'");
+            //_cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{requiredVersion}'");
 
             string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, catalogEntryProperty, isSearch: true, out errRecord);
             if (errRecord != null)
@@ -828,6 +900,88 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             return content.ReadAsStreamAsync().GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Helper method that is called by InstallPackageAsync()
+        /// For InstallName() we want latest version installed (so version parameter passed in will be null), for InstallVersion() we want specified, non-null version installed.
+        /// This is the async counterpart of InstallHelper() used for concurrent (parallel) installation workflows.
+        /// </summary>
+        private async Task<Stream> InstallHelperAsync(string packageName, NuGetVersion version, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            debugMsgs.Enqueue("In V3ServerAPICalls::InstallHelperAsync()");
+            Stream pkgStream = null;
+            bool getLatestVersion = true;
+            if (version != null)
+            {
+                getLatestVersion = false;
+            }
+
+            string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, packageContentProperty, isSearch: false, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+                return pkgStream;
+            }
+
+            if (versionedResponses.Length == 0)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new Exception($"Package with name '{packageName}' and version '{version}' could not be found in repository '{Repository.Name}'"),
+                    "InstallFailure",
+                    ErrorCategory.InvalidResult,
+                    this));
+
+                return null;
+            }
+
+            string pkgContentUrl = String.Empty;
+            if (getLatestVersion)
+            {
+                pkgContentUrl = versionedResponses[0];
+            }
+            else
+            {
+                // loop through responses to find one containing required version
+                foreach (string response in versionedResponses)
+                {
+                    // Response will be "packageContent" element value that looks like: "{packageBaseAddress}/{packageName}/{normalizedVersion}/{packageName}.{normalizedVersion}.nupkg"
+                    // Ex: https://api.nuget.org/v3-flatcontainer/test_module/1.0.0/test_module.1.0.0.nupkg
+                    if (response.Contains(version.ToNormalizedString()))
+                    {
+                        pkgContentUrl = response;
+                        break;
+                    }
+                }
+            }
+
+            if (String.IsNullOrEmpty(pkgContentUrl))
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new Exception($"Package with name '{packageName}' and version '{version}' could not be found in repository '{Repository.Name}'"),
+                    "InstallFailure",
+                    ErrorCategory.InvalidResult,
+                    this));
+
+                return null;
+            }
+
+            var content = await HttpRequestCallForContentAsync(pkgContentUrl, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+
+            if (content is null)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new Exception($"No content was returned by repository '{Repository.Name}'"),
+                    "InstallFailureContentNullv3Async",
+                    ErrorCategory.InvalidResult,
+                    this));
+
+                return new MemoryStream();
+            }
+
+            pkgStream = await content.ReadAsStreamAsync();
+
+            return pkgStream;
         }
 
         /// <summary>
@@ -1060,6 +1214,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private JsonElement[] GetMetadataElementFromIdLinkElement(JsonElement idLinkElement, string packageName, out string upperVersion, out ErrorRecord errRecord)
         {
+            // TODO: pass in ConcurrentQueue to write out debug message. Called from the concurrent install metadata chain so cmdlet methods cannot be used here. ?
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetMetadataElementFromIdLinkElement()");
             upperVersion = String.Empty;
             JsonElement[] innerItems = new JsonElement[]{};
@@ -1102,6 +1257,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                     else
                     {
+                        // TODO: pass in ConcurrentQueue to write out debug message. Called from the concurrent install metadata chain so cmdlet methods cannot be used here. ?
                         _cmdletPassedIn.WriteDebug($"Package with name '{packageName}' did not have 'upper' property so package versions may not be in descending order.");
                     }
 
@@ -1228,6 +1384,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                         else
                         {
+                            // TODO: pass in ConcurrentQueue to write out debug message. Called from the concurrent install metadata chain so cmdlet methods cannot be used here. ?
                             _cmdletPassedIn.WriteDebug($"Metadata for package with name '{packageName}' did not have inner 'items' or '@Id' properties.");
                         }
                     }
@@ -1267,6 +1424,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         }
                         else
                         {
+                            // TODO: pass in ConcurrentQueue to write out debug message. Called from the concurrent install metadata chain so cmdlet methods cannot be used here. ?
                             _cmdletPassedIn.WriteDebug($"Metadata for package with name '{packageName}' was not of value kind type string or object.");
                         }
                     }
@@ -1355,6 +1513,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private bool IsLatestVersionFirstForSearch(string[] versionedResponses, out ErrorRecord errRecord)
         {
+            // TODO: pass in ConcurrentQueue for debug messages so this is thread-safe when reached from the async find methods. ?
             _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForSearch()");
             errRecord = null;
             bool latestVersionFirst = true;
@@ -1670,6 +1829,40 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 // TODO: pass in ConcurrentQueue to write out debug message.
                 //_cmdletPassedIn.WriteDebug("Response is empty");
+            }
+
+            return content;
+        }
+
+        /// <summary>
+        /// Helper method that makes the HTTP request for the V3 server protocol url passed in for install APIs asynchronously.
+        /// This is the async counterpart of HttpRequestCallForContent() used for concurrent (parallel) installation workflows.
+        /// </summary>
+        private async Task<HttpContent> HttpRequestCallForContentAsync(string requestUrlV3, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            debugMsgs.Enqueue("In V3ServerAPICalls::HttpRequestCallForContentAsync()");
+            HttpContent content = null;
+            try
+            {
+                debugMsgs.Enqueue($"Request url is '{requestUrlV3}'");
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV3);
+
+                content = await SendV3RequestForContentAsync(request, _sessionClient);
+            }
+            catch (Exception e)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    exception: e,
+                    "HttpRequestCallForContentFailure",
+                    ErrorCategory.InvalidResult,
+                    this));
+
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(content?.ToString()))
+            {
+                debugMsgs.Enqueue("Response is empty");
             }
 
             return content;

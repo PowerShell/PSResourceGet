@@ -49,14 +49,40 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Overridden Methods
 
+        /// <summary>
+        /// Async find method which allows for searching for single name with specific version.
+        /// Name: no wildcard support
+        /// Version: no wildcard support
+        /// This is the concurrent (parallel) counterpart of FindVersion().
+        /// </summary>
         public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            throw new NotImplementedException("FindVersionAsync is not implemented for NuGetServerAPICalls.");
+            debugMsgs.Enqueue("In NuGetServerAPICalls::FindVersionAsync()");
+            FindResults findResponse = FindVersion(packageName, version, type, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+            }
+
+            return Task.FromResult(findResponse);
         }
 
+        /// <summary>
+        /// Async find method which allows for searching for single name with version range.
+        /// Name: no wildcard support
+        /// Version: supports wildcards
+        /// This is the concurrent (parallel) counterpart of FindVersionGlobbing().
+        /// </summary>
         public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            throw new NotImplementedException("FindVersionGlobbingAsync is not implemented for NuGetServerAPICalls.");
+            debugMsgs.Enqueue("In NuGetServerAPICalls::FindVersionGlobbingAsync()");
+            FindResults findResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, getOnlyLatest, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+            }
+
+            return Task.FromResult(findResponse);
         }
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
@@ -193,9 +219,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
         }
 
+        /// <summary>
+        /// Async find method which allows for searching for single name and returns latest version.
+        /// Name: no wildcard support
+        /// This is the concurrent (parallel) counterpart of FindName().
+        /// </summary>
         public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            throw new NotImplementedException("FindNameAsync is not implemented for NuGetServerAPICalls.");
+            debugMsgs.Enqueue("In NuGetServerAPICalls::FindNameAsync()");
+            FindResults findResponse = FindName(packageName, includePrerelease, type, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+            }
+
+            return Task.FromResult(findResponse);
         }
 
         /// <summary>
@@ -471,7 +509,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            throw new NotImplementedException("InstallPackageAsync is not implemented for NuGetServerAPICalls.");
+            debugMsgs.Enqueue("In NuGetServerAPICalls::InstallPackageAsync()");
+            Stream results = InstallPackage(packageName, packageVersion, includePrerelease, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+            }
+
+            return Task.FromResult(results);
         }
 
         /// <summary>
