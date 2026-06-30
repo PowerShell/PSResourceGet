@@ -142,6 +142,16 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
         }
     }
 
+    It 'Get operation without --input exits with a non-zero code and does not produce an unhandled exception' {
+        $output = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/Repository -o json 2>&1
+        $outputText = $output | Out-String
+        $LASTEXITCODE | Should -Not -Be 0
+        $outputText | Should -Match '--input'
+        $outputText | Should -Match 'required'
+        $outputText | Should -Not -Match 'Cannot bind argument to parameter'
+        $outputText | Should -Not -Match 'Unhandled exception'
+    }
+
     It 'Can delete a Repository resource instance' {
         # First, create a repository to delete
         Register-PSResourceRepository -Name 'TestRepoToDelete' -uri 'https://www.doesnotexist.com' -ErrorAction SilentlyContinue -APIVersion Local
