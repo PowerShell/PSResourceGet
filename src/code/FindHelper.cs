@@ -904,15 +904,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0"
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0" -Tag "Windows"
                         _cmdletPassedIn.WriteDebug("Exact version and package name are specified");
-
+                        string key = string.Empty;
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
-
-                        
                             ConcurrentDictionary<string, Task<FindResults>> cachedNetworkCalls = new ConcurrentDictionary<string, Task<FindResults>>();
                             Task<FindResults> response = null;
-                            string key = $"{pkgName}|{_nugetVersion.ToNormalizedString()}|{_type}";
+                            key = $"{pkgName}|{_nugetVersion.ToNormalizedString()}|{_type}";
                             response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(pkgName, _nugetVersion.ToNormalizedString(), _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
                 
                             responses = response.GetAwaiter().GetResult();
@@ -1318,7 +1316,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     string pkgVersion = FormatPkgVersionString(depPkg);
                     debugMsgs.Enqueue($"Found dependency '{depPkg.Name}' version '{pkgVersion}'");
-                    string key = $"{depPkg.Name}{pkgVersion}";
+                    key = $"{depPkg.Name}{pkgVersion}";
                     if (!depPkgsFound.ContainsKey(key))
                     {
                         // Add pkg to collection of packages found then find dependencies
@@ -1386,7 +1384,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     string pkgVersion = FormatPkgVersionString(depPkg);
                     debugMsgs.Enqueue($"Found dependency '{depPkg.Name}' version '{pkgVersion}'");
-                    string key = $"{depPkg.Name}{pkgVersion}";
+                    key = $"{depPkg.Name}{pkgVersion}";
                     if (!depPkgsFound.ContainsKey(key))
                     {
                         // Add pkg to collection of packages found then find dependencies
@@ -1457,7 +1455,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     string pkgVersion = FormatPkgVersionString(depPkg);
                     debugMsgs.Enqueue($"Found dependency '{depPkg.Name}' version '{pkgVersion}'");
-                    string key = $"{depPkg.Name}{pkgVersion}";
+                    key = $"{depPkg.Name}{pkgVersion}";
                     if (!depPkgsFound.ContainsKey(key))
                     {
                         // Add pkg to collection of packages found then find dependencies
