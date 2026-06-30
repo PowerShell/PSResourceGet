@@ -355,7 +355,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return;
                 }
 
-                bool isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(repository.Uri);
+                bool isAllowed = true;
+
+                if (OperatingSystem.IsWindows())
+                {
+                    isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(repository.Uri);
+                }
 
                 if (!isAllowed)
                 {

@@ -49,7 +49,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         // Creates a new instance of depPkgsFound each time FindDependencyPackages() is called.
         // This will eventually return the PSResourceInfo object to the main cmdlet class.
         private ConcurrentDictionary<string, PSResourceInfo> depPkgsFound;
-        
+
         // Contains the latest found version of a particular package.
         private ConcurrentDictionary<string, PSResourceInfo> _knownLatestPkgVersion;
 
@@ -209,7 +209,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
 
-                bool isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+                bool isAllowed = true;
+                if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                {
+                    isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+                }
 
                 if (!isAllowed)
                 {
@@ -397,7 +401,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
 
-                bool isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+                bool isAllowed = true;
+
+                if (OperatingSystem.IsWindows())
+                {
+                    isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+                }
 
                 if (!isAllowed)
                 {
@@ -604,7 +613,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 PSRepositoryInfo currentRepository = repositoriesToSearch[i];
 
-                bool isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+
+                bool isAllowed = true;
+                if (OperatingSystem.IsWindows())
+                {
+                    isAllowed = GroupPolicyRepositoryEnforcement.IsRepositoryAllowed(currentRepository.Uri);
+                }
 
                 if (!isAllowed)
                 {
@@ -726,7 +740,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         _cmdletPassedIn.WriteDebug("No version specified, package name is '*'");
                         // Example: Find-PSResource -Name "*"
 
-                        // Note: Just for resources from V2 servers, specifically PSGallery, if the resource is unlisted and was requested non-explicitly 
+                        // Note: Just for resources from V2 servers, specifically PSGallery, if the resource is unlisted and was requested non-explicitly
                         // (i.e requested name has wildcard) the resource should not be returned and ResponseUtil.ConvertToPSResourceResult() call needs to be informed of this.
                         // In all other cases, return the resource regardless of whether it was requested explicitly or not.
                         bool isResourceRequestedWithWildcard = isV2Resource;
@@ -776,7 +790,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az*" -Tag "Storage"
                         _cmdletPassedIn.WriteDebug("No version specified, package name contains a wildcard.");
 
-                        // Note: Just for resources from V2 servers, specifically PSGallery, if the resource is unlisted and was requested non-explicitly 
+                        // Note: Just for resources from V2 servers, specifically PSGallery, if the resource is unlisted and was requested non-explicitly
                         // (i.e requested name has wildcard) the resource should not be returned and ResponseUtil.ConvertToPSResourceResult() call needs to be informed of this.
                         // In all other cases, return the resource regardless of whether it was requested explicitly or not.
                         bool isResourceRequestedWithWildcard = isV2Resource;
@@ -909,18 +923,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         if (_tag.Length == 0)
                         {
 
-                        
+
                             ConcurrentDictionary<string, Task<FindResults>> cachedNetworkCalls = new ConcurrentDictionary<string, Task<FindResults>>();
                             Task<FindResults> response = null;
-                            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2) {       
+                            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2) {
                                 string key = $"{pkgName}|{_nugetVersion.ToNormalizedString()}|{_type}";
                                 response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(pkgName, _nugetVersion.ToNormalizedString(), _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
-                    
+
                                 responses = response.GetAwaiter().GetResult();
 
                                 Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                             }
-                            else {         
+                            else {
                                 responses = currentServer.FindVersion(pkgName, _nugetVersion.ToNormalizedString(), _type, out errRecord);
                             }
                         }
@@ -996,14 +1010,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         {
                             ConcurrentDictionary<string, Task<FindResults>> cachedNetworkCalls = new ConcurrentDictionary<string, Task<FindResults>>();
                             Task<FindResults> response = null;
-                            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2) {       
+                            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2) {
                                 string key = $"{pkgName}|{_versionRange.ToString()}|{_type}";
                                 response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
-                                
+
                                 responses = response.GetAwaiter().GetResult();
                             }
-                            else {         
-                               responses = currentServer.FindVersionGlobbing(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, out errRecord);    
+                            else {
+                               responses = currentServer.FindVersionGlobbing(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, out errRecord);
                             }
                         }
                         else
@@ -1098,11 +1112,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         private bool TryAddToPackagesFound(PSResourceInfo foundPkg)
-        {            
+        {
             // This handles prerelease versions as well.
             bool addedToHash = false;
             string foundPkgName = foundPkg.Name;
-            string foundPkgVersion = FormatPkgVersionString(foundPkg); 
+            string foundPkgVersion = FormatPkgVersionString(foundPkg);
 
             if (_packagesFound.ContainsKey(foundPkgName))
             {
@@ -1115,7 +1129,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         foundPkgVersion
                     };
                     _packagesFound.TryUpdate(foundPkgName, newPkgVersions, pkgVersions);
-                    
+
                     addedToHash = true;
                 }
             }
@@ -1168,13 +1182,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         internal IEnumerable<PSResourceInfo> FindDependencyPackages(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository)
         {
             depPkgsFound = new ConcurrentDictionary<string, PSResourceInfo>();
-            _cmdletPassedIn.WriteDebug($"In FindHelper::FindDependencyPackages() - {currentPkg.Name}");            
-            FindDependencyPackagesHelper(currentServer, currentResponseUtil, currentPkg, repository); 
+            _cmdletPassedIn.WriteDebug($"In FindHelper::FindDependencyPackages() - {currentPkg.Name}");
+            FindDependencyPackagesHelper(currentServer, currentResponseUtil, currentPkg, repository);
 
             return depPkgsFound.Values.ToList();
         }
 
-        // Method 2 
+        // Method 2
         internal void FindDependencyPackagesHelper(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository)
         {
             ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
@@ -1186,7 +1200,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (currentPkg.Dependencies.Length > 0)
             {
                 // If finding more than 5 packages, do so concurrently
-                //const int PARALLEL_THRESHOLD = 5; // TODO: Trottle limit from user, defaults to 5; 
+                //const int PARALLEL_THRESHOLD = 5; // TODO: Trottle limit from user, defaults to 5;
                 int processorCount = Environment.ProcessorCount;
                 int maxDegreeOfParallelism = processorCount * 4;
                 if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2 && currentPkg.Dependencies.Length > processorCount)
@@ -1212,12 +1226,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         // Method 3
         private void FindDependencyPackageVersion(
-            Dependency dep, 
-            ServerApiCall currentServer, 
-            ResponseUtil currentResponseUtil, 
-            PSResourceInfo currentPkg, 
-            PSRepositoryInfo repository, 
-            ConcurrentQueue<ErrorRecord> errorMsgs, 
+            Dependency dep,
+            ServerApiCall currentServer,
+            ResponseUtil currentResponseUtil,
+            PSResourceInfo currentPkg,
+            PSRepositoryInfo repository,
+            ConcurrentQueue<ErrorRecord> errorMsgs,
             ConcurrentQueue<string> warningMsgs,
             ConcurrentQueue<string> debugMsgs,
             ConcurrentQueue<string> verboseMsgs)
@@ -1231,6 +1245,58 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // Check if the latest version is cached
                     if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedDepPkg))
                     {
+                        string depPkgVersion = dep.VersionRange.MaxVersion.OriginalVersion;
+                        FindResults responses = currentServer.FindVersion(dep.Name, version: dep.VersionRange.MaxVersion.ToNormalizedString(), _type, out ErrorRecord errRecord);
+                        if (errRecord != null)
+                        {
+                            if (errRecord.Exception is ResourceNotFoundException)
+                            {
+                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
+                            }
+                            else
+                            {
+                                _cmdletPassedIn.WriteError(errRecord);
+                            }
+                            return;
+                        }
+
+                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
+                        if (currentResult == null)
+                        {
+                            // This scenario may occur when the package version requested is unlisted.
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version '{depPkgVersion}' could not be found in repository '{repository.Name}'"),
+                                "DependencyPackageNotFound",
+                                ErrorCategory.ObjectNotFound,
+                                this));
+                            return;
+                        }
+
+                        if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
+                        {
+                            _cmdletPassedIn.WriteError(new ErrorRecord(
+                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version '{depPkgVersion}' could not be found in repository '{repository.Name}'", currentResult.exception),
+                                "DependencyPackageNotFound",
+                                ErrorCategory.ObjectNotFound,
+                                this));
+                            return;
+                        }
+
+                        depPkg = currentResult.returnedObject;
+
+                        if (!_packagesFound.ContainsKey(depPkg.Name))
+                        {
+                            FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                        }
+                        else
+                        {
+                            List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
+                            // _packagesFound has depPkg.name in it, but the version is not the same
+                            if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
+                            {
+                                FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                            }
+                        }
                         verboseMsgs.Enqueue($"Dependency '{dep.Name}', with no upper bound version, was found in cache");
                         depPkg = cachedDepPkg;
                     }
@@ -1258,7 +1324,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
             else
-            {                
+            {
                 // Case 3: Version range with an upper bound, eg: "(1.0.0, 3.0.0)"
                 // Check if the latest version is cached, and if this latest version is the version we're looking for
                 if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedRangePkg) &&
@@ -1277,12 +1343,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         // Method 4
         private PSResourceInfo FindDependencyWithSpecificVersion(
-            Dependency dep, 
-            ServerApiCall currentServer, 
-            ResponseUtil currentResponseUtil, 
-            PSResourceInfo currentPkg, 
-            PSRepositoryInfo repository, 
-            ConcurrentQueue<ErrorRecord> errorMsgs, 
+            Dependency dep,
+            ServerApiCall currentServer,
+            ResponseUtil currentResponseUtil,
+            PSResourceInfo currentPkg,
+            PSRepositoryInfo repository,
+            ConcurrentQueue<ErrorRecord> errorMsgs,
             ConcurrentQueue<string> warningMsgs,
             ConcurrentQueue<string> debugMsgs,
             ConcurrentQueue<string> verboseMsgs)
@@ -1299,7 +1365,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
                 debugMsgs.Enqueue("Checking if network call is cached.");
                 response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
-                
+
                 responses = response.GetAwaiter().GetResult();
             }
             else
@@ -1353,15 +1419,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         // Method 5
         private PSResourceInfo FindDependencyWithLowerBound(
-            Dependency dep, 
-            ServerApiCall currentServer, 
-            ResponseUtil currentResponseUtil, 
-            PSResourceInfo currentPkg, 
-            PSRepositoryInfo repository, 
-            ConcurrentQueue<ErrorRecord> errorMsgs, 
+            Dependency dep,
+            ServerApiCall currentServer,
+            ResponseUtil currentResponseUtil,
+            PSResourceInfo currentPkg,
+            PSRepositoryInfo repository,
+            ConcurrentQueue<ErrorRecord> errorMsgs,
             ConcurrentQueue<string> warningMsgs,
             ConcurrentQueue<string> debugMsgs,
-            ConcurrentQueue<string> verboseMsgs) 
+            ConcurrentQueue<string> verboseMsgs)
         {
             PSResourceInfo depPkg = null;
             FindResults responses = null;
@@ -1375,7 +1441,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string key = $"{dep.Name}|*|{_type}";
                 debugMsgs.Enqueue("Checking if network call is cached.");
                 response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindNameAsync(dep.Name, includePrerelease: true, _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
-                
+
                 responses = response.GetAwaiter().GetResult();
             }
             else
@@ -1428,12 +1494,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         // Method 6
         private PSResourceInfo FindDependencyWithUpperBound(
-            Dependency dep, 
-            ServerApiCall currentServer, 
-            ResponseUtil currentResponseUtil, 
-            PSResourceInfo currentPkg, 
-            PSRepositoryInfo repository, 
-            ConcurrentQueue<ErrorRecord> errorMsgs, 
+            Dependency dep,
+            ServerApiCall currentServer,
+            ResponseUtil currentResponseUtil,
+            PSResourceInfo currentPkg,
+            PSRepositoryInfo repository,
+            ConcurrentQueue<ErrorRecord> errorMsgs,
             ConcurrentQueue<string> warningMsgs,
             ConcurrentQueue<string> debugMsgs,
             ConcurrentQueue<string> verboseMsgs)
@@ -1501,7 +1567,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                 }
             }
-            
+
             return depPkg;
         }
 
