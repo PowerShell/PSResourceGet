@@ -21,7 +21,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             "System.Threading.Tasks.Extensions",
             "System.Runtime.CompilerServices.Unsafe",
             "System.Memory",
-            "System.Diagnostics.DiagnosticSource",
             "System.Text.Json",
             "System.Security.Cryptography.ProtectedData"
         };

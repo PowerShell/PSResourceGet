@@ -119,7 +119,6 @@ function DoBuild
                 'NuGet.Versioning'
                 'OrasProject.Oras'
                 'System.ClientModel'
-                'System.Diagnostics.DiagnosticSource'
                 'System.IO.FileSystem.AccessControl'
                 'System.Memory.Data'
                 'System.Security.Cryptography.ProtectedData'
