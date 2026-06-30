@@ -118,7 +118,6 @@ function DoBuild
                 'NuGet.Protocol'
                 'NuGet.Versioning'
                 'OrasProject.Oras'
-                'System.Buffers'
                 'System.ClientModel'
                 'System.Diagnostics.DiagnosticSource'
                 'System.IO.FileSystem.AccessControl'
