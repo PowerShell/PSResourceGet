@@ -29,14 +29,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         #region Members
 
         private readonly string PSGalleryRepoName = "PSGallery";
+        private readonly string MicrosoftArtifactRegistryRepoName = "MicrosoftArtifactRegistry";
+        private readonly string MicrosoftArtifactRegistryRepoUri = "https://mcr.microsoft.com";
         private readonly string PSGalleryRepoUri = "https://www.powershellgallery.com/api/v2";
         private const int DefaultPriority = 50;
         private const bool DefaultTrusted = false;
+        private const bool MARDefaultTrusted = true;
+        private const int MARDefaultPriority = 40;
         private const string NameParameterSet = "NameParameterSet";
         private const string PSGalleryParameterSet = "PSGalleryParameterSet";
         private const string RepositoriesParameterSet = "RepositoriesParameterSet";
         private Uri _uri;
         private CredentialProviderDynamicParameters _credentialProvider;
+        private const string MARParameterSet = "MARParameterSet";
 
         #endregion
 
@@ -63,6 +68,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public SwitchParameter PSGallery { get; set; }
 
         /// <summary>
+        /// When specified, registers Microsoft Artifact Registry repository.
+        /// </summary>
+        [Parameter(Mandatory = true, ParameterSetName = MARParameterSet, HelpMessage = "Switch used to indicate registering Microsoft Artifact Registry repository.")]
+        [Alias("MAR")]
+        public SwitchParameter MicrosoftArtifactRegistry { get; set; }
+
+        /// <summary>
         /// Specifies a hashtable of repositories and is used to register multiple repositories at once.
         /// </summary>
         [Parameter(Mandatory = true, ParameterSetName = RepositoriesParameterSet, HelpMessage = "Hashtable including information on single or multiple repositories to be registered.")]
@@ -74,6 +86,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         [Parameter(ParameterSetName = PSGalleryParameterSet)]
+        [Parameter(ParameterSetName = MARParameterSet)]
         public SwitchParameter Trusted { get; set; }
 
         /// <summary>
@@ -84,8 +97,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         [Parameter(ParameterSetName = NameParameterSet)]
         [Parameter(ParameterSetName = PSGalleryParameterSet)]
+        [Parameter(ParameterSetName = MARParameterSet)]
         [ValidateRange(0, 100)]
-        public int Priority { get; set; } = DefaultPriority;
+        public int Priority { get; set; }
 
         /// <summary>
         /// Specifies the Api version of the repository to be set.
@@ -122,6 +136,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // It should also not appear when using the 'Repositories' parameter set.
             if (ParameterSetName.Equals(PSGalleryParameterSet) ||
                 ParameterSetName.Equals(RepositoriesParameterSet) ||
+                ParameterSetName.Equals(MARParameterSet) ||
                 PSRepositoryInfo.IsValidContainerRegistryURL(Uri))
             {
                 return null;
@@ -147,6 +162,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (MyInvocation.BoundParameters.ContainsKey(nameof(ApiVersion)))
             {
                 repoApiVersion = ApiVersion;
+            }
+
+            if (!MyInvocation.BoundParameters.ContainsKey(nameof(Priority)))
+            {
+                if (ParameterSetName.Equals(MARParameterSet, StringComparison.OrdinalIgnoreCase))
+                {
+                    Priority = MARDefaultPriority;
+                }
+                else
+                {
+                    Priority = DefaultPriority;
+                }
             }
 
             PSRepositoryInfo.CredentialProviderType? credentialProvider = _credentialProvider?.CredentialProvider;
@@ -218,6 +245,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                     break;
 
+                case MARParameterSet:
+                    if (MicrosoftArtifactRegistry)
+                    {
+                        try
+                        {
+                            bool trustedValue = Trusted.IsPresent ? Trusted : MARDefaultTrusted;
+                            items.Add(MicrosoftArtifactRegistryParameterSetHelper(Priority, trustedValue));
+                        }
+                        catch (Exception e)
+                        {
+                            ThrowTerminatingError(new ErrorRecord(
+                                new PSInvalidOperationException(e.Message),
+                                "ErrorInMARParameterSet",
+                                ErrorCategory.InvalidArgument,
+                                this));
+                        }
+                    }
+                    break;
+
                 default:
                     Dbg.Assert(false, "Invalid parameter set");
                     break;
@@ -241,6 +287,34 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             WriteDebug("Internal name and uri values for PSGallery are hardcoded and validated. Priority and trusted values, if passed in, also validated");
             var addedRepo = RepositorySettings.AddToRepositoryStore(PSGalleryRepoName,
                 psGalleryUri,
+                repoPriority,
+                repoTrusted,
+                apiVersion: null,
+                repoCredentialInfo: null,
+                credentialProvider: null,
+                Force,
+                this,
+                out string errorMsg);
+
+            if (!string.IsNullOrEmpty(errorMsg))
+            {
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSInvalidOperationException(errorMsg),
+                    "RepositoryCredentialSecretManagementUnavailableModule",
+                    ErrorCategory.ResourceUnavailable,
+                    this));
+            }
+
+            return addedRepo;
+        }
+
+        private PSRepositoryInfo MicrosoftArtifactRegistryParameterSetHelper(int repoPriority, bool repoTrusted)
+        {
+            WriteDebug("In RegisterPSResourceRepository::MicrosoftArtifactRegistryParameterSetHelper()");
+            Uri marUri = new Uri(MicrosoftArtifactRegistryRepoUri);
+            WriteDebug("Internal name and uri values for Microsoft Artifact Registry are hardcoded and validated. Priority and trusted values, if passed in, also validated");
+            var addedRepo = RepositorySettings.AddToRepositoryStore(MicrosoftArtifactRegistryRepoName,
+                marUri,
                 repoPriority,
                 repoTrusted,
                 apiVersion: null,
@@ -323,11 +397,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            if (repo["Name"].ToString().Equals("PSGallery"))
+            if (repo["Name"].ToString().Equals("PSGallery", StringComparison.OrdinalIgnoreCase))
             {
                 WriteError(new ErrorRecord(
                         new PSInvalidOperationException("Cannot register PSGallery with -Name parameter. Try: Register-PSResourceRepository -PSGallery"),
                         "PSGalleryProvidedAsNameRepoPSet",
+                        ErrorCategory.InvalidArgument,
+                        this));
+
+                return null;
+            }
+
+            if (repo["Name"].ToString().Equals("MAR", StringComparison.OrdinalIgnoreCase))
+            {
+                WriteError(new ErrorRecord(
+                        new PSInvalidOperationException("Cannot register MAR with -Name parameter. The MAR repository is automatically registered. Try: Reset-PSResourceRepository to restore default repositories."),
+                        "MARProvidedAsNameRepoPSet",
                         ErrorCategory.InvalidArgument,
                         this));
 

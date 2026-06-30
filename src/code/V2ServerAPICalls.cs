@@ -4,6 +4,7 @@
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
@@ -109,8 +110,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initialScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
-                if (errRecord != null)
+                int initialScriptCount = GetCountFromResponse(initialScriptResponse, out string errStr);
+                if (errStr != null)
                 {
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
@@ -144,8 +145,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initialModuleCount = GetCountFromResponse(initialModuleResponse, out errRecord);
-                if (errRecord != null)
+                int initialModuleCount = GetCountFromResponse(initialModuleResponse, out string errStr);
+                if (errStr != null)
                 {
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
@@ -196,8 +197,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initialScriptCount = GetCountFromResponse(initialScriptResponse, out errRecord);
-                if (errRecord != null)
+                int initialScriptCount = GetCountFromResponse(initialScriptResponse, out string errStr);
+                if (errStr != null)
                 {
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
@@ -232,8 +233,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
 
-                int initialModuleCount = GetCountFromResponse(initialModuleResponse, out errRecord);
-                if (errRecord != null)
+                int initialModuleCount = GetCountFromResponse(initialModuleResponse, out string errStr);
+                if (errStr != null)
                 {
                     return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
                 }
@@ -286,8 +287,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int initialCount = GetCountFromResponse(initialResponse, out errRecord);
-            if (errRecord != null)
+            int initialCount = GetCountFromResponse(initialResponse, out string errStr);
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -378,8 +379,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int count = GetCountFromResponse(response, out errRecord);
-            if (errRecord != null)
+            int count = GetCountFromResponse(response, out string errStr);
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -392,6 +393,105 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ErrorCategory.ObjectNotFound,
                     this);
                 response = string.Empty;
+            }
+
+            return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+        }
+
+        /// <summary>
+        /// Find method which allows for searching for single name and returns latest version.
+        /// Name: no wildcard support
+        /// Examples: Search "PowerShellGet"
+        /// API call:
+        /// - No prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
+        /// - Include prerelease: http://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'
+        /// Implementation Note: Need to filter further for latest version (prerelease or non-prerelease depending on user preference)
+        /// </summary>
+        public override async Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            debugMsgs.Enqueue("In V2ServerAPICalls::FindNameAsync()");
+            // Make sure to include quotations around the package name
+
+            // This should return the latest stable version or the latest prerelease version (respectively)
+            // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'&$filter=IsLatestVersion and substringof('PSModule', Tags) eq true
+            // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
+
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "$inlinecount", "allpages" },
+                { "id", $"'{packageName}'" },
+                });
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            if (!_isJFrogRepo) {
+                filterBuilder.AddCriterion($"Id eq '{packageName}'");
+            }
+
+            filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion eq true" : "IsLatestVersion eq true");
+            if (type != ResourceType.None) {
+                filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
+            }
+
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+            string response = string.Empty;
+            try
+            {
+                response = await HttpRequestCallAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+            }
+            catch (Exception e)
+            {
+                // usually this is for errors in calling the V2 server, but for ADO V2 this error will include package not found errors which we want to deliver in a standard message
+                if (_isADORepo && e is ResourceNotFoundException)
+                {
+                    errorMsgs.Enqueue(new ErrorRecord(
+                        new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'. For ADO feed, if the package is in an upstream feed make sure you are authenticated to the upstream feed.", e),
+                        "PackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this));
+                }
+                else if (e is UnauthorizedException)
+                {
+                    errorMsgs.Enqueue(new ErrorRecord(
+                        new UnauthorizedException($"Package with name '{packageName}' could not be retrieved from repository '{Repository.Name}'.", e),
+                        "UnauthorizedRequest",
+                        ErrorCategory.InvalidResult,
+                        this));
+                }
+                else if (e is HttpRequestException)
+                {
+                    errorMsgs.Enqueue(new ErrorRecord(
+                        new HttpRequestException($"Package with name '{packageName}' could not be retrieved from repository '{Repository.Name}'.", e),
+                        "HttpRequestFailure",
+                        ErrorCategory.ConnectionError,
+                        this));
+                }
+                else
+                {
+                    errorMsgs.Enqueue(new ErrorRecord(
+                        new Exception($"Package with name '{packageName}' could not be retrieved from repository '{Repository.Name}'.", e),
+                        "PackageNotFound",
+                        ErrorCategory.NotSpecified,
+                        this));
+                }
+            }
+
+            int count = GetCountFromResponse(response, out string errStr);
+            if (errStr != null)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}': {errStr}"),
+                    "PackageNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
+            }
+            else if (count == 0)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}' could not be found in repository '{Repository.Name}'."),
+                    "PackageNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
 
             return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -442,8 +542,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int count = GetCountFromResponse(response, out errRecord);
-            if (errRecord != null)
+            int count = GetCountFromResponse(response, out string errStr);
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -484,8 +584,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             responses.Add(initialResponse);
 
             // check count (regex)  425 ==> count/100  ~~>  4 calls
-            int initialCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
-            if (errRecord != null)
+            int initialCount = GetCountFromResponse(initialResponse, out string errStr);  // count = 4
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -537,8 +637,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             responses.Add(initialResponse);
 
             // check count (regex)  425 ==> count/100  ~~>  4 calls
-            int initialCount = GetCountFromResponse(initialResponse, out errRecord);  // count = 4
-            if (errRecord != null)
+            int initialCount = GetCountFromResponse(initialResponse, out string errStr);  // count = 4
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -589,8 +689,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int initialCount = GetCountFromResponse(initialResponse, out errRecord);
-            if (errRecord != null)
+            int initialCount = GetCountFromResponse(initialResponse, out string errStr);
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -685,10 +785,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int count = GetCountFromResponse(response, out errRecord);
+            int count = GetCountFromResponse(response, out string errStr);
             _cmdletPassedIn.WriteDebug($"Count from response is '{count}'");
 
-            if (errRecord != null)
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -701,6 +801,96 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     ErrorCategory.ObjectNotFound,
                     this);
                 response = string.Empty;
+            }
+
+            return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+        }
+
+
+        public override async Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            // https://www.powershellgallery.com/api/v2/FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion eq '1.1.0' and substringof('PSModule', Tags) eq true
+            // Quotations around package name and version do not matter, same metadata gets returned.
+            // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
+            debugMsgs.Enqueue("In V2ServerAPICalls::FindVersionAsync()");
+
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "$inlinecount", "allpages" },
+                { "id", $"'{packageName}'" },
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            if (!_isJFrogRepo) {
+                filterBuilder.AddCriterion($"Id eq '{packageName}'");
+            }
+
+            filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
+            if (type != ResourceType.None) {
+                filterBuilder.AddCriterion(GetTypeFilterForRequest(type));
+            }
+
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+            string response = string.Empty;
+            try
+            {
+                response = await HttpRequestCallAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+            }
+            catch (Exception e)
+            {
+                // usually this is for errors in calling the V2 server, but for ADO V2 this error will include package not found errors which we want to deliver with a standard message
+                if (_isADORepo && e is ResourceNotFoundException)
+                {
+                    errorMsgs.Enqueue(new ErrorRecord(
+                        new ResourceNotFoundException($"Package with name '{packageName}' and version '{version}' could not be found in repository '{Repository.Name}'. For ADO feed, if the package is in an upstream feed make sure you are authenticated to the upstream feed.", e),
+                        "PackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this));
+                }
+                else if (e is UnauthorizedException)
+                {
+                    errorMsgs.Enqueue(new ErrorRecord(
+                        new UnauthorizedException($"Package with name '{packageName}' could not be retrieved from repository '{Repository.Name}'.", e),
+                        "UnauthorizedRequest",
+                        ErrorCategory.InvalidResult,
+                        this));
+                }
+                else if (e is HttpRequestException)
+                {
+                    errorMsgs.Enqueue(new ErrorRecord(
+                        new HttpRequestException($"Package with name '{packageName}' could not be retrieved from repository '{Repository.Name}'.", e),
+                        "HttpRequestFailure",
+                        ErrorCategory.ConnectionError,
+                        this));
+                }
+                else
+                {
+                    errorMsgs.Enqueue(new ErrorRecord(
+                        new Exception($"Package with name '{packageName}' could not be retrieved from repository '{Repository.Name}'.", e),
+                        "PackageNotFound",
+                        ErrorCategory.NotSpecified,
+                        this));
+                }
+            }
+
+            int count = GetCountFromResponse(response, out string errStr);
+            if (errStr != null)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}', version '{version}' could not be found in repository '{Repository.Name}': {errStr}"),
+                    "PackageNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
+            }
+
+            if (count == 0)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}', version '{version}' could not be found in repository '{Repository.Name}'."),
+                    "PackageNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
 
             return new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
@@ -746,10 +936,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int count = GetCountFromResponse(response, out errRecord);
+            int count = GetCountFromResponse(response, out string errStr);
             _cmdletPassedIn.WriteDebug($"Count from response is '{count}'");
 
-            if (errRecord != null)
+            if (errStr != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -779,6 +969,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override Stream InstallPackage(string packageName, string packageVersion, bool includePrerelease, out ErrorRecord errRecord)
         {
+            errRecord = null;
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
             {
@@ -792,6 +983,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             results = InstallVersion(packageName, packageVersion, out errRecord);
+            return results;
+        }
+
+        /// <summary>
+        /// Installs a specific package.
+        /// User may request to install package with or without providing version (as seen in examples below), but prior to calling this method the package is located and package version determined.
+        /// Therefore, package version should not be null in this method.
+        /// Name: no wildcard support.
+        /// Examples: Install "PowerShellGet"
+        ///           Install "PowerShellGet" -Version "3.0.0"
+        /// </summary>
+        public override async Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            Stream results = new MemoryStream();
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    exception: new ArgumentNullException($"Package version could not be found for {packageName}"),
+                    "PackageVersionNullOrEmptyError",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
+                return results;
+            }
+
+            results = await InstallVersionAsync(packageName, packageVersion, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             return results;
         }
 
@@ -853,8 +1070,115 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
+        /// Helper method that makes the HTTP request for the V2 server protocol url passed in for find APIs.
+        /// </summary>
+        private async Task<string> HttpRequestCallAsync(string requestUrlV2, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            // TODO: Async methods cannot have out ref, so currently handling errorRecords as thrown exceptions.
+            debugMsgs.Enqueue("In V2ServerAPICalls::HttpRequestCallAsync()");
+            string response = string.Empty;
+
+            try
+            {
+                debugMsgs.Enqueue($"Request url is '{requestUrlV2}'");
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
+
+                response = await SendV2RequestAsync(request, _sessionClient);
+            }
+            catch (ResourceNotFoundException e)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ResourceNotFoundException($"Failure when attempting to make request for '{requestUrlV2}'", e),
+                    "ResourceNotFound",
+                    ErrorCategory.InvalidResult,
+                    this));
+            }
+            catch (UnauthorizedException e)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new UnauthorizedException($"Failure when attempting to make request for '{requestUrlV2}'", e),
+                    "UnauthorizedRequest",
+                    ErrorCategory.InvalidResult,
+                    this));
+            }
+            catch (HttpRequestException e)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new HttpRequestException($"Failure when attempting to make request for '{requestUrlV2}'", e),
+                    "HttpRequestCallFailure",
+                    ErrorCategory.ConnectionError,
+                    this));
+            }
+            catch (Exception e)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new Exception($"Failure when attempting to make request for '{requestUrlV2}'", e),
+                    "HttpRequestCallFailure",
+                    ErrorCategory.NotSpecified,
+                    this));
+            }
+
+            if (string.IsNullOrEmpty(response))
+            {
+                debugMsgs.Enqueue("Response is empty");
+            }
+
+            return response;
+        }
+
+        /// <summary>
         /// Helper method that makes the HTTP request for the V2 server protocol url passed in for install APIs.
         /// </summary>
+        private async Task<HttpContent> HttpRequestCallForContentAsync(string requestUrlV2, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            // TODO: Async methods cannot have out ref, so need to handle errorRecords a different way.
+            debugMsgs.Enqueue("In V2ServerAPICalls::HttpRequestCallForContentAsync()");
+            HttpContent content = null;
+
+            try
+            {
+            debugMsgs.Enqueue($"Request url is '{requestUrlV2}'");
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
+
+                content = await SendV2RequestForContentAsync(request, _sessionClient);
+            }
+            catch (HttpRequestException e)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new HttpRequestException($"Failure when attempting to make request for content with '{requestUrlV2}'", e),
+                    "HttpRequestFailure",
+                    ErrorCategory.ConnectionError,
+                    this));
+            }
+            catch (ArgumentNullException e)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ArgumentNullException($"Failure when attempting to make request for content with '{requestUrlV2}'", e),
+                    "ArgumentNullFailure",
+                    ErrorCategory.InvalidData,
+                    this));
+            }
+            catch (InvalidOperationException e)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new InvalidOperationException($"Failure when attempting to make request for content with '{requestUrlV2}'", e),
+                    "InvalidOperationFailure",
+                    ErrorCategory.InvalidOperation,
+                    this));
+            }
+
+            if (content == null || string.IsNullOrEmpty(content.ToString()))
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ArgumentException($"Response returned is null or empty. Request for content made: '{requestUrlV2}'"),
+                    "NullOrEmptyResponse",
+                    ErrorCategory.InvalidData,
+                    this));
+            }
+
+            return content;
+        }
+
         private HttpContent HttpRequestCallForContent(string requestUrlV2, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In V2ServerAPICalls::HttpRequestCallForContent()");
@@ -1384,6 +1708,159 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return HttpRequestCall(requestUrlV2, out errRecord);
         }
 
+
+        public override async Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            debugMsgs.Enqueue("In V2ServerAPICalls::FindVersionGlobbingAsync()");
+            List<string> responses = new List<string>();
+            int skip = 0;
+
+            var initialResponse = await FindVersionGlobbingAsync(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+
+            int initialCount = GetCountFromResponse(initialResponse, out string errStr);
+            if (errStr != null)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ResourceNotFoundException($"Package with name '{packageName}' and version range '{versionRange.ToString()}' could not be found in repository '{Repository.Name}': {errStr}"), 
+                    "PackageNotFound", 
+                    ErrorCategory.ObjectNotFound, 
+                    this));
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+            }
+
+            if (initialCount == 0)
+            {
+                return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+            }
+
+            responses.Add(initialResponse);
+
+            if (!getOnlyLatest)
+            {
+                int count = (int)Math.Ceiling((double)(initialCount / 100));
+
+                while (count > 0)
+                {
+                    debugMsgs.Enqueue($"Count is '{count}'");
+                    // skip 100
+                    skip += 100;
+                    // TODO: this should be an async method
+                    var tmpResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, out ErrorRecord errRecord);
+                    if (errRecord != null)
+                    {
+                        Utils.EnqueueIfNotNull(errorMsgs, errRecord);
+                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+                    }
+                    responses.Add(tmpResponse);
+                    count--;
+                }
+            }
+
+            return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+        }
+
+
+        /// <summary>
+        /// Helper method for string[] FindVersionGlobbing()
+        /// </summary>
+        private async Task<string> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, int skip, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            debugMsgs.Enqueue("In V2ServerAPICalls::FindVersionGlobbingAsync()");
+            //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true
+            //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
+            // NormalizedVersion doesn't include trailing zeroes
+            // Notes: this could allow us to take a version range (i.e (2.0.0, 3.0.0.0]) and deconstruct it and add options to the Filter for Version to describe that range
+            // will need to filter additionally, if IncludePrerelease=false, by default we get stable + prerelease both back
+            // Current bug: Find PSGet -Version "2.0.*" -> https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= Version gt '2.0.*' and Version lt '2.1'
+            // Make sure to include quotations around the package name
+
+            //and IsPrerelease eq false
+            // ex:
+            // (2.0.0, 3.0.0)
+            // $filter= NVersion gt '2.0.0' and NVersion lt '3.0.0'
+
+            // [2.0.0, 3.0.0]
+            // $filter= NVersion ge '2.0.0' and NVersion le '3.0.0'
+
+            // [2.0.0, 3.0.0)
+            // $filter= NVersion ge '2.0.0' and NVersion lt '3.0.0'
+
+            // (2.0.0, 3.0.0]
+            // $filter= NVersion gt '2.0.0' and NVersion le '3.0.0'
+
+            // [, 2.0.0]
+            // $filter= NVersion le '2.0.0'
+
+            string format = "NormalizedVersion {0} {1}";
+            string minPart = String.Empty;
+            string maxPart = String.Empty;
+
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string> {
+                {"$inlinecount", "allpages"},
+                {"$skip", skip.ToString()},
+                {"$orderby", "NormalizedVersion desc"},
+                {"id", $"'{packageName}'"}
+            });
+
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+            if (versionRange.MinVersion != null)
+            {
+                string operation = versionRange.IsMinInclusive ? "ge" : "gt";
+                minPart = String.Format(format, operation, $"'{versionRange.MinVersion.ToNormalizedString()}'");
+            }
+
+            if (versionRange.MaxVersion != null)
+            {
+                string operation = versionRange.IsMaxInclusive ? "le" : "lt";
+                // Adding '9' as a digit to the end of the patch portion of the version
+                // because we want to retrieve all the prerelease versions for the upper end of the range
+                // and PSGallery views prerelease as higher than its stable.
+                // eg 3.0.0-prerelease > 3.0.0
+                // If looking for versions within '[1.9.9,1.9.9]' including prerelease values, this will change it to search for '[1.9.9,1.9.99]'
+                // and find any pkg versions that are 1.9.9-prerelease.
+                string maxString = includePrerelease ? $"{versionRange.MaxVersion.Major}.{versionRange.MaxVersion.Minor}.{versionRange.MaxVersion.Patch.ToString() + "9"}" :
+                                 $"{versionRange.MaxVersion.ToNormalizedString()}";
+                if (NuGetVersion.TryParse(maxString, out NuGetVersion maxVersion))
+                {
+                    maxPart = String.Format(format, operation, $"'{maxVersion.ToNormalizedString()}'");
+                }
+                else {
+                    maxPart = String.Format(format, operation, $"'{versionRange.MaxVersion.ToNormalizedString()}'");
+                }
+            }
+
+            string versionFilterParts = String.Empty;
+            if (!String.IsNullOrEmpty(minPart))
+            {
+                filterBuilder.AddCriterion(minPart);
+            }
+            if (!String.IsNullOrEmpty(maxPart))
+            {
+                filterBuilder.AddCriterion(maxPart);
+            }
+            if (!includePrerelease) {
+                filterBuilder.AddCriterion("IsPrerelease eq false");
+            }
+
+            // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
+
+            // If it's a JFrog repository do not include the Id filter portion since JFrog uses 'Title' instead of 'Id',
+            // however filtering on 'and Title eq '<packageName>' returns "Response status code does not indicate success: 500".
+            if (!_isJFrogRepo) {
+                filterBuilder.AddCriterion($"Id eq '{packageName}'");
+            }
+
+            if (type == ResourceType.Script) {
+                filterBuilder.AddCriterion($"substringof('PS{type.ToString()}', Tags) eq true");
+            }
+
+            var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+
+            return await HttpRequestCallAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+        }
+
+
         /// <summary>
         /// Installs package with specific name and version.
         /// Name: no wildcard support.
@@ -1433,6 +1910,44 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return response.ReadAsStreamAsync().Result;
         }
 
+        private async Task<Stream> InstallVersionAsync(string packageName, string version, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            debugMsgs.Enqueue("In V2ServerAPICalls::InstallVersionAsync()");
+            string requestUrlV2;
+
+            if (_isADORepo)
+            {
+                // eg: https://pkgs.dev.azure.com/<org>/<project>/_packaging/<feed>/nuget/v2?id=test_module&version=5.0.0
+                requestUrlV2 = $"{Repository.Uri}?id={packageName.ToLower()}&version={version}";
+            }
+            else if (_isJFrogRepo)
+            {
+                // eg: https://<project>.jfrog.io/artifactory/api/nuget/<feed>/Download/test_module/5.0.0
+                requestUrlV2 = $"{Repository.Uri}/Download/{packageName}/{version}";
+            }
+            else
+            {
+                requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
+            }
+
+            var response = await HttpRequestCallForContentAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+
+            if (response is null)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new Exception($"No content was returned by repository '{Repository.Name}'"),
+                    "InstallFailureContentNullv2Async",
+                    ErrorCategory.InvalidResult,
+                    this));
+
+                return new MemoryStream();
+            }
+
+            var retResponse = await response.ReadAsStreamAsync();
+
+            return retResponse;
+        }
+
         private string GetTypeFilterForRequest(ResourceType type) {
             string typeFilterPart = string.Empty;
             if (type == ResourceType.Script)
@@ -1451,9 +1966,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// Helper method that makes gets 'count' property from http response string.
         /// The count property is used to determine the number of total results found (for pagination).
         /// </summary>
-        public int GetCountFromResponse(string httpResponse, out ErrorRecord errRecord)
+        public int GetCountFromResponse(string httpResponse, out string errStr)
         {
-            errRecord = null;
+            errStr = null;
             int count = 0;
 
             //Create the XmlDocument.
@@ -1472,11 +1987,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (node == null || String.IsNullOrWhiteSpace(node.InnerText))
                     {
                         countSearchSucceeded = false;
-                        errRecord = new ErrorRecord(
-                            new PSArgumentException("Count property from server response was empty, invalid or not present."),
-                            "GetCountFromResponseFailure",
-                            ErrorCategory.InvalidData,
-                            this);
+                        errStr = "Count property from server response was empty, invalid or not present.";
                     }
                     else
                     {
@@ -1486,26 +1997,21 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (!countSearchSucceeded)
                 {
-                             // Note: not all V2 servers may have the 'count' property implemented or valid (i.e CloudSmith server), in this case try to get 'd:Id' property.
+                    // Note: not all V2 servers may have the 'count' property implemented or valid (i.e CloudSmith server), in this case try to get 'd:Id' property.
                     elemList = doc.GetElementsByTagName("d:Id");
                     if (elemList.Count > 0)
                     {
                         count = elemList.Count;
-                        errRecord = null;
                     }
                     else
                     {
-                        _cmdletPassedIn.WriteDebug($"Property 'count' and 'd:Id' could not be found in response. This may indicate that the package could not be found");
+                        errStr = "Property 'count' and 'd:Id' could not be found in response. This may indicate that the package could not be found";
                     }
                 }
             }
             catch (XmlException e)
             {
-                errRecord = new ErrorRecord(
-                    exception: e,
-                    "GetCountFromResponse",
-                    ErrorCategory.InvalidData,
-                    this);
+                errStr = $"XML Exception occurred while parsing server response: {e.Message}";
             }
 
             return count;

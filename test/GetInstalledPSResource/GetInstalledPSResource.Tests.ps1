@@ -25,8 +25,8 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
     }
 
     AfterAll {
-        Uninstall-PSResource -Name $testModuleName -Version "*" -ErrorAction SilentlyContinue
-        Uninstall-PSResource -Name $testScriptName -Version "*" -ErrorAction SilentlyContinue
+        Uninstall-PSResource -Name $testModuleName -Version "*" -ErrorAction SilentlyContinue -SkipDependencyCheck
+        Uninstall-PSResource -Name $testScriptName -Version "*" -ErrorAction SilentlyContinue -SkipDependencyCheck
         Get-RevertPSResourceRepositoryFile
 
         if (Test-Path -Path $TestEmptyDirectoryPath -PathType 'Container') {
@@ -184,7 +184,7 @@ Describe 'Test Get-InstalledPSResource for Module' -tags 'CI' {
 
     # Windows only
     It "Get resource under CurrentUser scope when module is installed under AllUsers - Windows only" -Skip:(!((Get-IsWindows) -and (Test-IsAdmin))) {
-        Uninstall-PSResource -Name $testModuleName -Version "*"
+        Uninstall-PSResource -Name $testModuleName -Version "*" -SkipDependencyCheck
         Install-PSResource -Name $testModuleName -Repository $PSGalleryName -TrustRepository -Scope AllUsers
         $pkg = Get-InstalledPSResource -Name $testModuleName -Scope CurrentUser
         $pkg | Should -BeNullOrEmpty

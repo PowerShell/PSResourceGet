@@ -101,6 +101,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         CreateTestModule -Path $TestDrive -ModuleName 'ModuleWithMissingRequiredModule'
 
         $script:PSGalleryName = 'PSGallery'
+        $script:MARName = 'MicrosoftArtifactRegistry'
     }
     AfterAll {
        Get-RevertPSResourceRepositoryFile
@@ -802,8 +803,9 @@ Describe "Test Publish-PSResource with Module Prefix" -tags 'CI' {
             $err[0].FullyQualifiedErrorId | Should -Be "RepositoryNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource"
 
             $registeredRepos = Get-PSResourceRepository
-            $registeredRepos.Count | Should -Be 1
-            $registeredRepos[0].Name | Should -Be $script:PSGalleryName
+            $registeredRepos.Count | Should -Be 2
+            $registeredRepos[0].Name | Should -Be $script:MARName
+            $registeredRepos[1].Name | Should -Be $script:PSGalleryName
         }
         finally {
             # Cleanup

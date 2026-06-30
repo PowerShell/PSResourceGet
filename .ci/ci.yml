@@ -19,6 +19,7 @@ resources:
 
 variables:
   - group: GithubTestingFeedCreds
+  - group: InstallDSC
 
 stages:
 - stage: Build

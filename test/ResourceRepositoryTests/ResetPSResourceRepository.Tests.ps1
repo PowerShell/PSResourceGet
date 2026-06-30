@@ -7,6 +7,8 @@ Import-Module $modPath -Force -Verbose
 
 Describe "Test Reset-PSResourceRepository" -tags 'CI' {
     BeforeEach {
+        $MARName = Get-MARName
+        $MARUri = Get-MARLocation
         $PSGalleryName = Get-PSGalleryName
         $PSGalleryUri = Get-PSGalleryLocation
         Get-NewPSResourceRepositoryFile
@@ -22,19 +24,19 @@ Describe "Test Reset-PSResourceRepository" -tags 'CI' {
         $tmpDirPath = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         New-Item -ItemType Directory -Path $tmpDirPath -Force | Out-Null
         Register-PSResourceRepository -Name $TestRepoName -Uri $tmpDirPath
-        
+
         # Verify repository was added
         $repos = Get-PSResourceRepository
         $repos.Count | Should -BeGreaterThan 1
-        
+
         # Act: Reset repository store
         Reset-PSResourceRepository -Confirm:$false
-        
+
         # Assert: Only PSGallery should exist
         $repos = Get-PSResourceRepository
-        $repos.Count | Should -Be 1
-        $repos.Name | Should -Be $PSGalleryName
-        $repos.Uri | Should -Be $PSGalleryUri
+        $repos.Count | Should -Be 2
+        $repos.Name | ForEach-Object { $_  | Should -BeIn @($PSGalleryName, $MARName) }
+        $repos.Uri | ForEach-Object { $_  | Should -BeIn @($PSGalleryUri, $MARUri) }
     }
 
     It "Reset repository store with PassThru parameter returns PSGallery" {
@@ -43,20 +45,22 @@ Describe "Test Reset-PSResourceRepository" -tags 'CI' {
         $tmpDirPath = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         New-Item -ItemType Directory -Path $tmpDirPath -Force | Out-Null
         Register-PSResourceRepository -Name $TestRepoName -Uri $tmpDirPath
-        
+
         # Act: Reset repository store with PassThru
         $result = Reset-PSResourceRepository -Confirm:$false -PassThru
-        
+
         # Assert: Result should be PSGallery repository info
         $result | Should -Not -BeNullOrEmpty
         $result.Name | Should -Be $PSGalleryName
         $result.Uri | Should -Be $PSGalleryUri
         $result.Trusted | Should -Be $false
         $result.Priority | Should -Be 50
-        
+
         # Verify only PSGallery exists
         $repos = Get-PSResourceRepository
-        $repos.Count | Should -Be 1
+        $repos.Count | Should -Be 2
+        $repos.Name | ForEach-Object { $_  | Should -BeIn @($PSGalleryName, $MARName) }
+        $repos.Uri | ForEach-Object { $_  | Should -BeIn @($PSGalleryUri, $MARUri) }
     }
 
     It "Reset repository store should support -WhatIf" {
@@ -65,14 +69,14 @@ Describe "Test Reset-PSResourceRepository" -tags 'CI' {
         $tmpDirPath = Join-Path -Path $TestDrive -ChildPath "tmpDir1"
         New-Item -ItemType Directory -Path $tmpDirPath -Force | Out-Null
         Register-PSResourceRepository -Name $TestRepoName -Uri $tmpDirPath
-        
+
         # Capture repository count before WhatIf
         $reposBefore = Get-PSResourceRepository
         $countBefore = $reposBefore.Count
-        
+
         # Act: Run with WhatIf
         Reset-PSResourceRepository -WhatIf
-        
+
         # Assert: Repositories should not have changed
         $reposAfter = Get-PSResourceRepository
         $reposAfter.Count | Should -Be $countBefore
@@ -82,43 +86,43 @@ Describe "Test Reset-PSResourceRepository" -tags 'CI' {
         # Arrange: Corrupt the repository file
         $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PSResourceGet"
         $repoFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml"
-        
+
         # Write invalid XML to corrupt the file
         "This is not valid XML" | Set-Content -Path $repoFilePath -Force
-        
+
         # Act: Reset the repository store
         $result = Reset-PSResourceRepository -Confirm:$false -PassThru
-        
+
         # Assert: Should successfully reset and return PSGallery
         $result | Should -Not -BeNullOrEmpty
         $result.Name | Should -Be $PSGalleryName
-        
+
         # Verify we can now read repositories
         $repos = Get-PSResourceRepository
-        $repos.Count | Should -Be 1
-        $repos.Name | Should -Be $PSGalleryName
+        $repos.Count | Should -Be 2
+        $repos.Name | ForEach-Object { $_  | Should -BeIn @($PSGalleryName, $MARName) }
     }
 
     It "Reset repository store when file doesn't exist should succeed" {
         # Arrange: Delete the repository file
         $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PSResourceGet"
         $repoFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml"
-        
+
         if (Test-Path -Path $repoFilePath) {
             Remove-Item -Path $repoFilePath -Force
         }
-        
+
         # Act: Reset the repository store
         $result = Reset-PSResourceRepository -Confirm:$false -PassThru
-        
+
         # Assert: Should successfully reset and return PSGallery
         $result | Should -Not -BeNullOrEmpty
         $result.Name | Should -Be $PSGalleryName
-        
+
         # Verify PSGallery is registered
         $repos = Get-PSResourceRepository
-        $repos.Count | Should -Be 1
-        $repos.Name | Should -Be $PSGalleryName
+        $repos.Count | Should -Be 2
+        $repos.Name | ForEach-Object { $_  | Should -BeIn @($PSGalleryName, $MARName) }
     }
 
     It "Reset repository store with multiple repositories should only keep PSGallery" {
@@ -129,21 +133,21 @@ Describe "Test Reset-PSResourceRepository" -tags 'CI' {
         New-Item -ItemType Directory -Path $tmpDir1Path -Force | Out-Null
         New-Item -ItemType Directory -Path $tmpDir2Path -Force | Out-Null
         New-Item -ItemType Directory -Path $tmpDir3Path -Force | Out-Null
-        
+
         Register-PSResourceRepository -Name "testRepo1" -Uri $tmpDir1Path
         Register-PSResourceRepository -Name "testRepo2" -Uri $tmpDir2Path
         Register-PSResourceRepository -Name "testRepo3" -Uri $tmpDir3Path
-        
+
         # Verify multiple repositories exist
         $reposBefore = Get-PSResourceRepository
         $reposBefore.Count | Should -BeGreaterThan 1
-        
+
         # Act: Reset repository store
         Reset-PSResourceRepository -Confirm:$false
-        
+
         # Assert: Only PSGallery should remain
         $reposAfter = Get-PSResourceRepository
-        $reposAfter.Count | Should -Be 1
-        $reposAfter.Name | Should -Be $PSGalleryName
+        $reposAfter.Count | Should -Be 2
+        $reposAfter.Name | ForEach-Object { $_  | Should -BeIn @($PSGalleryName, $MARName) }
     }
 }
