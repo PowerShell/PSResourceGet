@@ -123,7 +123,6 @@ function DoBuild
                 'NuGet.Protocol'
                 'NuGet.Versioning'
                 'OrasProject.Oras'
-                'System.Buffers'
                 'System.Collections.Immutable'
                 'System.ClientModel'
                 'System.Diagnostics.DiagnosticSource'
