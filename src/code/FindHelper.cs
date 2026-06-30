@@ -1257,8 +1257,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 _cmdletPassedIn.WriteError(errRecord);
                             }
-                            yield return null;
-                            continue;
+                            return;
                         }
 
                         PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
@@ -1270,8 +1269,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 "DependencyPackageNotFound",
                                 ErrorCategory.ObjectNotFound,
                                 this));
-                            yield return null;
-                            continue;
+                            return;
                         }
 
                         if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
@@ -1281,18 +1279,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 "DependencyPackageNotFound",
                                 ErrorCategory.ObjectNotFound,
                                 this));
-                            yield return null;
-                            continue;
+                            return;
                         }
 
                         depPkg = currentResult.returnedObject;
 
                         if (!_packagesFound.ContainsKey(depPkg.Name))
                         {
-                            foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
-                            {
-                                yield return depRes;
-                            }
+                            FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
                         }
                         else
                         {
@@ -1300,10 +1294,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             // _packagesFound has depPkg.name in it, but the version is not the same
                             if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
                             {
-                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
-                                {
-                                    yield return depRes;
-                                }
+                                FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
                             }
                         }
                         verboseMsgs.Enqueue($"Dependency '{dep.Name}', with no upper bound version, was found in cache");
