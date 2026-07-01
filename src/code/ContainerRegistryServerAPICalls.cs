@@ -343,7 +343,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
             {
-                errRecord = new ErrorRecord(
                     exception: new ArgumentNullException($"Package version could not be found for {packageName}"),
                     "PackageVersionNullOrEmptyError",
                     ErrorCategory.InvalidArgument,
@@ -381,7 +380,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             string packageNameForInstall = PrependMARPrefix(packageName);
-            results = InstallVersion(packageNameForInstall, packageVersion, errorMsgs, debugMsgs, verboseMsgs);
+            results = InstallVersionAsync(packageNameForInstall, packageVersion, errorMsgs, debugMsgs, verboseMsgs);
             return Task.FromResult(results);
         }
 
@@ -457,14 +456,14 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// Installs a package with version specified using concurrent queues for output instead of cmdlet streams.
         /// Used by the async install path to avoid cross-thread cmdlet stream writes.
         /// </summary>
-        private Stream InstallVersion(
+        private Stream InstallVersionAsync(
             string packageName,
             string packageVersion,
             ConcurrentQueue<ErrorRecord> errorMsgs,
             ConcurrentQueue<string> debugMsgs,
             ConcurrentQueue<string> verboseMsgs)
         {
-            debugMsgs.Enqueue("In ContainerRegistryServerAPICalls::InstallVersion()");
+            debugMsgs.Enqueue("In ContainerRegistryServerAPICalls::InstallVersionAsync()");
             string packageNameLowercase = packageName.ToLower();
             string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             try
