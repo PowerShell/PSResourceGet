@@ -99,7 +99,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In V3ServerAPICalls::FindVersionAsync()");
-            FindResults findResponse = FindVersionHelper(packageName, version, tags: Utils.EmptyStrArray, type, out ErrorRecord errRecord);
+            FindResults findResponse = FindVersionHelper(packageName, version, tags: Utils.EmptyStrArray, type, out ErrorRecord errRecord, debugMsgs);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
@@ -119,7 +119,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In V3ServerAPICalls::FindVersionGlobbingAsync()");
-            FindResults findResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, getOnlyLatest, out ErrorRecord errRecord);
+            FindResults findResponse = FindVersionGlobbingHelper(packageName, versionRange, includePrerelease, type, getOnlyLatest, out ErrorRecord errRecord, debugMsgs);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
@@ -204,7 +204,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In V3ServerAPICalls::FindNameAsync()");
-            FindResults findResponse = FindNameHelper(packageName, tags: Utils.EmptyStrArray, includePrerelease, type, out ErrorRecord errRecord);
+            FindResults findResponse = FindNameHelper(packageName, tags: Utils.EmptyStrArray, includePrerelease, type, out ErrorRecord errRecord, debugMsgs);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
@@ -281,9 +281,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
-            // TODO: pass in ConcurrentQueue for debug messages so this is thread-safe when called from FindVersionGlobbingAsync().
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindVersionGlobbing()");
-            string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, catalogEntryProperty, isSearch: true, out errRecord);
+            return FindVersionGlobbingHelper(packageName, versionRange, includePrerelease, type, getOnlyLatest, out errRecord);
+        }
+
+        private FindResults FindVersionGlobbingHelper(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord, ConcurrentQueue<string> debugMsgs = null)
+        {
+            WriteDebug("In V3ServerAPICalls::FindVersionGlobbing()", debugMsgs);
+            string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, catalogEntryProperty, isSearch: true, out errRecord, debugMsgs);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -310,8 +314,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion) && versionRange.Satisfies(pkgVersion))
                         {
-                            // TODO: pass in ConcurrentQueue for debug messages so this is thread-safe when called from FindVersionGlobbingAsync(). ?
-                            _cmdletPassedIn.WriteDebug($"Package version parsed as '{pkgVersion}' satisfies the version range");
+                            WriteDebug($"Package version parsed as '{pkgVersion}' satisfies the version range", debugMsgs);
                             if (!pkgVersion.IsPrerelease || includePrerelease)
                             {
                                 satisfyingVersions.Add(response);
@@ -581,11 +584,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Helper method called by FindName() and FindNameWithTag()
         /// <summary>
-        private FindResults FindNameHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
+        private FindResults FindNameHelper(string packageName, string[] tags, bool includePrerelease, ResourceType type, out ErrorRecord errRecord, ConcurrentQueue<string> debugMsgs = null)
         {
-            // TODO: pass in ConcurrentQueue for debug messages so this is thread-safe when called from FindNameAsync(). ?
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindNameHelper()");
-            string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, catalogEntryProperty, isSearch: true, out errRecord);
+            WriteDebug("In V3ServerAPICalls::FindNameHelper()", debugMsgs);
+            string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, catalogEntryProperty, isSearch: true, out errRecord, debugMsgs);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -623,8 +625,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                         if (NuGetVersion.TryParse(pkgVersionElement.ToString(), out NuGetVersion pkgVersion))
                         {
-                            // ?
-                            _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+                            WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'", debugMsgs);
                             if (!pkgVersion.IsPrerelease || includePrerelease)
                             {
                                 // Versions are always in descending order i.e 5.0.0, 3.0.0, 1.0.0 so grabbing the first match suffices
@@ -679,10 +680,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Helper method called by FindVersion() and FindVersionWithTag()
         /// </summary>
-        private FindResults FindVersionHelper(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord)
+        private FindResults FindVersionHelper(string packageName, string version, string[] tags, ResourceType type, out ErrorRecord errRecord, ConcurrentQueue<string> debugMsgs = null)
         {
-            // TODO: pass in ConcurrentQueue for debug messages so this is thread-safe when called from FindVersionAsync(). ?
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::FindVersionHelper()");
+            WriteDebug("In V3ServerAPICalls::FindVersionHelper()", debugMsgs);
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
                 errRecord = new ErrorRecord(
@@ -695,7 +695,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             //_cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{requiredVersion}'");
 
-            string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, catalogEntryProperty, isSearch: true, out errRecord);
+            string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, catalogEntryProperty, isSearch: true, out errRecord, debugMsgs);
             if (errRecord != null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
@@ -989,7 +989,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// i.e when the package Name being searched for does not contain wildcard
         /// This is called by FindNameHelper(), FindVersionHelper(), FindVersionGlobbing(), InstallHelper()
         /// </summary>
-        private string[] GetVersionedPackageEntriesFromRegistrationsResource(string packageName, string propertyName, bool isSearch, out ErrorRecord errRecord)
+        private string[] GetVersionedPackageEntriesFromRegistrationsResource(string packageName, string propertyName, bool isSearch, out ErrorRecord errRecord, ConcurrentQueue<string> debugMsgs = null)
         {
             // TODO: pass in ConcurrentQueue to write out debug message.
             //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedPackageEntriesFromRegistrationsResource()");
@@ -1006,7 +1006,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return responses;
             }
 
-            responses = GetVersionedResponsesFromRegistrationsResource(registrationsBaseUrl, packageName, propertyName, isSearch, out errRecord);
+            responses = GetVersionedResponsesFromRegistrationsResource(registrationsBaseUrl, packageName, propertyName, isSearch, out errRecord, debugMsgs);
             if (errRecord != null)
             {
                 return Utils.EmptyStrArray;
@@ -1452,7 +1452,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         ///     The "packageContent" property is used for download, and the value is a URI for the .nupkg file.
         /// </param>
         /// <summary>
-        private string[] GetVersionedResponsesFromRegistrationsResource(string registrationsBaseUrl, string packageName, string property, bool isSearch, out ErrorRecord errRecord)
+        private string[] GetVersionedResponsesFromRegistrationsResource(string registrationsBaseUrl, string packageName, string property, bool isSearch, out ErrorRecord errRecord, ConcurrentQueue<string> debugMsgs = null)
         {
             // TODO: pass in ConcurrentQueue to write out debug message.
             //_cmdletPassedIn.WriteDebug("In V3ServerAPICalls::GetVersionedResponsesFromRegistrationsResource()");
@@ -1490,7 +1490,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (isSearch)
             {
-                if (!IsLatestVersionFirstForSearch(versionedResponseArr, out errRecord))
+                if (!IsLatestVersionFirstForSearch(versionedResponseArr, out errRecord, debugMsgs))
                 {
                     Array.Reverse(versionedResponseArr);
                 }
@@ -1511,10 +1511,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// ADO feeds usually return version entries in descending order, but Nuget.org repository returns them in ascending order.
         /// Package versions will reflect prerelease preference, but upper version and lower version would not so we don't use them for comparison.
         /// </summary>
-        private bool IsLatestVersionFirstForSearch(string[] versionedResponses, out ErrorRecord errRecord)
+        private bool IsLatestVersionFirstForSearch(string[] versionedResponses, out ErrorRecord errRecord, ConcurrentQueue<string> debugMsgs = null)
         {
-            // TODO: pass in ConcurrentQueue for debug messages so this is thread-safe when reached from the async find methods. ?
-            _cmdletPassedIn.WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForSearch()");
+            WriteDebug("In V3ServerAPICalls::IsLatestVersionFirstForSearch()", debugMsgs);
             errRecord = null;
             bool latestVersionFirst = true;
             int versionResponsesCount = versionedResponses.Length;
@@ -1604,6 +1603,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             return latestVersionFirst;
+        }
+
+        private void WriteDebug(string message, ConcurrentQueue<string> debugMsgs = null)
+        {
+            if (debugMsgs == null)
+            {
+                _cmdletPassedIn.WriteDebug(message);
+            }
+            else
+            {
+                debugMsgs.Enqueue(message);
+            }
         }
 
         /// <summary>
