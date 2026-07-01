@@ -1419,7 +1419,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             ConcurrentDictionary<string, Task<FindResults>> cachedNetworkCalls = new ConcurrentDictionary<string, Task<FindResults>>();
             debugMsgs.Enqueue("In FindHelper::FindDependencyWithUpperBound()");
-            // See if the network call we're making is already caced, if not, call FindNameAsync() and cache results
+            // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
             string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
             debugMsgs.Enqueue("Checking if network call is cached.");
             response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
