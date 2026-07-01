@@ -368,12 +368,20 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In ContainerRegistryServerAPICalls::InstallPackageAsync()");
-            Stream results = InstallPackage(packageName, packageVersion, includePrerelease, out ErrorRecord errRecord);
-            if (errRecord != null)
+            Stream results = new MemoryStream();
+            if (string.IsNullOrEmpty(packageVersion))
             {
-                errorMsgs.Enqueue(errRecord);
+                errorMsgs.Enqueue(new ErrorRecord(
+                    exception: new ArgumentNullException($"Package version could not be found for {packageName}"),
+                    "PackageVersionNullOrEmptyError",
+                    ErrorCategory.InvalidArgument,
+                    _cmdletPassedIn));
+
+                return Task.FromResult(results);
             }
 
+            string packageNameForInstall = PrependMARPrefix(packageName);
+            results = InstallVersion(packageNameForInstall, packageVersion, errorMsgs, debugMsgs, verboseMsgs);
             return Task.FromResult(results);
         }
 
@@ -438,6 +446,76 @@ namespace Microsoft.PowerShell.PSResourceGet
                     "InstallVersionGetContainerRegistryBlobAsyncError",
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
+
+                return null;
+            }
+
+            return responseContent.ReadAsStreamAsync().Result;
+        }
+
+        /// <summary>
+        /// Installs a package with version specified using concurrent queues for output instead of cmdlet streams.
+        /// Used by the async install path to avoid cross-thread cmdlet stream writes.
+        /// </summary>
+        private Stream InstallVersion(
+            string packageName,
+            string packageVersion,
+            ConcurrentQueue<ErrorRecord> errorMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
+        {
+            debugMsgs.Enqueue("In ContainerRegistryServerAPICalls::InstallVersion()");
+            string packageNameLowercase = packageName.ToLower();
+            string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            try
+            {
+                Directory.CreateDirectory(tempPath);
+            }
+            catch (Exception e)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    exception: e,
+                    "InstallVersionTempDirCreationError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn));
+
+                return null;
+            }
+
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+                return null;
+            }
+
+            verboseMsgs.Enqueue($"Getting manifest for {packageNameLowercase} - {packageVersion}");
+            var manifest = GetContainerRegistryRepositoryManifest(packageNameLowercase, packageVersion, containerRegistryAccessToken, out errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+                return null;
+            }
+            string digest = GetDigestFromManifest(manifest, out errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+                return null;
+            }
+
+            verboseMsgs.Enqueue($"Downloading blob for {packageNameLowercase} - {packageVersion}");
+            HttpContent responseContent;
+            try
+            {
+                responseContent = GetContainerRegistryBlobAsync(packageNameLowercase, digest, containerRegistryAccessToken).Result;
+            }
+            catch (Exception e)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    exception: e,
+                    "InstallVersionGetContainerRegistryBlobAsyncError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn));
 
                 return null;
             }
