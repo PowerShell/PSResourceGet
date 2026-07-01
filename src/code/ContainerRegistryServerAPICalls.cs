@@ -82,14 +82,40 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         #region Overridden Methods
 
+        /// <summary>
+        /// Async find method which allows for searching for single name with specific version.
+        /// Name: no wildcard support
+        /// Version: no wildcard support
+        /// This is the concurrent (parallel) counterpart of FindVersion().
+        /// </summary>
         public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            throw new NotImplementedException("FindVersionAsync is not implemented for ContainerRegistryServerAPICalls.");
+            debugMsgs.Enqueue("In ContainerRegistryServerAPICalls::FindVersionAsync()");
+            FindResults findResponse = FindVersion(packageName, version, type, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+            }
+
+            return Task.FromResult(findResponse);
         }
 
+        /// <summary>
+        /// Async find method which allows for searching for single name with version range.
+        /// Name: no wildcard support
+        /// Version: supports wildcards
+        /// This is the concurrent (parallel) counterpart of FindVersionGlobbing().
+        /// </summary>
         public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            throw new NotImplementedException("FindVersionGlobbingAsync is not implemented for ContainerRegistryServerAPICalls.");   
+            debugMsgs.Enqueue("In ContainerRegistryServerAPICalls::FindVersionGlobbingAsync()");
+            FindResults findResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, getOnlyLatest, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+            }
+
+            return Task.FromResult(findResponse);
         }
 
         /// <summary>
@@ -158,9 +184,21 @@ namespace Microsoft.PowerShell.PSResourceGet
         }
 
 
+        /// <summary>
+        /// Async find method which allows for searching for single name and returns latest version.
+        /// Name: no wildcard support
+        /// This is the concurrent (parallel) counterpart of FindName().
+        /// </summary>
         public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            throw new NotImplementedException("FindNameAsync is not implemented for ContainerRegistryServerAPICalls.");
+            debugMsgs.Enqueue("In ContainerRegistryServerAPICalls::FindNameAsync()");
+            FindResults findResponse = FindName(packageName, includePrerelease, type, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+            }
+
+            return Task.FromResult(findResponse);
         }
 
         /// <summary>
@@ -329,7 +367,22 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// </summary>
         public override Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            throw new NotImplementedException("FindNameAsync is not implemented for ContainerRegistryServerAPICalls.");
+            debugMsgs.Enqueue("In ContainerRegistryServerAPICalls::InstallPackageAsync()");
+            Stream results = new MemoryStream();
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    exception: new ArgumentNullException($"Package version could not be found for {packageName}"),
+                    "PackageVersionNullOrEmptyError",
+                    ErrorCategory.InvalidArgument,
+                    _cmdletPassedIn));
+
+                return Task.FromResult(results);
+            }
+
+            string packageNameForInstall = PrependMARPrefix(packageName);
+            results = InstallVersionAsync(packageNameForInstall, packageVersion, errorMsgs, debugMsgs, verboseMsgs);
+            return Task.FromResult(results);
         }
 
         /// <summary>
@@ -393,6 +446,76 @@ namespace Microsoft.PowerShell.PSResourceGet
                     "InstallVersionGetContainerRegistryBlobAsyncError",
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
+
+                return null;
+            }
+
+            return responseContent.ReadAsStreamAsync().Result;
+        }
+
+        /// <summary>
+        /// Installs a package with version specified using concurrent queues for output instead of cmdlet streams.
+        /// Used by the async install path to avoid cross-thread cmdlet stream writes.
+        /// </summary>
+        private Stream InstallVersionAsync(
+            string packageName,
+            string packageVersion,
+            ConcurrentQueue<ErrorRecord> errorMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
+        {
+            debugMsgs.Enqueue("In ContainerRegistryServerAPICalls::InstallVersionAsync()");
+            string packageNameLowercase = packageName.ToLower();
+            string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            try
+            {
+                Directory.CreateDirectory(tempPath);
+            }
+            catch (Exception e)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    exception: e,
+                    "InstallVersionTempDirCreationError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn));
+
+                return null;
+            }
+
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+                return null;
+            }
+
+            verboseMsgs.Enqueue($"Getting manifest for {packageNameLowercase} - {packageVersion}");
+            var manifest = GetContainerRegistryRepositoryManifest(packageNameLowercase, packageVersion, containerRegistryAccessToken, out errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+                return null;
+            }
+            string digest = GetDigestFromManifest(manifest, out errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+                return null;
+            }
+
+            verboseMsgs.Enqueue($"Downloading blob for {packageNameLowercase} - {packageVersion}");
+            HttpContent responseContent;
+            try
+            {
+                responseContent = GetContainerRegistryBlobAsync(packageNameLowercase, digest, containerRegistryAccessToken).Result;
+            }
+            catch (Exception e)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    exception: e,
+                    "InstallVersionGetContainerRegistryBlobAsyncError",
+                    ErrorCategory.InvalidResult,
+                    _cmdletPassedIn));
 
                 return null;
             }

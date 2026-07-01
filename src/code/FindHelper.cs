@@ -904,25 +904,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0"
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0" -Tag "Windows"
                         _cmdletPassedIn.WriteDebug("Exact version and package name are specified");
-
+                        string key = string.Empty;
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
-
-                        
                             ConcurrentDictionary<string, Task<FindResults>> cachedNetworkCalls = new ConcurrentDictionary<string, Task<FindResults>>();
                             Task<FindResults> response = null;
-                            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2) {       
-                                string key = $"{pkgName}|{_nugetVersion.ToNormalizedString()}|{_type}";
-                                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(pkgName, _nugetVersion.ToNormalizedString(), _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
-                    
-                                responses = response.GetAwaiter().GetResult();
+                            key = $"{pkgName}|{_nugetVersion.ToNormalizedString()}|{_type}";
+                            response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(pkgName, _nugetVersion.ToNormalizedString(), _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
+                
+                            responses = response.GetAwaiter().GetResult();
 
-                                Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
-                            }
-                            else {         
-                                responses = currentServer.FindVersion(pkgName, _nugetVersion.ToNormalizedString(), _type, out errRecord);
-                            }
+                            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                         }
                         else
                         {
@@ -991,20 +984,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az" -Version "[1.0.0.0, 3.0.0.0]"
                         _cmdletPassedIn.WriteDebug("Version range and package name are specified");
 
+                        errRecord = null;
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
                             ConcurrentDictionary<string, Task<FindResults>> cachedNetworkCalls = new ConcurrentDictionary<string, Task<FindResults>>();
                             Task<FindResults> response = null;
-                            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2) {       
-                                string key = $"{pkgName}|{_versionRange.ToString()}|{_type}";
-                                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
-                                
-                                responses = response.GetAwaiter().GetResult();
-                            }
-                            else {         
-                               responses = currentServer.FindVersionGlobbing(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, out errRecord);    
-                            }
+                            string key = $"{pkgName}|{_versionRange.ToString()}|{_type}";
+                            response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
+                            
+                            responses = response.GetAwaiter().GetResult();
+
+                            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                         }
                         else
                         {
@@ -1189,7 +1180,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 //const int PARALLEL_THRESHOLD = 5; // TODO: Trottle limit from user, defaults to 5; 
                 int processorCount = Environment.ProcessorCount;
                 int maxDegreeOfParallelism = processorCount * 4;
-                if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2 && currentPkg.Dependencies.Length > processorCount)
+                if (currentPkg.Dependencies.Length > processorCount)
                 {
                     Parallel.ForEach(currentPkg.Dependencies, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, dep =>
                     {
@@ -1290,23 +1281,41 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSResourceInfo depPkg = null;
             ErrorRecord errRecord = null;
             FindResults responses = null;
-            Task<FindResults> response = null;
             debugMsgs.Enqueue("In FindHelper::FindDependencyWithSpecificVersion()");
 
-            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2)
+            ConcurrentQueue<ErrorRecord> operationErrorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> operationWarningMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> operationDebugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> operationVerboseMsgs = new ConcurrentQueue<string>();
+
+            // Call FindVersionAsync() for dependency with specific version.
+            string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
+            responses = currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, operationErrorMsgs, operationWarningMsgs, operationDebugMsgs, operationVerboseMsgs).GetAwaiter().GetResult();
+
+            while (operationErrorMsgs.TryDequeue(out ErrorRecord queuedError))
             {
-                // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
-                string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
-                debugMsgs.Enqueue("Checking if network call is cached.");
-                response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
-                
-                responses = response.GetAwaiter().GetResult();
-            }
-            else
-            {
-                responses = currentServer.FindVersion(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, out errRecord);
+                if (errRecord == null)
+                {
+                    errRecord = queuedError;
+                }
+
+                errorMsgs.Enqueue(queuedError);
             }
 
+            while (operationWarningMsgs.TryDequeue(out string queuedWarning))
+            {
+                warningMsgs.Enqueue(queuedWarning);
+            }
+
+            while (operationDebugMsgs.TryDequeue(out string queuedDebug))
+            {
+                debugMsgs.Enqueue(queuedDebug);
+            }
+
+            while (operationVerboseMsgs.TryDequeue(out string queuedVerbose))
+            {
+                verboseMsgs.Enqueue(queuedVerbose);
+            }
 
             // Error handling and Convert to PSResource object
             if (errRecord != null)
@@ -1335,7 +1344,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     string pkgVersion = FormatPkgVersionString(depPkg);
                     debugMsgs.Enqueue($"Found dependency '{depPkg.Name}' version '{pkgVersion}'");
-                    string key = $"{depPkg.Name}{pkgVersion}";
+                    key = $"{depPkg.Name}{pkgVersion}";
                     if (!depPkgsFound.ContainsKey(key))
                     {
                         // Add pkg to collection of packages found then find dependencies
@@ -1369,19 +1378,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             Task<FindResults> response = null;
             debugMsgs.Enqueue("In FindHelper::FindDependencyWithLowerBound()");
 
-            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2)
-            {
-                // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
-                string key = $"{dep.Name}|*|{_type}";
-                debugMsgs.Enqueue("Checking if network call is cached.");
-                response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindNameAsync(dep.Name, includePrerelease: true, _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
-                
-                responses = response.GetAwaiter().GetResult();
-            }
-            else
-            {
-                responses = currentServer.FindName(dep.Name, includePrerelease: true, _type, out errRecord);
-            }
+            // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
+            string key = $"{dep.Name}|*|{_type}";
+            debugMsgs.Enqueue("Checking if network call is cached.");
+            response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindNameAsync(dep.Name, includePrerelease: true, _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
+            
+            responses = response.GetAwaiter().GetResult();
 
             // Error handling and Convert to PSResource object
             if (errRecord != null)
@@ -1410,7 +1412,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     string pkgVersion = FormatPkgVersionString(depPkg);
                     debugMsgs.Enqueue($"Found dependency '{depPkg.Name}' version '{pkgVersion}'");
-                    string key = $"{depPkg.Name}{pkgVersion}";
+                    key = $"{depPkg.Name}{pkgVersion}";
                     if (!depPkgsFound.ContainsKey(key))
                     {
                         // Add pkg to collection of packages found then find dependencies
@@ -1445,21 +1447,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             ConcurrentDictionary<string, Task<FindResults>> cachedNetworkCalls = new ConcurrentDictionary<string, Task<FindResults>>();
             debugMsgs.Enqueue("In FindHelper::FindDependencyWithUpperBound()");
+            // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
+            string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
+            debugMsgs.Enqueue("Checking if network call is cached.");
+            response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
 
-            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2)
-            {
-                // See if the network call we're making is already caced, if not, call FindNameAsync() and cache results
-                string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
-                debugMsgs.Enqueue("Checking if network call is cached.");
-                response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
+            responses = response.GetAwaiter().GetResult();
 
-                responses = response.GetAwaiter().GetResult();
-
-            }
-            else
-            {
-                responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, out errRecord);
-            }
 
             // Error handling and Convert to PSResource object
             if (errRecord != null)
@@ -1489,7 +1483,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     string pkgVersion = FormatPkgVersionString(depPkg);
                     debugMsgs.Enqueue($"Found dependency '{depPkg.Name}' version '{pkgVersion}'");
-                    string key = $"{depPkg.Name}{pkgVersion}";
+                    key = $"{depPkg.Name}{pkgVersion}";
                     if (!depPkgsFound.ContainsKey(key))
                     {
                         // Add pkg to collection of packages found then find dependencies
