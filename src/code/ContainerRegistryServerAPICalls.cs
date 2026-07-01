@@ -343,6 +343,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             Stream results = new MemoryStream();
             if (string.IsNullOrEmpty(packageVersion))
             {
+                errRecord = new ErrorRecord(
                     exception: new ArgumentNullException($"Package version could not be found for {packageName}"),
                     "PackageVersionNullOrEmptyError",
                     ErrorCategory.InvalidArgument,
