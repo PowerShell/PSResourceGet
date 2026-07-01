@@ -58,7 +58,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In NuGetServerAPICalls::FindVersionAsync()");
-            FindResults findResponse = FindVersion(packageName, version, type, out ErrorRecord errRecord);
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "id", $"'{packageName}'" },
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+            // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
+            filterBuilder.AddCriterion($"NormalizedVersion eq '{packageName}'");
+
+            var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+            string response = HttpRequestCallAsync(requestUrl, debugMsgs, out ErrorRecord errRecord);
+            FindResults findResponse = new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
@@ -615,6 +626,55 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             return content;
+        }
+
+        /// <summary>
+        /// Helper method that makes the HTTP request for the NuGet server protocol url passed in for async find APIs.
+        /// This helper writes diagnostics to the provided debug queue and avoids cmdlet stream writes.
+        /// </summary>
+        private string HttpRequestCallAsync(string requestUrl, ConcurrentQueue<string> debugMsgs, out ErrorRecord errRecord)
+        {
+            debugMsgs.Enqueue("In NuGetServerAPICalls::HttpRequestCallAsync()");
+            errRecord = null;
+            string response = string.Empty;
+
+            try
+            {
+                debugMsgs.Enqueue($"Request url is: '{requestUrl}'");
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+                response = SendRequestAsync(request, _sessionClient).GetAwaiter().GetResult();
+            }
+            catch (HttpRequestException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestFallFailure",
+                    ErrorCategory.ConnectionError,
+                    this);
+            }
+            catch (ArgumentNullException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestFallFailure",
+                    ErrorCategory.ConnectionError,
+                    this);
+            }
+            catch (InvalidOperationException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestFallFailure",
+                    ErrorCategory.ConnectionError,
+                    this);
+            }
+
+            if (string.IsNullOrEmpty(response))
+            {
+                debugMsgs.Enqueue("Response is empty");
+            }
+
+            return response;
         }
 
         #endregion
