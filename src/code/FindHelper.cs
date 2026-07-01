@@ -1282,12 +1282,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             debugMsgs.Enqueue("In FindHelper::FindDependencyWithSpecificVersion()");
 
             
-            // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
+            // Call FindVersionAsync() for dependency with specific version.
             string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
-            debugMsgs.Enqueue("Checking if network call is cached.");
-            response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
-            
-            responses = response.GetAwaiter().GetResult();
+            responses = currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs).GetAwaiter().GetResult();
+            errorMsgs.TryPeek(out errRecord);
 
             // Error handling and Convert to PSResource object
             if (errRecord != null)
