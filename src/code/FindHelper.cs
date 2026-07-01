@@ -1278,14 +1278,41 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSResourceInfo depPkg = null;
             ErrorRecord errRecord = null;
             FindResults responses = null;
-            Task<FindResults> response = null;
             debugMsgs.Enqueue("In FindHelper::FindDependencyWithSpecificVersion()");
 
-            
+            ConcurrentQueue<ErrorRecord> operationErrorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> operationWarningMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> operationDebugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> operationVerboseMsgs = new ConcurrentQueue<string>();
+
             // Call FindVersionAsync() for dependency with specific version.
             string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
-            responses = currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs).GetAwaiter().GetResult();
-            errorMsgs.TryPeek(out errRecord);
+            responses = currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, operationErrorMsgs, operationWarningMsgs, operationDebugMsgs, operationVerboseMsgs).GetAwaiter().GetResult();
+
+            while (operationErrorMsgs.TryDequeue(out ErrorRecord queuedError))
+            {
+                if (errRecord == null)
+                {
+                    errRecord = queuedError;
+                }
+
+                errorMsgs.Enqueue(queuedError);
+            }
+
+            while (operationWarningMsgs.TryDequeue(out string queuedWarning))
+            {
+                warningMsgs.Enqueue(queuedWarning);
+            }
+
+            while (operationDebugMsgs.TryDequeue(out string queuedDebug))
+            {
+                debugMsgs.Enqueue(queuedDebug);
+            }
+
+            while (operationVerboseMsgs.TryDequeue(out string queuedVerbose))
+            {
+                verboseMsgs.Enqueue(queuedVerbose);
+            }
 
             // Error handling and Convert to PSResource object
             if (errRecord != null)
