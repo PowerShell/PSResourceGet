@@ -984,6 +984,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az" -Version "[1.0.0.0, 3.0.0.0]"
                         _cmdletPassedIn.WriteDebug("Version range and package name are specified");
 
+                        errRecord = null;
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
@@ -993,6 +994,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
                             
                             responses = response.GetAwaiter().GetResult();
+
+                            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                         }
                         else
                         {
