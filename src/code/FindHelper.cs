@@ -1289,7 +1289,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ConcurrentQueue<string> operationVerboseMsgs = new ConcurrentQueue<string>();
 
             // Call FindVersionAsync() for dependency with specific version.
-            string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
             responses = currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, operationErrorMsgs, operationWarningMsgs, operationDebugMsgs, operationVerboseMsgs).GetAwaiter().GetResult();
 
             while (operationErrorMsgs.TryDequeue(out ErrorRecord queuedError))
@@ -1344,7 +1343,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     string pkgVersion = FormatPkgVersionString(depPkg);
                     debugMsgs.Enqueue($"Found dependency '{depPkg.Name}' version '{pkgVersion}'");
-                    key = $"{depPkg.Name}{pkgVersion}";
+                    string key = $"{depPkg.Name}{pkgVersion}";
                     if (!depPkgsFound.ContainsKey(key))
                     {
                         // Add pkg to collection of packages found then find dependencies
