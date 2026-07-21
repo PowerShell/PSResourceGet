@@ -440,7 +440,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 // A container registry repository is determined to be unauthenticated if it allows anonymous pull access. However, push operations always require authentication.
                 bool isRepositoryUnauthenticated = isPushOperation ? false : IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), needCatalogAccess, out errRecord, out accessToken);
-                _cmdletPassedIn.WriteInformation($"Value of isRepositoryUnauthenticated: {isRepositoryUnauthenticated}", new string[] { "PSRGContainerRegistryUnauthenticatedCheck" });
+                _cmdletPassedIn.WriteDebug($"Value of isRepositoryUnauthenticated: {isRepositoryUnauthenticated}");
 
                 _cmdletPassedIn.WriteDebug($"Is repository unauthenticated: {isRepositoryUnauthenticated}");
 
@@ -1002,8 +1002,8 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 errRecord = new ErrorRecord(
                     exception: e,
-                    "ResourceNotFound",
-                    ErrorCategory.InvalidResult,
+                    "PackageNotFound",
+                    ErrorCategory.ObjectNotFound,
                     _cmdletPassedIn);
             }
             catch (UnauthorizedException e)
