@@ -6,15 +6,19 @@
     Converts PowerShellGet v2 cmdlet usage to PSResourceGet equivalents.
 
 .DESCRIPTION
-    Scans PowerShell files (.ps1, .psm1, .psd1) for PSGet v2 cmdlet usage
-    (e.g., Install-Module, Find-Module) and converts them to their
-    PSResourceGet equivalents (e.g., Install-PSResource, Find-PSResource).
+    Scans PowerShell files (.ps1, .psm1, .psd1) or inline script strings for
+    PSGet v2 cmdlet usage (e.g., Install-Module, Find-Module) and converts them
+    to their PSResourceGet equivalents (e.g., Install-PSResource, Find-PSResource).
 
     By default, runs in WhatIf/report mode. Use -Apply to modify files.
 
 .PARAMETER Path
     Path to a file or directory to scan. Supports wildcards.
-    Defaults to the current directory.
+    Defaults to the current directory. Cannot be used with -InputScript.
+
+.PARAMETER InputScript
+    A string containing PowerShell script text to convert. The converted string
+    is returned as output. Cannot be used with -Path.
 
 .PARAMETER Recurse
     When Path is a directory, scan subdirectories recursively.
@@ -39,17 +43,31 @@
 .EXAMPLE
     # Scan a single file and get structured output
     .\ConvertTo-PSResourceGet.ps1 -Path .\deploy.ps1 -PassThru
+
+.EXAMPLE
+    # Convert a script string and get the converted text back
+    .\ConvertTo-PSResourceGet.ps1 -InputScript 'Install-Module -Name Pester -Force'
+
+.EXAMPLE
+    # Pipe a string for conversion
+    'Find-Module -Name Az -AllowPrerelease' | .\ConvertTo-PSResourceGet.ps1
 #>
 
-[CmdletBinding(SupportsShouldProcess)]
+[CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Path')]
 param(
-    [Parameter(Position = 0)]
-    [string] $Path = '.',
+    [Parameter(Position = 0, ParameterSetName = 'Path')]
+    [string] $Path,
 
+    [Parameter(Mandatory, ParameterSetName = 'String', ValueFromPipeline)]
+    [string] $InputScript,
+
+    [Parameter(ParameterSetName = 'Path')]
     [switch] $Recurse,
 
+    [Parameter(ParameterSetName = 'Path')]
     [switch] $Apply,
 
+    [Parameter(ParameterSetName = 'Path')]
     [string] $BackupPath,
 
     [switch] $PassThru
@@ -58,6 +76,23 @@ param(
 # Import the migration module
 $modulePath = Join-Path $PSScriptRoot 'PSGetMigration.psm1'
 Import-Module $modulePath -Force
+
+# String input mode
+if ($PSCmdlet.ParameterSetName -eq 'String') {
+    $result = ConvertTo-PSResourceGetString -InputScript $InputScript
+    if ($PassThru) {
+        $result
+    }
+    else {
+        $result.ConvertedScript
+    }
+    return
+}
+
+# File/directory mode
+if (-not $Path) {
+    $Path = '.'
+}
 
 # Resolve files to scan
 $resolvedPath = Resolve-Path -Path $Path -ErrorAction Stop

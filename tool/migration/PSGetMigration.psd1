@@ -16,6 +16,7 @@
         'Find-PSGetCommand',
         'Convert-PSGetCommand',
         'ConvertTo-PSResourceGetScript',
+        'ConvertTo-PSResourceGetString',
         'Format-MigrationReport'
     )
     CmdletsToExport   = @()

@@ -454,6 +454,87 @@ function ConvertTo-PSResourceGetScript {
 
 #endregion
 
+#region String Converter
+
+function ConvertTo-PSResourceGetString {
+    <#
+    .SYNOPSIS
+        Converts PSGet v2 cmdlet usage in a script string to PSResourceGet equivalents.
+    .PARAMETER InputScript
+        A string containing PowerShell script text with PSGet v2 commands.
+    .OUTPUTS
+        PSCustomObject with: ConvertedScript, Conversions (detail array), Warnings
+    .EXAMPLE
+        $result = ConvertTo-PSResourceGetString -InputScript 'Install-Module -Name Pester -Force'
+        $result.ConvertedScript  # → 'Install-PSResource -Name Pester -Reinstall'
+    #>
+    [CmdletBinding()]
+    [OutputType([PSCustomObject])]
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [string] $InputScript
+    )
+
+    process {
+        # Write to a temp file so the AST parser can process it
+        $tempFile = [System.IO.Path]::GetTempFileName() -replace '\.tmp$', '.ps1'
+        try {
+            [System.IO.File]::WriteAllText($tempFile, $InputScript)
+
+            $commands = @(Find-PSGetCommand -Path $tempFile)
+            $allWarnings = [System.Collections.Generic.List[string]]::new()
+
+            if ($commands.Count -eq 0) {
+                return [PSCustomObject]@{
+                    ConvertedScript = $InputScript
+                    Conversions     = @()
+                    Warnings        = @()
+                }
+            }
+
+            # Convert each command and collect results
+            $conversions = foreach ($cmd in $commands) {
+                $result = Convert-PSGetCommand -CommandInfo $cmd
+                $result | Add-Member -NotePropertyName 'StartOffset' -NotePropertyValue $cmd.StartOffset
+                $result | Add-Member -NotePropertyName 'EndOffset' -NotePropertyValue $cmd.EndOffset
+                foreach ($w in $result.Warnings) { $allWarnings.Add($w) }
+                $result
+            }
+
+            # Apply replacements in reverse offset order
+            $output = $InputScript
+            $sortedConversions = $conversions |
+                Where-Object { $_.Status -eq 'Converted' -and $null -ne $_.ConvertedText } |
+                Sort-Object -Property StartOffset -Descending
+
+            foreach ($conv in $sortedConversions) {
+                $output = $output.Substring(0, $conv.StartOffset) +
+                          $conv.ConvertedText +
+                          $output.Substring($conv.EndOffset)
+            }
+
+            return [PSCustomObject]@{
+                ConvertedScript = $output
+                Conversions     = @($conversions | ForEach-Object {
+                    [PSCustomObject]@{
+                        Line          = $_.Line
+                        OriginalText  = $_.OriginalText
+                        ConvertedText = $_.ConvertedText
+                        Warnings      = $_.Warnings
+                        Status        = $_.Status
+                    }
+                })
+                Warnings        = $allWarnings.ToArray()
+            }
+        }
+        finally {
+            Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+#endregion
+
 #region Formatting
 
 function Format-MigrationReport {
@@ -540,5 +621,6 @@ Export-ModuleMember -Function @(
     'Find-PSGetCommand',
     'Convert-PSGetCommand',
     'ConvertTo-PSResourceGetScript',
+    'ConvertTo-PSResourceGetString',
     'Format-MigrationReport'
 )

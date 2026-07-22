@@ -282,4 +282,58 @@ Find-Module -Name Az -AllowPrerelease
             }
         }
     }
+
+    Context 'ConvertTo-PSResourceGetString' {
+        It 'Converts a simple command string' {
+            $result = ConvertTo-PSResourceGetString -InputScript 'Install-Module -Name Pester'
+            $result.ConvertedScript | Should -Be 'Install-PSResource -Name Pester'
+            $result.Conversions.Count | Should -Be 1
+        }
+
+        It 'Converts multiple commands in a script string' {
+            $script = @'
+Install-Module -Name Pester -Force
+Find-Module -Name Az -AllowPrerelease
+'@
+            $result = ConvertTo-PSResourceGetString -InputScript $script
+            $result.ConvertedScript | Should -Match 'Install-PSResource'
+            $result.ConvertedScript | Should -Match 'Find-PSResource'
+            $result.ConvertedScript | Should -Match '-Prerelease'
+            $result.ConvertedScript | Should -Not -Match 'Install-Module'
+            $result.ConvertedScript | Should -Not -Match 'Find-Module'
+            $result.Conversions.Count | Should -Be 2
+        }
+
+        It 'Returns the original string when no PSGet commands are found' {
+            $script = 'Get-Module -Name Pester'
+            $result = ConvertTo-PSResourceGetString -InputScript $script
+            $result.ConvertedScript | Should -Be $script
+            $result.Conversions.Count | Should -Be 0
+        }
+
+        It 'Collects warnings from removed parameters' {
+            $result = ConvertTo-PSResourceGetString -InputScript 'Install-Module -Name Pester -AllowClobber -Force'
+            $result.Warnings.Count | Should -BeGreaterThan 0
+            $result.ConvertedScript | Should -Match '-Reinstall'
+        }
+
+        It 'Preserves surrounding script content' {
+            $script = @'
+# Setup
+$moduleName = 'Pester'
+Install-Module -Name $moduleName -Scope CurrentUser
+Write-Host 'Done'
+'@
+            $result = ConvertTo-PSResourceGetString -InputScript $script
+            $result.ConvertedScript | Should -Match '# Setup'
+            $result.ConvertedScript | Should -Match '\$moduleName = ''Pester'''
+            $result.ConvertedScript | Should -Match 'Install-PSResource'
+            $result.ConvertedScript | Should -Match "Write-Host 'Done'"
+        }
+
+        It 'Accepts pipeline input' {
+            $result = 'Find-Module -Name Az' | ConvertTo-PSResourceGetString
+            $result.ConvertedScript | Should -Be 'Find-PSResource -Name Az'
+        }
+    }
 }
