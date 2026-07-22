@@ -347,15 +347,19 @@ function Convert-PSGetCommand {
         if ($null -ne $minimumVersion -and $null -ne $maximumVersion) {
             $minVal = $minimumVersion.Trim("'`"")
             $maxVal = $maximumVersion.Trim("'`"")
-            $newParams.Add("-Version '[$minVal,$maxVal]'")
+            # Use double quotes if the value contains a variable reference
+            $quote = if ($minVal -match '\$' -or $maxVal -match '\$') { '"' } else { "'" }
+            $newParams.Add("-Version $quote[$minVal,$maxVal]$quote")
         }
         elseif ($null -ne $minimumVersion) {
             $minVal = $minimumVersion.Trim("'`"")
-            $newParams.Add("-Version '[$minVal,)'")
+            $quote = if ($minVal -match '\$') { '"' } else { "'" }
+            $newParams.Add("-Version $quote[$minVal,)$quote")
         }
         elseif ($null -ne $maximumVersion) {
             $maxVal = $maximumVersion.Trim("'`"")
-            $newParams.Add("-Version '(,$maxVal]'")
+            $quote = if ($maxVal -match '\$') { '"' } else { "'" }
+            $newParams.Add("-Version $quote(,$maxVal]$quote")
         }
     }
 

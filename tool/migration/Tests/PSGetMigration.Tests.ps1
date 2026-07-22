@@ -170,6 +170,17 @@ Get-InstalledModule
             $result.ConvertedText | Should -Match "-Version '\[4\.0,5\.0\]'"
         }
 
+        It 'Uses double quotes for version range when value contains a variable' {
+            $result = Invoke-ConvertFromScript -Script 'Install-Module -Name Pester -MaximumVersion $MaximumVersion'
+            $result.ConvertedText | Should -Match '-Version "\(,\$MaximumVersion\]"'
+            $result.ConvertedText | Should -Not -Match "'"
+        }
+
+        It 'Uses double quotes for merged version range with variables' {
+            $result = Invoke-ConvertFromScript -Script 'Install-Module -Name Pester -MinimumVersion $MinVer -MaximumVersion $MaxVer'
+            $result.ConvertedText | Should -Match '-Version "\[\$MinVer,\$MaxVer\]"'
+        }
+
         It 'Converts -AllVersions to -Version wildcard' {
             $result = Invoke-ConvertFromScript -Script 'Find-Module -Name Az -AllVersions'
             $result.ConvertedText | Should -Match "-Version '\*'"
