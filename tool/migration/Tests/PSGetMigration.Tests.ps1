@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-Describe 'PSGetMigration Module' {
+Describe 'PSGet Migration Tool' {
 
     BeforeAll {
-        $modulePath = Join-Path $PSScriptRoot '..' 'PSGetMigration.psd1'
-        Import-Module $modulePath -Force
+        # Dot-source the script to load all functions into the current scope
+        . (Join-Path $PSScriptRoot '..' 'ConvertTo-PSResourceGet.ps1')
 
         # Helper to create temp script files
         function New-TempScript {
