@@ -44,7 +44,7 @@ Describe 'Test Install-PSResource for searching and looping through repositories
         $res.Repository | Should -Be $localRepoName
     }
 
-    It "install resources from hightest priority repository where it exists and not write errors for repositories where it does not exist (without -Repository specified)" {
+    It "install resources from highest priority repository where it exists and not write errors for repositories where it does not exist (without -Repository specified)" {
         # Package "test_script" exists in the following repositories: PSGallery, NuGetGallery
         # Package does not exist on MAR, and should not emit an error when found in a lower priority repository
         Install-PSResource -Name $testScriptName -TrustRepository -SkipDependencyCheck -ErrorVariable err -ErrorAction SilentlyContinue
