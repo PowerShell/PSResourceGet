@@ -184,7 +184,7 @@ function Find-PSGetCommand {
     )
 
     if ($parseErrors.Count -gt 0) {
-        Write-Warning "Parse errors in '$Path': $($parseErrors | ForEach-Object { $_.Message } | Join-String -Separator '; ')"
+        Write-Warning "Parse errors in '$Path': $(($parseErrors | ForEach-Object { $_.Message }) -join '; ')"
     }
 
     $commandAsts = $ast.FindAll({
@@ -263,10 +263,19 @@ function Convert-PSGetCommand {
             $paramName = $element.ParameterName
             $paramValue = $null
 
+            # Known switch parameters that never take a value argument
+            $switchParams = @(
+                'Force', 'AllowClobber', 'AllowPrerelease', 'AllVersions',
+                'SkipPublisherCheck', 'Reinstall', 'Prerelease',
+                'AcceptLicense', 'NoClobber', 'NoPathUpdate',
+                'PassThru', 'WhatIf', 'Confirm', 'TrustRepository'
+            )
+
             if ($null -ne $element.Argument) {
                 $paramValue = $element.Argument.Extent.Text
             }
-            elseif (($i + 1) -lt $elements.Count -and
+            elseif ($switchParams -notcontains $paramName -and
+                    ($i + 1) -lt $elements.Count -and
                     $elements[$i + 1] -isnot [System.Management.Automation.Language.CommandParameterAst]) {
                 $i++
                 $paramValue = $elements[$i].Extent.Text

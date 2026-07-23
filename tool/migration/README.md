@@ -74,10 +74,11 @@ cmdlets to their [PSResourceGet](https://github.com/PowerShell/PSResourceGet) eq
 
 - `Find-RoleCapability` — No PSResourceGet equivalent. Generates a warning.
 
-## Using as a Module
+## Using as a Script Library
 
 ```powershell
-Import-Module .\tool\migration\PSGetMigration.psd1
+# Dot-source the script to load all functions
+. .\tool\migration\ConvertTo-PSResourceGet.ps1
 
 # Scan a single file
 $results = ConvertTo-PSResourceGetScript -Path .\deploy.ps1

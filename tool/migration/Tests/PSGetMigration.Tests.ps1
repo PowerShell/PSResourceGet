@@ -211,6 +211,13 @@ Get-InstalledModule
             $result.ConvertedText | Should -Not -Match '-Force'
         }
 
+        It 'Does not consume positional argument after a switch parameter' {
+            $result = Invoke-ConvertFromScript -Script 'Install-Module -Force Pester'
+            $result.ConvertedText | Should -Match 'Install-PSResource'
+            $result.ConvertedText | Should -Match 'Pester'
+            $result.ConvertedText | Should -Match '-Reinstall'
+        }
+
         It 'Returns NoEquivalent for Find-RoleCapability' {
             $result = Invoke-ConvertFromScript -Script 'Find-RoleCapability -Name MyRole'
             $result.Status | Should -Be 'NoEquivalent'
