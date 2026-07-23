@@ -149,3 +149,36 @@ stages:
       displayName: AzAuth PowerShell Core on Windows
       imageName: windows-latest
       useAzAuth: true
+
+  - job: TestMigrationTool
+    displayName: Migration Tool Tests
+    pool:
+      vmImage: windows-latest
+    steps:
+    - checkout: self
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        if (-not (Test-Path -Path $modulePath)) {
+          $null = New-Item -Path $modulePath -ItemType Directory
+        }
+        Save-Module -Name "Pester" -MaximumVersion 4.99 -Path $modulePath -Force
+      displayName: Install Pester
+
+    - pwsh: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        $results = Invoke-Pester -Path '$(Build.SourcesDirectory)/tool/migration/Tests' -PassThru
+        if ($results.FailedCount -gt 0) {
+          throw "$($results.FailedCount) migration tool test(s) failed."
+        }
+      displayName: Run migration tool Pester tests
+
+    - powershell: |
+        $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+        $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+        $results = Invoke-Pester -Path '$(Build.SourcesDirectory)/tool/migration/Tests' -PassThru
+        if ($results.FailedCount -gt 0) {
+          throw "$($results.FailedCount) migration tool test(s) failed."
+        }
+      displayName: Run migration tool Pester tests (Windows PowerShell)
