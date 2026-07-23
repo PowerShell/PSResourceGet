@@ -152,6 +152,7 @@ stages:
 
   - job: TestMigrationTool
     displayName: Migration Tool Tests
+    dependsOn: []
     pool:
       vmImage: windows-latest
     steps:
