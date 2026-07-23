@@ -5,7 +5,7 @@ Describe 'PSGet Migration Tool' {
 
     BeforeAll {
         # Dot-source the script to load all functions into the current scope
-        . (Join-Path $PSScriptRoot '..' 'ConvertTo-PSResourceGet.ps1')
+        . (Join-Path (Join-Path $PSScriptRoot '..') 'ConvertTo-PSResourceGet.ps1')
 
         # Helper to create temp script files
         function New-TempScript {
