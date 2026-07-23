@@ -53,6 +53,13 @@ function DoBuild
     Write-Verbose -Verbose -Message "Copying resource manifests to '$BuildOutPath'"
     Copy-Item -Path "${SrcPath}/dsc/*.resource.json" -Dest "$BuildOutPath" -Force
 
+    # Copy migration tool
+    $migrationToolOutPath = Join-Path -Path $BuildOutPath -ChildPath "migration"
+    Write-Verbose -Verbose -Message "Creating migration tool output path: '$migrationToolOutPath'"
+    $null = New-Item -ItemType Directory -Path $migrationToolOutPath -Force
+    Write-Verbose -Verbose -Message "Copying ConvertTo-PSResourceGet.ps1 to '$migrationToolOutPath'"
+    Copy-Item -Path "tool/migration/ConvertTo-PSResourceGet.ps1" -Dest "$migrationToolOutPath" -Force
+
     # Build and place binaries
     if ( Test-Path "${SrcPath}/code" ) {
         Write-Verbose -Verbose -Message "Building assembly and copying to '$BuildOutPath'"
