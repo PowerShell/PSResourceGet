@@ -46,10 +46,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         // If running 'Install-PSResource Az, TestModule, NewTestModule', it will contain one parent and its dependencies.
         private ConcurrentDictionary<string, List<string>> _packagesFound;
 
-        // Creates a new instance of depPkgsFound each time FindDependencyPackages() is called.
-        // This will eventually return the PSResourceInfo object to the main cmdlet class.
-        private ConcurrentDictionary<string, PSResourceInfo> depPkgsFound;
-        
         // Contains the latest found version of a particular package.
         private ConcurrentDictionary<string, PSResourceInfo> _knownLatestPkgVersion;
 
@@ -1060,12 +1056,35 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // After retrieving all packages find their dependencies
             if (_includeDependencies)
             {
-                foreach (PSResourceInfo currentPkg in parentPkgs)
+                // Resolving each parent package's dependency closure is independent work, so do it concurrently.
+                // yield return cannot be used inside Parallel.ForEach, so collect results into a thread-safe bag first.
+                ConcurrentBag<PSResourceInfo> dependencyPkgs = new ConcurrentBag<PSResourceInfo>();
+                int processorCount = Environment.ProcessorCount;
+                int maxDegreeOfParallelism = processorCount * 4;
+                if (parentPkgs.Count > processorCount)
                 {
-                    foreach (PSResourceInfo pkgDep in FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository))
+                    Parallel.ForEach(parentPkgs, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, currentPkg =>
                     {
-                        yield return pkgDep;
+                        foreach (PSResourceInfo pkgDep in FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository))
+                        {
+                            dependencyPkgs.Add(pkgDep);
+                        }
+                    });
+                }
+                else
+                {
+                    foreach (PSResourceInfo currentPkg in parentPkgs)
+                    {
+                        foreach (PSResourceInfo pkgDep in FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository))
+                        {
+                            dependencyPkgs.Add(pkgDep);
+                        }
                     }
+                }
+
+                foreach (PSResourceInfo pkgDep in dependencyPkgs)
+                {
+                    yield return pkgDep;
                 }
             }
         }
@@ -1158,15 +1177,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         internal IEnumerable<PSResourceInfo> FindDependencyPackages(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository)
         {
-            depPkgsFound = new ConcurrentDictionary<string, PSResourceInfo>();
+            // Use a local instance so multiple parent packages can resolve their dependency closures concurrently
+            // without racing on shared state.
+            ConcurrentDictionary<string, PSResourceInfo> depPkgsFound = new ConcurrentDictionary<string, PSResourceInfo>();
             _cmdletPassedIn.WriteDebug($"In FindHelper::FindDependencyPackages() - {currentPkg.Name}");            
-            FindDependencyPackagesHelper(currentServer, currentResponseUtil, currentPkg, repository); 
+            FindDependencyPackagesHelper(currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound); 
 
             return depPkgsFound.Values.ToList();
         }
 
         // Method 2 
-        internal void FindDependencyPackagesHelper(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository)
+        internal void FindDependencyPackagesHelper(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository, ConcurrentDictionary<string, PSResourceInfo> depPkgsFound)
         {
             ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
             ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
@@ -1185,7 +1206,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     Parallel.ForEach(currentPkg.Dependencies, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, dep =>
                     {
                         debugMsgs.Enqueue($"Finding dependency '{dep.Name}' version range '{dep.VersionRange}'");
-                        FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                        FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     });
                 }
                 else
@@ -1193,7 +1214,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     foreach (var dep in currentPkg.Dependencies)
                     {
                         debugMsgs.Enqueue($"Finding dependency '{dep.Name}' version range '{dep.VersionRange}'");
-                        FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                        FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     }
                 }
 
@@ -1208,6 +1229,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ResponseUtil currentResponseUtil, 
             PSResourceInfo currentPkg, 
             PSRepositoryInfo repository, 
+            ConcurrentDictionary<string, PSResourceInfo> depPkgsFound,
             ConcurrentQueue<ErrorRecord> errorMsgs, 
             ConcurrentQueue<string> warningMsgs,
             ConcurrentQueue<string> debugMsgs,
@@ -1228,7 +1250,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     else
                     {
                         // Find this version from the server
-                        depPkg = FindDependencyWithLowerBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                        depPkg = FindDependencyWithLowerBound(dep, currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     }
             }
             else if (dep.VersionRange.HasLowerBound && dep.VersionRange.MinVersion.Equals(dep.VersionRange.MaxVersion))
@@ -1245,7 +1267,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    depPkg = FindDependencyWithSpecificVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                    depPkg = FindDependencyWithSpecificVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                 }
             }
             else
@@ -1261,7 +1283,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else
                 {
-                    depPkg = FindDependencyWithUpperBound(dep, currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                    depPkg = FindDependencyWithUpperBound(dep, currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                 }
             }
         }
@@ -1273,6 +1295,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ResponseUtil currentResponseUtil, 
             PSResourceInfo currentPkg, 
             PSRepositoryInfo repository, 
+            ConcurrentDictionary<string, PSResourceInfo> depPkgsFound,
             ConcurrentQueue<ErrorRecord> errorMsgs, 
             ConcurrentQueue<string> warningMsgs,
             ConcurrentQueue<string> debugMsgs,
@@ -1351,7 +1374,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // This will eventually return the PSResourceInfo object to the main cmdlet class.
                         debugMsgs.Enqueue($"Adding'{key}' to list of dependency packages found");
                         depPkgsFound.TryAdd(key, depPkg);
-                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository, depPkgsFound);
                     }
                 }
             }
@@ -1366,6 +1389,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ResponseUtil currentResponseUtil, 
             PSResourceInfo currentPkg, 
             PSRepositoryInfo repository, 
+            ConcurrentDictionary<string, PSResourceInfo> depPkgsFound,
             ConcurrentQueue<ErrorRecord> errorMsgs, 
             ConcurrentQueue<string> warningMsgs,
             ConcurrentQueue<string> debugMsgs,
@@ -1419,7 +1443,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // This will eventually return the PSResourceInfo object to the main cmdlet class.
                         debugMsgs.Enqueue($"Adding'{key}' to list of dependency packages found");
                         depPkgsFound.TryAdd(key, depPkg);
-                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository, depPkgsFound);
                     }
                 }
             }
@@ -1434,6 +1458,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             ResponseUtil currentResponseUtil, 
             PSResourceInfo currentPkg, 
             PSRepositoryInfo repository, 
+            ConcurrentDictionary<string, PSResourceInfo> depPkgsFound,
             ConcurrentQueue<ErrorRecord> errorMsgs, 
             ConcurrentQueue<string> warningMsgs,
             ConcurrentQueue<string> debugMsgs,
@@ -1490,7 +1515,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // This will eventually return the PSResourceInfo object to the main cmdlet class.
                         debugMsgs.Enqueue($"Adding'{key}' to list of dependency packages found");
                         depPkgsFound.TryAdd(key, depPkg);
-                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository);
+                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository, depPkgsFound);
                     }
                 }
             }
