@@ -206,7 +206,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (initialScriptCount != 0)
                 {
                     responses.Add(initialScriptResponse);
-                    int count = initialScriptCount / 100;
+                    int count = (int)Math.Ceiling((double)initialScriptCount / 100) - 1;
                     // if more than 100 count, loop and add response to list
                     while (count > 0)
                     {
@@ -242,7 +242,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (initialModuleCount != 0)
                 {
                     responses.Add(initialModuleResponse);
-                    int count = initialModuleCount / 100;
+                    int count = (int)Math.Ceiling((double)initialModuleCount / 100) - 1;
                     // if more than 100 count, loop and add response to list
                     while (count > 0)
                     {
@@ -296,7 +296,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (initialCount != 0)
             {
                 responses.Add(initialResponse);
-                int count = (int)Math.Ceiling((double)(initialCount / 100));
+                int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
 
                 while (count > 0)
                 {
@@ -596,7 +596,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int count = (int)Math.Ceiling((double)(initialCount / 100));
+            int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -648,7 +648,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int count = (int)Math.Ceiling((double)(initialCount / 100));
+            int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -704,7 +704,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!getOnlyLatest)
             {
-                int count = (int)Math.Ceiling((double)(initialCount / 100));
+                int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
 
                 while (count > 0)
                 {
@@ -1735,7 +1735,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!getOnlyLatest)
             {
-                int count = (int)Math.Ceiling((double)(initialCount / 100));
+                int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
 
                 while (count > 0)
                 {

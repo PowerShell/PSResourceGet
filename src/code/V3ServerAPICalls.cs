@@ -1097,8 +1097,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Get responses for all packages that contain the required tags
             pkgEntries.AddRange(GetJsonElementArr(query, dataName, out int initialCount, out errRecord, errorMsgs, debugMsgs, verboseMsgs).ToList());
 
-            // check count (ie "totalHits") 425 ==> count/100  ~~> 4 calls ~~> + 1 = 5 calls
-            int count = initialCount / 100 + 1;
+            // check count (ie "totalHits") 425 ==> ceil(425/100) - 1 ~~> 4 more calls (initial page already fetched)
+            int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {

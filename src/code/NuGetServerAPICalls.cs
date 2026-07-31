@@ -122,7 +122,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             }
 
-            int count = initialCount / 6000;
+            int count = (int)Math.Ceiling((double)initialCount / 6000) - 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -166,7 +166,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             }
 
-            int count = initialCount / 100;
+            int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -310,7 +310,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             }
 
-            int count = initialCount / 100;
+            int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -355,7 +355,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             }
 
-            int count = initialCount / 100;
+            int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -404,7 +404,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
                 }
 
-                int count = initialCount / 100;
+                int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
 
                 while (count > 0)
                 {
