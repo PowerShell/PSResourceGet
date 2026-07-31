@@ -801,7 +801,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             else
             {
-                // Concurrent updates, currently only implemented for v2 server repositories
+                // Concurrent updates
                 // Find all dependencies
                 if (!skipDependencyCheck)
                 {
@@ -853,7 +853,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // TODO: figure out a good threshold and parallel count
             int processorCount = Environment.ProcessorCount;
             _cmdletPassedIn.WriteDebug($"parentAndDeps.Count is {parentAndDeps.Count}, processor count is: {processorCount}");
-            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2 && parentAndDeps.Count > processorCount)
+            if (parentAndDeps.Count > processorCount)
             {
                  _cmdletPassedIn.WriteDebug($"parentAndDeps.Count is greater than processor count");
                 // Set the maximum degree of parallelism to 32? (Invoke-Command has default of 32, that's where we got this number from)
