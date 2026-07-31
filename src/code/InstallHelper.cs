@@ -920,11 +920,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     var pkgToInstallName = pkgToBeInstalled.Name;
                     var pkgToInstallVersion = Utils.GetFullVersionString(pkgToBeInstalled.Version.ToString(), pkgToBeInstalled.Prerelease);
-                    Stream responseStream = currentServer.InstallPackage(pkgToInstallName, pkgToInstallVersion, true, out ErrorRecord installNameErrRecord);
+                    // Runs on worker threads when parent installs are parallelized; use the async overload to avoid cross-thread cmdlet stream writes.
+                    Stream responseStream = currentServer.InstallPackageAsync(pkgToInstallName, pkgToInstallVersion, true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs).GetAwaiter().GetResult();
 
-                    if (installNameErrRecord != null)
+                    if (!errorMsgs.IsEmpty)
                     {
-                        errorMsgs.Enqueue(installNameErrRecord);
                         return packagesHash;
                     }
 
