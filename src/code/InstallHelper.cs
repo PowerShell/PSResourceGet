@@ -839,7 +839,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!skipDependencyCheck)
             {
                 // List returned only includes dependencies, so we'll add the parent pkg to this list to pass on to installation method.
-                parentAndDeps.AddRange(_findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository));
+                parentAndDeps.AddRange(_findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
                 debugMsgs.Enqueue("In InstallHelper::DownloadParentAndDeps(), found all dependencies");
             }
 

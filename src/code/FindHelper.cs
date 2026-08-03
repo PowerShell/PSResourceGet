@@ -1177,22 +1177,50 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         internal IEnumerable<PSResourceInfo> FindDependencyPackages(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository)
         {
+            // Pipeline-thread callers: collect diagnostics locally and drain them to the cmdlet on this thread.
+            ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
+
+            var depPkgs = FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+
+            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+            return depPkgs;
+        }
+
+        // Overload for worker-thread callers: diagnostics are routed to the caller-provided queues and drained by the caller on the pipeline thread.
+        internal IEnumerable<PSResourceInfo> FindDependencyPackages(
+            ServerApiCall currentServer,
+            ResponseUtil currentResponseUtil,
+            PSResourceInfo currentPkg,
+            PSRepositoryInfo repository,
+            ConcurrentQueue<ErrorRecord> errorMsgs,
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
+        {
             // Use a local instance so multiple parent packages can resolve their dependency closures concurrently
             // without racing on shared state.
             ConcurrentDictionary<string, PSResourceInfo> depPkgsFound = new ConcurrentDictionary<string, PSResourceInfo>();
-            _cmdletPassedIn.WriteDebug($"In FindHelper::FindDependencyPackages() - {currentPkg.Name}");            
-            FindDependencyPackagesHelper(currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound); 
+            debugMsgs.Enqueue($"In FindHelper::FindDependencyPackages() - {currentPkg.Name}");
+            FindDependencyPackagesHelper(currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
             return depPkgsFound.Values.ToList();
         }
 
         // Method 2 
-        internal void FindDependencyPackagesHelper(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository, ConcurrentDictionary<string, PSResourceInfo> depPkgsFound)
+        internal void FindDependencyPackagesHelper(
+            ServerApiCall currentServer,
+            ResponseUtil currentResponseUtil,
+            PSResourceInfo currentPkg,
+            PSRepositoryInfo repository,
+            ConcurrentDictionary<string, PSResourceInfo> depPkgsFound,
+            ConcurrentQueue<ErrorRecord> errorMsgs,
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
         {
-            ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
-            ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
-            ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
-            ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
             debugMsgs.Enqueue("In FindHelper::FindDependencyPackagesHelper()");
 
             if (currentPkg.Dependencies.Length > 0)
@@ -1217,8 +1245,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     }
                 }
-
-                Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             }
         }
 
@@ -1374,7 +1400,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // This will eventually return the PSResourceInfo object to the main cmdlet class.
                         debugMsgs.Enqueue($"Adding'{key}' to list of dependency packages found");
                         depPkgsFound.TryAdd(key, depPkg);
-                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository, depPkgsFound);
+                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     }
                 }
             }
@@ -1443,7 +1469,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // This will eventually return the PSResourceInfo object to the main cmdlet class.
                         debugMsgs.Enqueue($"Adding'{key}' to list of dependency packages found");
                         depPkgsFound.TryAdd(key, depPkg);
-                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository, depPkgsFound);
+                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     }
                 }
             }
@@ -1515,7 +1541,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // This will eventually return the PSResourceInfo object to the main cmdlet class.
                         debugMsgs.Enqueue($"Adding'{key}' to list of dependency packages found");
                         depPkgsFound.TryAdd(key, depPkg);
-                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository, depPkgsFound);
+                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     }
                 }
             }
