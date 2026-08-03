@@ -87,13 +87,46 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In NuGetServerAPICalls::FindVersionGlobbingAsync()");
-            FindResults findResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, getOnlyLatest, out ErrorRecord errRecord);
+            List<string> responses = new List<string>();
+            int skip = 0;
+
+            var initialResponse = FindVersionGlobbingFromEndpointAsync(packageName, versionRange, includePrerelease, skip, getOnlyLatest, debugMsgs, out ErrorRecord errRecord);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
+                return Task.FromResult(new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType));
             }
 
-            return Task.FromResult(findResponse);
+            responses.Add(initialResponse);
+
+            if (!getOnlyLatest)
+            {
+                int initialCount = GetCountFromResponse(initialResponse, out errRecord);
+                if (errRecord != null)
+                {
+                    errorMsgs.Enqueue(errRecord);
+                    return Task.FromResult(new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType));
+                }
+
+                int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
+
+                while (count > 0)
+                {
+                    // skip 100
+                    skip += 100;
+                    var tmpResponse = FindVersionGlobbingFromEndpointAsync(packageName, versionRange, includePrerelease, skip, getOnlyLatest, debugMsgs, out errRecord);
+                    if (errRecord != null)
+                    {
+                        errorMsgs.Enqueue(errRecord);
+                        return Task.FromResult(new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType));
+                    }
+
+                    responses.Add(tmpResponse);
+                    count--;
+                }
+            }
+
+            return Task.FromResult(new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType));
         }
         /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
@@ -985,6 +1018,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, int skip, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindVersionGlobbing()");
+            var requestUrl = GetVersionGlobbingRequestUrl(packageName, versionRange, includePrerelease, skip, getOnlyLatest);
+            return HttpRequestCall(requestUrl, out errRecord);
+        }
+
+        /// <summary>
+        /// Worker-thread counterpart of FindVersionGlobbing(); enqueues diagnostics instead of writing to cmdlet streams.
+        /// </summary>
+        private string FindVersionGlobbingFromEndpointAsync(string packageName, VersionRange versionRange, bool includePrerelease, int skip, bool getOnlyLatest, ConcurrentQueue<string> debugMsgs, out ErrorRecord errRecord)
+        {
+            debugMsgs.Enqueue("In NuGetServerAPICalls::FindVersionGlobbingFromEndpointAsync()");
+            var requestUrl = GetVersionGlobbingRequestUrl(packageName, versionRange, includePrerelease, skip, getOnlyLatest);
+            return HttpRequestCallAsync(requestUrl, debugMsgs, out errRecord);
+        }
+
+        /// <summary>
+        /// Builds the FindPackagesById() request url for version-globbing searches.
+        /// </summary>
+        private string GetVersionGlobbingRequestUrl(string packageName, VersionRange versionRange, bool includePrerelease, int skip, bool getOnlyLatest)
+        {
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
             // NormalizedVersion doesn't include trailing zeroes
@@ -1053,9 +1105,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             filterBuilder.AddCriterion($"Id eq '{packageName}'");
 
-            var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
-
-            return HttpRequestCall(requestUrl, out errRecord);
+            return $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
         }
 
         /// <summary>
