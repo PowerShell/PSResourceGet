@@ -91,12 +91,29 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In ContainerRegistryServerAPICalls::FindVersionAsync()");
-            FindResults findResponse = FindVersion(packageName, version, type, out ErrorRecord errRecord);
+            if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ArgumentException($"Version {version} to be found is not a valid NuGet version."),
+                    "FindNameFailure",
+                    ErrorCategory.InvalidArgument,
+                    this));
+
+                return Task.FromResult(emptyResponseResults);
+            }
+
+            debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
+            bool includePrereleaseVersions = requiredVersion.IsPrerelease;
+
+            // for FindVersion(), need to consider the specific required version (hence VersionType.SpecificVersion and no version range)
+            Hashtable[] pkgResult = FindPackagesWithVersionHelper(packageName, VersionType.SpecificVersion, versionRange: VersionRange.None, requiredVersion: requiredVersion, includePrereleaseVersions, getOnlyLatest: false, out ErrorRecord errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
+                return Task.FromResult(emptyResponseResults);
             }
 
+            FindResults findResponse = new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResult.ToArray(), responseType: containerRegistryFindResponseType);
             return Task.FromResult(findResponse);
         }
 
@@ -109,12 +126,16 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In ContainerRegistryServerAPICalls::FindVersionGlobbingAsync()");
-            FindResults findResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, getOnlyLatest, out ErrorRecord errRecord);
+
+            // for FindVersionGlobbing(), need to consider all versions that match version range criteria (hence VersionType.VersionRange and no requiredVersion)
+            Hashtable[] pkgResults = FindPackagesWithVersionHelper(packageName, VersionType.VersionRange, versionRange: versionRange, requiredVersion: null, includePrerelease, getOnlyLatest: false, out ErrorRecord errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
+                return Task.FromResult(emptyResponseResults);
             }
 
+            FindResults findResponse = new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResults.ToArray(), responseType: containerRegistryFindResponseType);
             return Task.FromResult(findResponse);
         }
 
@@ -172,9 +193,14 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindName(string packageName, bool includePrerelease, ResourceType type, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindName()");
+            ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
 
             // for FindName(), need to consider all versions (hence VersionType.VersionRange and VersionRange.All, and no requiredVersion) but only pick latest (hence getOnlyLatest: true)
-            Hashtable[] pkgResult = FindPackagesWithVersionHelper(packageName, VersionType.VersionRange, versionRange: VersionRange.All, requiredVersion: null, includePrerelease, getOnlyLatest: true, out errRecord);
+            Hashtable[] pkgResult = FindPackagesWithVersionHelper(packageName, VersionType.VersionRange, versionRange: VersionRange.All, requiredVersion: null, includePrerelease, getOnlyLatest: true, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 return emptyResponseResults;
@@ -192,12 +218,16 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In ContainerRegistryServerAPICalls::FindNameAsync()");
-            FindResults findResponse = FindName(packageName, includePrerelease, type, out ErrorRecord errRecord);
+
+            // for FindName(), need to consider all versions (hence VersionType.VersionRange and VersionRange.All, and no requiredVersion) but only pick latest (hence getOnlyLatest: true)
+            Hashtable[] pkgResult = FindPackagesWithVersionHelper(packageName, VersionType.VersionRange, versionRange: VersionRange.All, requiredVersion: null, includePrerelease, getOnlyLatest: true, out ErrorRecord errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
+                return Task.FromResult(emptyResponseResults);
             }
 
+            FindResults findResponse = new FindResults(stringResponse: new string[] { }, hashtableResponse: pkgResult.ToArray(), responseType: containerRegistryFindResponseType);
             return Task.FromResult(findResponse);
         }
 
@@ -265,9 +295,14 @@ namespace Microsoft.PowerShell.PSResourceGet
         public override FindResults FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindVersionGlobbing()");
+            ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
 
             // for FindVersionGlobbing(), need to consider all versions that match version range criteria (hence VersionType.VersionRange and no requiredVersion)
-            Hashtable[] pkgResults = FindPackagesWithVersionHelper(packageName, VersionType.VersionRange, versionRange: versionRange, requiredVersion: null, includePrerelease, getOnlyLatest: false, out errRecord);
+            Hashtable[] pkgResults = FindPackagesWithVersionHelper(packageName, VersionType.VersionRange, versionRange: versionRange, requiredVersion: null, includePrerelease, getOnlyLatest: false, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 return emptyResponseResults;
@@ -298,9 +333,14 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{requiredVersion}'");
             bool includePrereleaseVersions = requiredVersion.IsPrerelease;
+            ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
 
             // for FindVersion(), need to consider the specific required version (hence VersionType.SpecificVersion and no version range)
-            Hashtable[] pkgResult = FindPackagesWithVersionHelper(packageName, VersionType.SpecificVersion, versionRange: VersionRange.None, requiredVersion: requiredVersion, includePrereleaseVersions, getOnlyLatest: false, out errRecord);
+            Hashtable[] pkgResult = FindPackagesWithVersionHelper(packageName, VersionType.SpecificVersion, versionRange: VersionRange.None, requiredVersion: requiredVersion, includePrereleaseVersions, getOnlyLatest: false, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 return emptyResponseResults;
@@ -399,6 +439,10 @@ namespace Microsoft.PowerShell.PSResourceGet
             string packageNameLowercase = packageName.ToLower();
             string accessToken = string.Empty;
             string tenantID = string.Empty;
+            ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
             string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             try
             {
@@ -415,7 +459,8 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return null;
             }
 
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false, out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 return null;
@@ -482,7 +527,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return null;
             }
 
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false, out ErrorRecord errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false, out ErrorRecord errRecord, errorMsgs, warningMsgs: null, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
@@ -533,9 +578,9 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// If no credential provided at registration then, check if the ACR endpoint can be accessed without a token. If not, try using Azure.Identity to get the az access token, then ACR refresh token and then ACR access token.
         /// Note: Access token can be empty if the repository is unauthenticated
         /// </summary>
-        internal string GetContainerRegistryAccessToken(bool needCatalogAccess, bool isPushOperation, out ErrorRecord errRecord)
+        internal string GetContainerRegistryAccessToken(bool needCatalogAccess, bool isPushOperation, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessToken()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessToken()");
             string accessToken = string.Empty;
             string containerRegistryAccessToken = string.Empty;
             string tenantID = string.Empty;
@@ -543,7 +588,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             if (!string.IsNullOrEmpty(_cachedContainterRegistryToken))
             {
-                _cmdletPassedIn.WriteVerbose("Using cached container registry access token.");
+                verboseMsgs?.Enqueue("Using cached container registry access token.");
                 return _cachedContainterRegistryToken;
             }
 
@@ -555,17 +600,17 @@ namespace Microsoft.PowerShell.PSResourceGet
                     repositoryCredentialInfo,
                     _cmdletPassedIn);
 
-                _cmdletPassedIn.WriteVerbose("Access token retrieved.");
+                verboseMsgs?.Enqueue("Access token retrieved.");
 
                 tenantID = repositoryCredentialInfo.SecretName;
             }
             else
             {
                 // A container registry repository is determined to be unauthenticated if it allows anonymous pull access. However, push operations always require authentication.
-                bool isRepositoryUnauthenticated = isPushOperation ? false : IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), needCatalogAccess, out errRecord, out accessToken);
-                _cmdletPassedIn.WriteInformation($"Value of isRepositoryUnauthenticated: {isRepositoryUnauthenticated}", new string[] { "PSRGContainerRegistryUnauthenticatedCheck" });
+                bool isRepositoryUnauthenticated = isPushOperation ? false : IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), needCatalogAccess, out errRecord, out accessToken, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                verboseMsgs?.Enqueue($"Value of isRepositoryUnauthenticated: {isRepositoryUnauthenticated}");
 
-                _cmdletPassedIn.WriteDebug($"Is repository unauthenticated: {isRepositoryUnauthenticated}");
+                debugMsgs?.Enqueue($"Is repository unauthenticated: {isRepositoryUnauthenticated}");
 
                 if (errRecord != null)
                 {
@@ -574,7 +619,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                 if (!string.IsNullOrEmpty(accessToken))
                 {
-                    _cmdletPassedIn.WriteVerbose("Anonymous access token retrieved.");
+                    verboseMsgs?.Enqueue("Anonymous access token retrieved.");
                     return accessToken;
                 }
 
@@ -594,24 +639,24 @@ namespace Microsoft.PowerShell.PSResourceGet
                 }
                 else
                 {
-                    _cmdletPassedIn.WriteVerbose("Repository is unauthenticated");
+                    verboseMsgs?.Enqueue("Repository is unauthenticated");
                     return null;
                 }
             }
 
-            var containerRegistryRefreshToken = GetContainerRegistryRefreshToken(tenantID, accessToken, out errRecord);
+            var containerRegistryRefreshToken = GetContainerRegistryRefreshToken(tenantID, accessToken, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 return null;
             }
 
-            containerRegistryAccessToken = GetContainerRegistryAccessTokenByRefreshToken(containerRegistryRefreshToken, out errRecord);
+            containerRegistryAccessToken = GetContainerRegistryAccessTokenByRefreshToken(containerRegistryRefreshToken, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 return null;
             }
 
-            _cmdletPassedIn.WriteVerbose("Container registry access token retrieved.");
+            verboseMsgs?.Enqueue("Container registry access token retrieved.");
             _cachedContainterRegistryToken = containerRegistryAccessToken;
 
             return containerRegistryAccessToken;
@@ -620,9 +665,9 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Checks if container registry repository is unauthenticated.
         /// </summary>
-        internal bool IsContainerRegistryUnauthenticated(string containerRegistryUrl, bool needCatalogAccess, out ErrorRecord errRecord, out string anonymousAccessToken)
+        internal bool IsContainerRegistryUnauthenticated(string containerRegistryUrl, bool needCatalogAccess, out ErrorRecord errRecord, out string anonymousAccessToken, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::IsContainerRegistryUnauthenticated()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::IsContainerRegistryUnauthenticated()");
             errRecord = null;
             anonymousAccessToken = string.Empty;
             string endpoint = $"{containerRegistryUrl}/v2/";
@@ -664,24 +709,24 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                                 string url = needCatalogAccess ? String.Format(authUrlTemplate, realm, service, catalogScope) : String.Format(authUrlTemplate, realm, service, defaultScope);
 
-                                _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
+                                debugMsgs?.Enqueue($"Getting anonymous access token from the realm: {url}");
 
                                 // we don't check the error record here because we want to return false if we get a 401 and not throw an error
-                                _cmdletPassedIn.WriteDebug($"Getting anonymous access token from the realm: {url}");
+                                debugMsgs?.Enqueue($"Getting anonymous access token from the realm: {url}");
                                 ErrorRecord errRecordTemp = null;
 
-                                var results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out errRecordTemp);
+                                var results = GetHttpResponseJObjectUsingContentHeaders(url, HttpMethod.Get, content, contentHeaders, out errRecordTemp, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
                                 if (results == null)
                                 {
-                                    _cmdletPassedIn.WriteDebug("Failed to get access token from the realm. results is null.");
-                                    _cmdletPassedIn.WriteDebug($"ErrorRecord: {errRecordTemp}");
+                                    debugMsgs?.Enqueue("Failed to get access token from the realm. results is null.");
+                                    debugMsgs?.Enqueue($"ErrorRecord: {errRecordTemp}");
                                     return false;
                                 }
 
                                 if (results["access_token"] == null)
                                 {
-                                    _cmdletPassedIn.WriteDebug($"Failed to get access token from the realm. access_token is null. results: {results}");
+                                    debugMsgs?.Enqueue($"Failed to get access token from the realm. access_token is null. results: {results}");
                                     return false;
                                 }
 
@@ -719,13 +764,13 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Given the access token retrieved from credentials, gets the refresh token.
         /// </summary>
-        internal string GetContainerRegistryRefreshToken(string tenant, string accessToken, out ErrorRecord errRecord)
+        internal string GetContainerRegistryRefreshToken(string tenant, string accessToken, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryRefreshToken()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetContainerRegistryRefreshToken()");
             string content = string.Format(containerRegistryRefreshTokenTemplate, Registry, tenant, accessToken);
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
             string exchangeUrl = string.Format(containerRegistryOAuthExchangeUrlTemplate, Registry);
-            var results = GetHttpResponseJObjectUsingContentHeaders(exchangeUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
+            var results = GetHttpResponseJObjectUsingContentHeaders(exchangeUrl, HttpMethod.Post, content, contentHeaders, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null || results == null || results["refresh_token"] == null)
             {
                 return string.Empty;
@@ -737,13 +782,13 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Given the refresh token, gets the new access token with appropriate scope access permissions.
         /// </summary>
-        internal string GetContainerRegistryAccessTokenByRefreshToken(string refreshToken, out ErrorRecord errRecord)
+        internal string GetContainerRegistryAccessTokenByRefreshToken(string refreshToken, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessTokenByRefreshToken()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessTokenByRefreshToken()");
             string content = string.Format(containerRegistryAccessTokenTemplate, Registry, refreshToken);
             var contentHeaders = new Collection<KeyValuePair<string, string>> { new KeyValuePair<string, string>("Content-Type", "application/x-www-form-urlencoded") };
             string tokenUrl = string.Format(containerRegistryOAuthTokenUrlTemplate, Registry);
-            var results = GetHttpResponseJObjectUsingContentHeaders(tokenUrl, HttpMethod.Post, content, contentHeaders, out errRecord);
+            var results = GetHttpResponseJObjectUsingContentHeaders(tokenUrl, HttpMethod.Post, content, contentHeaders, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null || results == null || results["access_token"] == null)
             {
                 return string.Empty;
@@ -828,7 +873,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// Gets the image tags associated with the package (i.e repository in container registry terms), where the tag corresponds to the package's versions.
         /// If the package version is specified search for that specific tag for the image, if the package version is "*" search for all tags for the image.
         /// </summary>
-        internal JObject FindContainerRegistryImageTags(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
+        internal JObject FindContainerRegistryImageTags(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
             /*
             {
@@ -844,7 +889,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string resolvedVersion = string.Equals(version, "*", StringComparison.OrdinalIgnoreCase) ? null : $"/{version}";
             string findImageUrl = string.Format(containerRegistryFindImageVersionUrlTemplate, Registry, packageName);
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-            return GetHttpResponseJObjectUsingDefaultHeaders(findImageUrl, HttpMethod.Get, defaultHeaders, out errRecord);
+            return GetHttpResponseJObjectUsingDefaultHeaders(findImageUrl, HttpMethod.Get, defaultHeaders, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
         }
 
         /// <summary>
@@ -864,12 +909,12 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Get metadata for a package version.
         /// </summary>
-        internal Hashtable GetContainerRegistryMetadata(string packageName, string exactTagVersion, string containerRegistryAccessToken, out ErrorRecord errRecord)
+        internal Hashtable GetContainerRegistryMetadata(string packageName, string exactTagVersion, string containerRegistryAccessToken, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryMetadata()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetContainerRegistryMetadata()");
             Hashtable requiredVersionResponse = new();
 
-            JObject foundTags = FindContainerRegistryManifest(packageName, exactTagVersion, containerRegistryAccessToken, out errRecord);
+            JObject foundTags = FindContainerRegistryManifest(packageName, exactTagVersion, containerRegistryAccessToken, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 return requiredVersionResponse;
@@ -898,7 +943,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                 }
             */
 
-            ContainerRegistryInfo serverPkgInfo = GetMetadataProperty(foundTags, packageName, out errRecord);
+            ContainerRegistryInfo serverPkgInfo = GetMetadataProperty(foundTags, packageName, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 return requiredVersionResponse;
@@ -959,7 +1004,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                         return requiredVersionResponse;
                     }
 
-                    _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+                    debugMsgs?.Enqueue($"'{packageName}' version parsed as '{pkgVersion}'");
                     if (pkgVersion.ToNormalizedString() == requiredVersion.ToNormalizedString())
                     {
                         requiredVersionResponse = serverPkgInfo.ToHashtable();
@@ -983,22 +1028,22 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Get the manifest associated with the package version.
         /// </summary>
-        internal JObject FindContainerRegistryManifest(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
+        internal JObject FindContainerRegistryManifest(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindContainerRegistryManifest()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::FindContainerRegistryManifest()");
             var createManifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, version);
-            _cmdletPassedIn.WriteDebug($"GET manifest url:  {createManifestUrl}");
+            debugMsgs?.Enqueue($"GET manifest url:  {createManifestUrl}");
 
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-            return GetHttpResponseJObjectUsingDefaultHeaders(createManifestUrl, HttpMethod.Get, defaultHeaders, out errRecord);
+            return GetHttpResponseJObjectUsingDefaultHeaders(createManifestUrl, HttpMethod.Get, defaultHeaders, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
         }
 
         /// <summary>
         /// Get metadata for the package by parsing its manifest.
         /// </summary>
-        internal ContainerRegistryInfo GetMetadataProperty(JObject foundTags, string packageName, out ErrorRecord errRecord)
+        internal ContainerRegistryInfo GetMetadataProperty(JObject foundTags, string packageName, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetMetadataProperty()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetMetadataProperty()");
             errRecord = null;
             ContainerRegistryInfo serverPkgInfo = null;
 
@@ -1109,9 +1154,9 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Get response object when using default headers in the request.
         /// </summary>
-        internal JObject GetHttpResponseJObjectUsingDefaultHeaders(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders, out ErrorRecord errRecord, bool usePagination = false)
+        internal JObject GetHttpResponseJObjectUsingDefaultHeaders(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null, bool usePagination = false)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetHttpResponseJObjectUsingDefaultHeaders()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetHttpResponseJObjectUsingDefaultHeaders()");
             try
             {
                 errRecord = null;
@@ -1160,9 +1205,9 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Get response object when using content headers in the request.
         /// </summary>
-        internal JObject GetHttpResponseJObjectUsingContentHeaders(string url, HttpMethod method, string content, Collection<KeyValuePair<string, string>> contentHeaders, out ErrorRecord errRecord)
+        internal JObject GetHttpResponseJObjectUsingContentHeaders(string url, HttpMethod method, string content, Collection<KeyValuePair<string, string>> contentHeaders, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetHttpResponseJObjectUsingContentHeaders()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetHttpResponseJObjectUsingContentHeaders()");
             errRecord = null;
             try
             {
@@ -1486,7 +1531,12 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             // Get access token (includes refresh tokens)
             _cmdletPassedIn.WriteVerbose($"Get access token for container registry server.");
-            var containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: true, out errRecord);
+            ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
+            var containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: true, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 return false;
@@ -1942,22 +1992,22 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Helper method for find scenarios.
         /// </summary>
-        private Hashtable[] FindPackagesWithVersionHelper(string packageName, VersionType versionType, VersionRange versionRange, NuGetVersion requiredVersion, bool includePrerelease, bool getOnlyLatest, out ErrorRecord errRecord)
+        private Hashtable[] FindPackagesWithVersionHelper(string packageName, VersionType versionType, VersionRange versionRange, NuGetVersion requiredVersion, bool includePrerelease, bool getOnlyLatest, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindPackagesWithVersionHelper()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::FindPackagesWithVersionHelper()");
             string accessToken = string.Empty;
             string tenantID = string.Empty;
             string registryUrl = Repository.Uri.ToString();
             string packageNameLowercase = packageName.ToLower();
 
             string packageNameForFind = PrependMARPrefix(packageNameLowercase);
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false,out errRecord);
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: false, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 return emptyHashResponses;
             }
 
-            var foundTags = FindContainerRegistryImageTags(packageNameForFind, "*", containerRegistryAccessToken, out errRecord);
+            var foundTags = FindContainerRegistryImageTags(packageNameForFind, "*", containerRegistryAccessToken, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null || foundTags == null)
             {
                 return emptyHashResponses;
@@ -1966,10 +2016,10 @@ namespace Microsoft.PowerShell.PSResourceGet
             List<Hashtable> latestVersionResponse = new List<Hashtable>();
             List<JToken> allVersionsList = foundTags["tags"].ToList();
 
-            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, versionType, versionRange, requiredVersion, packageNameForFind, includePrerelease, out errRecord);
+            SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedQualifyingPkgs = GetPackagesWithRequiredVersion(allVersionsList, versionType, versionRange, requiredVersion, packageNameForFind, includePrerelease, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null && sortedQualifyingPkgs?.Count == 0)
             {
-                _cmdletPassedIn.WriteDebug("No qualifying packages found for the specified criteria.");
+                debugMsgs?.Enqueue("No qualifying packages found for the specified criteria.");
                 return emptyHashResponses;
             }
 
@@ -1978,7 +2028,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             foreach (var pkgVersionTag in pkgsInDescendingOrder)
             {
                 string exactTagVersion = pkgVersionTag.Value.ToString();
-                Hashtable metadata = GetContainerRegistryMetadata(packageNameForFind, exactTagVersion, containerRegistryAccessToken, out errRecord);
+                Hashtable metadata = GetContainerRegistryMetadata(packageNameForFind, exactTagVersion, containerRegistryAccessToken, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                 if (errRecord != null || metadata.Count == 0)
                 {
                     return emptyHashResponses;
@@ -1998,9 +2048,9 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Helper method used for find scenarios that resolves versions required from all versions found.
         /// </summary>
-        private SortedDictionary<NuGet.Versioning.SemanticVersion, string> GetPackagesWithRequiredVersion(List<JToken> allPkgVersions, VersionType versionType, VersionRange versionRange, NuGetVersion specificVersion, string packageName, bool includePrerelease, out ErrorRecord errRecord)
+        private SortedDictionary<NuGet.Versioning.SemanticVersion, string> GetPackagesWithRequiredVersion(List<JToken> allPkgVersions, VersionType versionType, VersionRange versionRange, NuGetVersion specificVersion, string packageName, bool includePrerelease, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetPackagesWithRequiredVersion()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetPackagesWithRequiredVersion()");
             errRecord = null;
             // we need NuGetVersion to sort versions by order, and string pkgVersionString (which is the exact tag from the server) to call GetContainerRegistryMetadata() later with exact version tag.
             SortedDictionary<NuGet.Versioning.SemanticVersion, string> sortedPkgs = new SortedDictionary<SemanticVersion, string>(VersionComparer.Default);
@@ -2018,12 +2068,12 @@ namespace Microsoft.PowerShell.PSResourceGet
                         ErrorCategory.InvalidArgument,
                         this);
 
-                    _cmdletPassedIn.WriteError(errRecord);
-                    _cmdletPassedIn.WriteDebug($"Skipping package '{packageName}' with version '{pkgVersionString}' as it is not a valid NuGet version.");
+                    errorMsgs?.Enqueue(errRecord);
+                    debugMsgs?.Enqueue($"Skipping package '{packageName}' with version '{pkgVersionString}' as it is not a valid NuGet version.");
                     continue; // skip this version and continue with the next one
                 }
 
-                _cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{pkgVersion}'");
+                debugMsgs?.Enqueue($"'{packageName}' version parsed as '{pkgVersion}'");
 
                 if (isSpecificVersionSearch)
                 {
@@ -2063,7 +2113,12 @@ namespace Microsoft.PowerShell.PSResourceGet
         {
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindPackages()");
             errRecord = null;
-            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: true, isPushOperation: false, out errRecord);
+            ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
+            string containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: true, isPushOperation: false, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 return emptyResponseResults;
@@ -2100,7 +2155,8 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                 _cmdletPassedIn.WriteDebug($"Found repository: {repositoryName}");
 
-                repositoriesList.AddRange(FindPackagesWithVersionHelper(repositoryName, VersionType.VersionRange, versionRange: VersionRange.All, requiredVersion: null, includePrerelease, getOnlyLatest: true, out errRecord));
+                repositoriesList.AddRange(FindPackagesWithVersionHelper(repositoryName, VersionType.VersionRange, versionRange: VersionRange.All, requiredVersion: null, includePrerelease, getOnlyLatest: true, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
+                Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                 if (errRecord != null)
                 {
                     return emptyResponseResults;
