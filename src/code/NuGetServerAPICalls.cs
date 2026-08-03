@@ -63,10 +63,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             });
             var filterBuilder = queryBuilder.FilterBuilder;
 
-            // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
-            filterBuilder.AddCriterion($"Id eq '{packageName}'");
-            filterBuilder.AddCriterion($"NormalizedVersion eq '{packageName}'");
-
+// We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
+filterBuilder.AddCriterion($"Id eq '{packageName}'");
+filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
             var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response = HttpRequestCallAsync(requestUrl, debugMsgs, out ErrorRecord errRecord);
             FindResults findResponse = new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);

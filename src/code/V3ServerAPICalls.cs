@@ -750,7 +750,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v3FindResponseType);
             }
-            //_cmdletPassedIn.WriteDebug($"'{packageName}' version parsed as '{requiredVersion}'");
+debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
 
             string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, catalogEntryProperty, isSearch: true, out errRecord, errorMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
