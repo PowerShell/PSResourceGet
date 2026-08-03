@@ -885,7 +885,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // add async
                     Stream responseStream = currentServer.InstallPackageAsync(depPkgName, depPkgVersion, true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs).GetAwaiter().GetResult();
 
-                    if (errorMsgs.Count > 0)
+                    if (!errorMsgs.IsEmpty)
                     {
                         verboseMsgs.Enqueue($"Error installing package '{depPkgName}'");
                     }
