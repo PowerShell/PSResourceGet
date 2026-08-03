@@ -521,7 +521,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In NuGetServerAPICalls::InstallPackageAsync()");
-            Stream results = InstallPackage(packageName, packageVersion, includePrerelease, out ErrorRecord errRecord);
+            Stream results = new MemoryStream();
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    exception: new ArgumentNullException($"Package version could not be found for {packageName}"),
+                    "PackageVersionNullOrEmptyError",
+                    ErrorCategory.InvalidArgument,
+                    _cmdletPassedIn));
+
+                return Task.FromResult(results);
+            }
+
+            results = InstallVersionAsync(packageName, packageVersion, debugMsgs, out ErrorRecord errRecord);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
@@ -623,6 +635,55 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (string.IsNullOrEmpty(content.ToString()))
             {
                 _cmdletPassedIn.WriteDebug("Response is empty");
+            }
+
+            return content;
+        }
+
+        /// <summary>
+        /// Helper method that makes the HTTP request for install APIs on worker threads; enqueues diagnostics instead of writing to cmdlet streams.
+        /// </summary>
+        private HttpContent HttpRequestCallForContentAsync(string requestUrl, ConcurrentQueue<string> debugMsgs, out ErrorRecord errRecord)
+        {
+            debugMsgs.Enqueue("In NuGetServerAPICalls::HttpRequestCallForContentAsync()");
+            errRecord = null;
+            HttpContent content = null;
+
+            try
+            {
+                debugMsgs.Enqueue($"Request url is: '{requestUrl}'");
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+
+                content = SendRequestForContentAsync(request, _sessionClient).GetAwaiter().GetResult();
+            }
+            catch (HttpRequestException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestFailure",
+                    ErrorCategory.ConnectionError ,
+                    this);
+            }
+            catch (ArgumentNullException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestFailure",
+                    ErrorCategory.InvalidData,
+                    this);
+            }
+            catch (InvalidOperationException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestFailure",
+                    ErrorCategory.InvalidOperation,
+                    this);
+            }
+
+            if (string.IsNullOrEmpty(content?.ToString()))
+            {
+                debugMsgs.Enqueue("Response is empty");
             }
 
             return content;
@@ -1025,6 +1086,29 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallVersion()");
             var requestUrl = $"{Repository.Uri}/Packages(Id='{packageName}',Version='{version}')/Download";
             var response = HttpRequestCallForContent(requestUrl, out errRecord);
+
+            if (response is null)
+            {
+                errRecord = new ErrorRecord(
+                    new Exception($"No content was returned by repository '{Repository.Name}'"),
+                    "InstallFailureContentNullNuGetServer",
+                    ErrorCategory.InvalidResult,
+                    this);
+
+                return null;
+            }
+
+            return response.ReadAsStreamAsync().Result;
+        }
+
+        /// <summary>
+        /// Worker-thread counterpart of InstallVersion(); enqueues diagnostics instead of writing to cmdlet streams.
+        /// </summary>
+        private Stream InstallVersionAsync(string packageName, string version, ConcurrentQueue<string> debugMsgs, out ErrorRecord errRecord)
+        {
+            debugMsgs.Enqueue("In NuGetServerAPICalls::InstallVersionAsync()");
+            var requestUrl = $"{Repository.Uri}/Packages(Id='{packageName}',Version='{version}')/Download";
+            var response = HttpRequestCallForContentAsync(requestUrl, debugMsgs, out errRecord);
 
             if (response is null)
             {
