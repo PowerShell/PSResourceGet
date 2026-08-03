@@ -238,7 +238,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In NuGetServerAPICalls::FindNameAsync()");
-            FindResults findResponse = FindName(packageName, includePrerelease, type, out ErrorRecord errRecord);
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "id", $"'{packageName}'" },
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+            filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
+
+            // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
+
+            var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+            string response = HttpRequestCallAsync(requestUrl, debugMsgs, out ErrorRecord errRecord);
+            FindResults findResponse = new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
