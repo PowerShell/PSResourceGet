@@ -1,0 +1,183 @@
+# CI workflow converted from .ci/ci.yml (Azure DevOps pipeline).
+# Builds the Microsoft.PowerShell.PSResourceGet module package and runs the
+# cross-platform test suite. Signing / compliance / release / symbol stages from
+# the original pipeline are intentionally not converted (they rely on Microsoft
+# internal infrastructure: ESRP, 1ES pools, ComplianceRepo, symbol server).
+name: PSResourceGet-CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+  id-token: write   # required so the reusable test workflow can use azure/login OIDC
+
+jobs:
+  build:
+    name: Build Package
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AGENT_TEMPDIRECTORY
+        run: |
+          # Map the Azure DevOps $(Agent.TempDirectory) that the carried-over scripts expect.
+          "AGENT_TEMPDIRECTORY=$env:RUNNER_TEMP" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Capture environment for build
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path env:
+
+      - name: Create temporary module path
+        shell: pwsh
+        run: |
+          $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+          if (Test-Path -Path $modulePath) {
+            Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
+            Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
+          }
+          if (! (Test-Path -Path $modulePath)) {
+            Write-Verbose -Verbose "Creating new temp module path: $modulePath"
+            $null = New-Item -Path $modulePath -ItemType Directory
+          }
+
+      - name: Install Microsoft.PowerShell.PSResourceGet v3
+        shell: pwsh
+        run: |
+          $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+          Write-Verbose -Verbose "Install PSResourceGet to temp module path"
+          Save-Module -Name Microsoft.PowerShell.PSResourceGet -MinimumVersion 0.9.0-rc1 -Path $modulePath -AllowPrerelease -Force
+
+      - name: Capture source code for build
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path ${{ github.workspace }}/src/code -Recurse
+
+      - name: Build Module
+        shell: pwsh
+        run: |
+          $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+          $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+          Import-Module -Name ${{ github.workspace }}/buildtools.psd1 -Force
+          ${{ github.workspace }}/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net472'
+
+      - name: Publish module nuget package
+        shell: pwsh
+        run: |
+          $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+          $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+          Import-Module -Name ${{ github.workspace }}/buildtools.psd1 -Force
+          ${{ github.workspace }}/build.ps1 -Publish
+
+      - name: Stage nuget package for upload
+        shell: pwsh
+        run: |
+          # build.ps1 -Publish drops the .nupkg into a temp local repo folder. Copy it
+          # to a well-known folder so it can be uploaded as the "nupkg" artifact, matching
+          # the layout expected by Install-ModulePackageForTest (a "nupkg" subfolder).
+          $localRepoLocation = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'packagebuild-local-repo'
+          $nupkg = Get-ChildItem -Path $localRepoLocation -Filter '*.nupkg' -Recurse
+          if (-not $nupkg) {
+            throw "Could not find built .nupkg under $localRepoLocation"
+          }
+          $stagingPath = Join-Path -Path ${{ github.workspace }} -ChildPath 'nupkg'
+          $null = New-Item -Path $stagingPath -ItemType Directory -Force
+          $nupkg | Copy-Item -Destination $stagingPath -Force -Verbose
+          Get-ChildItem -Path $stagingPath
+
+      - name: Upload nuget package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: ${{ github.workspace }}/nupkg/*.nupkg
+          if-no-files-found: error
+
+      - name: Upload module artifact
+        shell: pwsh
+        run: |
+          $modulePath = Join-Path -Path $env:AGENT_TEMPDIRECTORY -ChildPath 'TempModules'
+          $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+          Import-Module -Name ${{ github.workspace }}/buildtools.psd1 -Force
+          $config = Get-BuildConfiguration
+          $srcModulePath = Resolve-Path -Path "$($config.BuildOutputPath)/$($config.ModuleName)"
+          Get-ChildItem $srcModulePath
+          "MODULE_ARTIFACT_PATH=$srcModulePath" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Upload built module artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Microsoft.PowerShell.PSResourceGet
+          path: ${{ env.MODULE_ARTIFACT_PATH }}
+          if-no-files-found: error
+
+  test-windows-pwsh:
+    name: PowerShell Core on Windows
+    needs: build
+    uses: ./.github/workflows/psresourceget-test.yml
+    secrets: inherit
+    with:
+      imageName: windows-latest
+      displayName: PowerShell Core on Windows
+      powershellExecutable: pwsh
+      useAzAuth: false
+
+  test-windows-winps:
+    name: Windows PowerShell on Windows
+    needs: build
+    uses: ./.github/workflows/psresourceget-test.yml
+    secrets: inherit
+    with:
+      imageName: windows-latest
+      displayName: Windows PowerShell on Windows
+      powershellExecutable: powershell
+      useAzAuth: false
+
+  test-ubuntu:
+    name: PowerShell Core on Ubuntu
+    needs: build
+    uses: ./.github/workflows/psresourceget-test.yml
+    secrets: inherit
+    with:
+      imageName: ubuntu-latest
+      displayName: PowerShell Core on Ubuntu
+      powershellExecutable: pwsh
+      useAzAuth: false
+
+  test-macos:
+    name: PowerShell Core on macOS
+    needs: build
+    uses: ./.github/workflows/psresourceget-test.yml
+    secrets: inherit
+    with:
+      imageName: macos-latest
+      displayName: PowerShell Core on macOS
+      powershellExecutable: pwsh
+      useAzAuth: false
+
+  test-windows-azauth:
+    name: AzAuth PowerShell Core on Windows
+    needs: build
+    uses: ./.github/workflows/psresourceget-test.yml
+    secrets: inherit
+    with:
+      imageName: windows-latest
+      displayName: AzAuth PowerShell Core on Windows
+      powershellExecutable: pwsh
+      useAzAuth: true
