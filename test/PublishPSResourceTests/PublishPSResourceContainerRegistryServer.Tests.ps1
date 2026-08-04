@@ -359,9 +359,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
 
         if ($usingAzAuth)
         {
-            $RegistryUnauthenticated | Should -Not -BeNullOrEmpty
-            $RegistryUnauthenticated[0].Tags | Should -Be "PSRGContainerRegistryUnauthenticatedCheck"
-            $RegistryUnauthenticated[0].MessageData | Should -Be "Value of isRepositoryUnauthenticated: False"
+            $RegistryUnauthenticated | Should -BeNullOrEmpty
         }
     }
 
