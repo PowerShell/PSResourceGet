@@ -535,13 +535,13 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
 
             verboseMsgs.Enqueue($"Getting manifest for {packageNameLowercase} - {packageVersion}");
-            var manifest = GetContainerRegistryRepositoryManifest(packageNameLowercase, packageVersion, containerRegistryAccessToken, out errRecord);
+            var manifest = GetContainerRegistryRepositoryManifest(packageNameLowercase, packageVersion, containerRegistryAccessToken, out errRecord, debugMsgs);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
                 return null;
             }
-            string digest = GetDigestFromManifest(manifest, out errRecord);
+            string digest = GetDigestFromManifest(manifest, out errRecord, debugMsgs);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
@@ -552,7 +552,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             HttpContent responseContent;
             try
             {
-                responseContent = GetContainerRegistryBlobAsync(packageNameLowercase, digest, containerRegistryAccessToken).Result;
+                responseContent = GetContainerRegistryBlobAsync(packageNameLowercase, digest, containerRegistryAccessToken, debugMsgs).Result;
             }
             catch (Exception e)
             {
@@ -804,9 +804,9 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Parses package manifest JObject to find digest entry, which is the SHA needed to identify and get the package.
         /// </summary>
-        private string GetDigestFromManifest(JObject manifest, out ErrorRecord errRecord)
+        private string GetDigestFromManifest(JObject manifest, out ErrorRecord errRecord, ConcurrentQueue<string> debugMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetDigestFromManifest()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetDigestFromManifest()");
             errRecord = null;
             string digest = String.Empty;
 
@@ -848,25 +848,25 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Gets the manifest for a package (ie repository in container registry terms) from the repository (ie registry in container registry terms)
         /// </summary>
-        internal JObject GetContainerRegistryRepositoryManifest(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord)
+        internal JObject GetContainerRegistryRepositoryManifest(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord, ConcurrentQueue<string> debugMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryRepositoryManifest()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetContainerRegistryRepositoryManifest()");
             // example of manifestUrl: https://psgetregistry.azurecr.io/hello-world:3.0.0
             string manifestUrl = string.Format(containerRegistryManifestUrlTemplate, Registry, packageName, version);
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-            return GetHttpResponseJObjectUsingDefaultHeaders(manifestUrl, HttpMethod.Get, defaultHeaders, out errRecord);
+            return GetHttpResponseJObjectUsingDefaultHeaders(manifestUrl, HttpMethod.Get, defaultHeaders, out errRecord, debugMsgs: debugMsgs);
         }
 
         /// <summary>
         /// Get the blob for the package (ie repository in container registry terms) from the repository (ie registry in container registry terms)
         /// Used when installing the package
         /// </summary>
-        internal async Task<HttpContent> GetContainerRegistryBlobAsync(string packageName, string digest, string containerRegistryAccessToken)
+        internal async Task<HttpContent> GetContainerRegistryBlobAsync(string packageName, string digest, string containerRegistryAccessToken, ConcurrentQueue<string> debugMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetContainerRegistryBlobAsync()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetContainerRegistryBlobAsync()");
             string blobUrl = string.Format(containerRegistryBlobDownloadUrlTemplate, Registry, packageName, digest);
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
-            return await GetHttpContentResponseJObject(blobUrl, defaultHeaders);
+            return await GetHttpContentResponseJObject(blobUrl, defaultHeaders, debugMsgs);
         }
 
         /// <summary>
@@ -885,7 +885,7 @@ namespace Microsoft.PowerShell.PSResourceGet
                   ]
                 }
             */
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::FindContainerRegistryImageTags()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::FindContainerRegistryImageTags()");
             string resolvedVersion = string.Equals(version, "*", StringComparison.OrdinalIgnoreCase) ? null : $"/{version}";
             string findImageUrl = string.Format(containerRegistryFindImageVersionUrlTemplate, Registry, packageName);
             var defaultHeaders = GetDefaultHeaders(containerRegistryAccessToken);
@@ -1136,9 +1136,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
-        internal async Task<HttpContent> GetHttpContentResponseJObject(string url, Collection<KeyValuePair<string, string>> defaultHeaders)
+        internal async Task<HttpContent> GetHttpContentResponseJObject(string url, Collection<KeyValuePair<string, string>> defaultHeaders, ConcurrentQueue<string> debugMsgs = null)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::GetHttpContentResponseJObject()");
+            debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetHttpContentResponseJObject()");
             try
             {
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
