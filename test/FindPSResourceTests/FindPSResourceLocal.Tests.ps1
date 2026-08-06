@@ -53,6 +53,14 @@ Describe 'Test Find-PSResource for local repositories' -tags 'CI' {
         $res.Version | Should -Be "5.0.0"
     }
 
+    It "find resources given multiple explicit Names" {
+        $res = @(Find-PSResource -Name $testModuleName,$testModuleName2 -Repository $localRepo)
+
+        $res | Should -HaveCount 2
+        $res[0].Name | Should -Be $testModuleName
+        $res[1].Name | Should -Be $testModuleName2
+    }
+
     It "find resource given specific Name with incorrect casing (should return correct casing)" {
         # FindName()
         $res = Find-PSResource -Name "test_local_mod3" -Repository $localRepo
