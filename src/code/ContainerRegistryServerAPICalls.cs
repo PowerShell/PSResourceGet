@@ -577,6 +577,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// If a credential is provided when registering the repository, retrieve the token from SecretsManagement.
         /// If no credential provided at registration then, check if the ACR endpoint can be accessed without a token. If not, try using Azure.Identity to get the az access token, then ACR refresh token and then ACR access token.
         /// Note: Access token can be empty if the repository is unauthenticated
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         internal string GetContainerRegistryAccessToken(bool needCatalogAccess, bool isPushOperation, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
@@ -664,6 +665,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Checks if container registry repository is unauthenticated.
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         internal bool IsContainerRegistryUnauthenticated(string containerRegistryUrl, bool needCatalogAccess, out ErrorRecord errRecord, out string anonymousAccessToken, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
@@ -763,6 +765,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Given the access token retrieved from credentials, gets the refresh token.
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         internal string GetContainerRegistryRefreshToken(string tenant, string accessToken, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
@@ -781,6 +784,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Given the refresh token, gets the new access token with appropriate scope access permissions.
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         internal string GetContainerRegistryAccessTokenByRefreshToken(string refreshToken, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
@@ -803,6 +807,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Parses package manifest JObject to find digest entry, which is the SHA needed to identify and get the package.
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         private string GetDigestFromManifest(JObject manifest, out ErrorRecord errRecord, ConcurrentQueue<string> debugMsgs = null)
         {
@@ -847,6 +852,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Gets the manifest for a package (ie repository in container registry terms) from the repository (ie registry in container registry terms)
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         internal JObject GetContainerRegistryRepositoryManifest(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord, ConcurrentQueue<string> debugMsgs = null)
         {
@@ -860,6 +866,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Get the blob for the package (ie repository in container registry terms) from the repository (ie registry in container registry terms)
         /// Used when installing the package
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         internal async Task<HttpContent> GetContainerRegistryBlobAsync(string packageName, string digest, string containerRegistryAccessToken, ConcurrentQueue<string> debugMsgs = null)
         {
@@ -872,6 +879,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// <summary>
         /// Gets the image tags associated with the package (i.e repository in container registry terms), where the tag corresponds to the package's versions.
         /// If the package version is specified search for that specific tag for the image, if the package version is "*" search for all tags for the image.
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         internal JObject FindContainerRegistryImageTags(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
@@ -908,6 +916,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Get metadata for a package version.
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         internal Hashtable GetContainerRegistryMetadata(string packageName, string exactTagVersion, string containerRegistryAccessToken, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
@@ -1027,6 +1036,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Get the manifest associated with the package version.
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         internal JObject FindContainerRegistryManifest(string packageName, string version, string containerRegistryAccessToken, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
@@ -1040,6 +1050,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Get metadata for the package by parsing its manifest.
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         internal ContainerRegistryInfo GetMetadataProperty(JObject foundTags, string packageName, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
@@ -1136,6 +1147,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             }
         }
 
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         internal async Task<HttpContent> GetHttpContentResponseJObject(string url, Collection<KeyValuePair<string, string>> defaultHeaders, ConcurrentQueue<string> debugMsgs = null)
         {
             debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetHttpContentResponseJObject()");
@@ -1153,6 +1165,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Get response object when using default headers in the request.
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         internal JObject GetHttpResponseJObjectUsingDefaultHeaders(string url, HttpMethod method, Collection<KeyValuePair<string, string>> defaultHeaders, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null, bool usePagination = false)
         {
@@ -1204,6 +1217,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Get response object when using content headers in the request.
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         internal JObject GetHttpResponseJObjectUsingContentHeaders(string url, HttpMethod method, string content, Collection<KeyValuePair<string, string>> contentHeaders, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
@@ -1991,6 +2005,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Helper method for find scenarios.
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         private Hashtable[] FindPackagesWithVersionHelper(string packageName, VersionType versionType, VersionRange versionRange, NuGetVersion requiredVersion, bool includePrerelease, bool getOnlyLatest, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {
@@ -2047,6 +2062,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
         /// <summary>
         /// Helper method used for find scenarios that resolves versions required from all versions found.
+        /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
         private SortedDictionary<NuGet.Versioning.SemanticVersion, string> GetPackagesWithRequiredVersion(List<JToken> allPkgVersions, VersionType versionType, VersionRange versionRange, NuGetVersion specificVersion, string packageName, bool includePrerelease, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
         {

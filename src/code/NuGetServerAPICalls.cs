@@ -89,7 +89,7 @@ filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
             List<string> responses = new List<string>();
             int skip = 0;
 
-            var initialResponse = FindVersionGlobbingFromEndpointAsync(packageName, versionRange, includePrerelease, skip, getOnlyLatest, debugMsgs, out ErrorRecord errRecord);
+            var initialResponse = FindVersionGlobbingAsync(packageName, versionRange, includePrerelease, skip, getOnlyLatest, debugMsgs, out ErrorRecord errRecord);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
@@ -113,7 +113,7 @@ filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
                 {
                     // skip 100
                     skip += 100;
-                    var tmpResponse = FindVersionGlobbingFromEndpointAsync(packageName, versionRange, includePrerelease, skip, getOnlyLatest, debugMsgs, out errRecord);
+                    var tmpResponse = FindVersionGlobbingAsync(packageName, versionRange, includePrerelease, skip, getOnlyLatest, debugMsgs, out errRecord);
                     if (errRecord != null)
                     {
                         errorMsgs.Enqueue(errRecord);
@@ -1024,9 +1024,9 @@ filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
         /// <summary>
         /// Worker-thread counterpart of FindVersionGlobbing(); enqueues diagnostics instead of writing to cmdlet streams.
         /// </summary>
-        private string FindVersionGlobbingFromEndpointAsync(string packageName, VersionRange versionRange, bool includePrerelease, int skip, bool getOnlyLatest, ConcurrentQueue<string> debugMsgs, out ErrorRecord errRecord)
+        private string FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, int skip, bool getOnlyLatest, ConcurrentQueue<string> debugMsgs, out ErrorRecord errRecord)
         {
-            debugMsgs.Enqueue("In NuGetServerAPICalls::FindVersionGlobbingFromEndpointAsync()");
+            debugMsgs.Enqueue("In NuGetServerAPICalls::FindVersionGlobbingAsync()");
             var requestUrl = GetVersionGlobbingRequestUrl(packageName, versionRange, includePrerelease, skip, getOnlyLatest);
             return HttpRequestCallAsync(requestUrl, debugMsgs, out errRecord);
         }
