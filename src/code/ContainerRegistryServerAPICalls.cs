@@ -579,7 +579,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         /// Note: Access token can be empty if the repository is unauthenticated
         /// Note: ConcurrentQueues default to null because the method calls both concurrent methods and synchronous methods. Synchronous methods may not have queues to pass in.
         /// </summary>
-        internal string GetContainerRegistryAccessToken(bool needCatalogAccess, bool isPushOperation, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null)
+        internal string GetContainerRegistryAccessToken(bool needCatalogAccess, bool isPushOperation, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs = null, ConcurrentQueue<string> warningMsgs = null, ConcurrentQueue<string> debugMsgs = null, ConcurrentQueue<string> verboseMsgs = null, ConcurrentQueue<InformationRecord> informationMsgs = null)
         {
             debugMsgs?.Enqueue("In ContainerRegistryServerAPICalls::GetContainerRegistryAccessToken()");
             string accessToken = string.Empty;
@@ -610,6 +610,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                 // A container registry repository is determined to be unauthenticated if it allows anonymous pull access. However, push operations always require authentication.
                 bool isRepositoryUnauthenticated = isPushOperation ? false : IsContainerRegistryUnauthenticated(Repository.Uri.ToString(), needCatalogAccess, out errRecord, out accessToken, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                 verboseMsgs?.Enqueue($"Value of isRepositoryUnauthenticated: {isRepositoryUnauthenticated}");
+                var informationRecord = new InformationRecord($"Value of isRepositoryUnauthenticated: {isRepositoryUnauthenticated}", "PSResourceGet");
+                informationRecord.Tags.Add("PSRGContainerRegistryUnauthenticatedCheck");
+                informationMsgs?.Enqueue(informationRecord);
 
                 debugMsgs?.Enqueue($"Is repository unauthenticated: {isRepositoryUnauthenticated}");
 
@@ -1549,8 +1552,9 @@ namespace Microsoft.PowerShell.PSResourceGet
             ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
             ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
             ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
-            var containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: true, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
-            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+            ConcurrentQueue<InformationRecord> informationMsgs = new ConcurrentQueue<InformationRecord>();
+            var containerRegistryAccessToken = GetContainerRegistryAccessToken(needCatalogAccess: false, isPushOperation: true, out errRecord, errorMsgs, warningMsgs, debugMsgs, verboseMsgs, informationMsgs);
+            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs, informationMsgs);
             if (errRecord != null)
             {
                 return false;
