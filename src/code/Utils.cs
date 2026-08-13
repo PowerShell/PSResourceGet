@@ -1737,7 +1737,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         }
 
 
-        public static void WriteOutConcurrentQueue(PSCmdlet cmdletPassedIn, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        public static void WriteOutConcurrentQueue(PSCmdlet cmdletPassedIn, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs, ConcurrentQueue<InformationRecord> informationMsgs = null)
         {
 
             while (errorMsgs.TryDequeue(out ErrorRecord error))
@@ -1755,6 +1755,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             while (verboseMsgs.TryDequeue(out string verboseMsg))
             {
                 cmdletPassedIn.WriteVerbose(verboseMsg);
+            }
+            while (informationMsgs?.TryDequeue(out InformationRecord informationRecord) == true)
+            {
+                cmdletPassedIn.WriteInformation(informationRecord);
             }
         }
 
