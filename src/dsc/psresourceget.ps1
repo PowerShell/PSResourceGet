@@ -376,6 +376,11 @@ function GetOperation {
         [string]$ResourceType
     )
 
+    if ([string]::IsNullOrEmpty($stdinput)) {
+        Write-Trace -level error -message "Get operation requires --input with the resource properties. No input was provided."
+        exit [ExitCode]::Error
+    }
+
     $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
 
     Write-Trace -message "Starting Get operation for ResourceType: $ResourceType" -level trace
