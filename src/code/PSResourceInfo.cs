@@ -2023,6 +2023,18 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
             throw new PSArgumentException("psObjectGetInfo argument is not a PSGetResourceInfo type.");
         }
+
+        public static string SelectV3PackageContentUrl(
+            string[] versionedResponses,
+            string version)
+        {
+            if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
+            {
+                throw new PSArgumentException($"Version '{version}' is not a valid NuGet version.");
+            }
+
+            return Cmdlets.V3ServerAPICalls.GetPackageContentUrlForVersion(versionedResponses, requiredVersion);
+        }
     }
 
     #endregion
