@@ -2030,7 +2030,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         {
             if (!NuGetVersion.TryParse(version, out NuGetVersion requiredVersion))
             {
-                throw new PSArgumentException($"Version {version} is not a valid NuGet version.");
+                throw new PSArgumentException($"Version '{version}' is not a valid NuGet version.");
             }
 
             return Cmdlets.V3ServerAPICalls.GetPackageContentUrlForVersion(versionedResponses, requiredVersion);

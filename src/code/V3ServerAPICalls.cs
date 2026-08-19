@@ -1092,6 +1092,12 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
                     continue;
                 }
 
+                string queryKey = UnescapeUrlPart(queryParameter.Substring(0, separatorIndex)).Trim();
+                if (!queryKey.EndsWith("version", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 string queryValue = UnescapeUrlPart(queryParameter.Substring(separatorIndex + 1));
                 if (NuGetVersion.TryParse(queryValue, out NuGetVersion queryVersion) && queryVersion == requiredVersion)
                 {
@@ -1109,6 +1115,10 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
                 return Uri.UnescapeDataString(urlPart);
             }
             catch (UriFormatException)
+            {
+                return urlPart;
+            }
+            catch (ArgumentException)
             {
                 return urlPart;
             }
