@@ -913,17 +913,7 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
             }
             else
             {
-                // loop through responses to find one containing required version
-                foreach (string response in versionedResponses)
-                {
-                    // Response will be "packageContent" element value that looks like: "{packageBaseAddress}/{packageName}/{normalizedVersion}/{packageName}.{normalizedVersion}.nupkg"
-                    // Ex: https://api.nuget.org/v3-flatcontainer/test_module/1.0.0/test_module.1.0.0.nupkg
-                    if (response.Contains(version.ToNormalizedString()))
-                    {
-                        pkgContentUrl = response;
-                        break;
-                    }
-                }
+                pkgContentUrl = GetPackageContentUrlForVersion(versionedResponses, version);
             }
 
             if (String.IsNullOrEmpty(pkgContentUrl))
@@ -997,17 +987,7 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
             }
             else
             {
-                // loop through responses to find one containing required version
-                foreach (string response in versionedResponses)
-                {
-                    // Response will be "packageContent" element value that looks like: "{packageBaseAddress}/{packageName}/{normalizedVersion}/{packageName}.{normalizedVersion}.nupkg"
-                    // Ex: https://api.nuget.org/v3-flatcontainer/test_module/1.0.0/test_module.1.0.0.nupkg
-                    if (response.Contains(version.ToNormalizedString()))
-                    {
-                        pkgContentUrl = response;
-                        break;
-                    }
-                }
+                pkgContentUrl = GetPackageContentUrlForVersion(versionedResponses, version);
             }
 
             if (String.IsNullOrEmpty(pkgContentUrl))
@@ -1037,6 +1017,101 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
             pkgStream = await content.ReadAsStreamAsync();
 
             return pkgStream;
+        }
+
+        /// <summary>
+        /// Selects the "packageContent" entry (i.e the .nupkg download URL) matching the required version.
+        /// The version encoded in the entry is parsed and compared as a NuGetVersion, instead of searching for the version
+        /// text anywhere within the entry, as a substring search matches version prefixes too
+        /// (i.e requesting version '1.2.3' would match the entry for version '1.2.30').
+        /// </summary>
+        internal static string GetPackageContentUrlForVersion(string[] versionedResponses, NuGetVersion requiredVersion)
+        {
+            if (versionedResponses == null || requiredVersion == null)
+            {
+                return String.Empty;
+            }
+
+            foreach (string response in versionedResponses)
+            {
+                if (String.IsNullOrWhiteSpace(response))
+                {
+                    continue;
+                }
+
+                // Response will be "packageContent" element value that looks like: "{packageBaseAddress}/{packageName}/{normalizedVersion}/{packageName}.{normalizedVersion}.nupkg"
+                // Ex: https://api.nuget.org/v3-flatcontainer/test_module/1.0.0/test_module.1.0.0.nupkg
+                if (PackageContentUrlMatchesVersion(response, requiredVersion))
+                {
+                    return response;
+                }
+            }
+
+            return String.Empty;
+        }
+
+        /// <summary>
+        /// Determines whether the given "packageContent" entry refers to the required version.
+        /// </summary>
+        private static bool PackageContentUrlMatchesVersion(string packageContentUrl, NuGetVersion requiredVersion)
+        {
+            string path = packageContentUrl;
+            string query = String.Empty;
+            int queryIndex = path.IndexOfAny(new char[] { '?', '#' });
+            if (queryIndex >= 0)
+            {
+                query = path.Substring(queryIndex + 1);
+                path = path.Substring(0, queryIndex);
+            }
+
+            string[] pathSegments = path.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            string normalizedVersion = requiredVersion.ToNormalizedString();
+            for (int i = 0; i < pathSegments.Length; i++)
+            {
+                string segment = UnescapeUrlPart(pathSegments[i]);
+
+                // Path segment containing just the version, ex: ".../test_module/1.0.0/..."
+                if (NuGetVersion.TryParse(segment, out NuGetVersion segmentVersion) && segmentVersion == requiredVersion)
+                {
+                    return true;
+                }
+
+                // Last path segment is the file name, ex: "test_module.1.0.0.nupkg"
+                if (segment.EndsWith($".{normalizedVersion}.nupkg", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            // Some repositories pass the version as a query parameter, ex: "...?packageVersion=1.0.0"
+            foreach (string queryParameter in query.Split(new char[] { '&', ';' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                int separatorIndex = queryParameter.IndexOf('=');
+                if (separatorIndex < 0)
+                {
+                    continue;
+                }
+
+                string queryValue = UnescapeUrlPart(queryParameter.Substring(separatorIndex + 1));
+                if (NuGetVersion.TryParse(queryValue, out NuGetVersion queryVersion) && queryVersion == requiredVersion)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string UnescapeUrlPart(string urlPart)
+        {
+            try
+            {
+                return Uri.UnescapeDataString(urlPart);
+            }
+            catch (UriFormatException)
+            {
+                return urlPart;
+            }
         }
 
         /// <summary>
