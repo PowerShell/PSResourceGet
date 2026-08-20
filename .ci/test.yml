@@ -11,6 +11,8 @@ jobs:
   pool:
     vmImage: ${{ parameters.imageName }}
   displayName: ${{ parameters.displayName }}
+  variables:
+  - group: InstallDSC
   steps:
   - ${{ parameters.powershellExecutable }}: |
         Install-Module -Name 'Microsoft.PowerShell.SecretManagement' -force -SkipPublisherCheck -AllowClobber
@@ -94,6 +96,83 @@ jobs:
 
     displayName: 'Setup Azure Artifacts Credential Provider secret'
     condition: eq(${{ parameters.useAzAuth }}, false)
+
+  - pwsh: |
+      $repo = "PowerShell/DSC"
+      $api  = "https://api.github.com/repos/$repo/releases"
+
+      $headers = @{
+          "User-Agent" = "pwsh"
+          "Accept"     = "application/vnd.github+json"
+          "Authorization" = "Bearer $env:GITHUB_TOKEN"
+      }
+
+      # Get releases
+      $releases = Invoke-RestMethod -Uri $api -Headers $headers -RetryIntervalSec 30 -MaximumRetryCount 10
+
+      # Pick latest by publish date (handles prerelease vs stable automatically)
+      $latest = $releases |
+          Sort-Object published_at -Descending |
+          Select-Object -First 1
+
+      Write-Host "Latest version: $($latest.tag_name) (prerelease=$($latest.prerelease))"
+
+      if ($IsWindows) {
+          $assetFilter = "x86_64-pc-windows-msvc"
+      }
+      elseif ($IsMacOs) {
+          $assetFilter = "x86_64-apple-darwin"
+      }
+      else {
+          $assetFilter = "x86_64-linux"
+      }
+
+      $assets = $latest.assets |
+          Where-Object { $_.name -match $assetFilter }
+
+      Write-Host "Filtered assets: $($assets.Count)"
+
+      $selectedAsset = $assets | Select-Object -First 1
+
+      Write-Host "Selected asset: $($selectedAsset.name)"
+
+      $outFile = Join-Path $PWD $selectedAsset.name
+
+      Write-Host "Downloading $($selectedAsset.name)"
+
+      Invoke-WebRequest `
+          -Uri $selectedAsset.browser_download_url `
+          -Headers @{ "User-Agent"="pwsh" } `
+          -OutFile $outFile
+
+
+      if ($IsWindows) {
+        Expand-Archive -Path $outFile -DestinationPath $env:AGENT_TEMPDIRECTORY -Force -Verbose
+      }
+      else {
+        tar -xzf $outFile -C $env:AGENT_TEMPDIRECTORY
+      }
+
+      $executableName = 'dsc'
+      $executableExt = if ($IsWindows) { '.exe' } else { '' }
+
+      $executableFileName = $executableName + $executableExt
+
+      $executable = Get-ChildItem -Path $env:AGENT_TEMPDIRECTORY -File -Recurse -Verbose | Where-Object { $_.Name -eq $executableFileName } | Select-Object -First 1
+
+      if (-not $executable) {
+        throw "Could not find dsc executable in the downloaded package"
+      }
+
+      $dscRoot = Split-Path -Path $executable.FullName -Parent
+
+      $vstsCommandString = "vso[task.setvariable variable=DSC_ROOT]$dscRoot"
+      Write-Host "sending " + $vstsCommandString
+      Write-Host "##$vstsCommandString"
+
+    displayName: 'Install latest DSC v3'
+    env:
+      GITHUB_TOKEN: $(GITHUB_TOKEN)
 
   - pwsh: |
       Get-ChildItem -Path env: | Out-String -width 9999 -Stream | Write-Verbose -Verbose

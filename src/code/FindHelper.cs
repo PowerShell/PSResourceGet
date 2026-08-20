@@ -1,16 +1,22 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PowerShell.PSResourceGet.UtilClasses;
-using NuGet.Versioning;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 using System.Net;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
+using Azure;
+using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using NuGet.Protocol.Core.Types;
+using NuGet.Versioning;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -24,6 +30,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private CancellationToken _cancellationToken;
         private readonly PSCmdlet _cmdletPassedIn;
         private HashSet<string> _pkgsLeftToFind;
+        private string[] _packageNamesToFind;
         private List<string> _tagsLeftToFind;
         private ResourceType _type;
         private string _version;
@@ -35,7 +42,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool _includeDependencies = false;
         private bool _repositoryNameContainsWildcard = true;
         private NetworkCredential _networkCredential;
-        private Dictionary<string, List<string>> _packagesFound;
+
+        // Gets intantiated each time a cmdlet is run.
+        // If running 'Install-PSResource Az, TestModule, NewTestModule', it will contain one parent and its dependencies.
+        private ConcurrentDictionary<string, List<string>> _packagesFound;
+
+        // Contains the latest found version of a particular package.
+        private ConcurrentDictionary<string, PSResourceInfo> _knownLatestPkgVersion;
+
+        ConcurrentDictionary<string, Task<FindResults>> _cachedNetworkCalls;
 
         #endregion
 
@@ -48,7 +63,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cancellationToken = cancellationToken;
             _cmdletPassedIn = cmdletPassedIn;
             _networkCredential = networkCredential;
-            _packagesFound = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            _packagesFound = new ConcurrentDictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            _knownLatestPkgVersion = new ConcurrentDictionary<string, PSResourceInfo>(StringComparer.OrdinalIgnoreCase);
+            _type = ResourceType.None;
+            _cachedNetworkCalls = new ConcurrentDictionary<string, Task<FindResults>>();
         }
 
         #endregion
@@ -97,7 +115,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 yield break;
             }
 
-            _pkgsLeftToFind = new HashSet<string>(name, StringComparer.InvariantCultureIgnoreCase);
+            _packageNamesToFind = name.Distinct(StringComparer.InvariantCultureIgnoreCase).ToArray();
+            _pkgsLeftToFind = new HashSet<string>(_packageNamesToFind, StringComparer.InvariantCultureIgnoreCase);
             HashSet<string> pkgsDiscovered = GetPackageNamesPopulated(_pkgsLeftToFind.ToArray());
 
             _tagsLeftToFind = tag == null ? new List<string>() : new List<string>(tag);
@@ -687,12 +706,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private IEnumerable<PSResourceInfo> SearchByNames(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSRepositoryInfo repository, bool shouldReportErrorForEachRepo)
         {
             ErrorRecord errRecord = null;
+            ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
             List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
             string tagsAsString = String.Empty;
             bool isV2Resource = currentResponseUtil is V2ResponseUtil;
 
             _cmdletPassedIn.WriteDebug("In FindHelper::SearchByNames()");
-            foreach (string pkgName in _pkgsLeftToFind.ToArray())
+            string[] packageNames = _packageNamesToFind;
+            if (_tag.Length == 0 && packageNames.Length > 1 && packageNames.All(packageName => !packageName.Contains("*")))
+            {
+                foreach (PSResourceInfo package in SearchExplicitNamesConcurrently(currentServer, currentResponseUtil, repository, shouldReportErrorForEachRepo, packageNames))
+                {
+                    yield return package;
+                }
+
+                yield break;
+            }
+
+            foreach (string pkgName in packageNames)
             {
                 if (_versionType == VersionType.NoVersion)
                 {
@@ -740,7 +774,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             {
                                 parentPkgs.Add(foundPkg);
                                 TryAddToPackagesFound(foundPkg);
-                                _cmdletPassedIn.WriteDebug($"Found package '{foundPkg.Name}' version '{foundPkg.Version}'");
 
                                 yield return foundPkg;
                             }
@@ -880,11 +913,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0"
                         // Example: Find-PSResource -Name "Az" -Version "3.0.0.0" -Tag "Windows"
                         _cmdletPassedIn.WriteDebug("Exact version and package name are specified");
-
+                        string key = string.Empty;
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
-                            responses = currentServer.FindVersion(pkgName, _nugetVersion.ToNormalizedString(), _type, out errRecord);
+                            ConcurrentDictionary<string, Task<FindResults>> cachedNetworkCalls = new ConcurrentDictionary<string, Task<FindResults>>();
+                            Task<FindResults> response = null;
+                            key = $"{pkgName}|{_nugetVersion.ToNormalizedString()}|{_type}";
+                            response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionAsync(pkgName, _nugetVersion.ToNormalizedString(), _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
+                
+                            responses = response.GetAwaiter().GetResult();
+
+                            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                         }
                         else
                         {
@@ -953,10 +993,18 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // Example: Find-PSResource -Name "Az" -Version "[1.0.0.0, 3.0.0.0]"
                         _cmdletPassedIn.WriteDebug("Version range and package name are specified");
 
+                        errRecord = null;
                         FindResults responses = null;
                         if (_tag.Length == 0)
                         {
-                            responses = currentServer.FindVersionGlobbing(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, out errRecord);
+                            ConcurrentDictionary<string, Task<FindResults>> cachedNetworkCalls = new ConcurrentDictionary<string, Task<FindResults>>();
+                            Task<FindResults> response = null;
+                            string key = $"{pkgName}|{_versionRange.ToString()}|{_type}";
+                            response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(pkgName, _versionRange, _prerelease, _type, getOnlyLatest: false, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
+                            
+                            responses = response.GetAwaiter().GetResult();
+
+                            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                         }
                         else
                         {
@@ -1021,15 +1069,198 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // After retrieving all packages find their dependencies
             if (_includeDependencies)
             {
-                foreach (PSResourceInfo currentPkg in parentPkgs)
+                // Resolving each parent package's dependency closure is independent work, so do it concurrently.
+                // yield return cannot be used inside Parallel.ForEach, so collect results into a thread-safe bag first.
+                ConcurrentBag<PSResourceInfo> dependencyPkgs = new ConcurrentBag<PSResourceInfo>();
+                int processorCount = Environment.ProcessorCount;
+                int maxDegreeOfParallelism = processorCount * 4;
+                if (parentPkgs.Count > processorCount)
                 {
-                    _cmdletPassedIn.WriteDebug($"Finding dependency packages for '{currentPkg.Name}'");
-                    foreach (PSResourceInfo pkgDep in FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository))
+                    Parallel.ForEach(parentPkgs, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, currentPkg =>
                     {
-                        yield return pkgDep;
+                        foreach (PSResourceInfo pkgDep in FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository))
+                        {
+                            dependencyPkgs.Add(pkgDep);
+                        }
+                    });
+                }
+                else
+                {
+                    foreach (PSResourceInfo currentPkg in parentPkgs)
+                    {
+                        foreach (PSResourceInfo pkgDep in FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository))
+                        {
+                            dependencyPkgs.Add(pkgDep);
+                        }
                     }
                 }
+
+                foreach (PSResourceInfo pkgDep in dependencyPkgs)
+                {
+                    yield return pkgDep;
+                }
             }
+        }
+
+        /// <summary>
+        /// Searches explicit package names and version concurrently, then writes logs
+        /// and returns results in the original package-name order. 
+        /// Dependencies are also resolved concurrently when the -IncludeDependencies parameter is specified.
+        /// </summary>
+        private IEnumerable<PSResourceInfo> SearchExplicitNamesConcurrently(
+            ServerApiCall currentServer,
+            ResponseUtil currentResponseUtil,
+            PSRepositoryInfo repository,
+            bool shouldReportErrorForEachRepo,
+            string[] packageNames)
+        {
+            // After parallel work finishes, workItems are processed sequentially in the original package-name order
+            ParentFindWorkItem[] workItems = packageNames.Select(packageName => new ParentFindWorkItem(packageName)).ToArray();
+            int maxDegreeOfParallelism = Environment.ProcessorCount * 4;
+
+            Parallel.ForEach(workItems, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, workItem =>
+            {
+                switch (_versionType)
+                {
+                    case VersionType.SpecificVersion:
+                        workItem.Results = currentServer.FindVersionAsync(
+                            workItem.PackageName,
+                            _nugetVersion.ToNormalizedString(),
+                            _type,
+                            workItem.ErrorMsgs,
+                            workItem.WarningMsgs,
+                            workItem.DebugMsgs,
+                            workItem.VerboseMsgs).GetAwaiter().GetResult();
+                        break;
+
+                    case VersionType.VersionRange:
+                        workItem.Results = currentServer.FindVersionGlobbingAsync(
+                            workItem.PackageName,
+                            _versionRange,
+                            _prerelease,
+                            _type,
+                            getOnlyLatest: false,
+                            workItem.ErrorMsgs,
+                            workItem.WarningMsgs,
+                            workItem.DebugMsgs,
+                            workItem.VerboseMsgs).GetAwaiter().GetResult();
+                        break;
+
+                    default:
+                        workItem.Results = currentServer.FindNameAsync(
+                            workItem.PackageName,
+                            _prerelease,
+                            _type,
+                            workItem.ErrorMsgs,
+                            workItem.WarningMsgs,
+                            workItem.DebugMsgs,
+                            workItem.VerboseMsgs).GetAwaiter().GetResult();
+                        break;
+                }
+            });
+
+            List<PSResourceInfo> parentPkgs = new List<PSResourceInfo>();
+            foreach (ParentFindWorkItem workItem in workItems)
+            {
+                bool lookupFailed = !workItem.ErrorMsgs.IsEmpty;
+                WriteParentFindMessagesForRepository(workItem, shouldReportErrorForEachRepo);
+                if (lookupFailed)
+                {
+                    continue;
+                }
+
+                IEnumerable<PSResourceResult> convertedResults = currentResponseUtil.ConvertToPSResourceResult(workItem.Results);
+                if (_versionType != VersionType.VersionRange)
+                {
+                    convertedResults = convertedResults.Take(1);
+                }
+
+                foreach (PSResourceResult currentResult in convertedResults)
+                {
+                    if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
+                    {
+                        _cmdletPassedIn.WriteError(new ErrorRecord(
+                            currentResult.exception,
+                            _versionType == VersionType.SpecificVersion ? "FindVersionConvertToPSResourceFailure" : "FindNameConvertToPSResourceFailure",
+                            ErrorCategory.ObjectNotFound,
+                            this));
+                        continue;
+                    }
+
+                    PSResourceInfo foundPkg = currentResult.returnedObject;
+                    if (_versionType == VersionType.VersionRange)
+                    {
+                        string versionString = FormatPkgVersionString(foundPkg);
+                        if (!NuGetVersion.TryParse(versionString, out NuGetVersion version) || !_versionRange.Satisfies(version))
+                        {
+                            continue;
+                        }
+                    }
+
+                    parentPkgs.Add(foundPkg);
+                    TryAddToPackagesFound(foundPkg);
+                    yield return foundPkg;
+                }
+            }
+
+            if (!_includeDependencies)
+            {
+                yield break;
+            }
+
+            ConcurrentBag<PSResourceInfo> dependencyPkgs = new ConcurrentBag<PSResourceInfo>();
+            ConcurrentQueue<ErrorRecord> dependencyErrors = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> dependencyWarnings = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> dependencyDebug = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> dependencyVerbose = new ConcurrentQueue<string>();
+
+            Parallel.ForEach(parentPkgs, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, parentPkg =>
+            {
+                foreach (PSResourceInfo dependency in FindDependencyPackages(
+                    currentServer,
+                    currentResponseUtil,
+                    parentPkg,
+                    repository,
+                    dependencyErrors,
+                    dependencyWarnings,
+                    dependencyDebug,
+                    dependencyVerbose))
+                {
+                    dependencyPkgs.Add(dependency);
+                }
+            });
+
+            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, dependencyErrors, dependencyWarnings, dependencyDebug, dependencyVerbose);
+            foreach (PSResourceInfo dependency in dependencyPkgs)
+            {
+                yield return dependency;
+            }
+        }
+
+        /// <summary>
+        /// Writes diagnostics from a parent package lookup on the pipeline thread, reporting queued errors
+        /// as errors for explicitly selected repositories or as verbose messages otherwise.
+        /// This is specifically needed to preserve the existing multi-repository behavior:
+        ///     - when 'ShouldReportErrorForEachRepo' is true, it write the error normally
+        ///     - Otherwise, it downgrades repository specific lookup failures to verbose messages
+        ///     - A final 'PackageNotFound' error is emitted only if every repository fails
+        ///     - Lastly, it uses Utils.WriteOutConcurrentQueue to write out any remaining queued messages (warnings, debug, verbose)
+        /// </summary>
+        private void WriteParentFindMessagesForRepository(ParentFindWorkItem workItem, bool shouldReportErrorForEachRepo)
+        {
+            while (workItem.ErrorMsgs.TryDequeue(out ErrorRecord error))
+            {
+                if (shouldReportErrorForEachRepo)
+                {
+                    _cmdletPassedIn.WriteError(error);
+                }
+                else
+                {
+                    _cmdletPassedIn.WriteVerbose(error.Exception.Message);
+                }
+            }
+
+            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, workItem.ErrorMsgs, workItem.WarningMsgs, workItem.DebugMsgs, workItem.VerboseMsgs);
         }
 
         /// <summary>
@@ -1050,31 +1281,55 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return pkgsToDiscover;
         }
 
-
         private bool TryAddToPackagesFound(PSResourceInfo foundPkg)
-        {
+        {            
+            // This handles prerelease versions as well.
             bool addedToHash = false;
             string foundPkgName = foundPkg.Name;
-            string foundPkgVersion = Utils.GetNormalizedVersionString(foundPkg.Version.ToString(), foundPkg.Prerelease);
+            string foundPkgVersion = FormatPkgVersionString(foundPkg); 
 
             if (_packagesFound.ContainsKey(foundPkgName))
             {
-                List<string> pkgVersions = _packagesFound[foundPkgName] as List<string>;
+                _packagesFound.TryGetValue(foundPkgName, out List<string> pkgVersions);
 
                 if (!pkgVersions.Contains(foundPkgVersion))
                 {
-                    pkgVersions.Add(foundPkgVersion);
-                    _packagesFound[foundPkgName] = pkgVersions;
+                    List<string> newPkgVersions = new List<string>(pkgVersions)
+                    {
+                        foundPkgVersion
+                    };
+                    _packagesFound.TryUpdate(foundPkgName, newPkgVersions, pkgVersions);
+                    
                     addedToHash = true;
                 }
             }
             else
             {
-                _packagesFound.Add(foundPkg.Name, new List<string> { foundPkgVersion });
+                _packagesFound.TryAdd(foundPkg.Name, new List<string> { foundPkgVersion });
                 addedToHash = true;
             }
 
-            _cmdletPassedIn.WriteDebug($"Found package '{foundPkg.Name}' version '{foundPkg.Version}'");
+            return addedToHash;
+        }
+
+        private bool TryAddToKnownLatestPkgVersion(PSResourceInfo foundPkg)
+        {
+            // This handles prerelease versions as well.
+            bool addedToHash = false;
+            string foundPkgName = foundPkg.Name;
+            string foundPkgVersion = FormatPkgVersionString(foundPkg);
+
+            if (_knownLatestPkgVersion.ContainsKey(foundPkgName))
+            {
+                _knownLatestPkgVersion.TryGetValue(foundPkgName, out PSResourceInfo oldPkgVersion);
+                _knownLatestPkgVersion.TryUpdate(foundPkgName, foundPkg, oldPkgVersion);
+                addedToHash = true;
+            }
+            else
+            {
+                _knownLatestPkgVersion.TryAdd(foundPkg.Name, foundPkg);
+                addedToHash = true;
+            }
 
             return addedToHash;
         }
@@ -1082,12 +1337,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string FormatPkgVersionString(PSResourceInfo pkg)
         {
             string fullPkgVersion = pkg.Version.ToString();
-
             if (!string.IsNullOrWhiteSpace(pkg.Prerelease))
             {
                 fullPkgVersion += $"-{pkg.Prerelease}";
             }
-            _cmdletPassedIn.WriteDebug($"Formatted full package version is: '{fullPkgVersion}'");
 
             return fullPkgVersion;
         }
@@ -1096,186 +1349,401 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region Internal Client Search Methods
 
+        internal IEnumerable<PSResourceInfo> FindDependencyPackages(ServerApiCall currentServer, ResponseUtil currentResponseUtil, PSResourceInfo currentPkg, PSRepositoryInfo repository)
+        {
+            // Pipeline-thread callers: collect diagnostics locally and drain them to the cmdlet on this thread.
+            ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
+
+            var depPkgs = FindDependencyPackages(currentServer, currentResponseUtil, currentPkg, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+
+            Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+            return depPkgs;
+        }
+
+        // Overload for worker-thread callers: diagnostics are routed to the caller-provided queues and drained by the caller on the pipeline thread.
         internal IEnumerable<PSResourceInfo> FindDependencyPackages(
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
             PSResourceInfo currentPkg,
-            PSRepositoryInfo repository)
+            PSRepositoryInfo repository,
+            ConcurrentQueue<ErrorRecord> errorMsgs,
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
         {
+            // Use a local instance so multiple parent packages can resolve their dependency closures concurrently
+            // without racing on shared state.
+            ConcurrentDictionary<string, PSResourceInfo> depPkgsFound = new ConcurrentDictionary<string, PSResourceInfo>();
+            debugMsgs.Enqueue($"In FindHelper::FindDependencyPackages() - {currentPkg.Name}");
+            FindDependencyPackagesHelper(currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+
+            return depPkgsFound.Values.ToList();
+        }
+
+        // Method 2 
+        internal void FindDependencyPackagesHelper(
+            ServerApiCall currentServer,
+            ResponseUtil currentResponseUtil,
+            PSResourceInfo currentPkg,
+            PSRepositoryInfo repository,
+            ConcurrentDictionary<string, PSResourceInfo> depPkgsFound,
+            ConcurrentQueue<ErrorRecord> errorMsgs,
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
+        {
+            debugMsgs.Enqueue("In FindHelper::FindDependencyPackagesHelper()");
+
             if (currentPkg.Dependencies.Length > 0)
             {
-                foreach (var dep in currentPkg.Dependencies)
+                // If finding more than 5 packages, do so concurrently
+                //const int PARALLEL_THRESHOLD = 5; // TODO: Trottle limit from user, defaults to 5; 
+                int processorCount = Environment.ProcessorCount;
+                int maxDegreeOfParallelism = processorCount * 4;
+                if (currentPkg.Dependencies.Length > processorCount)
                 {
-                    PSResourceInfo depPkg = null;
-
-                    if (dep.VersionRange.Equals(VersionRange.All))
+                    Parallel.ForEach(currentPkg.Dependencies, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, dep =>
                     {
-                        FindResults responses = currentServer.FindName(dep.Name, includePrerelease: true, _type, out ErrorRecord errRecord);
-                        if (errRecord != null)
-                        {
-                            if (errRecord.Exception is ResourceNotFoundException)
-                            {
-                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
-                            }
-                            else
-                            {
-                                _cmdletPassedIn.WriteError(errRecord);
-                            }
-                            yield return null;
-                            continue;
-                        }
+                        debugMsgs.Enqueue($"Finding dependency '{dep.Name}' version range '{dep.VersionRange}'");
+                        FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                    });
+                }
+                else
+                {
+                    foreach (var dep in currentPkg.Dependencies)
+                    {
+                        debugMsgs.Enqueue($"Finding dependency '{dep.Name}' version range '{dep.VersionRange}'");
+                        FindDependencyPackageVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                    }
+                }
+            }
+        }
 
-                        PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
-                        if (currentResult == null)
-                        {
-                            // This scenario may occur when the package version requested is unlisted.
-                            _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'"),
-                                "DependencyPackageNotFound",
-                                ErrorCategory.ObjectNotFound,
-                                this));
-                            yield return null;
-                            continue;
-                        }
+        // Method 3
+        private void FindDependencyPackageVersion(
+            Dependency dep, 
+            ServerApiCall currentServer, 
+            ResponseUtil currentResponseUtil, 
+            PSResourceInfo currentPkg, 
+            PSRepositoryInfo repository, 
+            ConcurrentDictionary<string, PSResourceInfo> depPkgsFound,
+            ConcurrentQueue<ErrorRecord> errorMsgs, 
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
+        {
+            PSResourceInfo depPkg = null;
+            debugMsgs.Enqueue("In FindHelper::FindDependencyPackageVersion()");
 
-                        if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
-                        {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new ResourceNotFoundException($"Dependency package with name '{dep.Name}' could not be found in repository '{repository.Name}'", currentResult.exception),
-                                "DependencyPackageNotFound",
-                                ErrorCategory.ObjectNotFound,
-                                this));
-                            yield return null;
-                            continue;
-                        }
-
-                        depPkg = currentResult.returnedObject;
-
-                        if (!_packagesFound.ContainsKey(depPkg.Name))
-                        {
-                            foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
-                            {
-                                yield return depRes;
-                            }
-                        }
-                        else
-                        {
-                            List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
-                            // _packagesFound has depPkg.name in it, but the version is not the same
-                            if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
-                            {
-                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
-                                {
-                                    yield return depRes;
-                                }
-                            }
-                        }
+            if (dep.VersionRange.Equals(VersionRange.All) || !dep.VersionRange.HasUpperBound)
+            {
+                    // Case 1: No upper bound, eg: "*" or "(1.0.0, )"
+                    // Check if the latest version is cached
+                    if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedDepPkg))
+                    {
+                        verboseMsgs.Enqueue($"Dependency '{dep.Name}', with no upper bound version, was found in cache");
+                        depPkg = cachedDepPkg;
                     }
                     else
                     {
-                        FindResults responses = currentServer.FindVersionGlobbing(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, out ErrorRecord errRecord);
-                        if (errRecord != null)
-                        {
-                            if (errRecord.Exception is ResourceNotFoundException)
-                            {
-                                _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
-                            }
-                            else
-                            {
-                                _cmdletPassedIn.WriteError(errRecord);
-                            }
-                            yield return null;
-                            continue;
-                        }
+                        // Find this version from the server
+                        depPkg = FindDependencyWithLowerBound(dep, currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                    }
+            }
+            else if (dep.VersionRange.HasLowerBound && dep.VersionRange.MinVersion.Equals(dep.VersionRange.MaxVersion))
+            {
+                // Case 2: Exact package version, eg: "1.0.0" or "[1.0.0, 1.0.0]"
+                // Note:  need to check if VersionRange has lower bound because if it does not, MinVersion will be null
+                // Check if the latest version is cached, and if this latest version is the version we're looking for
+                if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedRangePkg) &&
+                    NuGetVersion.TryParse(cachedRangePkg.Version?.ToString(), out NuGetVersion cachedPkgVersion) &&
+                    dep.VersionRange.Satisfies(cachedPkgVersion))
+                {
+                    verboseMsgs.Enqueue($"Dependency '{dep.Name}', with exact version, was found in cache");
+                    depPkg = cachedRangePkg;
+                }
+                else
+                {
+                    depPkg = FindDependencyWithSpecificVersion(dep, currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                }
+            }
+            else
+            {                
+                // Case 3: Version range with an upper bound, eg: "(1.0.0, 3.0.0)"
+                // Check if the latest version is cached, and if this latest version is the version we're looking for
+                if (_knownLatestPkgVersion.TryGetValue(dep.Name, out PSResourceInfo cachedRangePkg) &&
+                    NuGetVersion.TryParse(cachedRangePkg.Version?.ToString(), out NuGetVersion cachedPkgVersion) &&
+                    dep.VersionRange.Satisfies(cachedPkgVersion))
+                {
+                    verboseMsgs.Enqueue($"Dependency '{dep.Name}', with upper bound version, was found in cache");
+                    depPkg = cachedRangePkg;
+                }
+                else
+                {
+                    depPkg = FindDependencyWithUpperBound(dep, currentServer, currentResponseUtil, currentPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                }
+            }
+        }
 
-                        if (responses.IsFindResultsEmpty())
-                        {
-                            _cmdletPassedIn.WriteError(new ErrorRecord(
-                                new InvalidOrEmptyResponse($"Dependency package with name {dep.Name} and version range {dep.VersionRange} could not be found in repository '{repository.Name}"),
-                                "FindDepPackagesFindVersionGlobbingFailure",
-                                ErrorCategory.InvalidResult,
-                                this));
-                            yield return null;
-                            continue;
-                        }
+        // Method 4
+        private PSResourceInfo FindDependencyWithSpecificVersion(
+            Dependency dep, 
+            ServerApiCall currentServer, 
+            ResponseUtil currentResponseUtil, 
+            PSResourceInfo currentPkg, 
+            PSRepositoryInfo repository, 
+            ConcurrentDictionary<string, PSResourceInfo> depPkgsFound,
+            ConcurrentQueue<ErrorRecord> errorMsgs, 
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
+        {
+            PSResourceInfo depPkg = null;
+            ErrorRecord errRecord = null;
+            FindResults responses = null;
+            debugMsgs.Enqueue("In FindHelper::FindDependencyWithSpecificVersion()");
 
-                        foreach (PSResourceResult currentResult in currentResponseUtil.ConvertToPSResourceResult(responses))
-                        {
-                            if (currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
-                            {
-                                _cmdletPassedIn.WriteError(new ErrorRecord(
-                                    new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult.exception),
-                                    "DependencyPackageNotFound",
-                                    ErrorCategory.ObjectNotFound,
-                                    this));
+            ConcurrentQueue<ErrorRecord> operationErrorMsgs = new ConcurrentQueue<ErrorRecord>();
+            ConcurrentQueue<string> operationWarningMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> operationDebugMsgs = new ConcurrentQueue<string>();
+            ConcurrentQueue<string> operationVerboseMsgs = new ConcurrentQueue<string>();
 
-                                yield return null;
-                                continue;
-                            }
+            // Call FindVersionAsync() for dependency with specific version.
+            responses = currentServer.FindVersionAsync(dep.Name, dep.VersionRange.MaxVersion.ToString(), _type, operationErrorMsgs, operationWarningMsgs, operationDebugMsgs, operationVerboseMsgs).GetAwaiter().GetResult();
 
-                            // Check to see if version falls within version range
-                            PSResourceInfo foundDep = currentResult.returnedObject;
-                            string depVersionStr = $"{foundDep.Version}";
-                            if (foundDep.IsPrerelease)
-                            {
-                                depVersionStr += $"-{foundDep.Prerelease}";
-                            }
+            while (operationErrorMsgs.TryDequeue(out ErrorRecord queuedError))
+            {
+                if (errRecord == null)
+                {
+                    errRecord = queuedError;
+                }
 
-                            if (NuGetVersion.TryParse(depVersionStr, out NuGetVersion depVersion)
-                                   && dep.VersionRange.Satisfies(depVersion))
-                            {
-                                depPkg = foundDep;
-                            }
-                        }
+                errorMsgs.Enqueue(queuedError);
+            }
 
-                        if (depPkg == null)
-                        {
-                            continue;
-                        }
+            while (operationWarningMsgs.TryDequeue(out string queuedWarning))
+            {
+                warningMsgs.Enqueue(queuedWarning);
+            }
 
-                        if (!_packagesFound.ContainsKey(depPkg.Name))
-                        {
-                            foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
-                            {
-                                yield return depRes;
-                            }
-                        }
-                        else
-                        {
-                            List<string> pkgVersions = _packagesFound[depPkg.Name] as List<string>;
-                            // _packagesFound has depPkg.name in it, but the version is not the same
-                            if (!pkgVersions.Contains(FormatPkgVersionString(depPkg)))
-                            {
-                                foreach (PSResourceInfo depRes in FindDependencyPackages(currentServer, currentResponseUtil, depPkg, repository))
-                                {
-                                    yield return depRes;
-                                }
-                            }
-                        }
+            while (operationDebugMsgs.TryDequeue(out string queuedDebug))
+            {
+                debugMsgs.Enqueue(queuedDebug);
+            }
+
+            while (operationVerboseMsgs.TryDequeue(out string queuedVerbose))
+            {
+                verboseMsgs.Enqueue(queuedVerbose);
+            }
+
+            // Error handling and Convert to PSResource object
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ResourceNotFoundException($"Dependency package could not be found: '{errRecord.Exception.Message}'"),
+                    "DependencyPackageNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
+            }
+            else
+            {
+                PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
+                if (currentResult == null || currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
+                {
+                    errorMsgs.Enqueue(new ErrorRecord(
+                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult?.exception ?? new ItemNotFoundException()),
+                        "DependencyPackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this));
+                }
+                else
+                {
+                    depPkg = currentResult.returnedObject;
+                    TryAddToKnownLatestPkgVersion(depPkg);
+
+                    string pkgVersion = FormatPkgVersionString(depPkg);
+                    debugMsgs.Enqueue($"Found dependency '{depPkg.Name}' version '{pkgVersion}'");
+                    string key = $"{depPkg.Name}{pkgVersion}";
+                    if (!depPkgsFound.ContainsKey(key))
+                    {
+                        // Add pkg to collection of packages found then find dependencies
+                        // depPkgsFound creates a new instance of depPkgsFound each time FindDependencyPackages() is called.
+                        // This will eventually return the PSResourceInfo object to the main cmdlet class.
+                        debugMsgs.Enqueue($"Adding'{key}' to list of dependency packages found");
+                        depPkgsFound.TryAdd(key, depPkg);
+                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     }
                 }
             }
 
-            if (!_packagesFound.ContainsKey(currentPkg.Name))
-            {
-                TryAddToPackagesFound(currentPkg);
+            return depPkg;
+        }
 
-                yield return currentPkg;
+        // Method 5
+        private PSResourceInfo FindDependencyWithLowerBound(
+            Dependency dep, 
+            ServerApiCall currentServer, 
+            ResponseUtil currentResponseUtil, 
+            PSResourceInfo currentPkg, 
+            PSRepositoryInfo repository, 
+            ConcurrentDictionary<string, PSResourceInfo> depPkgsFound,
+            ConcurrentQueue<ErrorRecord> errorMsgs, 
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs) 
+        {
+            PSResourceInfo depPkg = null;
+            FindResults responses = null;
+            ErrorRecord errRecord = null;
+            Task<FindResults> response = null;
+            debugMsgs.Enqueue("In FindHelper::FindDependencyWithLowerBound()");
+
+            // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
+            string key = $"{dep.Name}|*|{_type}";
+            debugMsgs.Enqueue("Checking if network call is cached.");
+            response = _cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindNameAsync(dep.Name, includePrerelease: true, _type, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
+            
+            responses = response.GetAwaiter().GetResult();
+
+            // Error handling and Convert to PSResource object
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ResourceNotFoundException($"Dependency package could not be found: '{errRecord.Exception.Message}'"),
+                    "DependencyPackageNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
             else
             {
-                List<string> pkgVersions = _packagesFound[currentPkg.Name] as List<string>;
-                // _packagesFound has currentPkg.name in it, but the version is not the same
-                if (!pkgVersions.Contains(FormatPkgVersionString(currentPkg)))
+                PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
+                if (currentResult == null || currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
                 {
-                    TryAddToPackagesFound(currentPkg);
+                    errorMsgs.Enqueue(new ErrorRecord(
+                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult?.exception ?? new ItemNotFoundException()),
+                        "DependencyPackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this));
+                }
+                else
+                {
+                    depPkg = currentResult.returnedObject;
+                    TryAddToKnownLatestPkgVersion(depPkg);
 
-                    yield return currentPkg;
+                    string pkgVersion = FormatPkgVersionString(depPkg);
+                    debugMsgs.Enqueue($"Found dependency '{depPkg.Name}' version '{pkgVersion}'");
+                    key = $"{depPkg.Name}{pkgVersion}";
+                    if (!depPkgsFound.ContainsKey(key))
+                    {
+                        // Add pkg to collection of packages found then find dependencies
+                        // depPkgsFound creates a new instance of depPkgsFound each time FindDependencyPackages() is called.
+                        // This will eventually return the PSResourceInfo object to the main cmdlet class.
+                        debugMsgs.Enqueue($"Adding'{key}' to list of dependency packages found");
+                        depPkgsFound.TryAdd(key, depPkg);
+                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                    }
                 }
             }
 
+            return depPkg;
+        }
+
+        // Method 6
+        private PSResourceInfo FindDependencyWithUpperBound(
+            Dependency dep, 
+            ServerApiCall currentServer, 
+            ResponseUtil currentResponseUtil, 
+            PSResourceInfo currentPkg, 
+            PSRepositoryInfo repository, 
+            ConcurrentDictionary<string, PSResourceInfo> depPkgsFound,
+            ConcurrentQueue<ErrorRecord> errorMsgs, 
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
+        {
+            PSResourceInfo depPkg = null;
+            ErrorRecord errRecord = null;
+            FindResults responses = null;
+            Task<FindResults> response = null;
+
+            ConcurrentDictionary<string, Task<FindResults>> cachedNetworkCalls = new ConcurrentDictionary<string, Task<FindResults>>();
+            debugMsgs.Enqueue("In FindHelper::FindDependencyWithUpperBound()");
+            // See if the network call we're making is already cached, if not, call FindNameAsync() and cache results
+            string key = $"{dep.Name}|{dep.VersionRange.MaxVersion.ToString()}|{_type}";
+            debugMsgs.Enqueue("Checking if network call is cached.");
+            response = cachedNetworkCalls.GetOrAdd(key, _ => currentServer.FindVersionGlobbingAsync(dep.Name, dep.VersionRange, includePrerelease: true, ResourceType.None, getOnlyLatest: true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
+
+            responses = response.GetAwaiter().GetResult();
+
+
+            // Error handling and Convert to PSResource object
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    new ResourceNotFoundException($"Dependency package could not be found: '{errRecord.Exception.Message}'"),
+                    "DependencyPackageNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
+            }
+            else
+            {
+                PSResourceResult currentResult = currentResponseUtil.ConvertToPSResourceResult(responses).FirstOrDefault();
+                if (currentResult == null || currentResult.exception != null && !currentResult.exception.Message.Equals(string.Empty))
+                {
+                    errorMsgs.Enqueue(new ErrorRecord(
+                        new ResourceNotFoundException($"Dependency package with name '{dep.Name}' and version range '{dep.VersionRange}' could not be found in repository '{repository.Name}'", currentResult?.exception ?? new ItemNotFoundException()),
+                        "DependencyPackageNotFound",
+                        ErrorCategory.ObjectNotFound,
+                        this));
+                }
+                else
+                {
+                    depPkg = currentResult.returnedObject;
+
+                    TryAddToKnownLatestPkgVersion(depPkg);
+
+                    string pkgVersion = FormatPkgVersionString(depPkg);
+                    debugMsgs.Enqueue($"Found dependency '{depPkg.Name}' version '{pkgVersion}'");
+                    key = $"{depPkg.Name}{pkgVersion}";
+                    if (!depPkgsFound.ContainsKey(key))
+                    {
+                        // Add pkg to collection of packages found then find dependencies
+                        // depPkgsFound creates a new instance of depPkgsFound each time FindDependencyPackages() is called.
+                        // This will eventually return the PSResourceInfo object to the main cmdlet class.
+                        debugMsgs.Enqueue($"Adding'{key}' to list of dependency packages found");
+                        depPkgsFound.TryAdd(key, depPkg);
+                        FindDependencyPackagesHelper(currentServer, currentResponseUtil, depPkg, repository, depPkgsFound, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                    }
+                }
+            }
+            
+            return depPkg;
         }
 
         #endregion
+
+        /// </summary>
+        /// ParentFindWorkItem class bundles all mutable states for a single parent package search, 
+        /// so that we can run multiple parent package searches concurrently without racing on shared state.
+        /// Specificially it is keeping track of the package name, the search results, and the error/warning/debug/verbose 
+        /// messages for that search. After parallel work finishes, workItems are processed sequentially in the original package-name order
+        /// </summary>
+        private sealed class ParentFindWorkItem
+        {
+            public ParentFindWorkItem(string packageName)
+            {
+                PackageName = packageName;
+            }
+
+            public string PackageName { get; }
+            public FindResults Results { get; set; }
+            public readonly ConcurrentQueue<ErrorRecord> ErrorMsgs = new ConcurrentQueue<ErrorRecord>();
+            public readonly ConcurrentQueue<string> WarningMsgs = new ConcurrentQueue<string>();
+            public readonly ConcurrentQueue<string> DebugMsgs = new ConcurrentQueue<string>();
+            public readonly ConcurrentQueue<string> VerboseMsgs = new ConcurrentQueue<string>();
+        }
     }
 }

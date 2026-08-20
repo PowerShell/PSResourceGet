@@ -13,7 +13,7 @@ Describe 'Test HTTP Update-PSResource for V3 Server Protocol' -tags 'CI' {
     }
 
     AfterEach {
-        Uninstall-PSResource $testModuleName -Version "*"
+        Uninstall-PSResource $testModuleName -Version "*" -SkipDependencyCheck
     }
     AfterAll {
         Get-RevertPSResourceRepositoryFile

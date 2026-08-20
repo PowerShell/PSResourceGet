@@ -1,0 +1,10 @@
+$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+resources:
+- name: verify PSGallery settings
+  type: Microsoft.PowerShell.PSResourceGet/Repository
+  properties:
+    name: TestRepository
+    uri: https://www.powershellgallery.com/api/v2
+    trusted: true
+    priority: 55
+    repositoryType: V2

@@ -7,6 +7,7 @@ Import-Module $modPath -Force -Verbose
 Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 
     BeforeAll {
+        $MARName = Get-MarName
         $testModuleName = "test-module"
         $testModuleWith2DigitVersion = "test-2DigitPkg"
         $testModuleParentName = "test_parent_mod"
@@ -273,50 +274,51 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 }
 
 Describe 'Test Find-PSResource for MAR Repository' -tags 'CI' {
+
     BeforeAll {
-        Register-PSResourceRepository -Name "MAR" -Uri "https://mcr.microsoft.com" -ApiVersion "ContainerRegistry"
+        Get-NewPSResourceRepositoryFile
     }
 
     AfterAll {
-        Unregister-PSResourceRepository -Name "MAR"
+        Get-RevertPSResourceRepositoryFile
     }
 
     It "Should find resource given specific Name, Version null" {
-        $res = Find-PSResource -Name "Az.Accounts" -Repository "MAR"
+        $res = Find-PSResource -Name "Az.Accounts" -Repository $MarName
         $res.Name | Should -Be "Az.Accounts"
         $res.Version | Should -BeGreaterThan ([Version]"4.0.0")
     }
 
     It "Should find resource and its dependency given specific Name and Version" {
-        $res = Find-PSResource -Name "Az.Storage" -Version "8.0.0" -Repository "MAR"
+        $res = Find-PSResource -Name "Az.Storage" -Version "8.0.0" -Repository $MarName
         $res.Dependencies.Length | Should -Be 1
         $res.Dependencies[0].Name | Should -Be "Az.Accounts"
     }
 
     It "Should find Azpreview resource and it's dependency given specific Name and Version" {
-        $res = Find-PSResource -Name "Azpreview" -Version "13.2.0" -Repository "MAR"
+        $res = Find-PSResource -Name "Azpreview" -Version "13.2.0" -Repository $MarName
         $res.Dependencies.Length | Should -Not -Be 0
     }
 
     It "Should find resource with wildcard in Name" {
-        $res = Find-PSResource -Name "Az.App*" -Repository "MAR"
+        $res = Find-PSResource -Name "Az.App*" -Repository $MarName
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterThan 1
     }
 
     It "Should find all resource with wildcard in Name" {
-        $res = Find-PSResource -Name "*" -Repository "MAR"
+        $res = Find-PSResource -Name "*" -Repository $MarName
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterThan 1
     }
 
     It "Should find version range for Az dependencies" {
         # Target known version to know the output from the API won't change
-        $res = Find-PSResource -Repository 'MAR' -Name 'Az' -Version '14.4.0'
-        
+        $res = Find-PSResource -Repository $MarName -Name 'Az' -Version '14.4.0'
+
         # Version defined by "ModuleVersion"
         $res.Dependencies.Where{$_.'Name' -eq 'Az.Accounts'}.'VersionRange'.ToString() | Should -Be '[5.3.0, )'
-        
+
         # Version defined by "RequiredVersion"
         $res.Dependencies.Where{$_.'Name' -eq 'Az.Resources'}.'VersionRange'.ToString() | Should -Be '[8.1.0, 8.1.0]'
     }

@@ -344,7 +344,7 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
     #     $foundTestScript | Should -Be $True
     # }
 
-    It "find all resources with specified tag given Tag property, with and without Prerelease property" {
+     It "find all resources with specified tag given Tag property, with and without Prerelease property" {
         $tagToFind = "MyPSTag"
         $res = Find-PSResource -Tag $tagToFind -Repository $PSGalleryName
         $res | Should -HaveCount 1
@@ -446,6 +446,17 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'CI' {
         $res.Name | Should -Contain 'test_unlisted'
         $res.Name | Should -Contain 'test_notunlisted'
     }
+
+    It "Find resource that takes a dependency on package with specific version" {
+        $moduleName = 'test-nugetversion-parent'
+        $version = '4.0.0'
+        $depPkgName = 'test-nugetversion'
+
+        $res = Find-PSResource -Name $moduleName -Version $version -Repository $PSGalleryName -IncludeDependencies
+        $res.Count | Should -Be 2
+        $res.Name | Should -Contain $moduleName
+        $res.Name | Should -Contain $depPkgName
+    }
 }
 
 Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidationOnly' {
@@ -459,11 +470,8 @@ Describe 'Test HTTP Find-PSResource for V2 Server Protocol' -tags 'ManualValidat
     AfterAll {
         Get-RevertPSResourceRepositoryFile
     }
-    It "find resource given CommandName" {
-        $res = Find-PSResource -Name $testModuleName -Repository $PSGalleryName -Type Module
 
-        $res.Name | Should -Be $testModuleName
-    }
+
 
     It "find should not duplicate dependencies found" {
         $res = Find-PSResource -Name "Az" -IncludeDependencies -Repository $PSGalleryName

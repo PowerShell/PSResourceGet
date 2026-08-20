@@ -19,7 +19,7 @@ Describe 'Test Install-PSResource for the Az module' -tags 'CI' {
     }
 
     AfterEach {
-        Uninstall-PSResource $azName, $azDepWildCard -ErrorAction SilentlyContinue
+        Uninstall-PSResource $azName, $azDepWildCard -ErrorAction SilentlyContinue -SkipDependencyCheck
     }
 
     AfterAll {

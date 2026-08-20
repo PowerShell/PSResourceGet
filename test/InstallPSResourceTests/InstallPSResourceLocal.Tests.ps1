@@ -274,17 +274,19 @@ Describe 'Test Install-PSResource for local repositories' -tags 'CI' {
         (Get-Alias isres).Definition | Should -BeExactly 'Install-PSResource'
     }
 
-    It "Not install resource that lists dependency packages which cannot be found" {
-        $localRepoUri = Join-Path -Path $TestDrive -ChildPath "testdir"
-        Save-PSResource -Name "test_script" -Repository "PSGallery" -TrustRepository -Path $localRepoUri -AsNupkg -SkipDependencyCheck
-        Write-Information -InformationAction Continue -MessageData $localRepoUri
-        $res = Install-PSResource -Name "test_script" -Repository $localRepo -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
-        $res | Should -BeNullOrEmpty
-        $err.Count | Should -Not -Be 0
-        for ($i = 0; $i -lt $err.Count; $i++) {
-            $err[$i].FullyQualifiedErrorId | Should -Not -Be "System.NullReferenceException,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
-        }
-    }
+    ## TODO: this script does not have a dependency.  None of the packages currently used for this test suite have dependencies to adequately 
+    # run this unit test.
+    # It "Not install resource that lists dependency packages which cannot be found" {
+    #     $localRepoUri = Join-Path -Path $TestDrive -ChildPath "testdir"
+    #     Save-PSResource -Name "test_script" -Repository "PSGallery" -TrustRepository -Path $localRepoUri -AsNupkg -SkipDependencyCheck
+    #     Write-Information -InformationAction Continue -MessageData $localRepoUri
+    #     $res = Install-PSResource -Name "test_script" -Repository $localRepo -TrustRepository -PassThru -ErrorVariable err -ErrorAction SilentlyContinue
+    #     $res | Should -BeNullOrEmpty
+    #     $err.Count | Should -Not -Be 0
+    #     for ($i = 0; $i -lt $err.Count; $i++) {
+    #         $err[$i].FullyQualifiedErrorId | Should -Not -Be "System.NullReferenceException,Microsoft.PowerShell.PSResourceGet.Cmdlets.InstallPSResource"
+    #     }
+    # }
 
     It "Install .nupkg that contains directories (specific package throws errors when accessed by ZipFile.OpenRead)" {
         $nupkgName = "Microsoft.Web.Webview2"

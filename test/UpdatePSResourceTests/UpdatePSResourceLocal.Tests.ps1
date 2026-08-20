@@ -27,7 +27,7 @@ Describe 'Test Update-PSResource for local repositories' -tags 'CI' {
     }
 
     AfterEach {
-        Uninstall-PSResource $moduleName, $moduleName2 -Version "*"
+        Uninstall-PSResource $moduleName, $moduleName2 -Version "*" -SkipDependencyCheck
     }
 
     AfterAll {

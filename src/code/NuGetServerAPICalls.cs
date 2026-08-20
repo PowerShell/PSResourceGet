@@ -13,6 +13,7 @@ using System.Xml;
 using System.Net;
 using System.Runtime.ExceptionServices;
 using System.Management.Automation;
+using System.Collections.Concurrent;
 
 namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 {
@@ -49,6 +50,84 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         #region Overridden Methods
 
         /// <summary>
+        /// Async find method which allows for searching for single name with specific version.
+        /// Name: no wildcard support
+        /// Version: no wildcard support
+        /// This is the concurrent (parallel) counterpart of FindVersion().
+        /// </summary>
+        public override Task<FindResults> FindVersionAsync(string packageName, string version, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            debugMsgs.Enqueue("In NuGetServerAPICalls::FindVersionAsync()");
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "id", $"'{packageName}'" },
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+// We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
+filterBuilder.AddCriterion($"Id eq '{packageName}'");
+filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
+            var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+            string response = HttpRequestCallAsync(requestUrl, debugMsgs, out ErrorRecord errRecord);
+            FindResults findResponse = new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+            }
+
+            return Task.FromResult(findResponse);
+        }
+
+        /// <summary>
+        /// Async find method which allows for searching for single name with version range.
+        /// Name: no wildcard support
+        /// Version: supports wildcards
+        /// This is the concurrent (parallel) counterpart of FindVersionGlobbing().
+        /// </summary>
+        public override Task<FindResults> FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, ResourceType type, bool getOnlyLatest, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            debugMsgs.Enqueue("In NuGetServerAPICalls::FindVersionGlobbingAsync()");
+            List<string> responses = new List<string>();
+            int skip = 0;
+
+            var initialResponse = FindVersionGlobbingAsync(packageName, versionRange, includePrerelease, skip, getOnlyLatest, debugMsgs, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+                return Task.FromResult(new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType));
+            }
+
+            responses.Add(initialResponse);
+
+            if (!getOnlyLatest)
+            {
+                int initialCount = GetCountFromResponse(initialResponse, out errRecord);
+                if (errRecord != null)
+                {
+                    errorMsgs.Enqueue(errRecord);
+                    return Task.FromResult(new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType));
+                }
+
+                int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
+
+                while (count > 0)
+                {
+                    // skip 100
+                    skip += 100;
+                    var tmpResponse = FindVersionGlobbingAsync(packageName, versionRange, includePrerelease, skip, getOnlyLatest, debugMsgs, out errRecord);
+                    if (errRecord != null)
+                    {
+                        errorMsgs.Enqueue(errRecord);
+                        return Task.FromResult(new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType));
+                    }
+
+                    responses.Add(tmpResponse);
+                    count--;
+                }
+            }
+
+            return Task.FromResult(new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType));
+        }
+        /// <summary>
         /// Find method which allows for searching for all packages from a repository and returns latest version for each.
         /// Examples: Search -Repository MyNuGetServer
         /// API call:
@@ -75,7 +154,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             }
 
-            int count = initialCount / 6000;
+            int count = (int)Math.Ceiling((double)initialCount / 6000) - 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -119,7 +198,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             }
 
-            int count = initialCount / 100;
+            int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -181,6 +260,35 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string response = HttpRequestCall(requestUrl, out errRecord);
 
             return new FindResults(stringResponse: new string[]{ response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
+        }
+
+        /// <summary>
+        /// Async find method which allows for searching for single name and returns latest version.
+        /// Name: no wildcard support
+        /// This is the concurrent (parallel) counterpart of FindName().
+        /// </summary>
+        public override Task<FindResults> FindNameAsync(string packageName, bool includePrerelease, ResourceType type, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            debugMsgs.Enqueue("In NuGetServerAPICalls::FindNameAsync()");
+            var queryBuilder = new NuGetV2QueryBuilder(new Dictionary<string, string>{
+                { "id", $"'{packageName}'" },
+            });
+            var filterBuilder = queryBuilder.FilterBuilder;
+
+            filterBuilder.AddCriterion(includePrerelease ? "IsAbsoluteLatestVersion" : "IsLatestVersion");
+
+            // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
+            filterBuilder.AddCriterion($"Id eq '{packageName}'");
+
+            var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
+            string response = HttpRequestCallAsync(requestUrl, debugMsgs, out ErrorRecord errRecord);
+            FindResults findResponse = new FindResults(stringResponse: new string[] { response }, hashtableResponse: emptyHashResponses, responseType: FindResponseType);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+            }
+
+            return Task.FromResult(findResponse);
         }
 
         /// <summary>
@@ -246,7 +354,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             }
 
-            int count = initialCount / 100;
+            int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -291,7 +399,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
             }
 
-            int count = initialCount / 100;
+            int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -340,7 +448,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     return new FindResults(stringResponse: responses.ToArray(), hashtableResponse: emptyHashResponses, responseType: FindResponseType);
                 }
 
-                int count = initialCount / 100;
+                int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
 
                 while (count > 0)
                 {
@@ -447,6 +555,38 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
+        /// Installs a specific package asynchronously.
+        /// User may request to install package with or without providing version (as seen in examples below), but prior to calling this method the package is located and package version determined.
+        /// Therefore, package version should not be null in this method.
+        /// Name: no wildcard support.
+        /// Examples: Install "PowerShellGet" -Version "3.5.0-alpha"
+        ///           Install "PowerShellGet" -Version "3.0.0"
+        /// </summary>
+        public override Task<Stream> InstallPackageAsync(string packageName, string packageVersion, bool includePrerelease, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            debugMsgs.Enqueue("In NuGetServerAPICalls::InstallPackageAsync()");
+            Stream results = new MemoryStream();
+            if (string.IsNullOrEmpty(packageVersion))
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    exception: new ArgumentNullException($"Package version could not be found for {packageName}"),
+                    "PackageVersionNullOrEmptyError",
+                    ErrorCategory.InvalidArgument,
+                    _cmdletPassedIn));
+
+                return Task.FromResult(results);
+            }
+
+            results = InstallVersionAsync(packageName, packageVersion, debugMsgs, out ErrorRecord errRecord);
+            if (errRecord != null)
+            {
+                errorMsgs.Enqueue(errRecord);
+            }
+
+            return Task.FromResult(results);
+        }
+
+        /// <summary>
         /// Helper method that makes the HTTP request for the NuGet server protocol url passed in for find APIs.
         /// </summary>
         private string HttpRequestCall(string requestUrl, out ErrorRecord errRecord)
@@ -542,6 +682,104 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             return content;
+        }
+
+        /// <summary>
+        /// Helper method that makes the HTTP request for install APIs on worker threads; enqueues diagnostics instead of writing to cmdlet streams.
+        /// </summary>
+        private HttpContent HttpRequestCallForContentAsync(string requestUrl, ConcurrentQueue<string> debugMsgs, out ErrorRecord errRecord)
+        {
+            debugMsgs.Enqueue("In NuGetServerAPICalls::HttpRequestCallForContentAsync()");
+            errRecord = null;
+            HttpContent content = null;
+
+            try
+            {
+                debugMsgs.Enqueue($"Request url is: '{requestUrl}'");
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+
+                content = SendRequestForContentAsync(request, _sessionClient).GetAwaiter().GetResult();
+            }
+            catch (HttpRequestException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestFailure",
+                    ErrorCategory.ConnectionError ,
+                    this);
+            }
+            catch (ArgumentNullException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestFailure",
+                    ErrorCategory.InvalidData,
+                    this);
+            }
+            catch (InvalidOperationException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestFailure",
+                    ErrorCategory.InvalidOperation,
+                    this);
+            }
+
+            if (string.IsNullOrEmpty(content?.ToString()))
+            {
+                debugMsgs.Enqueue("Response is empty");
+            }
+
+            return content;
+        }
+
+        /// <summary>
+        /// Helper method that makes the HTTP request for the NuGet server protocol url passed in for async find APIs.
+        /// This helper writes diagnostics to the provided debug queue and avoids cmdlet stream writes.
+        /// </summary>
+        private string HttpRequestCallAsync(string requestUrl, ConcurrentQueue<string> debugMsgs, out ErrorRecord errRecord)
+        {
+            debugMsgs.Enqueue("In NuGetServerAPICalls::HttpRequestCallAsync()");
+            errRecord = null;
+            string response = string.Empty;
+
+            try
+            {
+                debugMsgs.Enqueue($"Request url is: '{requestUrl}'");
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+                response = SendRequestAsync(request, _sessionClient).GetAwaiter().GetResult();
+            }
+            catch (HttpRequestException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestFallFailure",
+                    ErrorCategory.ConnectionError,
+                    this);
+            }
+            catch (ArgumentNullException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestFallFailure",
+                    ErrorCategory.ConnectionError,
+                    this);
+            }
+            catch (InvalidOperationException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "HttpRequestFallFailure",
+                    ErrorCategory.ConnectionError,
+                    this);
+            }
+
+            if (string.IsNullOrEmpty(response))
+            {
+                debugMsgs.Enqueue("Response is empty");
+            }
+
+            return response;
         }
 
         #endregion
@@ -779,6 +1017,25 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string FindVersionGlobbing(string packageName, VersionRange versionRange, bool includePrerelease, int skip, bool getOnlyLatest, out ErrorRecord errRecord)
         {
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::FindVersionGlobbing()");
+            var requestUrl = GetVersionGlobbingRequestUrl(packageName, versionRange, includePrerelease, skip, getOnlyLatest);
+            return HttpRequestCall(requestUrl, out errRecord);
+        }
+
+        /// <summary>
+        /// Worker-thread counterpart of FindVersionGlobbing(); enqueues diagnostics instead of writing to cmdlet streams.
+        /// </summary>
+        private string FindVersionGlobbingAsync(string packageName, VersionRange versionRange, bool includePrerelease, int skip, bool getOnlyLatest, ConcurrentQueue<string> debugMsgs, out ErrorRecord errRecord)
+        {
+            debugMsgs.Enqueue("In NuGetServerAPICalls::FindVersionGlobbingAsync()");
+            var requestUrl = GetVersionGlobbingRequestUrl(packageName, versionRange, includePrerelease, skip, getOnlyLatest);
+            return HttpRequestCallAsync(requestUrl, debugMsgs, out errRecord);
+        }
+
+        /// <summary>
+        /// Builds the FindPackagesById() request url for version-globbing searches.
+        /// </summary>
+        private string GetVersionGlobbingRequestUrl(string packageName, VersionRange versionRange, bool includePrerelease, int skip, bool getOnlyLatest)
+        {
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='blah'&includePrerelease=false&$filter= NormalizedVersion gt '1.0.0' and NormalizedVersion lt '2.2.5' and substringof('PSModule', Tags) eq true
             //https://www.powershellgallery.com/api/v2//FindPackagesById()?id='PowerShellGet'&includePrerelease=false&$filter= NormalizedVersion gt '1.1.1' and NormalizedVersion lt '2.2.5'
             // NormalizedVersion doesn't include trailing zeroes
@@ -847,9 +1104,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // We need to explicitly add 'Id eq <packageName>' whenever $filter is used, otherwise arbitrary results are returned.
             filterBuilder.AddCriterion($"Id eq '{packageName}'");
 
-            var requestUrl = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
-
-            return HttpRequestCall(requestUrl, out errRecord);
+            return $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
         }
 
         /// <summary>
@@ -892,6 +1147,29 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cmdletPassedIn.WriteDebug("In NuGetServerAPICalls::InstallVersion()");
             var requestUrl = $"{Repository.Uri}/Packages(Id='{packageName}',Version='{version}')/Download";
             var response = HttpRequestCallForContent(requestUrl, out errRecord);
+
+            if (response is null)
+            {
+                errRecord = new ErrorRecord(
+                    new Exception($"No content was returned by repository '{Repository.Name}'"),
+                    "InstallFailureContentNullNuGetServer",
+                    ErrorCategory.InvalidResult,
+                    this);
+
+                return null;
+            }
+
+            return response.ReadAsStreamAsync().Result;
+        }
+
+        /// <summary>
+        /// Worker-thread counterpart of InstallVersion(); enqueues diagnostics instead of writing to cmdlet streams.
+        /// </summary>
+        private Stream InstallVersionAsync(string packageName, string version, ConcurrentQueue<string> debugMsgs, out ErrorRecord errRecord)
+        {
+            debugMsgs.Enqueue("In NuGetServerAPICalls::InstallVersionAsync()");
+            var requestUrl = $"{Repository.Uri}/Packages(Id='{packageName}',Version='{version}')/Download";
+            var response = HttpRequestCallForContentAsync(requestUrl, debugMsgs, out errRecord);
 
             if (response is null)
             {
