@@ -342,33 +342,38 @@ function GetPSResourceList {
         )
     }
 
-    $resourcesExist = @()
+    $resolvedResources = @()
 
-    foreach ($resource in $allPSResources) {
-        foreach ($inputResource in $inputResources) {
-            if ($resource.Name -eq $inputResource.Name) {
-                Write-Trace -message "Found matching resource for input: $($inputResource.Name). Checking version constraints. Input version: $($inputResource.Version), Resource version: $($resource.Version)" -level debug
-                if ($inputResource.Version) {
-                    # Use the NuGet.Versioning package if available, otherwise do a simple comparison
-                    try {
-                        if (SatisfiesVersion -version $resource.Version -versionRange $inputResource.Version) {
-                            $resourcesExist += $resource
-                        }
-                    }
-                    catch {
-                        Write-Trace -message "Error checking version constraints for resource: $($inputResource.Name). Error details: $($_.Exception.Message)" -level debug
-                        # Fallback: simple string comparison (not full NuGet range support)
-                        if ($resource.Version.ToString() -eq $inputResource.Version) {
-                            $resourcesExist += $resource
-                        }
-                    }
-                }
+    foreach ($inputResource in $inputResources) {
+        $matchingResources = $allPSResources | Where-Object { $_.Name -eq $inputResource.Name }
+
+        if ($matchingResources) {
+            $preferred = $null
+            if ($inputResource.Version) {
+                $preferred = $matchingResources | Where-Object {
+                    try { SatisfiesVersion -version $_.Version -versionRange $inputResource.Version } catch { $false }
+                } | Select-Object -First 1
+            } else {
+                $preferred = $matchingResources | Select-Object -First 1
             }
+
+            if ($preferred) {
+                Write-Trace -message "Resource '$($inputResource.Name)' version '$($preferred.Version)' satisfies requested range '$($inputResource.Version)'." -level debug
+                $resolvedResources += $preferred
+            } else {
+                # Installed but doesn't satisfy the version range - report actual installed version with _exist = false
+                $fallback = $matchingResources | Select-Object -First 1
+                Write-Trace -message "Resource '$($inputResource.Name)' installed at '$($fallback.Version)' does not satisfy requested range '$($inputResource.Version)'. Reporting _exist = false." -level debug
+                $fallback._exist = $false
+                $resolvedResources += $fallback
+            }
+        } else {
+            Write-Trace -message "Resource '$($inputResource.Name)' is not installed. Reporting _exist = false." -level debug
+            $resolvedResources += [PSResource]::new($inputResource.Name)
         }
     }
 
-    ## For get operation we only need the first resource that exists, which is always the latest for currentUser
-    PopulatePSResourceListObjectByRepository -resourcesExist $resourcesExist -inputResources $inputResources -repositoryName $inputPSResourceList.RepositoryName -trustedRepository $inputPSResourceList.trustedRepository
+    PopulatePSResourceListObjectByRepository -resourcesExist $resolvedResources -inputResources $inputResources -repositoryName $inputPSResourceList.RepositoryName -trustedRepository $inputPSResourceList.trustedRepository
 }
 
 function GetOperation {
@@ -759,13 +764,20 @@ function PopulatePSResourceListObjectByRepository {
     }
     else {
         $resources += $resourcesExist | ForEach-Object {
-            [PSResource]::new(
-                $_.Name,
-                $_.Version.PreRelease ? $_.Version.ToString() + "-" + $_.PreRelease : $_.Version.ToString(),
-                $_.Scope,
-                $_.RepositoryName,
-                $_.PreRelease ? $true : $false
-            )
+            $srcExist = $_._exist
+            $r = if ($_.version) {
+                [PSResource]::new(
+                    $_.Name,
+                    $_.Version.ToString(),
+                    $_.Scope,
+                    $_.RepositoryName,
+                    $_.PreRelease ? $true : $false
+                )
+            } else {
+                [PSResource]::new($_.Name)
+            }
+            $r._exist = $srcExist
+            $r
         }
     }
 
