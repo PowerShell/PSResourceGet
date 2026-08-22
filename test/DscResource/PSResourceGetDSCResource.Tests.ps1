@@ -475,3 +475,98 @@ Describe "Error code tests" -Tags 'CI' {
         $out[-1] | Should -BeLike '*Could not install one or more resources (during set operation)*'
     }
 }
+
+Describe 'PSResourceList what-if tests' -Tags 'CI' {
+    BeforeAll {
+        SetupDsc
+        SetupTestRepos
+
+        $isOnWindowsPowerShell = $PSVersionTable.PSVersion.Major -lt 6
+        $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+        $PSDefaultParameterValues['it:skip'] = $isOnWindowsPowerShell
+    }
+
+    AfterAll {
+        $global:PSDefaultParameterValues = $originalDefaultParameterValues
+        Get-RevertPSResourceRepositoryFile
+    }
+
+    It 'What-if install does not modify the system' {
+        Uninstall-PSResource -Name $script:testModuleName -ErrorAction SilentlyContinue
+        Uninstall-PSResource -Name $script:testModuleName2 -ErrorAction SilentlyContinue
+
+        $config_yaml = @"
+`$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+resources:
+- name: PSResourceList what-if install
+  type: Microsoft.PowerShell.PSResourceGet/PSResourceList
+  properties:
+    repositoryName: $script:localRepo
+    trustedRepository: true
+    resources:
+    - name: $script:testModuleName
+      version: '5.0.0'
+    - name: $script:testModuleName2
+      version: '5.0.0'
+"@
+
+        $out = & $script:dscExe config set --what-if --input $config_yaml 2>$TestDrive/error.log | ConvertFrom-Json
+        $LASTEXITCODE | Should -Be 0 -Because (Get-Content -Path $TestDrive/error.log -Raw)
+
+        $result = $out.results.result[0].afterState
+        $result.repositoryName | Should -BeExactly $script:localRepo
+        $result.resources.Count | Should -Be 2
+        $result.resources[0]._metadata.whatIf[0] | Should -Match 'Would install'
+        $result.resources[1]._metadata.whatIf[0] | Should -Match 'Would install'
+
+        Get-PSResource -Name $script:testModuleName -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+        Get-PSResource -Name $script:testModuleName2 -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+    }
+
+    It 'What-if uninstall does not modify the system' {
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        $config_yaml = @"
+`$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+resources:
+- name: PSResourceList what-if uninstall
+  type: Microsoft.PowerShell.PSResourceGet/PSResourceList
+  properties:
+    repositoryName: $script:localRepo
+    resources:
+    - name: $script:testModuleName
+      _exist: false
+"@
+
+        $out = & $script:dscExe config set --what-if --input $config_yaml 2>$TestDrive/error.log | ConvertFrom-Json
+        $LASTEXITCODE | Should -Be 0 -Because (Get-Content -Path $TestDrive/error.log -Raw)
+
+        $result = $out.results.result[0].afterState
+        $result.resources[0]._exist | Should -BeFalse
+        $result.resources[0]._metadata.whatIf[0] | Should -Match 'Would uninstall'
+
+        Get-PSResource -Name $script:testModuleName -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+    }
+
+    It 'What-if returns no metadata for resources already in desired state' {
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        $config_yaml = @"
+`$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+resources:
+- name: PSResourceList what-if in desired state
+  type: Microsoft.PowerShell.PSResourceGet/PSResourceList
+  properties:
+    repositoryName: $script:localRepo
+    resources:
+    - name: $script:testModuleName
+      version: '5.0.0'
+"@
+
+        $out = & $script:dscExe config set --what-if --input $config_yaml 2>$TestDrive/error.log | ConvertFrom-Json
+        $LASTEXITCODE | Should -Be 0 -Because (Get-Content -Path $TestDrive/error.log -Raw)
+
+        $result = $out.results.result[0].afterState
+        $result.resources[0]._metadata | Should -BeNullOrEmpty
+    }
+}
