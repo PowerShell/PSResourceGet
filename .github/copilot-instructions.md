@@ -8,7 +8,7 @@
 ## Build and validation
 - Build the .NET project with:
   - `dotnet build src/code /property:GenerateFullPaths=true /consoleloggerparameters:NoSummary`
-- For repo-local builds that match the project tasks, prefer the existing build definitions in `.vscode/tasks.json`.
+- For repo-local builds, prefer the existing build scripts: `build.ps1` for quick builds or `doBuild.ps1` for comprehensive builds.
 - Run focused validation with PowerShell/Pester for the relevant test area before claiming a fix is complete.
 - If a change affects packaging or module behavior, validate the relevant Pester files in `test/` and ensure the build still succeeds.
 
