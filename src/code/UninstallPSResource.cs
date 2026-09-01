@@ -543,6 +543,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             _pwsh ??= System.Management.Automation.PowerShell.Create();
             _pwsh.Commands.Clear();
+            _pwsh.Streams.ClearStreams();
 
             Collection<PSModuleInfo> pkgVersions;
             try
@@ -591,6 +592,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             _pwsh ??= System.Management.Automation.PowerShell.Create();
             _pwsh.Commands.Clear();
+            _pwsh.Streams.ClearStreams();
 
             Collection<Hashtable> manifestResults;
             try
@@ -607,7 +609,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return null;
             }
 
-            if (!(manifestResults[0]["RequiredModules"] is object[] requiredModulesRaw))
+            // RequiredModules is normally an object[] but PowerShell may surface it as another IEnumerable
+            // (e.g. ArrayList) depending on how the data file was authored, so handle any enumerable here.
+            if (!(manifestResults[0]["RequiredModules"] is System.Collections.IEnumerable requiredModulesRaw) ||
+                manifestResults[0]["RequiredModules"] is string)
             {
                 return null;
             }
