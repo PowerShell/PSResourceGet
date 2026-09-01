@@ -472,9 +472,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         else {
                             if (System.Version.TryParse(version, out systemVersion) && pkgToUninstall.Version.CompareTo(systemVersion) == 0)
                             {
-                                // The required version OR module version is the version we're attempting to uninstall.
-                                parentsOfDependency.Add(parentPkg.Name);
-                                dependencyExists = true;
+                                // The version we're attempting to uninstall matches the version (or minimum version) required by the
+                                // parent package. If the parent package specified a minimum version (i.e. 'ModuleVersion' and/or
+                                // 'MaximumVersion' in its manifest's RequiredModules entry, as opposed to an exact 'RequiredVersion'),
+                                // then another installed version satisfying that range would also fulfill the dependency requirement,
+                                // so we should not block uninstalling this version in that case.
+                                if (!IsAnotherInstalledVersionSatisfyingRequirement(parentPkg, pkgName, systemVersion))
+                                {
+                                    parentsOfDependency.Add(parentPkg.Name);
+                                    dependencyExists = true;
+                                }
                             }
                         }
                     }
@@ -495,6 +502,127 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Determines whether another already-installed version of pkgName (other than versionToUninstall) also
+        /// satisfies the dependency requirement that parentPkg's manifest declares for pkgName. This is used to
+        /// avoid blocking uninstallation of a specific version when the parent package's requirement is a minimum
+        /// version (i.e. specified via 'ModuleVersion' and, optionally, 'MaximumVersion' in the RequiredModules
+        /// manifest entry) rather than an exact 'RequiredVersion', since a newer (or otherwise in-range) installed
+        /// version would still fulfill the dependency.
+        /// </summary>
+        private bool IsAnotherInstalledVersionSatisfyingRequirement(PSModuleInfo parentPkg, string pkgName, Version versionToUninstall)
+        {
+            Hashtable requiredModuleEntry = GetRawRequiredModuleEntry(parentPkg, pkgName);
+            if (requiredModuleEntry == null || requiredModuleEntry.ContainsKey("RequiredVersion"))
+            {
+                // Either we could not determine the requirement details, or the parent package requires an exact
+                // version. In both cases fall back to the original (safe) behavior of treating this as a blocking
+                // dependency, since only the exact version being uninstalled can satisfy the requirement.
+                return false;
+            }
+
+            System.Version minVersion = null;
+            System.Version maxVersion = null;
+            if (requiredModuleEntry["ModuleVersion"] != null)
+            {
+                System.Version.TryParse(requiredModuleEntry["ModuleVersion"].ToString(), out minVersion);
+            }
+
+            if (requiredModuleEntry["MaximumVersion"] != null)
+            {
+                System.Version.TryParse(requiredModuleEntry["MaximumVersion"].ToString(), out maxVersion);
+            }
+
+            if (minVersion == null && maxVersion == null)
+            {
+                // No usable version range information, cannot safely determine another version satisfies.
+                return false;
+            }
+
+            _pwsh ??= System.Management.Automation.PowerShell.Create();
+            _pwsh.Commands.Clear();
+
+            Collection<PSModuleInfo> pkgVersions;
+            try
+            {
+                pkgVersions = _pwsh.AddCommand("Microsoft.PowerShell.Core\\Get-Module").AddParameters(
+                    new Hashtable() {
+                        { "Name", pkgName },
+                        { "ListAvailable", true }
+                    }).Invoke<PSModuleInfo>();
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+            foreach (PSModuleInfo installedPkg in pkgVersions)
+            {
+                if (installedPkg.Version == null || installedPkg.Version.CompareTo(versionToUninstall) == 0)
+                {
+                    // This is the version being uninstalled, skip it.
+                    continue;
+                }
+
+                bool satisfiesMin = minVersion == null || installedPkg.Version.CompareTo(minVersion) >= 0;
+                bool satisfiesMax = maxVersion == null || installedPkg.Version.CompareTo(maxVersion) <= 0;
+                if (satisfiesMin && satisfiesMax)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Reads the parent package's module manifest to find the raw RequiredModules entry (as a Hashtable)
+        /// corresponding to pkgName. Returns null if the manifest cannot be read, or if the entry is not a
+        /// Hashtable (e.g. RequiredModules specified as just a module name string, meaning any version works).
+        /// </summary>
+        private Hashtable GetRawRequiredModuleEntry(PSModuleInfo parentPkg, string pkgName)
+        {
+            if (parentPkg == null || string.IsNullOrEmpty(parentPkg.Path) || !File.Exists(parentPkg.Path))
+            {
+                return null;
+            }
+
+            _pwsh ??= System.Management.Automation.PowerShell.Create();
+            _pwsh.Commands.Clear();
+
+            Collection<Hashtable> manifestResults;
+            try
+            {
+                manifestResults = _pwsh.AddCommand("Import-PowerShellDataFile").AddParameter("Path", parentPkg.Path).Invoke<Hashtable>();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
+            if (manifestResults == null || manifestResults.Count == 0 || !manifestResults[0].ContainsKey("RequiredModules"))
+            {
+                return null;
+            }
+
+            if (!(manifestResults[0]["RequiredModules"] is object[] requiredModulesRaw))
+            {
+                return null;
+            }
+
+            foreach (object entry in requiredModulesRaw)
+            {
+                if (entry is Hashtable entryHash &&
+                    entryHash["ModuleName"] is string moduleName &&
+                    string.Equals(moduleName, pkgName, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    return entryHash;
+                }
+            }
+
+            return null;
         }
 
         #endregion
