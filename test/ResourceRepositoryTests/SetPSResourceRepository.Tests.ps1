@@ -41,6 +41,23 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         Get-RemoveTestDirs($tmpDirPaths)
     }
 
+    It "creates the repository store directory when setting a repository for the first time" {
+        $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PSResourceGet"
+        $backupPath = Join-Path -Path $TestDrive -ChildPath "PSResourceGetBackup"
+        Move-Item -Path $powerShellGetPath -Destination $backupPath
+
+        try {
+            Set-PSResourceRepository -Name $PSGalleryName -Trusted -ErrorAction Stop
+
+            $powerShellGetPath | Should -Exist
+            (Get-PSResourceRepository -Name $PSGalleryName).Trusted | Should -BeTrue
+        }
+        finally {
+            Remove-Item -Path $powerShellGetPath -Recurse -Force -ErrorAction Ignore
+            Move-Item -Path $backupPath -Destination $powerShellGetPath
+        }
+    }
+
     It "set repository given Name and Uri parameters" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir2Path
