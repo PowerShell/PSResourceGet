@@ -167,7 +167,7 @@ jobs:
           Install-Module -Name 'Microsoft.PowerShell.SecretManagement' -force -SkipPublisherCheck -AllowClobber
           Install-Module -Name 'Microsoft.PowerShell.SecretStore' -force -SkipPublisherCheck -AllowClobber
           $vaultPassword = ConvertTo-SecureString $("a!!"+ (Get-Random -Maximum ([int]::MaxValue))) -AsPlainText -Force
-          Set-SecretStoreConfiguration -Authentication None -Interaction None -Confirm:$false
+          Set-SecretStoreConfiguration -Authentication None -Interaction None -Confirm:$false -Password $vaultPassword
           Register-SecretVault -Name SecretStore -ModuleName Microsoft.PowerShell.SecretStore -DefaultVault
 
       # ADO: task DownloadBuildArtifacts@0
@@ -409,7 +409,7 @@ jobs:
           Install-Module -Name 'Microsoft.PowerShell.SecretManagement' -force -SkipPublisherCheck -AllowClobber
           Install-Module -Name 'Microsoft.PowerShell.SecretStore' -force -SkipPublisherCheck -AllowClobber
           $vaultPassword = ConvertTo-SecureString $("a!!"+ (Get-Random -Maximum ([int]::MaxValue))) -AsPlainText -Force
-          Set-SecretStoreConfiguration -Authentication None -Interaction None -Confirm:$false
+          Set-SecretStoreConfiguration -Authentication None -Interaction None -Confirm:$false -Password $vaultPassword
           Register-SecretVault -Name SecretStore -ModuleName Microsoft.PowerShell.SecretStore -DefaultVault
 
       # ADO: task DownloadBuildArtifacts@0
