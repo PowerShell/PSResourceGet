@@ -218,6 +218,8 @@ jobs:
           Install-ModulePackageForTest -PackagePath "${{ runner.temp }}/artifacts" -ErrorAction stop -Verbose
 
       # ADO: task AzurePowerShell@5 with azureSubscription: PSResourceGetACR -> azure/login OIDC
+      # See the PR description for step-by-step instructions on registering the Azure AD app,
+      # configuring its federated credentials, and creating the AZURE_* secrets this step requires.
       - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
@@ -460,6 +462,8 @@ jobs:
           Install-ModulePackageForTest -PackagePath "${{ runner.temp }}/artifacts" -ErrorAction stop -Verbose
 
       # ADO: task AzurePowerShell@5 with azureSubscription: PSResourceGetACR -> azure/login OIDC
+      # See the PR description for step-by-step instructions on registering the Azure AD app,
+      # configuring its federated credentials, and creating the AZURE_* secrets this step requires.
       - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
@@ -692,6 +696,8 @@ jobs:
           Install-ModulePackageForTest -PackagePath "${{ runner.temp }}/artifacts" -ErrorAction stop -Verbose
 
       # ADO: task AzurePowerShell@5 with azureSubscription: PSResourceGetACR -> azure/login OIDC
+      # See the PR description for step-by-step instructions on registering the Azure AD app,
+      # configuring its federated credentials, and creating the AZURE_* secrets this step requires.
       - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
