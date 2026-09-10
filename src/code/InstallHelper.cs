@@ -549,7 +549,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     continue;
                 }
-
+                // comment to be removed later
                 if (pkgToInstall == null)
                 {
                     continue;
