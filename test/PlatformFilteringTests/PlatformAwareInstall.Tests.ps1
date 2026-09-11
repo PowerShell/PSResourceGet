@@ -120,12 +120,13 @@ $depEntriesXml      </group>
         function Get-VersionInstallPath {
             param([object]$PkgInfo)
             $base = $PkgInfo.InstalledLocation
-            $versionPath = Join-Path $base $PkgInfo.Name $PkgInfo.Version.ToString()
+            $version = $PkgInfo.Version.ToString()
+            $namePath = Join-Path -Path $base -ChildPath $PkgInfo.Name
+            $versionPath = Join-Path -Path $namePath -ChildPath $version
             if (Test-Path $versionPath) { return $versionPath }
             # Maybe InstalledLocation already points to name/version
-            if ($base -match "$([regex]::Escape($PkgInfo.Name))[\\/]$([regex]::Escape($PkgInfo.Version.ToString()))$") { return $base }
+            if ($base -match "$([regex]::Escape($PkgInfo.Name))[\\/]$([regex]::Escape($version))$") { return $base }
             # Try name folder only
-            $namePath = Join-Path $base $PkgInfo.Name
             if (Test-Path $namePath) { return $namePath }
             return $base
         }
@@ -494,10 +495,19 @@ $depEntriesXml      </group>
         BeforeAll {
             $script:ridMergePkgName = 'TestRidMergeModule'
             $script:ridMergePkgVersion = '1.0.0'
+            $script:ridMergeForeignRid = if ($script:currentRid -match '^win') {
+                'linux-x64'
+            }
+            elseif ($script:currentRid -match '^osx') {
+                'win-x64'
+            }
+            else {
+                'osx-arm64'
+            }
 
             New-TestNupkg -Name $ridMergePkgName -Version $ridMergePkgVersion `
                 -OutputDir $localRepoDir `
-                -RuntimeIdentifiers @('win-x64', 'linux-x64', 'osx-arm64') `
+                -RuntimeIdentifiers @($script:currentRid, $script:ridMergeForeignRid) `
                 -LibTfms @('netstandard2.0') `
                 -IncludeModuleManifest
         }
@@ -514,8 +524,7 @@ $depEntriesXml      </group>
 
             $installPath = Get-VersionInstallPath $installed
 
-            # Pick a foreign RID
-            $foreignRid = if ($IsWindows) { 'linux-x64' } elseif ($IsMacOS) { 'win-x64' } else { 'osx-arm64' }
+            $foreignRid = $script:ridMergeForeignRid
 
             # Verify foreign RID is not present yet
             Test-Path (Join-Path $installPath $foreignRid) | Should -BeFalse

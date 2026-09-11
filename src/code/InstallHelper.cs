@@ -56,7 +56,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool _savePkg;
         private string _runtimeIdentifier;
         private string _targetFramework;
-        private bool _mergeFilteredContent;
         List<string> _pathsToSearch;
         List<string> _pkgNamesToInstall;
         private string _tmpPath;
@@ -410,7 +409,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string installPath,
             string newVersion,
             string moduleManifestVersion,
-            string scriptPath)
+            string scriptPath,
+            bool mergeFilteredContent)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::MoveFilesIntoInstallPath()");
             // Creating the proper installation path depending on whether pkg is a module or script
@@ -433,7 +433,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     Directory.CreateDirectory(newPathParent);
                     Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
                 }
-                else if (_mergeFilteredContent && Directory.Exists(finalModuleVersionDir))
+                else if (mergeFilteredContent && Directory.Exists(finalModuleVersionDir))
                 {
                     // Copy only new TFM/RID content into the existing install
                     _cmdletPassedIn.WriteVerbose($"Merging additional platform content from '{tempModuleVersionDir}' into '{finalModuleVersionDir}'");
@@ -570,6 +570,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     continue;
                 }
 
+                bool mergeFilteredContent = false;
+
                 // Check to see if the pkg is already installed (unless -Reinstall was specified).
                 if (!_reinstall && _packagesOnMachine.Contains($"{pkgToInstall.Name}{pkgVersion}"))
                 {
@@ -580,7 +582,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     {
                         _cmdletPassedIn.WriteVerbose($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed. " +
                             $"Proceeding to merge additional platform content (TargetFramework='{_targetFramework}', RuntimeIdentifier='{_runtimeIdentifier}').");
-                        _mergeFilteredContent = true;
+                        mergeFilteredContent = true;
                     }
                     else
                     {
@@ -606,7 +608,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     PkgToInstall = pkgToInstall,
                     PkgVersion = pkgVersion,
-                    TempInstallPath = CreateInstallationTempPath()
+                    TempInstallPath = CreateInstallationTempPath(),
+                    MergeFilteredContent = mergeFilteredContent
                 });
             }
 
@@ -659,7 +662,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     // Parent package and dependencies are now installed to temp directory.
                     // Try to move all package directories from temp directory to final destination.
-                    if (!TryMoveInstallContent(workItem.TempInstallPath, scope, workItem.PackagesHash))
+                    if (!TryMoveInstallContent(
+                        workItem.TempInstallPath,
+                        scope,
+                        workItem.PackagesHash,
+                        workItem.MergeFilteredContent))
                     {
                         _cmdletPassedIn.WriteError(new ErrorRecord(
                             new InvalidOperationException(),
@@ -710,6 +717,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             public string TempInstallPath;
             public ConcurrentDictionary<string, Hashtable> PackagesHash;
             public bool Succeeded;
+            public bool MergeFilteredContent;
             public readonly ConcurrentQueue<ErrorRecord> ErrorMsgs = new();
             public readonly ConcurrentQueue<string> WarningMsgs = new();
             public readonly ConcurrentQueue<string> DebugMsgs = new();
@@ -1410,16 +1418,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     if (!string.IsNullOrEmpty(_runtimeIdentifier))
                     {
-                        bool hasMatchingRid = archive.Entries.Any(e =>
-                            RuntimePackageHelper.IsRidFolder(e.FullName.Replace('\\', '/').Split('/')[0]) &&
-                            RuntimePackageHelper.ShouldIncludeEntry(e.FullName, _runtimeIdentifier));
+                        IReadOnlyList<string> availableRids = RuntimePackageHelper.GetAvailableRidsFromArchive(archive);
+                        bool hasMatchingRid = availableRids.Any(rid =>
+                            RuntimeIdentifierHelper.IsCompatibleRid(rid, _runtimeIdentifier));
 
                         if (!hasMatchingRid)
                         {
-                            var availableRids = archive.Entries
-                                .Select(e => e.FullName.Replace('\\', '/').Split('/')[0])
-                                .Where(f => RuntimePackageHelper.IsRidFolder(f))
-                                .Distinct(StringComparer.OrdinalIgnoreCase);
                             string available = string.Join(", ", availableRids);
                             _cmdletPassedIn.WriteWarning(
                                 $"The specified RuntimeIdentifier '{_runtimeIdentifier}' was not found in this package. " +
@@ -1662,7 +1666,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Moves package files/directories from the temp install path into the final install path location.
         /// </summary>
-        private bool TryMoveInstallContent(string tempInstallPath, ScopeType scope, ConcurrentDictionary<string, Hashtable> packagesHash)
+        private bool TryMoveInstallContent(
+            string tempInstallPath,
+            ScopeType scope,
+            ConcurrentDictionary<string, Hashtable> packagesHash,
+            bool mergeFilteredContent)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::TryMoveInstallContent()");
             foreach (string pkgName in packagesHash.Keys)
@@ -1687,7 +1695,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         installPath,
                         newVersion: pkgVersion, // would not have prerelease label in this string
                         moduleManifestVersion: pkgVersion,
-                        scriptPath);
+                        scriptPath,
+                        mergeFilteredContent);
 
                     _cmdletPassedIn.WriteVerbose($"Successfully installed package '{pkgName}' to location '{installPath}'");
 

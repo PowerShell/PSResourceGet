@@ -13,7 +13,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
     /// Helper class for parsing package runtime assets and filtering during extraction.
     /// Provides functionality to filter runtime-specific assets based on the current platform's RID.
     /// Detects root-level RID folders (e.g., win-x64/native.dll) used by PowerShell modules
-    /// with platform-specific native dependencies.
+    /// and standard NuGet runtime folders (e.g., runtimes/win-x64/native.dll).
     /// </summary>
     internal static class RuntimePackageHelper
     {
@@ -88,30 +88,21 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         }
 
         /// <summary>
-        /// Checks if a zip entry path is under a root-level RID folder.
-        /// Detects entries like win-x64/native.dll, linux-arm64/libfoo.so, etc.
+        /// Checks if a zip entry path is under a root-level RID folder or a standard NuGet runtimes folder.
+        /// Detects entries like win-x64/native.dll and runtimes/linux-arm64/native/libfoo.so.
         /// </summary>
         /// <param name="entryFullName">The full path of the zip entry.</param>
         /// <returns>True if the entry is under a RID folder; otherwise, false.</returns>
         public static bool IsRuntimesEntry(string entryFullName)
         {
-            if (string.IsNullOrEmpty(entryFullName))
-            {
-                return false;
-            }
-
-            string normalizedPath = entryFullName.Replace('\\', ZipPathSeparator);
-            string[] segments = normalizedPath.Split(ZipPathSeparator);
-
-            // Pattern: {rid}/... (root-level RID folders like win-x64/native.dll)
-            return segments.Length >= 2 && IsRidFolder(segments[0]);
+            return !string.IsNullOrEmpty(GetRidFromRuntimesEntry(entryFullName));
         }
 
         /// <summary>
-        /// Extracts the RID from a root-level RID folder entry path.
+        /// Extracts the RID from a root-level RID folder or standard NuGet runtimes folder entry path.
         /// </summary>
-        /// <param name="entryFullName">The full path of the zip entry (e.g., "win-x64/native.dll").</param>
-        /// <returns>The RID (e.g., "win-x64"), or null if not under a RID folder.</returns>
+        /// <param name="entryFullName">The full path of the zip entry (e.g., "win-x64/native.dll" or "runtimes/win-x64/native.dll").</param>
+        /// <returns>The RID (e.g., "win-x64"), or null if not under a supported RID folder layout.</returns>
         public static string GetRidFromRuntimesEntry(string entryFullName)
         {
             if (string.IsNullOrEmpty(entryFullName))
@@ -122,6 +113,15 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             string normalizedPath = entryFullName.Replace('\\', ZipPathSeparator);
             string[] parts = normalizedPath.Split(ZipPathSeparator);
 
+            // Pattern: runtimes/{rid}/... (standard NuGet runtime asset layout)
+            if (parts.Length >= 3 &&
+                string.Equals(parts[0], "runtimes", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrEmpty(parts[1]))
+            {
+                return parts[1];
+            }
+
+            // Pattern: {rid}/... (root-level RID folders used by PowerShell modules)
             if (parts.Length >= 2 && IsRidFolder(parts[0]))
             {
                 return parts[0];

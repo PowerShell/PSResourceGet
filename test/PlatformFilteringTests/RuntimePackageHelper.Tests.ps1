@@ -20,6 +20,10 @@ Describe 'RuntimePackageHelper Tests' -tags 'CI' {
             $InternalHooks::IsRuntimesEntry('runtimes/win-x64/native/file.dll') | Should -BeTrue
         }
 
+        It "Should return true for a root-level RID path" {
+            $InternalHooks::IsRuntimesEntry('win-x64/native/file.dll') | Should -BeTrue
+        }
+
         It "Should return true for runtimes/ path with backslashes" {
             $InternalHooks::IsRuntimesEntry('runtimes\win-x64\native\file.dll') | Should -BeTrue
         }
@@ -52,6 +56,10 @@ Describe 'RuntimePackageHelper Tests' -tags 'CI' {
             $InternalHooks::GetRidFromRuntimesEntry('runtimes/win-x64/native/file.dll') | Should -Be 'win-x64'
         }
 
+        It "Should extract RID from a root-level RID path" {
+            $InternalHooks::GetRidFromRuntimesEntry('win-x64/native/file.dll') | Should -Be 'win-x64'
+        }
+
         It "Should extract RID for linux-musl-x64" {
             $InternalHooks::GetRidFromRuntimesEntry('runtimes/linux-musl-x64/lib/file.dll') | Should -Be 'linux-musl-x64'
         }
@@ -80,6 +88,7 @@ Describe 'RuntimePackageHelper Tests' -tags 'CI' {
         It "Should include runtimes entry for current platform" {
             $currentRid = $InternalHooks::GetCurrentRuntimeIdentifier()
             $InternalHooks::ShouldIncludeEntry("runtimes/$currentRid/native/file.dll") | Should -BeTrue
+            $InternalHooks::ShouldIncludeEntry("$currentRid/native/file.dll") | Should -BeTrue
         }
 
         It "Should include runtimes entry for 'any' RID" {
@@ -119,6 +128,11 @@ Describe 'RuntimePackageHelper Tests' -tags 'CI' {
                 Set-Content -Path (Join-Path $ridNativeDir "test.dll") -Value "dummy"
             }
 
+            # Add a root-level RID folder to verify both supported layouts are discovered.
+            $rootRidDir = Join-Path $testZipDir 'linux-s390x'
+            $null = New-Item $rootRidDir -ItemType Directory -Force
+            Set-Content -Path (Join-Path $rootRidDir 'test.dll') -Value 'dummy'
+
             # Also create a non-runtimes file
             Set-Content -Path (Join-Path $testZipDir "MyModule.psd1") -Value "dummy"
 
@@ -129,10 +143,11 @@ Describe 'RuntimePackageHelper Tests' -tags 'CI' {
 
         It "Should list all RIDs present in the zip" {
             $availableRids = $InternalHooks::GetAvailableRidsFromZipFile($testZipPath)
-            $availableRids.Count | Should -Be 6
+            $availableRids.Count | Should -Be 7
             $availableRids | Should -Contain 'win-x64'
             $availableRids | Should -Contain 'linux-x64'
             $availableRids | Should -Contain 'osx-arm64'
+            $availableRids | Should -Contain 'linux-s390x'
         }
 
         It "Should throw for non-existent file" {
