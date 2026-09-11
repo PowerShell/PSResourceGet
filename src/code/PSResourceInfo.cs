@@ -736,15 +736,25 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                         foreach (JsonElement dependencyGroup in dependencyGroupsElement.EnumerateArray())
                         {
                             NuGetFramework groupFramework = NuGetFramework.AnyFramework;
-                            if (dependencyGroup.TryGetProperty("targetFramework", out JsonElement tfmElement))
+                            if (dependencyGroup.TryGetProperty("targetFramework", out JsonElement tfmElement) &&
+                                tfmElement.ValueKind == JsonValueKind.String)
                             {
                                 string tfmString = tfmElement.GetString();
                                 if (!string.IsNullOrWhiteSpace(tfmString))
                                 {
-                                    NuGetFramework parsed = NuGetFramework.Parse(tfmString);
-                                    if (parsed != null && !parsed.IsUnsupported)
+                                    try
                                     {
-                                        groupFramework = parsed;
+                                        NuGetFramework parsed = NuGetFramework.Parse(tfmString);
+                                        if (parsed != null && !parsed.IsUnsupported)
+                                        {
+                                            groupFramework = parsed;
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        // Unparseable TFM strings are treated as framework-agnostic so
+                                        // the dependency group remains eligible for fallback selection.
+                                        // groupFramework will just be NuGetFramework.AnyFramework;
                                     }
                                 }
                             }
@@ -753,39 +763,44 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
                         // Select the best matching group using FrameworkReducer
                         JsonElement? selectedGroupElement = null;
-                        try
+                        if (groupMap.Count > 0)
                         {
-                            if (groupMap.Count > 0)
+                            try
                             {
                                 NuGetFramework currentFramework = GetCurrentFrameworkForDeps();
                                 var reducer = new FrameworkReducer();
                                 NuGetFramework bestMatch = reducer.GetNearest(currentFramework, groupMap.Select(g => g.framework));
-                                
+
                                 if (bestMatch != null)
                                 {
-                                    selectedGroupElement = groupMap.FirstOrDefault(g => g.framework.Equals(bestMatch)).groupElement;
+                                    var match = groupMap.FirstOrDefault(g => g.framework.Equals(bestMatch));
+                                    if (match.groupElement.ValueKind != JsonValueKind.Undefined)
+                                    {
+                                        selectedGroupElement = match.groupElement;
+                                    }
                                 }
                             }
-                        }
-                        catch
-                        {
-                            // If TFM selection fails, fall through to fallback
-                        }
+                            catch
+                            {
+                                // If TFM selection fails, fall through to fallback
+                            }
 
-                        // Fallback: use the "any" / no-TFM group, or the first group
-                        if (selectedGroupElement == null)
-                        {
-                            var fallback = groupMap.FirstOrDefault(g =>
-                                g.framework == null ||
-                                g.framework.Equals(NuGetFramework.AnyFramework) ||
-                                g.framework.IsUnsupported);
-                            selectedGroupElement = fallback.groupElement.ValueKind != JsonValueKind.Undefined
-                                ? fallback.groupElement
-                                : groupMap.FirstOrDefault().groupElement;
+                            // Fallback: use the "any" / no-TFM group, or the first group
+                            if (selectedGroupElement == null)
+                            {
+                                var fallback = groupMap.FirstOrDefault(g =>
+                                    g.framework == null ||
+                                    g.framework.Equals(NuGetFramework.AnyFramework) ||
+                                    g.framework.IsUnsupported);
+                                selectedGroupElement = fallback.groupElement.ValueKind != JsonValueKind.Undefined
+                                    ? fallback.groupElement
+                                    : groupMap[0].groupElement;
+                            }
                         }
 
                         // Parse dependencies from the selected group
                         if (selectedGroupElement.HasValue &&
+                            selectedGroupElement.Value.ValueKind == JsonValueKind.Object &&
                             selectedGroupElement.Value.TryGetProperty("dependencies", out JsonElement dependenciesElement) &&
                             dependenciesElement.ValueKind == JsonValueKind.Array)
                         {
