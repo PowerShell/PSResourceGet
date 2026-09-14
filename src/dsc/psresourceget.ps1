@@ -1,6 +1,8 @@
 ## Copyright (c) Microsoft Corporation. All rights reserved.
 ## Licensed under the MIT License.
 
+using namespace System.Collections.Specialized
+
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
@@ -99,19 +101,65 @@ class PSResource {
         return $retValue
     }
 
+    [OrderedDictionary] ToData([bool]$forTest) {
+        $data = [OrderedDictionary]::new()
+        
+        $data.name = $this.name
+        if (-not [string]::IsNullOrEmpty($this.version)) {
+            $data.version = $this.version
+        }
+        $data.scope = $this.scope
+        if (-not [string]::IsNullOrEmpty($this.repositoryName)) {
+            $data.repositoryName = $this.repositoryName
+        }
+        $data.preRelease = $this.preRelease
+        $data._exist = $this._exist
+
+        if ($forTest) {
+            $data._inDesiredState = $this._inDesiredState
+        }
+
+        if ($null -ne $this._metadata) {
+            $data._metadata = $this._metadata
+        }
+
+        return $data
+    }
+
+    [OrderedDictionary] ToData() {
+        return $this.ToData($false)
+    }
+
     [string] ToJson() {
-        [string[]]$excludeProps = @('_inDesiredState')
-        if ($null -eq $this._metadata) { $excludeProps += '_metadata' }
-        $retVal = ($this | Select-Object -ExcludeProperty $excludeProps | ConvertTo-Json -Compress -EnumsAsStrings)
-        Write-Trace -message "Serializing PSResource to JSON. Name: $($this.name), Version: $($this.version), Scope: $($this.scope), RepositoryName: $($this.repositoryName), PreRelease: $($this.preRelease), _exist: $($this._exist)" -level debug
-        Write-Trace -message "Serialized JSON: $retVal" -level trace
+        $retVal = $this.ToData() | ConvertTo-Json -Compress -EnumsAsStrings
+        $this.WriteSerializationTrace($retVal)
         return $retVal
     }
 
     [string] ToJsonForTest() {
-        [string[]]$excludeProps = @()
-        if ($null -eq $this._metadata) { $excludeProps += '_metadata' }
-        return ($this | Select-Object -ExcludeProperty $excludeProps | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings)
+        $retVal = $this.ToData($true) | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
+        $this.WriteSerializationTrace($retVal, $true)
+        return $retVal
+    }
+
+    [void] WriteSerializationTrace([string]$json, [bool]$forTest) {
+        $pairs = @(
+            "Name: $($this.name)"
+            "Version: $($this.version)"
+            "Scope: $($this.scope)"
+            "RepositoryName: $($this.repositoryName)"
+            "PreRelease: $($this.preRelease)"
+            "_exist: $($this._exist)"
+        )
+        if ($forTest) {
+            $pairs += "_inDesiredState: $($this._inDesiredState)"
+        }
+        Write-Trace -message "Serializing PSResource to JSON. $($pairs -join ', ')" -level debug
+        Write-Trace -message "Serialized JSON: $json" -level trace
+    }
+
+    [void] WriteSerializationTrace([string]$json) {
+        $this.WriteSerializationTrace($json, $false)
     }
 }
 
@@ -160,43 +208,53 @@ class PSResourceList {
         return $true
     }
 
-    [string] ToJson() {
-        ## Assign the array directly so that an empty list serializes as [] rather than null
-        [object[]]$resourceObjects = @()
-        if ($this.resources) {
-            $resourceObjects = @($this.resources | ForEach-Object {
-                [string[]]$excludeProps = @('_inDesiredState')
-                if ($null -eq $_._metadata) { $excludeProps += '_metadata' }
-                $_ | Select-Object -ExcludeProperty $excludeProps
-            })
+    [OrderedDictionary] ToData([bool]$forTest) {
+        $data = [OrderedDictionary]::new()
+        if (-not [string]::IsNullOrEmpty($this.repositoryName)) {
+            $data['repositoryName'] = $this.repositoryName
         }
-        $retVal = [ordered]@{
-            repositoryName = $this.repositoryName
-            resources      = $resourceObjects
-        } | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
-        Write-Trace -message "Serializing PSResourceList to JSON. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level debug
-        Write-Trace -message "Serialized JSON: $retVal" -level trace
+        if ($this.resources) {
+            [OrderedDictionary[]] $resourceData = $this.resources | ForEach-Object { $_.ToData($forTest) }
+            $data['resources'] = $resourceData
+        }
+        if ($this.trustedRepository) {
+            $data['trustedRepository'] = $this.trustedRepository
+        }
+        if ($forTest) {
+            $data['_inDesiredState'] = $this._inDesiredState
+        }
+        return $data
+    }
+    [OrderedDictionary] ToData() {
+        return $this.ToData($false)
+    }
+
+    [string] ToJson() {
+        $retVal = $this.ToData() | ConvertTo-Json -Compress -EnumsAsStrings
+        $this.WriteSerializationTrace($retVal)
+
         return $retVal
     }
 
     [string] ToJsonForTest() {
-        Write-Trace -message "Serializing PSResourceList to JSON for test output. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level debug
-        [object[]]$resourceObjects = @()
-        if ($this.resources) {
-            $resourceObjects = @($this.resources | ForEach-Object {
-                [string[]]$excludeProps = @()
-                if ($null -eq $_._metadata) { $excludeProps += '_metadata' }
-                if ($excludeProps.Count -gt 0) { $_ | Select-Object -ExcludeProperty $excludeProps } else { $_ }
-            })
-        }
-        $retVal = [ordered]@{
-            repositoryName    = $this.repositoryName
-            resources         = $resourceObjects
-            trustedRepository = $this.trustedRepository
-            _inDesiredState   = $this._inDesiredState
-        } | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
-        Write-Trace -message "Serialized JSON: $retVal" -level trace
+        $retVal = $this.ToData($true) | ConvertTo-Json -Compress -EnumsAsStrings
+        $this.WriteSerializationTrace($retVal, $true)
         return $retVal
+    }
+
+    [void] WriteSerializationTrace([string]$json, [bool]$forTest) {
+        $preamble = 'Serializing PSResourceList to JSON'
+        $preamble += $forTest ? ' for test output.' : '.'
+        $pairs = @(
+            "repositoryName: $($this.repositoryName)"
+            "trustedRepository: $($this.trustedRepository)"
+            "resourcesCount: $($this.resources.Count)"
+        )
+        Write-Trace -message "$preamble $($pairs -join ', ')" -level debug
+        Write-Trace -message "Serialized JSON: $json" -level trace
+    }
+    [void] WriteSerializationTrace([string]$json) {
+        $this.WriteSerializationTrace($json, $false)
     }
 }
 
@@ -238,8 +296,29 @@ class Repository {
         $this.repositoryType = 'Unknown'
     }
 
+    [OrderedDictionary] ToData([bool]$forTest) {
+        $data = [OrderedDictionary]::new()
+        $data['name'] = $this.name
+        if (-not [string]::IsNullOrEmpty($this.uri)) {
+            $data['uri'] = $this.uri
+        }
+        $data['trusted'] = $this.trusted
+        $data['priority'] = $this.priority
+        if (-not [string]::IsNullOrEmpty($this.repositoryType)) {
+            $data['repositoryType'] = $this.repositoryType
+        }
+        $data['_exist'] = $this._exist
+
+
+        return $data
+    }
+    [OrderedDictionary] ToData() {
+        return $this.ToData($false)
+    }
+
     [string] ToJson() {
-        return ($this | ConvertTo-Json -Compress -EnumsAsStrings)
+        $retVal = $this.ToData() | ConvertTo-Json -Compress -EnumsAsStrings
+        return $retVal
     }
 }
 
