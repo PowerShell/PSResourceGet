@@ -57,7 +57,7 @@ Describe "DSC resource schema tests" -tags 'CI' {
 
         if ($skipTest) {
             $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
-            $PSDefaultParameterValues['it:skip'] = $isOnWindowsPowerShell
+            $PSDefaultParameterValues['it:skip'] = $skipTest
             return
         }
 
