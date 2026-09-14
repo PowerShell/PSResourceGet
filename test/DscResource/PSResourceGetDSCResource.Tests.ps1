@@ -115,7 +115,7 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
     }
     AfterAll {
         if ($skipTest) {
-            $PSDefaultParameterValues = $originalDefaultParameterValues
+            $global:PSDefaultParameterValues = $originalDefaultParameterValues
             return
         }
 
