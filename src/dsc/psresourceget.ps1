@@ -624,9 +624,12 @@ function ExportOperation {
             exit [ExitCode]::ExportNotImplemented
         }
         'psresourcelist' {
-            $currentUserPSResources = Get-PSResource
-            $allUsersPSResources = Get-PSResource -Scope AllUsers
-            PopulatePSResourceListObject -allUsersPSResources $allUsersPSResources -currentUserPSResources $currentUserPSResources
+            $populatingParams = @{
+                currentUserPSResources = GetAllPsResourcesInScope -Scope CurrentUser
+                allUsersPSResources    = GetAllPsResourcesInScope -Scope AllUsers
+            }
+
+            PopulatePSResourceListObject @populatingParams
         }
         default {
             Write-Trace -level error -message "Unknown ResourceType: $ResourceType"
@@ -844,6 +847,22 @@ function DeleteOperation {
     }
 }
 
+function GetAllPsResourcesInScope {
+    param(
+        [Scope]$Scope
+    )
+
+    try {
+        Get-PSResource -Scope $Scope -ErrorAction Stop
+    } catch [Microsoft.PowerShell.PSResourceGet.UtilClasses.ResourceNotFoundException] {
+        # Everything is fine, there's just no installed resources
+        @()
+    } catch {
+        Write-Trace -level error -message "Failed to get PSResources for '$Scope' scope: $_"
+        @()
+    }
+}
+
 function PopulatePSResourceListObjectByRepository {
     param (
         $resourcesExist,
@@ -891,24 +910,32 @@ function PopulatePSResourceListObject {
 
     $allPSResources = @()
 
-    $allPSResources += $allUsersPSResources | ForEach-Object {
-        return [PSResource]::new(
-            $_.Name,
-            $_.Version,
-            [Scope]"AllUsers",
-            $_.Repository,
-            $_.PreRelease ? $true : $false
-        )
+    if ($allUsersPSResources.count -gt 1) {
+        $allPSResources += $allUsersPSResources | ForEach-Object {
+            return [PSResource]::new(
+                $_.Name,
+                $_.Version,
+                [Scope]"AllUsers",
+                $_.Repository,
+                $_.PreRelease ? $true : $false
+            )
+        }
+    } else {
+        Write-Trace -level info "No PSResources found for AllUsers scope."
     }
 
-    $allPSResources += $currentUserPSResources | ForEach-Object {
-        return [PSResource]::new(
-            $_.Name,
-            $_.Version,
-            [Scope]"CurrentUser",
-            $_.Repository,
-            $_.PreRelease ? $true : $false
-        )
+    if ($currentUserPSResources.count -gt 1) {
+        $allPSResources += $currentUserPSResources | ForEach-Object {
+            return [PSResource]::new(
+                $_.Name,
+                $_.Version,
+                [Scope]"CurrentUser",
+                $_.Repository,
+                $_.PreRelease ? $true : $false
+            )
+        }
+    } else {
+        Write-Trace -level info "No PSResources found for CurrentUser scope."
     }
 
     $repoGrps = $allPSResources | Group-Object -Property repositoryName
