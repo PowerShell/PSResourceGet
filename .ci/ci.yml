@@ -10,11 +10,6 @@ pr:
     include:
     - master
 
-parameters:
-  - name: DSCVersion
-    default: '3.2.0-rc.1'
-    type: string
-
 resources:
   repositories:
   - repository: ComplianceRepo
@@ -24,6 +19,7 @@ resources:
 
 variables:
   - group: GithubTestingFeedCreds
+  - group: InstallDSC
 
 stages:
 - stage: Build
@@ -127,7 +123,6 @@ stages:
       jobName: TestPkgWin
       displayName: PowerShell Core on Windows
       imageName: windows-latest
-      DSCVersion: ${{ parameters.DSCVersion }}
 
   - template: test.yml
     parameters:
@@ -135,21 +130,18 @@ stages:
       displayName: Windows PowerShell on Windows
       imageName: windows-latest
       powershellExecutable: powershell
-      DSCVersion: ${{ parameters.DSCVersion }}
 
   - template: test.yml
     parameters:
       jobName: TestPkgUbuntu
       displayName: PowerShell Core on Ubuntu
       imageName: ubuntu-latest
-      DSCVersion: ${{ parameters.DSCVersion }}
 
   - template: test.yml
     parameters:
       jobName: TestPkgWinMacOS
       displayName: PowerShell Core on macOS
       imageName: macOS-latest
-      DSCVersion: ${{ parameters.DSCVersion }}
 
   - template: test.yml
     parameters:
@@ -157,4 +149,3 @@ stages:
       displayName: AzAuth PowerShell Core on Windows
       imageName: windows-latest
       useAzAuth: true
-      DSCVersion: ${{ parameters.DSCVersion }}

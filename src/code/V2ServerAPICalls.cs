@@ -206,7 +206,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (initialScriptCount != 0)
                 {
                     responses.Add(initialScriptResponse);
-                    int count = initialScriptCount / 100;
+                    int count = (int)Math.Ceiling((double)initialScriptCount / 100) - 1;
                     // if more than 100 count, loop and add response to list
                     while (count > 0)
                     {
@@ -242,7 +242,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 if (initialModuleCount != 0)
                 {
                     responses.Add(initialModuleResponse);
-                    int count = initialModuleCount / 100;
+                    int count = (int)Math.Ceiling((double)initialModuleCount / 100) - 1;
                     // if more than 100 count, loop and add response to list
                     while (count > 0)
                     {
@@ -296,7 +296,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (initialCount != 0)
             {
                 responses.Add(initialResponse);
-                int count = (int)Math.Ceiling((double)(initialCount / 100));
+                int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
 
                 while (count > 0)
                 {
@@ -596,7 +596,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int count = (int)Math.Ceiling((double)(initialCount / 100));
+            int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -648,7 +648,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
-            int count = (int)Math.Ceiling((double)(initialCount / 100));
+            int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
             // if more than 100 count, loop and add response to list
             while (count > 0)
             {
@@ -704,7 +704,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!getOnlyLatest)
             {
-                int count = (int)Math.Ceiling((double)(initialCount / 100));
+                int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
 
                 while (count > 0)
                 {
@@ -1074,7 +1074,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private async Task<string> HttpRequestCallAsync(string requestUrlV2, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            // TODO: Async methods cannot have out ref, so currently handling errorRecords as thrown exceptions.
             debugMsgs.Enqueue("In V2ServerAPICalls::HttpRequestCallAsync()");
             string response = string.Empty;
 
@@ -1131,7 +1130,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         private async Task<HttpContent> HttpRequestCallForContentAsync(string requestUrlV2, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
-            // TODO: Async methods cannot have out ref, so need to handle errorRecords a different way.
             debugMsgs.Enqueue("In V2ServerAPICalls::HttpRequestCallForContentAsync()");
             HttpContent content = null;
 
@@ -1737,20 +1735,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (!getOnlyLatest)
             {
-                int count = (int)Math.Ceiling((double)(initialCount / 100));
+                int count = (int)Math.Ceiling((double)initialCount / 100) - 1;
 
                 while (count > 0)
                 {
                     debugMsgs.Enqueue($"Count is '{count}'");
                     // skip 100
                     skip += 100;
-                    // TODO: this should be an async method
-                    var tmpResponse = FindVersionGlobbing(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, out ErrorRecord errRecord);
-                    if (errRecord != null)
-                    {
-                        Utils.EnqueueIfNotNull(errorMsgs, errRecord);
-                        return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
-                    }
+                    var tmpResponse = await FindVersionGlobbingAsync(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                     responses.Add(tmpResponse);
                     count--;
                 }
