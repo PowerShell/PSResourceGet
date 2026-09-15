@@ -681,6 +681,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
+                using (var packageReader = new PackageArchiveReader(fullNupkgFile))
+                {
+                    var packageIdentity = packageReader.GetIdentity();
+                    _pkgName = packageIdentity.Id;
+                    _pkgVersion = packageIdentity.Version;
+                }
                 PushRunner.Run(
                         settings: Settings.LoadDefaultSettings(root: null, configFileName: null, machineWideSettings: null),
                         sourceProvider: sourceProvider,
@@ -699,6 +705,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             catch (HttpRequestException e)
             {
+                string normalizedRepoUri = repoUri.TrimEnd('/');
+                bool isPSGallery = normalizedRepoUri.Equals(RepositorySettings.PSGalleryRepoUri, StringComparison.OrdinalIgnoreCase);
                 _cmdletPassedIn.WriteVerbose(string.Format("Not able to publish resource to '{0}'", repoUri));
                 //  look in PS repo for how httpRequestExceptions are handled
 
@@ -735,6 +743,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             ErrorCategory.AuthenticationError,
                             this);
                     }
+                    else if (isPSGallery && e.Message.Contains("Unauthorized"))
+                    {
+                        // For AKS Exception
+                        error = new ErrorRecord(new ArgumentException($"Could not publish to repository '{repoName}'. The Credential provided was incorrect. Exception: Response status code does not indicate success: 401 (An API key must be provided)."),
+                            "401Error",
+                            ErrorCategory.AuthenticationError,
+                            this);
+                    }
                     else
                     {
                         // For ADO repository feeds that are public feeds, when the credentials are incorrect.
@@ -764,6 +780,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             ErrorCategory.PermissionDenied,
                             this);
                     }
+                    else if (isPSGallery && e.Message.Contains("Forbidden"))
+                    {
+                        // For AKS Exception
+                        error = new ErrorRecord(
+                            new ArgumentException($"Could not publish to repository '{repoName}'. Response status code does not indicate success: 403 (The specified API key is invalid, has expired, or does not have permission to access the specified package.)."),
+                            "403Error",
+                            ErrorCategory.PermissionDenied,
+                            this);
+                    }
                     else
                     {
                         error = new ErrorRecord(
@@ -775,10 +800,26 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
                 else if (e.Message.Contains("409"))
                 {
-                    error = new ErrorRecord(
+                    if (isPSGallery && e.Message.Contains("Conflict"))
+                    {
+                        // For AKS Exception
+                        string packageName = _pkgName ?? "unknown";
+                        string packageVersion = _pkgVersion?.ToNormalizedString() ?? "unknown";
+                        error = new ErrorRecord(
+                            new ArgumentException(
+                                $"Repository '{repoName}': Response status code does not indicate success: 409 " +
+                                $"(A package with id '{packageName}' and version '{packageVersion}' already exists and cannot be modified.).",
+                                e),
+                            "409Error",
+                            ErrorCategory.PermissionDenied, this);
+                    }
+                    else
+                    {
+                        error = new ErrorRecord(
                         ex,
                         "409Error",
                         ErrorCategory.PermissionDenied, this);
+                    }
                 }
                 else
                 {
