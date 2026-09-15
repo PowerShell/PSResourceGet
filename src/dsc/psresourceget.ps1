@@ -161,16 +161,18 @@ class PSResourceList {
     }
 
     [string] ToJson() {
-        $resourceObjects = if ($this.resources) {
-            @($this.resources | ForEach-Object {
+        ## Assign the array directly so that an empty list serializes as [] rather than null
+        [object[]]$resourceObjects = @()
+        if ($this.resources) {
+            $resourceObjects = @($this.resources | ForEach-Object {
                 [string[]]$excludeProps = @('_inDesiredState')
                 if ($null -eq $_._metadata) { $excludeProps += '_metadata' }
                 $_ | Select-Object -ExcludeProperty $excludeProps
             })
-        } else { @() }
+        }
         $retVal = [ordered]@{
             repositoryName = $this.repositoryName
-            resources      = [object[]]$resourceObjects
+            resources      = $resourceObjects
         } | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
         Write-Trace -message "Serializing PSResourceList to JSON. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level debug
         Write-Trace -message "Serialized JSON: $retVal" -level trace
@@ -179,16 +181,17 @@ class PSResourceList {
 
     [string] ToJsonForTest() {
         Write-Trace -message "Serializing PSResourceList to JSON for test output. RepositoryName: $($this.repositoryName), TrustedRepository: $($this.trustedRepository), Resources count: $($this.resources.Count)" -level debug
-        $resourceObjects = if ($this.resources) {
-            @($this.resources | ForEach-Object {
+        [object[]]$resourceObjects = @()
+        if ($this.resources) {
+            $resourceObjects = @($this.resources | ForEach-Object {
                 [string[]]$excludeProps = @()
                 if ($null -eq $_._metadata) { $excludeProps += '_metadata' }
                 if ($excludeProps.Count -gt 0) { $_ | Select-Object -ExcludeProperty $excludeProps } else { $_ }
             })
-        } else { @() }
+        }
         $retVal = [ordered]@{
             repositoryName    = $this.repositoryName
-            resources         = [object[]]$resourceObjects
+            resources         = $resourceObjects
             trustedRepository = $this.trustedRepository
             _inDesiredState   = $this._inDesiredState
         } | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
@@ -375,21 +378,27 @@ function GetPSResourceList {
                 $preferred = $matchingResources | Where-Object {
                     try { SatisfiesVersion -version $_.Version -versionRange $inputResource.Version } catch { $false }
                 } | Select-Object -First 1
-            } else {
+            }
+            elseif (-not ($resolvedResources | Where-Object { $_.Name -eq $inputResource.Name })) {
+                # No version constraint: any installed version means the resource exists.
+                # Only record the first match so that one input resource maps to one current resource.
+                Write-Trace -message "No version constraint for input: $($inputResource.Name). Treating installed version $($matchingResources[0].Version) as a match." -level debug
                 $preferred = $matchingResources | Select-Object -First 1
             }
 
             if ($preferred) {
                 Write-Trace -message "Resource '$($inputResource.Name)' version '$($preferred.Version)' satisfies requested range '$($inputResource.Version)'." -level debug
                 $resolvedResources += $preferred
-            } else {
+            }
+            else {
                 # Installed but doesn't satisfy the version range - report actual installed version with _exist = false
                 $fallback = $matchingResources | Select-Object -First 1
                 Write-Trace -message "Resource '$($inputResource.Name)' installed at '$($fallback.Version)' does not satisfy requested range '$($inputResource.Version)'. Reporting _exist = false." -level debug
                 $fallback._exist = $false
                 $resolvedResources += $fallback
             }
-        } else {
+        }
+        else {
             Write-Trace -message "Resource '$($inputResource.Name)' is not installed. Reporting _exist = false." -level debug
             $resolvedResources += [PSResource]::new($inputResource.Name)
         }
@@ -615,6 +624,22 @@ function WhatIfPSResourceList {
             else {
                 $projectedResources += $resourceDesiredState
             }
+        }
+    }
+
+    ## Report the same failures a real set operation would hit before installing anything
+    $installRequired = @($projectedResources | Where-Object { $_._exist -and $null -ne $_._metadata }).Count -gt 0
+    if ($installRequired) {
+        $psRepository = Get-PSResourceRepository -Name $repositoryName -ErrorAction SilentlyContinue
+
+        if (-not $psRepository) {
+            Write-Trace -level error -message "Repository '$repositoryName' not found. Cannot install resources."
+            exit [ExitCode]::RepositoryNotFound
+        }
+
+        if (-not $psRepository.Trusted -and -not $inputObj.trustedRepository) {
+            Write-Trace -level error -message "Repository '$repositoryName' is not trusted. Cannot install resources."
+            exit [ExitCode]::RepositoryNotTrusted
         }
     }
 

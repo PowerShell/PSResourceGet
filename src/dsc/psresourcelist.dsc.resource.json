@@ -32,12 +32,24 @@
       "-ExecutionPolicy",
       "Bypass",
       "-Command",
-      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation set",
-      { "whatIfArg": "-WhatIf" }
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation set; exit $LASTEXITCODE"
     ],
     "input": "stdin",
-    "return": "stateAndDiff",
-    "whatIfReturns": "state"
+    "return": "stateAndDiff"
+  },
+  "whatIf": {
+    "executable": "pwsh",
+    "args": [
+      "-NoLogo",
+      "-NonInteractive",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      "$Input | ./psresourceget.ps1 -resourcetype 'psresourcelist' -operation set -WhatIf; exit $LASTEXITCODE"
+    ],
+    "input": "stdin",
+    "return": "state"
   },
   "export": {
     "executable": "pwsh",
