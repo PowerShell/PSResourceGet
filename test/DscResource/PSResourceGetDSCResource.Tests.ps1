@@ -220,7 +220,7 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
             $PSDefaultParameterValues = $originalDefaultParameterValues
             return
         }
-        
+
         # Remove test modules installed through DSC so they do not leak into later runs.
         foreach ($moduleToRemove in @($script:testModuleName, $script:testModuleName2)) {
             $cleanupInput = @{
@@ -228,7 +228,8 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
                 trustedRepository = $true
                 resources         = @(@{ name = $moduleToRemove; _exist = $false })
             } | ConvertTo-Json -Depth 5
-            $null = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $cleanupInput -o json 2>&1       
+            $null = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $cleanupInput -o json 2>&1
+        }
 
         # Clean up the test repository
         Get-RevertPSResourceRepositoryFile
