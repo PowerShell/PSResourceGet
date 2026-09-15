@@ -52,10 +52,26 @@ function SetupTestRepos {
 
 Describe "DSC resource schema tests" -tags 'CI' {
     BeforeAll {
+
+        $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
+
+        if ($skipTest) {
+            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $PSDefaultParameterValues['it:skip'] = $skipTest
+            return
+        }
+
         SetupDsc
     }
 
-    It 'DSC v3 resources can be found' {
+    AfterAll {
+        if ($skipTest) {
+            $global:PSDefaultParameterValues = $originalDefaultParameterValues
+        }
+    }
+
+    It 'DSC v3 resources can be found' -Skip:$skipTest {
+
         $repoResource = & $script:dscExe resource list Microsoft.PowerShell.PSResourceGet/Repository -o json | convertfrom-json  | select-object -ExpandProperty type
         $repoResource | Should -BeExactly 'Microsoft.PowerShell.PSResourceGet/Repository'
 
@@ -86,12 +102,26 @@ Describe "DSC resource schema tests" -tags 'CI' {
 
 Describe 'Repository Resource Tests' -Tags 'CI' {
     BeforeAll {
+        $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
+
+        if ($skipTest) {
+            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $PSDefaultParameterValues['it:skip'] = $skipTest
+            return
+        }
+
         # Register a test repository to ensure DSC can access repositories
         Register-PSResourceRepository -Name 'TestRepo' -uri 'https://www.doesnotexist.com' -ErrorAction SilentlyContinue -APIVersion Local
     }
     AfterAll {
+        if ($skipTest) {
+            $global:PSDefaultParameterValues = $originalDefaultParameterValues
+            return
+        }
+
         # Clean up the test repository
         Unregister-PSResourceRepository -Name 'TestRepo' -ErrorAction SilentlyContinue
+
     }
 
     It 'Can get a Repository resource instance' {
@@ -142,6 +172,16 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
         }
     }
 
+    It 'Get operation without --input exits with a non-zero code and does not produce an unhandled exception' {
+        $output = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/Repository -o json 2>&1
+        $outputText = $output | Out-String
+        $LASTEXITCODE | Should -Not -Be 0
+        $outputText | Should -Match '--input'
+        $outputText | Should -Match 'requires'
+        $outputText | Should -Not -Match 'Cannot bind argument to parameter'
+        $outputText | Should -Not -Match 'Unhandled exception'
+    }
+
     It 'Can delete a Repository resource instance' {
         # First, create a repository to delete
         Register-PSResourceRepository -Name 'TestRepoToDelete' -uri 'https://www.doesnotexist.com' -ErrorAction SilentlyContinue -APIVersion Local
@@ -163,10 +203,24 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
 
 Describe "PSResourceList Resource Tests" -Tags 'CI' {
     BeforeAll {
+
+        $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
+
+        if ($skipTest) {
+            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $PSDefaultParameterValues['it:skip'] = $skipTest
+            return
+        }
+
         SetupDsc
         SetupTestRepos
     }
     AfterAll {
+        if ($skipTest) {
+            $PSDefaultParameterValues = $originalDefaultParameterValues
+            return
+        }
+
         # Clean up the test repository
         Get-RevertPSResourceRepositoryFile
     }
@@ -243,6 +297,37 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
         $setResult.afterState.resources[1].version | Should -Be '5.0.0'
     }
 
+    It 'Set operation stdout contains only valid JSON and is not contaminated by warning messages' {
+        # Simple regression test as it is hard to predict a warning message but we want to ensure they do not break DSC's JSON parsing. This test does not verify that warnings are emitted when expected,
+        # only that if they are emitted they do not reach stdout.
+        Uninstall-PSResource -Name $script:testModuleName -ErrorAction SilentlyContinue
+
+        $psResourceListParams = @{
+            repositoryName    = $script:localRepo
+            trustedRepository = $true
+            resources         = @(
+                @{
+                    name    = $script:testModuleName
+                    version = '1.0.0'
+                }
+            )
+        }
+
+        $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
+
+        # Capture only stdout; stderr carries DSC trace messages and is intentionally discarded
+        $stdoutLines = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json 2>$null
+
+        # No stdout line should contain warning text or ANSI escape sequences
+        $stdoutLines | Where-Object { $_ } | ForEach-Object {
+            $_ | Should -Not -Match 'WARNING:'
+            $_ | Should -Not -Match '\x1b\['
+        }
+
+        # stdout must be parseable as JSON without error
+        { $stdoutLines | ConvertFrom-Json -ErrorAction Stop } | Should -Not -Throw
+    }
+
     It 'Can test a PSResourceList resource instance with resources' {
         $psResourceListParams = @{
             repositoryName = $script:localRepo
@@ -289,7 +374,21 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
 
 Describe 'E2E tests for Repository resource' -Tags 'CI' {
     BeforeAll {
+        $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
+
+        if ($skipTest) {
+            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $PSDefaultParameterValues['it:skip'] = $skipTest
+            return
+        }
+
         Get-PSResourceRepository -Name 'TestRepository' -ErrorAction SilentlyContinue | Unregister-PSResourceRepository -ErrorAction SilentlyContinue
+    }
+
+    AfterAll {
+        if ($skipTest) {
+            $PSDefaultParameterValues = $originalDefaultParameterValues
+        }
     }
 
     It 'Register test repository via DSC configuration' {
@@ -336,6 +435,14 @@ Describe 'E2E tests for Repository resource' -Tags 'CI' {
 
 Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
     BeforeAll {
+        $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
+
+        if ($skipTest) {
+            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $PSDefaultParameterValues['it:skip'] = $skipTest
+            return
+        }
+
         SetupDsc
 
         ## The installed modules will not be found in the Windows PowerShell module path because DSC will install them in the PowerShell 7 context.
@@ -452,11 +559,25 @@ Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
 Describe "Error code tests" -Tags 'CI' {
 
     BeforeAll {
+        $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
+
+        if ($skipTest) {
+            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $PSDefaultParameterValues['it:skip'] = $skipTest
+            return
+        }
+
         SetupDsc
 
         $mod = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue
         if ($mod) {
            $mod | Uninstall-PSResource -ErrorAction SilentlyContinue
+        }
+    }
+
+    AfterAll {
+        if ($skipTest) {
+            $PSDefaultParameterValues = $originalDefaultParameterValues
         }
     }
 

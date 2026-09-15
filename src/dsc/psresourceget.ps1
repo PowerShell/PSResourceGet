@@ -376,6 +376,11 @@ function GetOperation {
         [string]$ResourceType
     )
 
+    if ([string]::IsNullOrEmpty($stdinput)) {
+        Write-Trace -level error -message "Get operation requires --input with the resource properties. No input was provided."
+        exit [ExitCode]::Error
+    }
+
     $inputObj = $stdinput | ConvertFrom-Json -ErrorAction Stop
 
     Write-Trace -message "Starting Get operation for ResourceType: $ResourceType" -level trace
@@ -586,7 +591,11 @@ function SetPSResourceList {
     if ($resourcesToUninstall.Count -gt 0) {
         Write-Trace -message "Uninstalling resources: $($resourcesToUninstall | ForEach-Object { "$($_.Name) - $($_.Version)" })" -level debug
         $resourcesToUninstall | ForEach-Object {
-            Uninstall-PSResource -Name $_.Name -Scope $scope -ErrorAction Stop
+            $cmdWarnings = $null
+            Uninstall-PSResource -Name $_.Name -Scope $scope -ErrorAction Stop -WarningVariable cmdWarnings
+            foreach ($w in $cmdWarnings) {
+                Write-Trace -message ([string]$w) -level warn
+            }
         }
         $resourcesChanged = $true
     }
@@ -614,9 +623,12 @@ function SetPSResourceList {
             $version = $_.Version
 
             try {
-                Install-PSResource -Name $_.Name -Version $_.Version -Scope $scope -Repository $repositoryName -ErrorAction Stop -TrustRepository:$inputObj.trustedRepository -Prerelease:$usePrerelease -Reinstall
-            }
-            catch {
+                $cmdWarnings = $null
+                Install-PSResource -Name $_.Name -Version $_.Version -Scope $scope -Repository $repositoryName -ErrorAction Stop -TrustRepository:$inputObj.trustedRepository -Prerelease:$usePrerelease -Reinstall -WarningVariable cmdWarnings
+                foreach ($w in $cmdWarnings) {
+                    Write-Trace -message ([string]$w) -level warn
+                }
+            } catch {
                 Write-Trace -level error -message "Failed to install resource '$name' with version '$version'. Error: $($_.Exception.Message)"
                 $installErrors += $_.Exception.Message
             }
@@ -824,6 +836,10 @@ if ($null -eq (Get-Module -Name Microsoft.PowerShell.PSResourceGet)) {
     Write-Trace -level trace -message "Importing Microsoft.PowerShell.PSResourceGet module from path: $path"
     Import-Module -Name $path -Force -ErrorAction Stop
 }
+
+# Suppress warnings from PSResourceGet cmdlets to prevent them from reaching stdout and
+# breaking DSC's JSON parsing. Warnings should be captured on individual cmdlets
+$WarningPreference = 'SilentlyContinue'
 
 switch ($Operation.ToLower()) {
     'get' { return (GetOperation -ResourceType $ResourceType) }

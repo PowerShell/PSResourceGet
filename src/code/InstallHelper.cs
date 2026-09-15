@@ -918,7 +918,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     verboseMsgs.Enqueue($"Installing package '{depPkgName}' version '{depPkgVersion}'");
                     //Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
                     // add async
-                    Stream responseStream = currentServer.InstallPackageAsync(depPkgName, depPkgVersion, true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs).GetAwaiter().GetResult();
+                    // Dispose the stream once done: for local repositories this is a FileStream on the repository's .nupkg and leaving it open locks the file.
+                    using Stream responseStream = currentServer.InstallPackageAsync(depPkgName, depPkgVersion, true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs).GetAwaiter().GetResult();
 
                     if (!errorMsgs.IsEmpty)
                     {
@@ -956,7 +957,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     var pkgToInstallName = pkgToBeInstalled.Name;
                     var pkgToInstallVersion = Utils.GetFullVersionString(pkgToBeInstalled.Version.ToString(), pkgToBeInstalled.Prerelease);
                     // Runs on worker threads when parent installs are parallelized; use the async overload to avoid cross-thread cmdlet stream writes.
-                    Stream responseStream = currentServer.InstallPackageAsync(pkgToInstallName, pkgToInstallVersion, true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs).GetAwaiter().GetResult();
+                    // Dispose the stream once done: for local repositories this is a FileStream on the repository's .nupkg and leaving it open locks the file.
+                    using Stream responseStream = currentServer.InstallPackageAsync(pkgToInstallName, pkgToInstallVersion, true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs).GetAwaiter().GetResult();
 
                     if (!errorMsgs.IsEmpty)
                     {
