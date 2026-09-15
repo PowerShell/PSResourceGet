@@ -221,6 +221,16 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
             return
         }
 
+        # Remove test modules installed through DSC so they do not leak into later runs.
+        foreach ($moduleToRemove in @($script:testModuleName, $script:testModuleName2)) {
+            $cleanupInput = @{
+                repositoryName    = $script:localRepo
+                trustedRepository = $true
+                resources         = @(@{ name = $moduleToRemove; _exist = $false })
+            } | ConvertTo-Json -Depth 5
+            $null = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $cleanupInput -o json 2>&1
+        }
+
         # Clean up the test repository
         Get-RevertPSResourceRepositoryFile
     }
@@ -369,6 +379,70 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
         $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
         $testResult = & $script:dscExe resource test --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
         $testResult.inDesiredState | Should -BeFalse
+    }
+
+    It 'Get returns actual installed version with _exist false when installed version does not satisfy requested version' {
+        # Install 1.0.0 but request 5.0.0 - get should report _exist = false (requested version absent)
+        $removeAllInput = @{
+            repositoryName    = $script:localRepo
+            trustedRepository = $true
+            resources         = @(@{ name = $script:testModuleName; _exist = $false })
+        } | ConvertTo-Json -Depth 5
+        $null = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $removeAllInput -o json
+
+        $installOldInput = @{
+            repositoryName    = $script:localRepo
+            trustedRepository = $true
+            resources         = @(@{ name = $script:testModuleName; version = '1.0.0' })
+        } | ConvertTo-Json -Depth 5
+        $null = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $installOldInput -o json
+
+        $psResourceListParams = @{
+            repositoryName = $script:localRepo
+            resources      = @(
+                @{
+                    name    = $script:testModuleName
+                    version = '5.0.0'
+                }
+            )
+        }
+
+        $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
+        $getResult = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $getResult.actualState.resources.Count | Should -Be 1
+        $getResult.actualState.resources[0].name | Should -BeExactly $script:testModuleName
+        $getResult.actualState.resources[0].version | Should -BeExactly '1.0.0'
+        $getResult.actualState.resources[0]._exist | Should -BeFalse
+    }
+
+    It 'Get prefers installed version that satisfies requested version range when multiple versions are installed' {
+        # Install both 1.0.0 and 5.0.0 but request 5.0.0 - get should prefer the satisfying version (5.0.0).
+        # Setup goes through DSC for the same reason as the previous test.
+        foreach ($setupVersion in @('1.0.0', '5.0.0')) {
+            $installInput = @{
+                repositoryName    = $script:localRepo
+                trustedRepository = $true
+                resources         = @(@{ name = $script:testModuleName; version = $setupVersion })
+            } | ConvertTo-Json -Depth 5
+            $null = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $installInput -o json
+        }
+
+        $psResourceListParams = @{
+            repositoryName = $script:localRepo
+            resources      = @(
+                @{
+                    name    = $script:testModuleName
+                    version = '5.0.0'
+                }
+            )
+        }
+
+        $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
+        $getResult = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $getResult.actualState.resources.Count | Should -Be 1
+        $getResult.actualState.resources[0].name | Should -BeExactly $script:testModuleName
+        $getResult.actualState.resources[0].version | Should -BeExactly '5.0.0'
+        $getResult.actualState.resources[0]._exist | Should -BeTrue
     }
 }
 
