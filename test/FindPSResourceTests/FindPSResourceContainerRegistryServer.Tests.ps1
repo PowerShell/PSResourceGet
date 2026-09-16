@@ -16,6 +16,8 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         $testModuleWithIncludes = "test-resourcewithincludes"
         $ACRRepoName = "ACRRepo"
         $ACRRepoUri = "https://psresourcegettest.azurecr.io"
+        $ACRRepoWildcard = "ACRRepoWildcard"
+        $ACRRepoWildcardUri = "https://psresourcegettestwildcard.azurecr.io"
         Get-NewPSResourceRepositoryFile
 
         $usingAzAuth = $env:USINGAZAUTH -eq 'true'
@@ -23,10 +25,12 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
         if ($usingAzAuth) {
             Write-Verbose -Verbose "Using Az module for authentication"
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -Verbose
+            Register-PSResourceRepository -Name $ACRRepoWildcard -ApiVersion 'ContainerRegistry' -Uri $ACRRepoWildcardUri -Verbose
         }
         else {
             $psCredInfo = New-Object Microsoft.PowerShell.PSResourceGet.UtilClasses.PSCredentialInfo ("SecretStore", "$env:TENANTID")
             Register-PSResourceRepository -Name $ACRRepoName -ApiVersion 'ContainerRegistry' -Uri $ACRRepoUri -CredentialInfo $psCredInfo -Verbose
+            Register-PSResourceRepository -Name $ACRRepoWildcard -ApiVersion 'ContainerRegistry' -Uri $ACRRepoWildcardUri -CredentialInfo $psCredInfo -Verbose
         }
     }
 
@@ -173,7 +177,7 @@ Describe 'Test HTTP Find-PSResource for ACR Server Protocol' -tags 'CI' {
 
     It "Should find all resources given Name '*'" {
         # FindAll()
-        $res = Find-PSResource -Name "*" -Repository $ACRRepoName -ErrorVariable err -ErrorAction SilentlyContinue
+        $res = Find-PSResource -Name "*" -Repository $ACRRepoWildcard -ErrorVariable err -ErrorAction SilentlyContinue
         $err | Should -BeNullOrEmpty
         $res | Should -Not -BeNullOrEmpty
         $res.Count | Should -BeGreaterThan 0
