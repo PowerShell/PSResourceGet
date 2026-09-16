@@ -74,23 +74,18 @@
             "description": "A PowerShell Resource repository from where to acquire the resources.",
             "type": "object",
             "additionalProperties": false,
+            "required": ["name"],
             "allOf": [
                 {
                     "if": {
                         "properties": {
                             "_exist": {
-                                "const": false
+                                "const": true
                             }
                         }
                     },
                     "then": {
                         "required": [
-                            "name"
-                        ]
-                    },
-                    "else": {
-                        "required": [
-                            "name",
                             "uri"
                         ]
                     }
@@ -105,7 +100,7 @@
                 "uri": {
                     "title": "URI",
                     "description": "The URI of the repository.",
-                    "type": ["string", "null"],
+                    "type": "string",
                     "format": "uri"
                 },
                 "trusted": {
