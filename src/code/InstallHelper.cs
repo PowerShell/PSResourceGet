@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using NuGet.Frameworks;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using System;
@@ -53,6 +54,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool _noClobber;
         private bool _authenticodeCheck;
         private bool _savePkg;
+        private string _runtimeIdentifier;
+        private string _targetFramework;
         List<string> _pathsToSearch;
         List<string> _pkgNamesToInstall;
         private string _tmpPath;
@@ -99,7 +102,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> pathsToInstallPkg,
             ScopeType? scope,
             string tmpPath,
-            HashSet<string> pkgsInstalled)
+            HashSet<string> pkgsInstalled,
+            string runtimeIdentifier = null,
+            string targetFramework = null)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::BeginInstallPackages()");
             _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; VersionRange: '{1}'; NuGetVersion: '{2}'; VersionType: '{3}'; Version: '{4}'; Prerelease: '{5}'; Repository: '{6}'; " +
@@ -141,6 +146,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _asNupkg = asNupkg;
             _includeXml = includeXml;
             _savePkg = savePkg;
+            _runtimeIdentifier = runtimeIdentifier;
+            _targetFramework = targetFramework;
             _pathsToInstallPkg = pathsToInstallPkg;
             _tmpPath = tmpPath ?? Path.GetTempPath();
 
@@ -402,7 +409,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string installPath,
             string newVersion,
             string moduleManifestVersion,
-            string scriptPath)
+            string scriptPath,
+            bool mergeFilteredContent)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::MoveFilesIntoInstallPath()");
             // Creating the proper installation path depending on whether pkg is a module or script
@@ -424,6 +432,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     _cmdletPassedIn.WriteVerbose($"Attempting to move '{tempModuleVersionDir}' to '{finalModuleVersionDir}'");
                     Directory.CreateDirectory(newPathParent);
                     Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
+                }
+                else if (mergeFilteredContent && Directory.Exists(finalModuleVersionDir))
+                {
+                    // Copy only new TFM/RID content into the existing install
+                    _cmdletPassedIn.WriteVerbose($"Merging additional platform content from '{tempModuleVersionDir}' into '{finalModuleVersionDir}'");
+                    Utils.MergeDirContents(tempModuleVersionDir, finalModuleVersionDir);
+                    Utils.DeleteDirectory(tempModuleVersionDir);
                 }
                 else
                 {
@@ -516,73 +531,142 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             FindHelper findHelper)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::InstallPackages()");
-            
+
             List<PSResourceInfo> pkgsSuccessfullyInstalled = new();
 
-            // Install parent package to the temp directory,
-            // Get the dependencies from the installed package,
-            // Install all dependencies to temp directory.
-            // If a single dependency fails to install, roll back by deleting the temp directory.
+            // ---------- Phase 1 (pipeline thread): resolve each parent package and evaluate ShouldProcess ----------
+            // ShouldProcess / -WhatIf / -Confirm and Write* must run on the pipeline thread, so all gating happens
+            // here, before any parallel download work begins. Packages that pass the gate become work items.
+            List<ParentInstallWorkItem> workItems = new();
             foreach (var parentPackage in pkgNamesToInstall)
             {
-                string tempInstallPath = CreateInstallationTempPath();
+                PSResourceInfo pkgToInstall = FindParentPackage(
+                    searchVersionType: _versionType,
+                    specificVersion: _nugetVersion,
+                    versionRange: _versionRange,
+                    pkgNameToInstall: parentPackage,
+                    repository: repository,
+                    currentServer: currentServer,
+                    currentResponseUtil: currentResponseUtil,
+                    pkgVersion: out string pkgVersion,
+                    errRecord: out ErrorRecord findErrRecord);
 
+                if (findErrRecord != null)
+                {
+                    if (findErrRecord.FullyQualifiedErrorId.Equals("PackageNotFound"))
+                    {
+                        _cmdletPassedIn.WriteVerbose(findErrRecord.Exception.Message);
+                    }
+                    else
+                    {
+                        _cmdletPassedIn.WriteError(findErrRecord);
+                    }
+
+                    continue;
+                }
+
+                if (pkgToInstall == null)
+                {
+                    continue;
+                }
+
+                bool mergeFilteredContent = false;
+
+                // Check to see if the pkg is already installed (unless -Reinstall was specified).
+                if (!_reinstall && _packagesOnMachine.Contains($"{pkgToInstall.Name}{pkgVersion}"))
+                {
+                    // When -TargetFramework or -RuntimeIdentifier is explicitly specified, allow re-download
+                    // to merge the additional TFM/RID content into the existing install directory.
+                    bool hasExplicitOverride = !string.IsNullOrEmpty(_targetFramework) || !string.IsNullOrEmpty(_runtimeIdentifier);
+                    if (hasExplicitOverride)
+                    {
+                        _cmdletPassedIn.WriteVerbose($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed. " +
+                            $"Proceeding to merge additional platform content (TargetFramework='{_targetFramework}', RuntimeIdentifier='{_runtimeIdentifier}').");
+                        mergeFilteredContent = true;
+                    }
+                    else
+                    {
+                        _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
+
+                        // Remove from tracking list of packages to install.
+                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
+
+                        continue;
+                    }
+                }
+
+                // ShouldProcess gate (handles -WhatIf / -Confirm) on the pipeline thread.
+                string shouldProcessTarget = _savePkg
+                    ? $"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"
+                    : $"Package to install: '{pkgToInstall.Name}', version: '{pkgVersion}'";
+                if (!_cmdletPassedIn.ShouldProcess(shouldProcessTarget))
+                {
+                    continue;
+                }
+
+                workItems.Add(new ParentInstallWorkItem
+                {
+                    PkgToInstall = pkgToInstall,
+                    PkgVersion = pkgVersion,
+                    TempInstallPath = CreateInstallationTempPath(),
+                    MergeFilteredContent = mergeFilteredContent
+                });
+            }
+
+            if (workItems.Count == 0)
+            {
+                return pkgsSuccessfullyInstalled;
+            }
+
+            // ---------- Phase 2 (parallel): download each parent + its dependencies to its own temp path ----------
+            // This is network-bound work. No pipeline-thread calls are made here; all host messages are queued
+            // per work item and drained in Phase 3. Each work item downloads into its own temp path and its own
+            // packagesHash, so there is no shared mutable state between parents.
+            int processorCount = Environment.ProcessorCount;
+            if (workItems.Count > 1)
+            {
+                int maxDegreeOfParallelism = processorCount * 4;
+                Parallel.ForEach(workItems, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, workItem =>
+                {
+                    workItem.PackagesHash = DownloadParentAndDeps(
+                        workItem.PkgToInstall, workItem.PkgVersion, workItem.TempInstallPath, repository,
+                        currentServer, currentResponseUtil, skipDependencyCheck,
+                        workItem.ErrorMsgs, workItem.WarningMsgs, workItem.DebugMsgs, workItem.VerboseMsgs,
+                        out bool succeeded);
+                    workItem.Succeeded = succeeded;
+                });
+            }
+            else
+            {
+                ParentInstallWorkItem workItem = workItems[0];
+                workItem.PackagesHash = DownloadParentAndDeps(
+                    workItem.PkgToInstall, workItem.PkgVersion, workItem.TempInstallPath, repository,
+                    currentServer, currentResponseUtil, skipDependencyCheck,
+                    workItem.ErrorMsgs, workItem.WarningMsgs, workItem.DebugMsgs, workItem.VerboseMsgs,
+                    out bool succeeded);
+                workItem.Succeeded = succeeded;
+            }
+
+            // ---------- Phase 3 (pipeline thread): drain messages, move content to final location, record results ----------
+            // If a single dependency fails to install, roll back that parent by deleting its temp directory.
+            foreach (ParentInstallWorkItem workItem in workItems)
+            {
                 try
                 {
-                    // Hashtable has the key as the package name
-                    // and value as a Hashtable of specific package info:
-                    //     packageName, { version = "", isScript = "", isModule = "", pkg = "", etc. }
-                    // Install parent package to the temp directory.
-                    ConcurrentDictionary<string, Hashtable> packagesHash = BeginPackageInstall(
-                                                        searchVersionType: _versionType,
-                                                        specificVersion: _nugetVersion,
-                                                        versionRange: _versionRange,
-                                                        pkgNameToInstall: parentPackage,
-                                                        repository: repository,
-                                                        currentServer: currentServer,
-                                                        currentResponseUtil: currentResponseUtil,
-                                                        tempInstallPath: tempInstallPath,
-                                                        skipDependencyCheck: skipDependencyCheck,
-                                                        packagesHash: new ConcurrentDictionary<string, Hashtable>(StringComparer.InvariantCultureIgnoreCase),
-                                                        warning: out string warning,
-                                                        errRecord: out ErrorRecord errRecord);
+                    Utils.WriteOutConcurrentQueue(_cmdletPassedIn, workItem.ErrorMsgs, workItem.WarningMsgs, workItem.DebugMsgs, workItem.VerboseMsgs);
 
-                    // At this point all packages are installed to temp path.
-                    if (errRecord != null)
-                    {
-                        if (errRecord.FullyQualifiedErrorId.Equals("PackageNotFound"))
-                        {
-                            _cmdletPassedIn.WriteVerbose(errRecord.Exception.Message);
-                        }
-                        else
-                        {
-                            _cmdletPassedIn.WriteError(errRecord);
-                        }
-
-                        continue;
-                    }
-                    if (warning != null)
-                    {
-                        _cmdletPassedIn.WriteWarning(warning);
-                    }
-
-                    if (packagesHash.Count == 0)
+                    if (!workItem.Succeeded || workItem.PackagesHash == null || workItem.PackagesHash.Count == 0)
                     {
                         continue;
-                    }
-
-                    Hashtable parentPkgInfo = packagesHash[parentPackage] as Hashtable;
-                    PSResourceInfo parentPkgObj = parentPkgInfo["psResourceInfoPkg"] as PSResourceInfo;
-
-                    // If -WhatIf is passed in, early out.
-                    if (_cmdletPassedIn.MyInvocation.BoundParameters.ContainsKey("WhatIf") && (SwitchParameter)_cmdletPassedIn.MyInvocation.BoundParameters["WhatIf"] == true)
-                    {
-                        return pkgsSuccessfullyInstalled;
                     }
 
                     // Parent package and dependencies are now installed to temp directory.
                     // Try to move all package directories from temp directory to final destination.
-                    if (!TryMoveInstallContent(tempInstallPath, scope, packagesHash))
+                    if (!TryMoveInstallContent(
+                        workItem.TempInstallPath,
+                        scope,
+                        workItem.PackagesHash,
+                        workItem.MergeFilteredContent))
                     {
                         _cmdletPassedIn.WriteError(new ErrorRecord(
                             new InvalidOperationException(),
@@ -592,9 +676,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                     else
                     {
-                        foreach (string pkgName in packagesHash.Keys)
+                        foreach (string pkgName in workItem.PackagesHash.Keys)
                         {
-                            Hashtable pkgInfo = packagesHash[pkgName] as Hashtable;
+                            Hashtable pkgInfo = workItem.PackagesHash[pkgName] as Hashtable;
                             pkgsSuccessfullyInstalled.Add(pkgInfo["psResourceInfoPkg"] as PSResourceInfo);
 
                             // Add each pkg to _packagesOnMachine (ie pkgs fully installed on the machine).
@@ -610,11 +694,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             ErrorCategory.InvalidOperation,
                             _cmdletPassedIn));
 
-                    throw e;
+                    throw;
                 }
                 finally
                 {
-                    DeleteInstallationTempPath(tempInstallPath);
+                    DeleteInstallationTempPath(workItem.TempInstallPath);
                 }
             }
 
@@ -622,9 +706,28 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
-        /// Installs a single package to the temporary path.
+        /// Tracks the per-parent state used to parallelize parent-package installation across the three phases.
+        /// Each parent has its own temp path, result hash, and message queues so there is no shared mutable state
+        /// during the parallel download phase.
         /// </summary>
-        private ConcurrentDictionary<string, Hashtable> BeginPackageInstall(
+        private sealed class ParentInstallWorkItem
+        {
+            public PSResourceInfo PkgToInstall;
+            public string PkgVersion;
+            public string TempInstallPath;
+            public ConcurrentDictionary<string, Hashtable> PackagesHash;
+            public bool Succeeded;
+            public bool MergeFilteredContent;
+            public readonly ConcurrentQueue<ErrorRecord> ErrorMsgs = new();
+            public readonly ConcurrentQueue<string> WarningMsgs = new();
+            public readonly ConcurrentQueue<string> DebugMsgs = new();
+            public readonly ConcurrentQueue<string> VerboseMsgs = new();
+        }
+
+        /// <summary>
+        /// Resolves the parent package to install (find + version selection). Must run on the pipeline thread.
+        /// </summary>
+        private PSResourceInfo FindParentPackage(
             VersionType searchVersionType,
             NuGetVersion specificVersion,
             VersionRange versionRange,
@@ -632,15 +735,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             PSRepositoryInfo repository,
             ServerApiCall currentServer,
             ResponseUtil currentResponseUtil,
-            string tempInstallPath,
-            bool skipDependencyCheck,
-            ConcurrentDictionary<string, Hashtable> packagesHash,
-            out string warning,
+            out string pkgVersion,
             out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In InstallHelper::BeginPackageInstall()");
+            _cmdletPassedIn.WriteDebug("In InstallHelper::FindParentPackage()");
             FindResults responses = null;
-            warning = null;
+            pkgVersion = null;
             errRecord = null;
 
             // Find the parent package that needs to be installed
@@ -652,7 +752,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (findVersionGlobbingErrRecord != null || responses.IsFindResultsEmpty())
                     {
                         errRecord = findVersionGlobbingErrRecord;
-                        return packagesHash;
+                        return null;
                     }
 
                     break;
@@ -664,7 +764,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (findVersionErrRecord != null)
                     {
                         errRecord = findVersionErrRecord;
-                        return packagesHash;
+                        return null;
                     }
 
                     break;
@@ -675,7 +775,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     if (findNameErrRecord != null)
                     {
                         errRecord = findNameErrRecord;
-                        return packagesHash;
+                        return null;
                     }
 
                     break;
@@ -721,11 +821,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             if (pkgToInstall == null)
             {
-                return packagesHash;
+                return null;
             }
 
             pkgToInstall.RepositorySourceLocation = repository.Uri.ToString();
-            pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out string pkgVersion);
+            pkgToInstall.AdditionalMetadata.TryGetValue("NormalizedVersion", out pkgVersion);
             if (pkgVersion == null)
             {
                 // Not all NuGet providers (e.g. Artifactory, possibly others) send NormalizedVersion in NuGet package responses.
@@ -745,117 +845,67 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
             
             // Check to see if the pkg is already installed (ie the pkg is installed and the version satisfies the version range provided via param)
-            // TODO:  can use cache for this
-            if (!_reinstall)
+            // Note: the already-installed check and ShouldProcess gate are handled by the caller on the pipeline thread.
+            return pkgToInstall;
+        }
+
+        /// <summary>
+        /// Downloads the parent package and its dependencies to the temporary path. Safe to run on worker threads:
+        /// all host messages are routed to the provided queues and drained by the caller on the pipeline thread.
+        /// </summary>
+        private ConcurrentDictionary<string, Hashtable> DownloadParentAndDeps(
+            PSResourceInfo pkgToInstall,
+            string pkgVersion,
+            string tempInstallPath,
+            PSRepositoryInfo repository,
+            ServerApiCall currentServer,
+            ResponseUtil currentResponseUtil,
+            bool skipDependencyCheck,
+            ConcurrentQueue<ErrorRecord> errorMsgs,
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs,
+            out bool success)
+        {
+            debugMsgs.Enqueue("In InstallHelper::DownloadParentAndDeps()");
+            ConcurrentDictionary<string, Hashtable> packagesHash = new ConcurrentDictionary<string, Hashtable>(StringComparer.InvariantCultureIgnoreCase);
+
+            List<PSResourceInfo> parentAndDeps = new List<PSResourceInfo>();
+            if (!skipDependencyCheck)
             {
-                string currPkgNameVersion = $"{pkgToInstall.Name}{pkgVersion}";
-                // Use HashSet lookup instead of Contains for O(1) performance
-                if (_packagesOnMachine.Contains(currPkgNameVersion))
-                {
-                    _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
-
-                    // Remove from tracking list of packages to install.
-                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
-
-                    return packagesHash;
-                }
+                // List returned only includes dependencies, so we'll add the parent pkg to this list to pass on to installation method.
+                parentAndDeps.AddRange(_findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
+                debugMsgs.Enqueue("In InstallHelper::DownloadParentAndDeps(), found all dependencies");
             }
 
-            if (packagesHash.ContainsKey(pkgToInstall.Name))
-            {
-                return packagesHash;
-            }
+            parentAndDeps.Add(pkgToInstall);
 
+            ConcurrentDictionary<string, Hashtable> updatedPackagesHash = InstallParentAndDependencyPackages(
+                parentAndDeps, currentServer, tempInstallPath, packagesHash, packagesHash, pkgToInstall,
+                errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
-            ConcurrentDictionary<string, Hashtable> updatedPackagesHash = packagesHash;
-  
-            // -WhatIf processing.
-            if (_savePkg && !_cmdletPassedIn.ShouldProcess($"Package to save: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
-            {               
-                updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
-                {
-                    { "isModule", "" },
-                    { "isScript", "" },
-                    { "psResourceInfoPkg", pkgToInstall },
-                    { "tempDirNameVersionPath", tempInstallPath },
-                    { "pkgVersion", "" },
-                    { "scriptPath", ""  },
-                    { "installPath", "" }
-                });
-            }
-            else if (!_cmdletPassedIn.ShouldProcess($"Package to install: '{pkgToInstall.Name}', version: '{pkgVersion}'"))
-            {
-                if (!updatedPackagesHash.ContainsKey(pkgToInstall.Name))
-                {
-                    updatedPackagesHash.TryAdd(pkgToInstall.Name, new Hashtable(StringComparer.InvariantCultureIgnoreCase)
-                    {
-                        { "isModule", "" },
-                        { "isScript", "" },
-                        { "psResourceInfoPkg", pkgToInstall },
-                        { "tempDirNameVersionPath", tempInstallPath },
-                        { "pkgVersion", "" },
-                        { "scriptPath", ""  },
-                        { "installPath", "" }
-                    });
-                }
-            }
-            else
-            {
-                // Concurrent updates, currently only implemented for v2 server repositories
-                // Find all dependencies
-                if (!skipDependencyCheck)
-                {
-                    // concurrency updates 
-                    List<PSResourceInfo> parentAndDeps = _findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository).ToList();
-                    // List returned only includes dependencies, so we'll add the parent pkg to this list to pass on to installation method
-                    parentAndDeps.Add(pkgToInstall);
-
-                    _cmdletPassedIn.WriteDebug("In InstallHelper::BeginPackageInstall(), found all dependencies");
-
-                    return InstallParentAndDependencyPackages(parentAndDeps, currentServer, tempInstallPath, packagesHash, updatedPackagesHash, pkgToInstall);
-                }
-                else {
-                    // If we don't install dependencies, we're only installing the parent pkg so we can short circut and simply install the parent pkg. 
-                    Stream responseStream = currentServer.InstallPackage(pkgToInstall.Name, pkgVersion, true, out ErrorRecord installNameErrRecord);
-
-                    if (installNameErrRecord != null)
-                    {
-                        errRecord = installNameErrRecord;
-                        return packagesHash;
-                    }
-                    ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
-                    ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
-                    ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
-                    ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
-
-                    bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs) :
-                        TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstall.Name, pkgVersion, pkgToInstall, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
-                    
-                    Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
-                    if (!installedToTempPathSuccessfully)
-                    {
-                        return packagesHash;
-                    }
-                }
-            }
-
+            success = errorMsgs.IsEmpty;
             return updatedPackagesHash;
         }
 
-        private ConcurrentDictionary<string, Hashtable> InstallParentAndDependencyPackages(List<PSResourceInfo> parentAndDeps, ServerApiCall currentServer, string tempInstallPath, ConcurrentDictionary<string, Hashtable> packagesHash, ConcurrentDictionary<string, Hashtable> updatedPackagesHash, PSResourceInfo pkgToInstall)
+        private ConcurrentDictionary<string, Hashtable> InstallParentAndDependencyPackages(
+            List<PSResourceInfo> parentAndDeps,
+            ServerApiCall currentServer,
+            string tempInstallPath,
+            ConcurrentDictionary<string, Hashtable> packagesHash,
+            ConcurrentDictionary<string, Hashtable> updatedPackagesHash,
+            PSResourceInfo pkgToInstall,
+            ConcurrentQueue<ErrorRecord> errorMsgs,
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            ConcurrentQueue<string> verboseMsgs)
         {
-            string warning = string.Empty;
-            ConcurrentQueue<ErrorRecord> errorMsgs = new ConcurrentQueue<ErrorRecord>();
-            ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
-            ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
-            ConcurrentQueue<string> warningMsgs = new ConcurrentQueue<string>();
-
             // TODO: figure out a good threshold and parallel count
             int processorCount = Environment.ProcessorCount;
-            _cmdletPassedIn.WriteDebug($"parentAndDeps.Count is {parentAndDeps.Count}, processor count is: {processorCount}");
-            if (currentServer.Repository.ApiVersion == PSRepositoryInfo.APIVersion.V2 && parentAndDeps.Count > processorCount)
+            debugMsgs.Enqueue($"parentAndDeps.Count is {parentAndDeps.Count}, processor count is: {processorCount}");
+            if (parentAndDeps.Count > processorCount)
             {
-                 _cmdletPassedIn.WriteDebug($"parentAndDeps.Count is greater than processor count");
+                 debugMsgs.Enqueue($"parentAndDeps.Count is greater than processor count");
                 // Set the maximum degree of parallelism to 32? (Invoke-Command has default of 32, that's where we got this number from)
                 // If installing more than 3 packages, do so concurrently
                 // If the number of dependencies is very small (e.g., ≤ CPU cores), parallelism may add overhead instead of improving speed.
@@ -868,9 +918,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     verboseMsgs.Enqueue($"Installing package '{depPkgName}' version '{depPkgVersion}'");
                     //Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
                     // add async
-                    Stream responseStream = currentServer.InstallPackageAsync(depPkgName, depPkgVersion, true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs).GetAwaiter().GetResult();
+                    // Dispose the stream once done: for local repositories this is a FileStream on the repository's .nupkg and leaving it open locks the file.
+                    using Stream responseStream = currentServer.InstallPackageAsync(depPkgName, depPkgVersion, true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs).GetAwaiter().GetResult();
 
-                    if (errorMsgs.Count > 0)
+                    if (!errorMsgs.IsEmpty)
                     {
                         verboseMsgs.Enqueue($"Error installing package '{depPkgName}'");
                     }
@@ -891,8 +942,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     }
                 });
 
-                Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
-                if (errorMsgs.Count > 0)
+                if (!errorMsgs.IsEmpty)
                 {
                     return packagesHash;
                 }
@@ -906,19 +956,17 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     var pkgToInstallName = pkgToBeInstalled.Name;
                     var pkgToInstallVersion = Utils.GetFullVersionString(pkgToBeInstalled.Version.ToString(), pkgToBeInstalled.Prerelease);
-                    Stream responseStream = currentServer.InstallPackage(pkgToInstallName, pkgToInstallVersion, true, out ErrorRecord installNameErrRecord);
+                    // Runs on worker threads when parent installs are parallelized; use the async overload to avoid cross-thread cmdlet stream writes.
+                    // Dispose the stream once done: for local repositories this is a FileStream on the repository's .nupkg and leaving it open locks the file.
+                    using Stream responseStream = currentServer.InstallPackageAsync(pkgToInstallName, pkgToInstallVersion, true, errorMsgs, warningMsgs, debugMsgs, verboseMsgs).GetAwaiter().GetResult();
 
-                    if (installNameErrRecord != null)
+                    if (!errorMsgs.IsEmpty)
                     {
-                        _cmdletPassedIn.WriteError(installNameErrRecord);
                         return packagesHash;
                     }
 
-                    //ErrorRecord tempSaveErrRecord = null, tempInstallErrRecord = null;
                     bool installedToTempPathSuccessfully = _asNupkg ? TrySaveNupkgToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs) :
                         TryInstallToTempPath(responseStream, tempInstallPath, pkgToInstallName, pkgToInstallVersion, pkgToBeInstalled, packagesHash, out updatedPackagesHash, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
-
-                    Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
                     if (!installedToTempPathSuccessfully)
                     {
@@ -1241,9 +1289,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
-        /// Extracts files from .nupkg
+        /// Extracts files from .nupkg with platform-aware filtering.
         /// Similar functionality as System.IO.Compression.ZipFile.ExtractToDirectory,
         /// but while ExtractToDirectory cannot overwrite files, this method can.
+        /// Additionally filters:
+        /// - Root-level RID folder entries (e.g., win-x64/) based on the current platform's RID
+        /// - lib/{tfm}/ entries to only extract the best matching Target Framework Moniker
         /// </summary>
         private bool TryExtractToDirectory(string zipPath, string extractPath, out ErrorRecord error)
         {
@@ -1262,8 +1313,56 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 using (ZipArchive archive = ZipFile.OpenRead(zipPath))
                 {
+                    // Determine best TFM for lib/ folder filtering
+                    // If user specified -TargetFramework, use that; otherwise auto-detect
+                    NuGetFramework bestLibFramework;
+                    if (!string.IsNullOrEmpty(_targetFramework))
+                    {
+                        bestLibFramework = NuGetFramework.ParseFolder(_targetFramework);
+                        if (bestLibFramework == null || bestLibFramework.IsUnsupported)
+                        {
+                            _cmdletPassedIn.WriteDebug($"Could not parse specified TargetFramework '{_targetFramework}', falling back to auto-detection.");
+                            bestLibFramework = GetBestLibFramework(archive);
+                        }
+                        else
+                        {
+                            _cmdletPassedIn.WriteDebug($"Using user-specified TargetFramework: {bestLibFramework.GetShortFolderName()}");
+                        }
+                    }
+                    else
+                    {
+                        bestLibFramework = GetBestLibFramework(archive);
+                    }
+
+                    // Warn if TFM filtering is skipping assemblies for a different .NET lineage
+                    // (e.g., installing on PS7/.NET 8 but package also has net472 for WinPS 5.1)
+                    if (bestLibFramework != null)
+                    {
+                        WarnIfCrossLineageTfmSkipped(archive, bestLibFramework);
+                    }
+
                     foreach (ZipArchiveEntry entry in archive.Entries.Where(entry => entry.CompressedLength > 0))
                     {
+                        // RID filtering: skip entries under incompatible platform RID folders
+                        {
+                            bool includeEntry = !string.IsNullOrEmpty(_runtimeIdentifier)
+                                ? RuntimePackageHelper.ShouldIncludeEntry(entry.FullName, _runtimeIdentifier)
+                                : RuntimePackageHelper.ShouldIncludeEntry(entry.FullName);
+
+                            if (!includeEntry)
+                            {
+                                _cmdletPassedIn.WriteDebug($"Skipping runtime entry not matching target platform: {entry.FullName}");
+                                continue;
+                            }
+                        }
+
+                        // TFM filtering: for lib/ entries, only extract the best matching TFM
+                        if (bestLibFramework != null && !ShouldIncludeLibEntry(entry.FullName, bestLibFramework))
+                        {
+                            _cmdletPassedIn.WriteDebug($"Skipping lib entry not matching target framework: {entry.FullName}");
+                            continue;
+                        }
+
                         // If a file has one or more parent directories.
                         if (entry.FullName.Contains(Path.DirectorySeparatorChar) || entry.FullName.Contains(Path.AltDirectorySeparatorChar))
                         {
@@ -1289,6 +1388,50 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             entry.ExtractToFile(destinationPath, overwrite: true);
                         }
                     }
+
+                    // Warn if an explicitly specified TFM or RID had no matching entries in the package
+                    if (!string.IsNullOrEmpty(_targetFramework) && bestLibFramework != null)
+                    {
+                        bool hasMatchingLib = archive.Entries.Any(e =>
+                        {
+                            string n = e.FullName.Replace('\\', '/');
+                            if (!n.StartsWith("lib/", StringComparison.OrdinalIgnoreCase)) return false;
+                            string[] s = n.Split('/');
+                            if (s.Length < 3 || string.IsNullOrEmpty(s[1])) return false;
+                            NuGetFramework fw = NuGetFramework.ParseFolder(s[1]);
+                            return fw != null && !fw.IsUnsupported && fw.Equals(bestLibFramework);
+                        });
+
+                        if (!hasMatchingLib)
+                        {
+                            var availableTfms = archive.Entries
+                                .Select(e => e.FullName.Replace('\\', '/'))
+                                .Where(n => n.StartsWith("lib/", StringComparison.OrdinalIgnoreCase))
+                                .Select(n => n.Split('/'))
+                                .Where(s => s.Length >= 3 && !string.IsNullOrEmpty(s[1]))
+                                .Select(s => s[1])
+                                .Distinct(StringComparer.OrdinalIgnoreCase);
+                            string available = string.Join(", ", availableTfms);
+                            _cmdletPassedIn.WriteWarning(
+                                $"The specified TargetFramework '{_targetFramework}' was not found in this package. " +
+                                $"No lib/ assemblies were installed. Available TFMs: {(string.IsNullOrEmpty(available) ? "none" : available)}");
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(_runtimeIdentifier))
+                    {
+                        IReadOnlyList<string> availableRids = RuntimePackageHelper.GetAvailableRidsFromArchive(archive);
+                        bool hasMatchingRid = availableRids.Any(rid =>
+                            RuntimeIdentifierHelper.IsCompatibleRid(rid, _runtimeIdentifier));
+
+                        if (!hasMatchingRid)
+                        {
+                            string available = string.Join(", ", availableRids);
+                            _cmdletPassedIn.WriteWarning(
+                                $"The specified RuntimeIdentifier '{_runtimeIdentifier}' was not found in this package. " +
+                                $"No platform-specific assets were installed. Available RIDs: {(string.IsNullOrEmpty(available) ? "none" : available)}");
+                        }
+                    }
                 }
             }
             catch (Exception e)
@@ -1306,9 +1449,230 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
+        /// Determines the best matching Target Framework Moniker (TFM) from the lib/ folder entries in a zip archive.
+        /// Uses NuGet.Frameworks.FrameworkReducer to select the nearest compatible framework.
+        /// </summary>
+        /// <param name="archive">The zip archive to analyze.</param>
+        /// <returns>The best matching NuGetFramework, or null if no lib/ folders exist or no match is found.</returns>
+        private NuGetFramework GetBestLibFramework(ZipArchive archive)
+        {
+            // Collect all TFMs from lib/ folder entries
+            var libFrameworks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (ZipArchiveEntry entry in archive.Entries)
+            {
+                string normalizedName = entry.FullName.Replace('\\', '/');
+                if (normalizedName.StartsWith("lib/", StringComparison.OrdinalIgnoreCase))
+                {
+                    string[] segments = normalizedName.Split('/');
+                    if (segments.Length >= 3 && !string.IsNullOrEmpty(segments[1]))
+                    {
+                        libFrameworks.Add(segments[1]);
+                    }
+                }
+            }
+
+            if (libFrameworks.Count <= 1)
+            {
+                // Zero or one TFM — no filtering needed
+                return null;
+            }
+
+            try
+            {
+                // Detect the current runtime's target framework
+                NuGetFramework currentFramework = GetCurrentFramework();
+
+                // Parse all discovered TFMs
+                var parsedFrameworks = new List<NuGetFramework>();
+                foreach (string tfm in libFrameworks)
+                {
+                    NuGetFramework parsed = NuGetFramework.ParseFolder(tfm);
+                    if (parsed != null && !parsed.IsUnsupported)
+                    {
+                        parsedFrameworks.Add(parsed);
+                    }
+                }
+
+                if (parsedFrameworks.Count == 0)
+                {
+                    return null;
+                }
+
+                // Use FrameworkReducer to find the best match
+                var reducer = new FrameworkReducer();
+                NuGetFramework bestMatch = reducer.GetNearest(currentFramework, parsedFrameworks);
+
+                if (bestMatch != null)
+                {
+                    _cmdletPassedIn.WriteDebug($"Selected best matching TFM: {bestMatch.GetShortFolderName()} (from {string.Join(", ", libFrameworks)})");
+                }
+
+                return bestMatch;
+            }
+            catch (Exception e)
+            {
+                _cmdletPassedIn.WriteDebug($"TFM selection failed, extracting all lib/ folders: {e.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Determines if a zip entry from the lib/ folder should be included based on the best matching TFM.
+        /// Non-lib entries are always included.
+        /// </summary>
+        /// <param name="entryFullName">The full name of the zip entry.</param>
+        /// <param name="bestFramework">The best matching framework from GetBestLibFramework.</param>
+        /// <returns>True if the entry should be extracted.</returns>
+        private static bool ShouldIncludeLibEntry(string entryFullName, NuGetFramework bestFramework)
+        {
+            string normalizedName = entryFullName.Replace('\\', '/');
+
+            // Only filter entries inside lib/
+            if (!normalizedName.StartsWith("lib/", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            string[] segments = normalizedName.Split('/');
+            if (segments.Length < 3 || string.IsNullOrEmpty(segments[1]))
+            {
+                // lib/ root files (uncommon) — include them
+                return true;
+            }
+
+            string entryTfm = segments[1];
+            NuGetFramework entryFramework = NuGetFramework.ParseFolder(entryTfm);
+
+            if (entryFramework == null || entryFramework.IsUnsupported)
+            {
+                // Can't parse TFM, include to be safe
+                return true;
+            }
+
+            // Only include entries matching the best framework
+            return entryFramework.Equals(bestFramework);
+        }
+
+        /// <summary>
+        /// Gets the NuGetFramework for the current runtime environment.
+        /// Since this assembly is compiled as net472, it must detect the actual host runtime
+        /// by parsing RuntimeInformation.FrameworkDescription rather than using Environment.Version
+        /// (which returns 4.0.30319.x even when running on .NET 8+ via compatibility shims).
+        /// </summary>
+        private static NuGetFramework GetCurrentFramework()
+        {
+            string runtimeDescription = RuntimeInformation.FrameworkDescription;
+
+            if (runtimeDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase))
+            {
+                // Windows PowerShell 5.1 — .NET Framework 4.x
+                return NuGetFramework.ParseFolder("net472");
+            }
+
+            // PowerShell 7+ on .NET Core/.NET 5+
+            // RuntimeInformation.FrameworkDescription format examples:
+            //   ".NET Core 3.1.0"  -> netcoreapp3.1
+            //   ".NET 6.0.5"       -> net6.0
+            //   ".NET 8.0.1"       -> net8.0
+            //   ".NET 9.0.0"       -> net9.0
+            try
+            {
+                string versionPart = runtimeDescription;
+
+                // Strip prefix to get just the version number
+                if (versionPart.StartsWith(".NET Core ", StringComparison.OrdinalIgnoreCase))
+                {
+                    versionPart = versionPart.Substring(".NET Core ".Length);
+                }
+                else if (versionPart.StartsWith(".NET ", StringComparison.OrdinalIgnoreCase))
+                {
+                    versionPart = versionPart.Substring(".NET ".Length);
+                }
+
+                if (Version.TryParse(versionPart, out Version parsedVersion))
+                {
+                    return new NuGetFramework(".NETCoreApp", new Version(parsedVersion.Major, parsedVersion.Minor));
+                }
+            }
+            catch
+            {
+                // Fall through to default
+            }
+
+            // Fallback: default to netstandard2.0 which is broadly compatible
+            return NuGetFramework.ParseFolder("netstandard2.0");
+        }
+
+        /// <summary>
+        /// Emits a warning if TFM filtering will skip assemblies for a different .NET lineage.
+        /// For example, when installing on PowerShell 7 (.NET Core), if the package also contains
+        /// .NET Framework assemblies (net472), those will be skipped — which means the module
+        /// won't work if later used on Windows PowerShell 5.1.
+        /// </summary>
+        private void WarnIfCrossLineageTfmSkipped(ZipArchive archive, NuGetFramework bestFramework)
+        {
+            try
+            {
+                bool bestIsNetCore = bestFramework.Framework.Equals(".NETCoreApp", StringComparison.OrdinalIgnoreCase);
+                bool bestIsNetFramework = bestFramework.Framework.Equals(".NETFramework", StringComparison.OrdinalIgnoreCase);
+
+                // Only warn when we're on one lineage and skipping the other
+                if (!bestIsNetCore && !bestIsNetFramework)
+                {
+                    return;
+                }
+
+                // Scan lib/ folders for a TFM from the other lineage
+                var skippedLineageTfms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (ZipArchiveEntry entry in archive.Entries)
+                {
+                    string normalizedName = entry.FullName.Replace('\\', '/');
+                    if (normalizedName.StartsWith("lib/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string[] segments = normalizedName.Split('/');
+                        if (segments.Length >= 3 && !string.IsNullOrEmpty(segments[1]))
+                        {
+                            NuGetFramework entryFw = NuGetFramework.ParseFolder(segments[1]);
+                            if (entryFw != null && !entryFw.IsUnsupported && !entryFw.Equals(bestFramework))
+                            {
+                                bool entryIsNetCore = entryFw.Framework.Equals(".NETCoreApp", StringComparison.OrdinalIgnoreCase);
+                                bool entryIsNetFramework = entryFw.Framework.Equals(".NETFramework", StringComparison.OrdinalIgnoreCase);
+
+                                // Detect cross-lineage: we're on Core and skipping Framework, or vice versa
+                                if ((bestIsNetCore && entryIsNetFramework) || (bestIsNetFramework && entryIsNetCore))
+                                {
+                                    skippedLineageTfms.Add(segments[1]);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (skippedLineageTfms.Count > 0)
+                {
+                    string skippedList = string.Join(", ", skippedLineageTfms);
+                    string otherHost = bestIsNetCore ? "Windows PowerShell 5.1" : "PowerShell 7+";
+                    string skippedTfm = skippedLineageTfms.First();
+                    _cmdletPassedIn.WriteWarning(
+                        $"This package contains assemblies for {skippedList} which were not installed because " +
+                        $"the current runtime selected {bestFramework.GetShortFolderName()}. " +
+                        $"If you also use this module on {otherHost}, run: Install-PSResource -Name <ModuleName> -TargetFramework '{skippedTfm}'");
+                }
+            }
+            catch
+            {
+                // Non-critical warning — don't let it fail the install
+            }
+        }
+
+        /// <summary>
         /// Moves package files/directories from the temp install path into the final install path location.
         /// </summary>
-        private bool TryMoveInstallContent(string tempInstallPath, ScopeType scope, ConcurrentDictionary<string, Hashtable> packagesHash)
+        private bool TryMoveInstallContent(
+            string tempInstallPath,
+            ScopeType scope,
+            ConcurrentDictionary<string, Hashtable> packagesHash,
+            bool mergeFilteredContent)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::TryMoveInstallContent()");
             foreach (string pkgName in packagesHash.Keys)
@@ -1333,7 +1697,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         installPath,
                         newVersion: pkgVersion, // would not have prerelease label in this string
                         moduleManifestVersion: pkgVersion,
-                        scriptPath);
+                        scriptPath,
+                        mergeFilteredContent);
 
                     _cmdletPassedIn.WriteVerbose($"Successfully installed package '{pkgName}' to location '{installPath}'");
 
