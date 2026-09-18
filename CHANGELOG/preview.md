@@ -1,6 +1,6 @@
 # Preview Changelog
 
-## [1.3.0-preview2](https://github.com/PowerShell/PSResourceGet/compare/v1.3.0-preview1..1.3.0-preview2) - 2026-09-18
+## [1.3.0-preview2](https://github.com/PowerShell/PSResourceGet/compare/v1.3.0-preview1..v1.3.0-preview2) - 2026-09-18
 
 ### New Features
 - Add concurrency for parent package installation (#2016)
