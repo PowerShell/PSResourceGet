@@ -1,5 +1,20 @@
 # Preview Changelog
 
+## [1.3.0-preview2](https://github.com/PowerShell/PSResourceGet/compare/v1.3.0-preview1..v1.3.0-preview2) - 2026-09-18
+
+### New Features
+- Add concurrency for parent package installation (#2016)
+- Implement unimplemented concurrency methods for all server classes (#2012)
+- Add platform-aware installation, filtering out runtimes by `-RuntimeIdentifier` and libraries by `-TargetFramework` (#1963)
+- Add `PSContentPath` standard platform paths (#1912)
+- Add `WhatIf` functionality to `PSResourceList` operations (#2004 Thanks @Gijsreyn!)
+
+### Bug Fixes
+- Add input validation for Repository DSCResource for GetOperation (#2002 Thanks @Gijsreyn!)
+- Capture cmdlet warnings to prevent stdout contamination breaking DSC JSON parsing (#2000 Thanks @Gijsreyn!)
+- Bug fix for PSResourcelistGet DSCResource operation filters out resources on installed version (#1998 Thanks @Gijsreyn!)
+- Add custom exception messages for PSGallery (#2038)
+
 ## [1.3.0-preview1](https://github.com/PowerShell/PSResourceGet/compare/v1.2.0..v1.3.0-preview1) - 2026-05-19
 
 ### New Features
