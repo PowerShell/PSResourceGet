@@ -297,7 +297,7 @@ extends:
       jobs:
       - job: validation
         displayName: Publish to CFS feed
-        variables: # More settings at https://aka.ms/obpipelines/yaml/jobs
+        variables:
         - name: ob_outputDirectory
           value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
         - name: repoRoot
