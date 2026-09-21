@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+  DOTNET_NOLOGO: '1'
+
+jobs:
+  build:
+    name: Build package
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          global-json-file: global.json
+
+      - name: Install build tools
+        run: .\.github\scripts\Initialize-CI.ps1
+
+      - name: Build and package module
+        run: |
+          .\build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework net472
+          .\build.ps1 -Publish
+          $packagePath = Join-Path ([IO.Path]::GetTempPath()) 'packagebuild-local-repo'
+          $packages = @(Get-ChildItem $packagePath -Filter '*.nupkg')
+          if ($packages.Count -ne 1) {
+              throw "Expected exactly one built package; found $($packages.Count)."
+          }
+          "CI_PACKAGE_PATH=$($packages[0].FullName)" >> $env:GITHUB_ENV
+
+      - name: Upload package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: nupkg
+          path: ${{ env.CI_PACKAGE_PATH }}
+          if-no-files-found: error
+
+      - name: Upload module
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Microsoft.PowerShell.PSResourceGet
+          path: out/Microsoft.PowerShell.PSResourceGet
+          if-no-files-found: error
+
+  tests:
+    name: Tests
+    needs: build
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/ci-tests.yml
