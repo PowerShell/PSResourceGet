@@ -120,27 +120,6 @@ class PSResourceList {
         $this.trustedRepository = $trustedRepository
     }
 
-    [bool] IsInDesiredState([PSResourceList] $other) {
-        if ($this.repositoryName -ne $other.repositoryName) {
-            Write-Trace -message "RepositoryName mismatch: $($this.repositoryName) vs $($other.repositoryName)" -level debug
-            return $false
-        }
-
-        if ($this.resources.Count -ne $other.resources.Count) {
-            Write-Trace -message "Resources count mismatch: $($this.resources.Count) vs $($other.resources.Count)" -level debug
-            return $false
-        }
-
-        ## Every desired resource has to be in desired state, not only the first one
-        $pendingActions = @(GetPSResourceListActions -desiredResources $other.resources -currentResources $this.resources | Where-Object { $_.action -ne 'None' })
-
-        foreach ($pendingAction in $pendingActions) {
-            Write-Trace -message "Resource mismatch for: $($pendingAction.desired.name). Required action: $($pendingAction.action)" -level debug
-        }
-
-        return $pendingActions.Count -eq 0
-    }
-
     [string] ToJson() {
         ## Assign the array directly so that an empty list serializes as [] rather than null
         [object[]]$resourceObjects = @()
@@ -296,95 +275,16 @@ trap {
     exit [ExitCode]::Error
 }
 
+## The current state of a PSResourceList is the current resource of every desired resource, in input order
 function GetPSResourceList {
     param(
         [PSCustomObject]$inputObj
     )
 
-    $inputResources = @(ConvertInputToPSResourceList -inputObj $inputObj)
-
     $repositoryState = Get-PSResourceRepository -Name $inputObj.repositoryName -ErrorAction SilentlyContinue
+    $currentResources = @(GetPSResourceListActions -inputObj $inputObj | ForEach-Object { $_.current })
 
-    if (-not $repositoryState) {
-        Write-Trace -message "Repository not found: $($inputObj.repositoryName)" -level info
-        $emptyResources = @()
-        $emptyResources += $inputResources | ForEach-Object {
-            [PSResource]::new($_.Name)
-        }
-
-        return [PSResourceList]::new($inputObj.repositoryName, $emptyResources, $false)
-    }
-
-    $inputPSResourceList = [PSResourceList]::new($inputObj.repositoryName, $inputResources, $repositoryState.Trusted)
-
-    $allPSResources = @()
-
-    if ($inputPSResourceList.repositoryName) {
-        $currentUserPSResources = Get-PSResource -Scope CurrentUser -ErrorAction SilentlyContinue | Where-Object { $_.Repository -eq $inputPSResourceList.RepositoryName }
-        $allUsersPSResources = Get-PSResource -Scope AllUsers -ErrorAction SilentlyContinue | Where-Object { $_.Repository -eq $inputPSResourceList.RepositoryName }
-    }
-
-    $allPSResources += $currentUserPSResources | ForEach-Object {
-        [PSResource]::new(
-            $_.Name,
-            $_.Prerelease ? $_.Version.ToString() + "-" + $_.Prerelease : $_.Version.ToString(),
-            [Scope]"CurrentUser",
-            $_.Repository,
-            $_.PreRelease
-        )
-    }
-
-    $allPSResources += $allUsersPSResources | ForEach-Object {
-        [PSResource]::new(
-            $_.Name,
-            $_.Prerelease ? $_.Version.ToString() + "-" + $_.Prerelease : $_.Version.ToString(),
-            [Scope]"AllUsers",
-            $_.Repository,
-            $_.PreRelease ? $true : $false
-        )
-    }
-
-    $resolvedResources = @()
-
-    # Resolve exactly one current resource per input resource, in input order.
-    # GetPSResourceListActions relies on this to pair the desired and the current resources by index.
-    foreach ($inputResource in $inputResources) {
-        $matchingResources = $allPSResources | Where-Object { $_.Name -eq $inputResource.Name }
-
-        if ($matchingResources) {
-            $preferred = $null
-            if ($inputResource.Version) {
-                $preferred = $matchingResources | Where-Object {
-                    try { SatisfiesVersion -version $_.Version -versionRange $inputResource.Version } catch { $false }
-                } | Select-Object -First 1
-            }
-            else {
-                # No version constraint: any installed version means the resource exists.
-                Write-Trace -message "No version constraint for input: $($inputResource.Name). Treating installed version $($matchingResources[0].Version) as a match." -level debug
-                $preferred = $matchingResources | Select-Object -First 1
-            }
-
-            if ($preferred) {
-                Write-Trace -message "Resource '$($inputResource.Name)' version '$($preferred.Version)' satisfies requested range '$($inputResource.Version)'." -level debug
-                $resolvedResources += $preferred
-            }
-            else {
-                # Installed but doesn't satisfy the version range - report actual installed version with _exist = false
-                # Use a copy, the installed resource can already be resolved for another input resource with the same name
-                $installed = $matchingResources | Select-Object -First 1
-                Write-Trace -message "Resource '$($inputResource.Name)' installed at '$($installed.Version)' does not satisfy requested range '$($inputResource.Version)'. Reporting _exist = false." -level debug
-                $fallback = [PSResource]::new($installed.name, $installed.version, $installed.scope, $installed.repositoryName, $installed.preRelease)
-                $fallback._exist = $false
-                $resolvedResources += $fallback
-            }
-        }
-        else {
-            Write-Trace -message "Resource '$($inputResource.Name)' is not installed. Reporting _exist = false." -level debug
-            $resolvedResources += [PSResource]::new($inputResource.Name)
-        }
-    }
-
-    PopulatePSResourceListObjectByRepository -resourcesExist $resolvedResources -inputResources $inputResources -repositoryName $inputPSResourceList.RepositoryName -trustedRepository $inputPSResourceList.trustedRepository
+    return [PSResourceList]::new($inputObj.repositoryName, $currentResources, [bool]$repositoryState.Trusted)
 }
 
 function ConvertInputToPSResourceList {
@@ -392,7 +292,7 @@ function ConvertInputToPSResourceList {
         [PSCustomObject]$inputObj
     )
 
-    ## Piping a missing resources property would still run ForEach-Object once with a null input
+
     if ($inputObj.resources) {
         $inputObj.resources | ForEach-Object {
             ConvertInputToPSResource -inputObj $_ -repositoryName $inputObj.repositoryName
@@ -400,22 +300,92 @@ function ConvertInputToPSResourceList {
     }
 }
 
-## Pairs every desired resource with its current resource and decides the action needed to reach the desired state.
-## GetPSResourceList returns exactly one current resource per input resource, in input order, so they are paired by index.
-## The test, set and what-if operations all use this, so that they always agree on what has to happen.
-function GetPSResourceListActions {
+## Gets the resources that are installed from the repository, in both scopes
+function GetInstalledPSResources {
     param(
-        [PSResource[]]$desiredResources,
-        [PSResource[]]$currentResources
+        [string]$repositoryName
     )
 
-    if ($desiredResources.Count -ne $currentResources.Count) {
-        throw "Cannot pair the desired and current resources. Desired count: $($desiredResources.Count), current count: $($currentResources.Count)."
+    if (-not $repositoryName) {
+        return
     }
 
-    for ($i = 0; $i -lt $desiredResources.Count; $i++) {
-        $desired = $desiredResources[$i]
-        $current = $currentResources[$i]
+    foreach ($scope in @('CurrentUser', 'AllUsers')) {
+        Get-PSResource -Scope $scope -ErrorAction SilentlyContinue | Where-Object { $_.Repository -eq $repositoryName } | ForEach-Object {
+            [PSResource]::new(
+                $_.Name,
+                $_.Prerelease ? $_.Version.ToString() + "-" + $_.Prerelease : $_.Version.ToString(),
+                [Scope]$scope,
+                $_.Repository,
+                $_.Prerelease ? $true : $false
+            )
+        }
+    }
+}
+
+## Resolves the current state of one desired resource. The installed resources are matched by name, and a copy in the
+## desired scope is preferred over a copy in the other scope, so that set converges when the resource is installed in both.
+function ResolveCurrentPSResource {
+    param(
+        [PSResource]$desiredResource,
+        [PSResource[]]$installedResources
+    )
+
+    $name = $desiredResource.name
+    $matchingResources = @($installedResources | Where-Object { $_.name -eq $name })
+
+    if ($matchingResources.Count -eq 0) {
+        Write-Trace -message "Resource '$name' is not installed. Reporting _exist = false." -level debug
+        return [PSResource]::new($name)
+    }
+
+    $candidates = @($matchingResources | Where-Object { $_.scope -eq $desiredResource.scope }) + @($matchingResources | Where-Object { $_.scope -ne $desiredResource.scope })
+
+    if (-not $desiredResource.version) {
+        # No version constraint: any installed version means the resource exists.
+        Write-Trace -message "No version constraint for input: $name. Treating installed version $($candidates[0].version) in scope $($candidates[0].scope) as a match." -level debug
+        return $candidates[0]
+    }
+
+    $preferred = $candidates | Where-Object {
+        try { SatisfiesVersion -version $_.version -versionRange $desiredResource.version } catch { $false }
+    } | Select-Object -First 1
+
+    if ($preferred) {
+        Write-Trace -message "Resource '$name' version '$($preferred.version)' in scope $($preferred.scope) satisfies requested range '$($desiredResource.version)'." -level debug
+        return $preferred
+    }
+
+    # Installed but doesn't satisfy the version range - report actual installed version with _exist = false
+    # Use a copy, the installed resource can also be the current resource of another desired resource with the same name
+    $installed = $candidates[0]
+    Write-Trace -message "Resource '$name' installed at '$($installed.version)' does not satisfy requested range '$($desiredResource.version)'. Reporting _exist = false." -level debug
+    $fallback = [PSResource]::new($installed.name, $installed.version, $installed.scope, $installed.repositoryName, $installed.preRelease)
+    $fallback._exist = $false
+    return $fallback
+}
+
+## Pairs every desired resource with its current resource and decides the action needed to reach the desired state.
+## Every desired resource resolves its own current resource by name, so the order of the installed resources does not matter.
+## The get, test, set and what-if operations all use this, so that they always agree on what has to happen.
+function GetPSResourceListActions {
+    param(
+        [PSCustomObject]$inputObj
+    )
+
+    $desiredResources = @(ConvertInputToPSResourceList -inputObj $inputObj)
+
+    if (Get-PSResourceRepository -Name $inputObj.repositoryName -ErrorAction SilentlyContinue) {
+        $installedResources = @(GetInstalledPSResources -repositoryName $inputObj.repositoryName)
+    }
+    else {
+        ## Nothing counts as installed from a repository that is not registered
+        Write-Trace -message "Repository not found: $($inputObj.repositoryName)" -level info
+        $installedResources = @()
+    }
+
+    foreach ($desired in $desiredResources) {
+        $current = ResolveCurrentPSResource -desiredResource $desired -installedResources $installedResources
 
         $action = if ($current.IsInDesiredState($desired)) {
             'None'
@@ -518,9 +488,14 @@ function TestPSResourceList {
 
     $inputPSResourceList = [PSResourceList]::new($inputObj.repositoryName, $inputResources, $repositoryState.Trusted)
 
-    $currentState = GetPSResourceList -inputObj $inputObj
-    $inDesiredState = $currentState.IsInDesiredState($inputPSResourceList)
+    $resourceActions = @(GetPSResourceListActions -inputObj $inputObj)
+    $currentState = [PSResourceList]::new($inputObj.repositoryName, @($resourceActions | ForEach-Object { $_.current }), $repositoryState.Trusted)
+    $pendingActions = @($resourceActions | Where-Object { $_.action -ne 'None' })
+    foreach ($pendingAction in $pendingActions) {
+        Write-Trace -message "Resource mismatch for: $($pendingAction.desired.name). Required action: $($pendingAction.action)" -level debug
+    }
 
+    $inDesiredState = $pendingActions.Count -eq 0
     $currentState._inDesiredState = $inDesiredState
 
     if ($inDesiredState) {
@@ -614,12 +589,11 @@ function WhatIfPSResourceList {
     )
 
     $repositoryName = $inputObj.repositoryName
-    $desiredResources = @(ConvertInputToPSResourceList -inputObj $inputObj)
-    $currentState = GetPSResourceList -inputObj $inputObj
+    $psRepository = Get-PSResourceRepository -Name $repositoryName -ErrorAction SilentlyContinue
     $projectedResources = @()
 
     ## Use the same actions as the set operation, so that what-if reports what set is going to do
-    foreach ($resourceAction in @(GetPSResourceListActions -desiredResources $desiredResources -currentResources $currentState.resources)) {
+    foreach ($resourceAction in @(GetPSResourceListActions -inputObj $inputObj)) {
         $resourceDesiredState = $resourceAction.desired
         $currentResource = $resourceAction.current
         $name = $resourceDesiredState.name
@@ -656,8 +630,6 @@ function WhatIfPSResourceList {
     ## Report the same failures a real set operation would hit before installing anything
     $installRequired = @($projectedResources | Where-Object { $_._exist -and $null -ne $_._metadata }).Count -gt 0
     if ($installRequired) {
-        $psRepository = Get-PSResourceRepository -Name $repositoryName -ErrorAction SilentlyContinue
-
         if (-not $psRepository) {
             Write-Trace -level error -message "Repository '$repositoryName' not found. Cannot install resources."
             exit [ExitCode]::RepositoryNotFound
@@ -669,7 +641,7 @@ function WhatIfPSResourceList {
         }
     }
 
-    $list = [PSResourceList]::new($repositoryName, $projectedResources, $currentState.trustedRepository)
+    $list = [PSResourceList]::new($repositoryName, $projectedResources, [bool]$psRepository.Trusted)
     $list.ToJson()
 }
 
@@ -689,10 +661,7 @@ function SetPSResourceList {
 
     $resourcesChanged = $false
 
-    $desiredResources = @(ConvertInputToPSResourceList -inputObj $inputObj)
-    $currentState = GetPSResourceList -inputObj $inputObj
-
-    foreach ($resourceAction in @(GetPSResourceListActions -desiredResources $desiredResources -currentResources $currentState.resources)) {
+    foreach ($resourceAction in @(GetPSResourceListActions -inputObj $inputObj)) {
         $resourceDesiredState = $resourceAction.desired
         $name = $resourceDesiredState.name
         $versionStr = if ($resourceDesiredState.version) { $resourceDesiredState.version } else { 'latest' }
@@ -709,7 +678,8 @@ function SetPSResourceList {
         # Install if resource should exist but doesn't, or exists but not in desired state
         elseif ($resourceAction.action -eq 'Install') {
             Write-Trace -message "Resource $name needs to be installed." -level debug
-            $key = $name.ToLowerInvariant() + '-' + $versionStr.ToLowerInvariant()
+            # The same name and version can be requested in both scopes, so the scope is part of the key
+            $key = $name.ToLowerInvariant() + '-' + $versionStr.ToLowerInvariant() + '-' + $resourceDesiredState.scope
             if (-not $resourcesToInstall.ContainsKey($key)) {
                 $resourcesToInstall[$key] = $resourceDesiredState
             }
@@ -894,52 +864,6 @@ function DeleteOperation {
             exit [ExitCode]::UnknownResourceType
         }
     }
-}
-
-function PopulatePSResourceListObjectByRepository {
-    param (
-        $resourcesExist,
-        $inputResources,
-        $repositoryName,
-        $trustedRepository
-    )
-
-    $resources = @()
-
-    if (-not $resourcesExist) {
-        $resources = $inputResources | ForEach-Object {
-            [PSResource]::new(
-                $_.Name
-            )
-        }
-    }
-    else {
-        $resources += $resourcesExist | ForEach-Object {
-            $srcExist = $_._exist
-            $r = if ($_.version) {
-                [PSResource]::new(
-                    $_.Name,
-                    $_.Version.ToString(),
-                    $_.Scope,
-                    $_.RepositoryName,
-                    $_.PreRelease ? $true : $false
-                )
-            } else {
-                [PSResource]::new($_.Name)
-            }
-            $r._exist = $srcExist
-            $r
-        }
-    }
-
-    $psresourceListObj =
-    [PSResourceList]::new(
-        $repositoryName,
-        $resources,
-        $trustedRepository
-    )
-
-    return $psresourceListObj
 }
 
 function PopulatePSResourceListObject {

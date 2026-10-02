@@ -907,6 +907,23 @@ Describe 'PSResourceList desired state tests' -Tags 'CI' {
         $testResult.inDesiredState | Should -BeFalse
     }
 
+    It 'Test is in desired state regardless of the order of the resources' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        Install-PSResource -Name $script:testModuleName2 -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        Install-PSResource -Name $script:testModuleName3 -Version '1.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        $first = @{ name = $script:testModuleName; version = '5.0.0' }
+        $second = @{ name = $script:testModuleName2 }
+        $third = @{ name = $script:testModuleName3; version = '[1.0.0,2.0.0)' }
+
+        $testResult = InvokePSResourceListOperation -Operation test -Properties @{ repositoryName = $script:localRepo; resources = @($first, $second, $third) }
+        $testResult.inDesiredState | Should -BeTrue
+
+        $testResult = InvokePSResourceListOperation -Operation test -Properties @{ repositoryName = $script:localRepo; resources = @($third, $first, $second) }
+        $testResult.inDesiredState | Should -BeTrue
+    }
+
     It 'Test is in desired state for an installed resource without a version' {
         ResetDscTestModules
         Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
@@ -1074,6 +1091,59 @@ Describe 'PSResourceList desired state tests' -Tags 'CI' {
             $LASTEXITCODE | Should -Be 0
             Get-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
             Get-PSResource -Name $script:testModuleName -Scope CurrentUser -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+        }
+        finally {
+            Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'Set converges on the AllUsers scope when the resource is already installed for the current user - Windows only' -Skip:(!((Get-IsWindows) -and (Test-IsAdmin)) -or $PSVersionTable.PSVersion.Major -lt 6) {
+        ResetDscTestModules
+        Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        try {
+            $properties = @{
+                repositoryName    = $script:localRepo
+                trustedRepository = $true
+                resources         = @(@{ name = $script:testModuleName; scope = 'AllUsers' })
+            }
+
+            $setResult = InvokePSResourceListOperation -Operation set -Properties $properties
+            $LASTEXITCODE | Should -Be 0
+            $setResult.changedProperties | Should -Contain 'resources'
+            Get-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+
+            # The CurrentUser copy must not hide the AllUsers copy, otherwise set never converges
+            $testResult = InvokePSResourceListOperation -Operation test -Properties $properties
+            $testResult.inDesiredState | Should -BeTrue
+
+            $setResult = InvokePSResourceListOperation -Operation set -Properties $properties
+            $LASTEXITCODE | Should -Be 0
+            $setResult.changedProperties | Should -BeNullOrEmpty
+        }
+        finally {
+            Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'Set installs the same resource in both scopes - Windows only' -Skip:(!((Get-IsWindows) -and (Test-IsAdmin)) -or $PSVersionTable.PSVersion.Major -lt 6) {
+        ResetDscTestModules
+        Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
+
+        try {
+            $null = InvokePSResourceListOperation -Operation set -Properties @{
+                repositoryName    = $script:localRepo
+                trustedRepository = $true
+                resources         = @(
+                    @{ name = $script:testModuleName; version = '5.0.0' },
+                    @{ name = $script:testModuleName; version = '5.0.0'; scope = 'AllUsers' }
+                )
+            }
+
+            $LASTEXITCODE | Should -Be 0
+            Get-PSResource -Name $script:testModuleName -Scope CurrentUser -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+            Get-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
         }
         finally {
             Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
