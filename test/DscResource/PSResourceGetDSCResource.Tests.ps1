@@ -52,10 +52,26 @@ function SetupTestRepos {
 
 Describe "DSC resource schema tests" -tags 'CI' {
     BeforeAll {
+
+        $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
+
+        if ($skipTest) {
+            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $PSDefaultParameterValues['it:skip'] = $skipTest
+            return
+        }
+
         SetupDsc
     }
 
-    It 'DSC v3 resources can be found' {
+    AfterAll {
+        if ($skipTest) {
+            $global:PSDefaultParameterValues = $originalDefaultParameterValues
+        }
+    }
+
+    It 'DSC v3 resources can be found' -Skip:$skipTest {
+
         $repoResource = & $script:dscExe resource list Microsoft.PowerShell.PSResourceGet/Repository -o json | convertfrom-json  | select-object -ExpandProperty type
         $repoResource | Should -BeExactly 'Microsoft.PowerShell.PSResourceGet/Repository'
 
@@ -86,12 +102,26 @@ Describe "DSC resource schema tests" -tags 'CI' {
 
 Describe 'Repository Resource Tests' -Tags 'CI' {
     BeforeAll {
+        $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
+
+        if ($skipTest) {
+            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $PSDefaultParameterValues['it:skip'] = $skipTest
+            return
+        }
+
         # Register a test repository to ensure DSC can access repositories
         Register-PSResourceRepository -Name 'TestRepo' -uri 'https://www.doesnotexist.com' -ErrorAction SilentlyContinue -APIVersion Local
     }
     AfterAll {
+        if ($skipTest) {
+            $global:PSDefaultParameterValues = $originalDefaultParameterValues
+            return
+        }
+
         # Clean up the test repository
         Unregister-PSResourceRepository -Name 'TestRepo' -ErrorAction SilentlyContinue
+
     }
 
     It 'Can get a Repository resource instance' {
@@ -142,6 +172,16 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
         }
     }
 
+    It 'Get operation without --input exits with a non-zero code and does not produce an unhandled exception' {
+        $output = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/Repository -o json 2>&1
+        $outputText = $output | Out-String
+        $LASTEXITCODE | Should -Not -Be 0
+        $outputText | Should -Match '--input'
+        $outputText | Should -Match 'requires'
+        $outputText | Should -Not -Match 'Cannot bind argument to parameter'
+        $outputText | Should -Not -Match 'Unhandled exception'
+    }
+
     It 'Can delete a Repository resource instance' {
         # First, create a repository to delete
         Register-PSResourceRepository -Name 'TestRepoToDelete' -uri 'https://www.doesnotexist.com' -ErrorAction SilentlyContinue -APIVersion Local
@@ -163,10 +203,34 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
 
 Describe "PSResourceList Resource Tests" -Tags 'CI' {
     BeforeAll {
+
+        $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
+
+        if ($skipTest) {
+            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $PSDefaultParameterValues['it:skip'] = $skipTest
+            return
+        }
+
         SetupDsc
         SetupTestRepos
     }
     AfterAll {
+        if ($skipTest) {
+            $PSDefaultParameterValues = $originalDefaultParameterValues
+            return
+        }
+
+        # Remove test modules installed through DSC so they do not leak into later runs.
+        foreach ($moduleToRemove in @($script:testModuleName, $script:testModuleName2)) {
+            $cleanupInput = @{
+                repositoryName    = $script:localRepo
+                trustedRepository = $true
+                resources         = @(@{ name = $moduleToRemove; _exist = $false })
+            } | ConvertTo-Json -Depth 5
+            $null = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $cleanupInput -o json 2>&1
+        }
+
         # Clean up the test repository
         Get-RevertPSResourceRepositoryFile
     }
@@ -243,6 +307,37 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
         $setResult.afterState.resources[1].version | Should -Be '5.0.0'
     }
 
+    It 'Set operation stdout contains only valid JSON and is not contaminated by warning messages' {
+        # Simple regression test as it is hard to predict a warning message but we want to ensure they do not break DSC's JSON parsing. This test does not verify that warnings are emitted when expected,
+        # only that if they are emitted they do not reach stdout.
+        Uninstall-PSResource -Name $script:testModuleName -ErrorAction SilentlyContinue
+
+        $psResourceListParams = @{
+            repositoryName    = $script:localRepo
+            trustedRepository = $true
+            resources         = @(
+                @{
+                    name    = $script:testModuleName
+                    version = '1.0.0'
+                }
+            )
+        }
+
+        $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
+
+        # Capture only stdout; stderr carries DSC trace messages and is intentionally discarded
+        $stdoutLines = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json 2>$null
+
+        # No stdout line should contain warning text or ANSI escape sequences
+        $stdoutLines | Where-Object { $_ } | ForEach-Object {
+            $_ | Should -Not -Match 'WARNING:'
+            $_ | Should -Not -Match '\x1b\['
+        }
+
+        # stdout must be parseable as JSON without error
+        { $stdoutLines | ConvertFrom-Json -ErrorAction Stop } | Should -Not -Throw
+    }
+
     It 'Can test a PSResourceList resource instance with resources' {
         $psResourceListParams = @{
             repositoryName = $script:localRepo
@@ -285,11 +380,89 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
         $testResult = & $script:dscExe resource test --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
         $testResult.inDesiredState | Should -BeFalse
     }
+
+    It 'Get returns actual installed version with _exist false when installed version does not satisfy requested version' {
+        # Install 1.0.0 but request 5.0.0 - get should report _exist = false (requested version absent)
+        $removeAllInput = @{
+            repositoryName    = $script:localRepo
+            trustedRepository = $true
+            resources         = @(@{ name = $script:testModuleName; _exist = $false })
+        } | ConvertTo-Json -Depth 5
+        $null = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $removeAllInput -o json
+
+        $installOldInput = @{
+            repositoryName    = $script:localRepo
+            trustedRepository = $true
+            resources         = @(@{ name = $script:testModuleName; version = '1.0.0' })
+        } | ConvertTo-Json -Depth 5
+        $null = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $installOldInput -o json
+
+        $psResourceListParams = @{
+            repositoryName = $script:localRepo
+            resources      = @(
+                @{
+                    name    = $script:testModuleName
+                    version = '5.0.0'
+                }
+            )
+        }
+
+        $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
+        $getResult = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $getResult.actualState.resources.Count | Should -Be 1
+        $getResult.actualState.resources[0].name | Should -BeExactly $script:testModuleName
+        $getResult.actualState.resources[0].version | Should -BeExactly '1.0.0'
+        $getResult.actualState.resources[0]._exist | Should -BeFalse
+    }
+
+    It 'Get prefers installed version that satisfies requested version range when multiple versions are installed' {
+        # Install both 1.0.0 and 5.0.0 but request 5.0.0 - get should prefer the satisfying version (5.0.0).
+        # Setup goes through DSC for the same reason as the previous test.
+        foreach ($setupVersion in @('1.0.0', '5.0.0')) {
+            $installInput = @{
+                repositoryName    = $script:localRepo
+                trustedRepository = $true
+                resources         = @(@{ name = $script:testModuleName; version = $setupVersion })
+            } | ConvertTo-Json -Depth 5
+            $null = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $installInput -o json
+        }
+
+        $psResourceListParams = @{
+            repositoryName = $script:localRepo
+            resources      = @(
+                @{
+                    name    = $script:testModuleName
+                    version = '5.0.0'
+                }
+            )
+        }
+
+        $resourceInput = $psResourceListParams | ConvertTo-Json -Depth 5
+        $getResult = & $script:dscExe resource get --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $getResult.actualState.resources.Count | Should -Be 1
+        $getResult.actualState.resources[0].name | Should -BeExactly $script:testModuleName
+        $getResult.actualState.resources[0].version | Should -BeExactly '5.0.0'
+        $getResult.actualState.resources[0]._exist | Should -BeTrue
+    }
 }
 
 Describe 'E2E tests for Repository resource' -Tags 'CI' {
     BeforeAll {
+        $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
+
+        if ($skipTest) {
+            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $PSDefaultParameterValues['it:skip'] = $skipTest
+            return
+        }
+
         Get-PSResourceRepository -Name 'TestRepository' -ErrorAction SilentlyContinue | Unregister-PSResourceRepository -ErrorAction SilentlyContinue
+    }
+
+    AfterAll {
+        if ($skipTest) {
+            $PSDefaultParameterValues = $originalDefaultParameterValues
+        }
     }
 
     It 'Register test repository via DSC configuration' {
@@ -336,6 +509,14 @@ Describe 'E2E tests for Repository resource' -Tags 'CI' {
 
 Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
     BeforeAll {
+        $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
+
+        if ($skipTest) {
+            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $PSDefaultParameterValues['it:skip'] = $skipTest
+            return
+        }
+
         SetupDsc
 
         ## The installed modules will not be found in the Windows PowerShell module path because DSC will install them in the PowerShell 7 context.
@@ -452,11 +633,25 @@ Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
 Describe "Error code tests" -Tags 'CI' {
 
     BeforeAll {
+        $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
+
+        if ($skipTest) {
+            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $PSDefaultParameterValues['it:skip'] = $skipTest
+            return
+        }
+
         SetupDsc
 
         $mod = Get-PSResource -Name 'testmodule99' -ErrorAction SilentlyContinue
         if ($mod) {
            $mod | Uninstall-PSResource -ErrorAction SilentlyContinue
+        }
+    }
+
+    AfterAll {
+        if ($skipTest) {
+            $PSDefaultParameterValues = $originalDefaultParameterValues
         }
     }
 
@@ -473,5 +668,100 @@ Describe "Error code tests" -Tags 'CI' {
     It 'Resource not found should return error code 4' {
         $out = & $script:dscExe config set -f (Join-Path -Path $PSScriptRoot -ChildPath 'configs/psresourcegetlist.error.noresource.dsc.yaml') 2>&1
         $out[-1] | Should -BeLike '*Could not install one or more resources (during set operation)*'
+    }
+}
+
+Describe 'PSResourceList what-if tests' -Tags 'CI' {
+    BeforeAll {
+        SetupDsc
+        SetupTestRepos
+
+        $isOnWindowsPowerShell = $PSVersionTable.PSVersion.Major -lt 6
+        $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+        $PSDefaultParameterValues['it:skip'] = $isOnWindowsPowerShell
+    }
+
+    AfterAll {
+        $global:PSDefaultParameterValues = $originalDefaultParameterValues
+        Get-RevertPSResourceRepositoryFile
+    }
+
+    It 'What-if install does not modify the system' {
+        Uninstall-PSResource -Name $script:testModuleName -ErrorAction SilentlyContinue
+        Uninstall-PSResource -Name $script:testModuleName2 -ErrorAction SilentlyContinue
+
+        $config_yaml = @"
+`$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+resources:
+- name: PSResourceList what-if install
+  type: Microsoft.PowerShell.PSResourceGet/PSResourceList
+  properties:
+    repositoryName: $script:localRepo
+    trustedRepository: true
+    resources:
+    - name: $script:testModuleName
+      version: '5.0.0'
+    - name: $script:testModuleName2
+      version: '5.0.0'
+"@
+
+        $out = & $script:dscExe config set --what-if --input $config_yaml 2>$TestDrive/error.log | ConvertFrom-Json
+        $LASTEXITCODE | Should -Be 0 -Because (Get-Content -Path $TestDrive/error.log -Raw)
+
+        $result = $out.results.result[0].afterState
+        $result.repositoryName | Should -BeExactly $script:localRepo
+        $result.resources.Count | Should -Be 2
+        $result.resources[0]._metadata.whatIf[0] | Should -Match 'Would install'
+        $result.resources[1]._metadata.whatIf[0] | Should -Match 'Would install'
+
+        Get-PSResource -Name $script:testModuleName -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+        Get-PSResource -Name $script:testModuleName2 -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+    }
+
+    It 'What-if uninstall does not modify the system' {
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        $config_yaml = @"
+`$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+resources:
+- name: PSResourceList what-if uninstall
+  type: Microsoft.PowerShell.PSResourceGet/PSResourceList
+  properties:
+    repositoryName: $script:localRepo
+    resources:
+    - name: $script:testModuleName
+      _exist: false
+"@
+
+        $out = & $script:dscExe config set --what-if --input $config_yaml 2>$TestDrive/error.log | ConvertFrom-Json
+        $LASTEXITCODE | Should -Be 0 -Because (Get-Content -Path $TestDrive/error.log -Raw)
+
+        $result = $out.results.result[0].afterState
+        $result.resources[0]._exist | Should -BeFalse
+        $result.resources[0]._metadata.whatIf[0] | Should -Match 'Would uninstall'
+
+        Get-PSResource -Name $script:testModuleName -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+    }
+
+    It 'What-if returns no metadata for resources already in desired state' {
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        $config_yaml = @"
+`$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+resources:
+- name: PSResourceList what-if in desired state
+  type: Microsoft.PowerShell.PSResourceGet/PSResourceList
+  properties:
+    repositoryName: $script:localRepo
+    resources:
+    - name: $script:testModuleName
+      version: '5.0.0'
+"@
+
+        $out = & $script:dscExe config set --what-if --input $config_yaml 2>$TestDrive/error.log | ConvertFrom-Json
+        $LASTEXITCODE | Should -Be 0 -Because (Get-Content -Path $TestDrive/error.log -Raw)
+
+        $result = $out.results.result[0].afterState
+        $result.resources[0]._metadata | Should -BeNullOrEmpty
     }
 }

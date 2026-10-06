@@ -45,3 +45,27 @@ Describe "Write PSGetModuleInfo xml file" -tags 'CI' {
         CheckForExpectedPSGetInfo $newGetInfo
     }
 }
+
+Describe "Convert PSResourceInfo from JSON" -tags 'CI' {
+
+    BeforeAll {
+        $repository = [Microsoft.PowerShell.PSResourceGet.UtilClasses.PSRepositoryInfo]::new(
+            "TestRepository",
+            [uri]"https://example.test/v3/index.json",
+            50,
+            $true,
+            $null,
+            [Microsoft.PowerShell.PSResourceGet.UtilClasses.PSRepositoryInfo+CredentialProviderType]::None,
+            [Microsoft.PowerShell.PSResourceGet.UtilClasses.PSRepositoryInfo+APIVersion]::V3,
+            $true)
+    }
+
+    It "Handles an empty dependencyGroups array" {
+        $resourceInfo = [Microsoft.PowerShell.PSResourceGet.UtilClasses.TestHooks]::ConvertFromJson(
+            '{"version":"1.0.0","id":"TestPackage","authors":"Test Author","dependencyGroups":[]}',
+            $repository)
+
+        $resourceInfo | Should -Not -BeNullOrEmpty
+        $resourceInfo.Dependencies | Should -BeNullOrEmpty
+    }
+}

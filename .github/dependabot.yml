@@ -19,6 +19,8 @@ updates:
     directory: /
     schedule:
       interval: daily
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: nuget
     directory: /

@@ -25,7 +25,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         // File name for a user's repository store file is 'PSResourceRepository.xml'
         // The repository store file's location is currently only at '%LOCALAPPDATA%\PSResourceGet' for the user account.
         private const string PSGalleryRepoName = "PSGallery";
-        private const string PSGalleryRepoUri = "https://www.powershellgallery.com/api/v2";
+        internal const string PSGalleryRepoUri = "https://www.powershellgallery.com/api/v2";
         private const string MARRepoName = "MicrosoftArtifactRegistry";
         private const string MARRepoUri = "https://mcr.microsoft.com";
         private const int DefaultPriority = 50;
