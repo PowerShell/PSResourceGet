@@ -4,6 +4,7 @@
 using Microsoft.PowerShell.PSResourceGet.Cmdlets;
 using NuGet.Versioning;
 using System.Management.Automation;
+using System.Text.Json;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 {
@@ -20,6 +21,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             throw new PSInvalidOperationException(errorMsg);
+        }
+
+        public static PSObject ConvertFromJson(string json, PSRepositoryInfo repository)
+        {
+            using (JsonDocument pkgJson = JsonDocument.Parse(json))
+            {
+                if (PSResourceInfo.TryConvertFromJson(pkgJson, out PSResourceInfo psGetInfo, repository, out string errorMsg))
+                {
+                    return PSObject.AsPSObject(psGetInfo);
+                }
+
+                throw new PSInvalidOperationException(errorMsg);
+            }
         }
 
         public static void WritePSGetResourceInfo(
