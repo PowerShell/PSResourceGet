@@ -913,7 +913,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 Parallel.ForEach(parentAndDeps, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, depPkg =>
                 {
                     var depPkgName = depPkg.Name;
-                    var depPkgVersion = depPkg.Version.ToString();
+                    var depPkgVersion = Utils.GetFullVersionString(depPkg.Version.ToString(), depPkg.Prerelease);
 
                     verboseMsgs.Enqueue($"Installing package '{depPkgName}' version '{depPkgVersion}'");
                     //Stream responseStream = currentServer.InstallPackage(depPkgName, depPkgVersion, true, out ErrorRecord installNameErrRecord);
