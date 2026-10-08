@@ -1,0 +1,834 @@
+# GitHub Actions equivalent of the Azure DevOps pipeline defined in .ci/ci.yml and .ci/test.yml.
+#
+# NOTE: The ADO "Compliance" stage (CredScan via the private PowerShell/compliance ADO
+# template/repo and the "ComplianceGHRepo" service connection) has intentionally NOT been
+# migrated here. That template is internal/private to Microsoft, is not accessible from
+# GitHub Actions, and there is no public equivalent to reimplement it against. See the PR
+# description for follow-up instructions for the internal tooling/security team.
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# Equivalent of ADO's `trigger: batch: true` - supersede/cancel any in-progress run for the
+# same branch/PR when a new commit is pushed.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+
+jobs:
+  # ---------------------------------------------------------------------------------------
+  # Build stage (ADO: stage "Build", job "BuildPkg")
+  # ---------------------------------------------------------------------------------------
+  build:
+    name: Build Package
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      # ADO: task UseDotNet@2 with useGlobalJson: true
+      - name: Setup .NET (from global.json)
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # ADO: "Capture environment for build" (condition: succeededOrFailed())
+      - name: Capture environment for build
+        if: always()
+        shell: pwsh
+        run: Get-ChildItem -Path "env:"
+
+      # ADO: "Create temporary module path"
+      - name: Create temporary module path
+        shell: pwsh
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          if (Test-Path -Path $modulePath) {
+            Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
+            Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
+          }
+          if (! (Test-Path -Path $modulePath)) {
+            Write-Verbose -Verbose "Creating new temp module path: $modulePath"
+            $null = New-Item -Path $modulePath -ItemType Directory
+          }
+
+      # ADO: "Install Microsoft.PowerShell.PSResourceGet v3"
+      - name: Install Microsoft.PowerShell.PSResourceGet v3
+        shell: pwsh
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          Write-Verbose -Verbose "Install PSResourceGet to temp module path"
+          Save-Module -Name Microsoft.PowerShell.PSResourceGet -MinimumVersion 0.9.0-rc1 -Path $modulePath -AllowPrerelease -Force
+
+      # ADO: "Capture source code for build" (condition: succeededOrFailed())
+      - name: Capture source code for build
+        if: always()
+        shell: pwsh
+        run: Get-ChildItem -Path ${{ github.workspace }}/src/code -Recurse
+
+      # ADO: "Build Module"
+      - name: Build Module
+        shell: pwsh
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+          Import-Module -Name ${{ github.workspace }}/buildtools.psd1 -Force
+          #
+          ${{ github.workspace }}/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net472'
+
+      # ADO: "Publish module nuget package and upload package artifact"
+      - name: Publish module nuget package
+        shell: pwsh
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+          Import-Module -Name ${{ github.workspace }}/buildtools.psd1 -Force
+          #
+          ${{ github.workspace }}/build.ps1 -Publish
+
+      # ADO: "Upload module artifact" (##vso[artifact.upload]) -> actions/upload-artifact
+      - name: Determine module output path
+        id: module-path
+        shell: pwsh
+        run: |
+          Import-Module -Name ${{ github.workspace }}/buildtools.psd1 -Force
+          $config = Get-BuildConfiguration
+          $srcModulePath = Resolve-Path -Path "$($config.BuildOutputPath)/$($config.ModuleName)"
+          Get-ChildItem $srcModulePath
+          "path=$srcModulePath" >> $env:GITHUB_OUTPUT
+          "name=$($config.ModuleName)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload module artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ steps.module-path.outputs.name }}
+          path: ${{ steps.module-path.outputs.path }}
+
+  # ---------------------------------------------------------------------------------------
+  # NOTE: ADO "Compliance" stage (CredScan via ci-compliance.yml@ComplianceRepo, using the
+  # private PowerShell/compliance repo and the "ComplianceGHRepo" service connection) has
+  # been intentionally omitted from this migration. It depends on internal/private Microsoft
+  # tooling that is not reachable from GitHub Actions. See PR description for follow-up.
+  # ---------------------------------------------------------------------------------------
+
+  # ---------------------------------------------------------------------------------------
+  # Test stage (ADO: stage "Test", template test.yml)
+  #   - TestPkgWin:      PowerShell Core on Windows
+  #   - TestPkgUbuntu:   PowerShell Core on Ubuntu
+  #   - TestPkgWinMacOS: PowerShell Core on macOS
+  # NOTE: the `shell` step field does not support GitHub Actions expressions
+  # (${{ matrix.shell }}), so it must be a fixed literal per job. TestPkgWinPS (Windows
+  # PowerShell) is therefore implemented as its own job below (test-winps) rather than as a
+  # matrix leg here, and the AzAuth variant (TestPkgWinAzAuth) is also a separate job because
+  # its steps diverge significantly (no secret store, uses Invoke-ModuleTestsACR instead of
+  # Invoke-ModuleTests).
+  # ---------------------------------------------------------------------------------------
+  test:
+    name: ${{ matrix.displayName }}
+    needs: build
+    runs-on: ${{ matrix.imageName }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - jobName: TestPkgWin
+            displayName: PowerShell Core on Windows
+            imageName: windows-latest
+          - jobName: TestPkgUbuntu
+            displayName: PowerShell Core on Ubuntu
+            imageName: ubuntu-latest
+          - jobName: TestPkgWinMacOS
+            displayName: PowerShell Core on macOS
+            imageName: macos-latest
+    # Required for azure/login OIDC federated credential auth.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      # ADO: "Install Secret store" (condition: eq(useAzAuth, false))
+      - name: Install Secret store
+        shell: pwsh
+        run: |
+          Install-Module -Name 'Microsoft.PowerShell.SecretManagement' -force -SkipPublisherCheck -AllowClobber
+          Install-Module -Name 'Microsoft.PowerShell.SecretStore' -force -SkipPublisherCheck -AllowClobber
+          $vaultPassword = ConvertTo-SecureString $("a!!"+ (Get-Random -Maximum ([int]::MaxValue))) -AsPlainText -Force
+          Set-SecretStoreConfiguration -Authentication None -Interaction None -Confirm:$false -Password $vaultPassword
+          Register-SecretVault -Name SecretStore -ModuleName Microsoft.PowerShell.SecretStore -DefaultVault
+
+      # ADO: task DownloadBuildArtifacts@0
+      - name: Download artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0 (fixes arbitrary file write vuln, patched >=4.1.3)
+        with:
+          name: Microsoft.PowerShell.PSResourceGet
+          path: ${{ runner.temp }}/artifacts
+
+      - name: Capture artifacts directory
+        shell: pwsh
+        run: Get-ChildItem -Path "${{ runner.temp }}/artifacts"
+
+      # ADO: "Create temporary module path"
+      - name: Create temporary module path
+        shell: pwsh
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          if (Test-Path -Path $modulePath) {
+            Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
+            Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
+          }
+          if (! (Test-Path -Path $modulePath)) {
+            Write-Verbose -Verbose "Creating new temp module path: $modulePath"
+            $null = New-Item -Path $modulePath -ItemType Directory
+          }
+
+      # ADO: "Install Microsoft.PowerShell.PSResourceGet and Pester"
+      - name: Install Microsoft.PowerShell.PSResourceGet and Pester
+        shell: pwsh
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          Write-Verbose -Verbose "Install Microsoft.PowerShell.PSResourceGet to temp module path"
+          Save-Module -Name Microsoft.PowerShell.PSResourceGet -Path $modulePath -Force -Verbose
+          Write-Verbose -Verbose "Install Pester 4.X to temp module path"
+          Save-Module -Name "Pester" -MaximumVersion 4.99 -Path $modulePath -Force
+
+      # ADO: "Install module for test from downloaded artifact"
+      - name: Install module for test from downloaded artifact
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+          Import-Module -Name (Join-Path -Path '.' -ChildPath 'buildtools.psd1') -Force
+          #
+          Install-ModulePackageForTest -PackagePath "${{ runner.temp }}/artifacts" -ErrorAction stop -Verbose
+
+      # ADO: task AzurePowerShell@5 with azureSubscription: PSResourceGetACR -> azure/login OIDC
+      # See the PR description for step-by-step instructions on registering the Azure AD app,
+      # configuring its federated credentials, and creating the AZURE_* secrets this step requires.
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # ADO: "Setup Azure Artifacts Credential Provider secret" (condition: useAzAuth == false)
+      - name: Setup Azure Artifacts Credential Provider secret
+        shell: pwsh
+        run: |
+          Write-Verbose -Verbose "Installing Az.Accounts module"
+          Install-Module -Name Az.Accounts -Force -Scope CurrentUser -AllowClobber
+
+          Write-Verbose -Verbose "Setting up secret for Azure Artifacts Credential Provider"
+          $azt = (Get-AzAccessToken).Token | ConvertFrom-SecureString -AsPlainText
+
+          Write-Verbose -Verbose "Setting up Azure Artifacts Credential Provider secret"
+
+          $ADORepoName = "psrg-credprovidertest"
+          $ADORepoUri = "https://pkgs.dev.azure.com/powershell-rel/PSResourceGet/_packaging/psrg-credprovidertest/nuget/v2"
+
+          $endpointCredsObj = @{ endpointCredentials = @( @{ endpoint = $ADORepoUri; password = $azt })}
+          $VSS_NUGET_EXTERNAL_FEED_ENDPOINTS = $endpointCredsObj | ConvertTo-Json -Compress
+
+          Write-Verbose -Verbose "Setting VSS_NUGET_EXTERNAL_FEED_ENDPOINTS environment variable"
+
+          "VSS_NUGET_EXTERNAL_FEED_ENDPOINTS=$VSS_NUGET_EXTERNAL_FEED_ENDPOINTS" >> $env:GITHUB_ENV
+
+      # ADO: "Install latest DSC v3" - uses secrets.GITHUB_TOKEN (built-in, no new secret needed)
+      - name: Install latest DSC v3
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $repo = "PowerShell/DSC"
+          $api  = "https://api.github.com/repos/$repo/releases"
+
+          $headers = @{
+              "User-Agent" = "pwsh"
+              "Accept"     = "application/vnd.github+json"
+              "Authorization" = "******"
+          }
+
+          # Get releases
+          $releases = Invoke-RestMethod -Uri $api -Headers $headers -RetryIntervalSec 30 -MaximumRetryCount 10
+
+          # Pick latest by publish date (handles prerelease vs stable automatically)
+          $latest = $releases |
+              Sort-Object published_at -Descending |
+              Select-Object -First 1
+
+          Write-Host "Latest version: $($latest.tag_name) (prerelease=$($latest.prerelease))"
+
+          if ($IsWindows) {
+              $assetFilter = "x86_64-pc-windows-msvc"
+          }
+          elseif ($IsMacOs) {
+              $assetFilter = "x86_64-apple-darwin"
+          }
+          else {
+              $assetFilter = "x86_64-linux"
+          }
+
+          $assets = $latest.assets |
+              Where-Object { $_.name -match $assetFilter }
+
+          Write-Host "Filtered assets: $($assets.Count)"
+
+          $selectedAsset = $assets | Select-Object -First 1
+
+          Write-Host "Selected asset: $($selectedAsset.name)"
+
+          $outFile = Join-Path $PWD $selectedAsset.name
+
+          Write-Host "Downloading $($selectedAsset.name)"
+
+          Invoke-WebRequest `
+              -Uri $selectedAsset.browser_download_url `
+              -Headers @{ "User-Agent"="pwsh" } `
+              -OutFile $outFile
+
+          if ($IsWindows) {
+            Expand-Archive -Path $outFile -DestinationPath $env:RUNNER_TEMP -Force -Verbose
+          }
+          else {
+            tar -xzf $outFile -C $env:RUNNER_TEMP
+          }
+
+          $executableName = 'dsc'
+          $executableExt = if ($IsWindows) { '.exe' } else { '' }
+
+          $executableFileName = $executableName + $executableExt
+
+          $executable = Get-ChildItem -Path $env:RUNNER_TEMP -File -Recurse -Verbose | Where-Object { $_.Name -eq $executableFileName } | Select-Object -First 1
+
+          if (-not $executable) {
+            throw "Could not find dsc executable in the downloaded package"
+          }
+
+          $dscRoot = Split-Path -Path $executable.FullName -Parent
+
+          "DSC_ROOT=$dscRoot" >> $env:GITHUB_ENV
+
+      - name: Capture environment
+        shell: pwsh
+        run: Get-ChildItem -Path "env:" | Out-String -Width 9999 -Stream | Write-Verbose -Verbose
+
+      # ADO: "Setup Azure Container Registry secret" (condition: useAzAuth == false)
+      - name: Setup Azure Container Registry secret
+        shell: pwsh
+        run: |
+          Write-Verbose -Verbose "Installing Az.Accounts module"
+          Install-Module -Name Az.Accounts -Force -Scope CurrentUser -AllowClobber
+
+          Write-Verbose -Verbose "Getting Azure Container Registry"
+          Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
+          Write-Verbose -Verbose "Setting up secret for Azure Container Registry"
+          $azt = Get-AzAccessToken
+          $tenantId = $azt.TenantId
+          Set-Secret -Name $tenantId -Secret $azt.Token -Verbose
+          "TenantId=$tenantId" >> $env:GITHUB_ENV
+
+      # ADO: "Upload empty file for ACR functional tests to write test repository names to"
+      - name: Create empty file for ACR functional tests to write test repository names to
+        shell: pwsh
+        run: |
+          $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
+          Write-Verbose -Verbose "Creating new folder for acr repository names file to be placed with path: $acrRepositoryNamesFolder"
+          $null = New-Item -Path $acrRepositoryNamesFolder -ItemType Directory
+          $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
+          New-Item -Path $acrRepositoryNamesFilePath
+
+      # ADO: "Execute functional tests" (condition: useAzAuth == false, errorActionPreference: continue)
+      - name: Execute functional tests
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        continue-on-error: true
+        env:
+          MAPPED_GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+          MAPPED_ADO_PUBLIC_PAT: ${{ secrets.ADO_PUBLIC_PAT }}
+          MAPPED_ADO_PRIVATE_PAT: ${{ secrets.ADO_PRIVATE_PAT }}
+          MAPPED_ADO_PRIVATE_REPO_URL: ${{ secrets.ADO_PRIVATE_REPO_URL }}
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+          Import-Module -Name (Join-Path -Path '.' -ChildPath 'buildtools.psd1') -Force
+          Invoke-ModuleTests -Type Functional
+
+      # ADO: "Delete test repositories from ACR"
+      - name: Delete test repositories from ACR
+        shell: pwsh
+        run: |
+          Write-Verbose -Verbose "Installing Az.ContainerRegistry module"
+          Install-Module -Name Az.ContainerRegistry -Force -Scope CurrentUser -AllowClobber
+
+          $registryName = 'psresourcegettest'
+          $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
+          $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
+          $repositoryNames = Get-Content -Path $acrRepositoryNamesFilePath
+          foreach ($name in $repositoryNames)
+          {
+            # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
+            Remove-AzContainerRegistryRepository -Name $name -RegistryName $registryName
+          }
+
+  # ---------------------------------------------------------------------------------------
+  # ADO: TestPkgWinPS - Windows PowerShell on Windows
+  # Kept as its own job (not a matrix leg of "test") because the `shell` step field does not
+  # support GitHub Actions expressions, so `powershell` must be hardcoded here.
+  # ---------------------------------------------------------------------------------------
+  test-winps:
+    name: Windows PowerShell on Windows
+    needs: build
+    runs-on: windows-latest
+    # Required for azure/login OIDC federated credential auth.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      # ADO: "Install Secret store" (condition: eq(useAzAuth, false))
+      - name: Install Secret store
+        shell: powershell
+        run: |
+          Install-Module -Name 'Microsoft.PowerShell.SecretManagement' -force -SkipPublisherCheck -AllowClobber
+          Install-Module -Name 'Microsoft.PowerShell.SecretStore' -force -SkipPublisherCheck -AllowClobber
+          $vaultPassword = ConvertTo-SecureString $("a!!"+ (Get-Random -Maximum ([int]::MaxValue))) -AsPlainText -Force
+          Set-SecretStoreConfiguration -Authentication None -Interaction None -Confirm:$false -Password $vaultPassword
+          Register-SecretVault -Name SecretStore -ModuleName Microsoft.PowerShell.SecretStore -DefaultVault
+
+      # ADO: task DownloadBuildArtifacts@0
+      - name: Download artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0 (fixes arbitrary file write vuln, patched >=4.1.3)
+        with:
+          name: Microsoft.PowerShell.PSResourceGet
+          path: ${{ runner.temp }}/artifacts
+
+      - name: Capture artifacts directory
+        shell: powershell
+        run: Get-ChildItem -Path "${{ runner.temp }}/artifacts"
+
+      # ADO: "Create temporary module path"
+      - name: Create temporary module path
+        shell: powershell
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          if (Test-Path -Path $modulePath) {
+            Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
+            Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
+          }
+          if (! (Test-Path -Path $modulePath)) {
+            Write-Verbose -Verbose "Creating new temp module path: $modulePath"
+            $null = New-Item -Path $modulePath -ItemType Directory
+          }
+
+      # ADO: "Install Microsoft.PowerShell.PSResourceGet and Pester"
+      - name: Install Microsoft.PowerShell.PSResourceGet and Pester
+        shell: powershell
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          Write-Verbose -Verbose "Install Microsoft.PowerShell.PSResourceGet to temp module path"
+          Save-Module -Name Microsoft.PowerShell.PSResourceGet -Path $modulePath -Force -Verbose
+          Write-Verbose -Verbose "Install Pester 4.X to temp module path"
+          Save-Module -Name "Pester" -MaximumVersion 4.99 -Path $modulePath -Force
+
+      # ADO: "Install module for test from downloaded artifact"
+      - name: Install module for test from downloaded artifact
+        shell: powershell
+        working-directory: ${{ github.workspace }}
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+          Import-Module -Name (Join-Path -Path '.' -ChildPath 'buildtools.psd1') -Force
+          #
+          Install-ModulePackageForTest -PackagePath "${{ runner.temp }}/artifacts" -ErrorAction stop -Verbose
+
+      # ADO: task AzurePowerShell@5 with azureSubscription: PSResourceGetACR -> azure/login OIDC
+      # See the PR description for step-by-step instructions on registering the Azure AD app,
+      # configuring its federated credentials, and creating the AZURE_* secrets this step requires.
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # ADO: "Setup Azure Artifacts Credential Provider secret" (condition: useAzAuth == false)
+      - name: Setup Azure Artifacts Credential Provider secret
+        shell: pwsh
+        run: |
+          Write-Verbose -Verbose "Installing Az.Accounts module"
+          Install-Module -Name Az.Accounts -Force -Scope CurrentUser -AllowClobber
+
+          Write-Verbose -Verbose "Setting up secret for Azure Artifacts Credential Provider"
+          $azt = (Get-AzAccessToken).Token | ConvertFrom-SecureString -AsPlainText
+
+          Write-Verbose -Verbose "Setting up Azure Artifacts Credential Provider secret"
+
+          $ADORepoName = "psrg-credprovidertest"
+          $ADORepoUri = "https://pkgs.dev.azure.com/powershell-rel/PSResourceGet/_packaging/psrg-credprovidertest/nuget/v2"
+
+          $endpointCredsObj = @{ endpointCredentials = @( @{ endpoint = $ADORepoUri; password = $azt })}
+          $VSS_NUGET_EXTERNAL_FEED_ENDPOINTS = $endpointCredsObj | ConvertTo-Json -Compress
+
+          Write-Verbose -Verbose "Setting VSS_NUGET_EXTERNAL_FEED_ENDPOINTS environment variable"
+
+          "VSS_NUGET_EXTERNAL_FEED_ENDPOINTS=$VSS_NUGET_EXTERNAL_FEED_ENDPOINTS" >> $env:GITHUB_ENV
+
+      # ADO: "Install latest DSC v3" - uses secrets.GITHUB_TOKEN (built-in, no new secret needed)
+      - name: Install latest DSC v3
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $repo = "PowerShell/DSC"
+          $api  = "https://api.github.com/repos/$repo/releases"
+
+          $headers = @{
+              "User-Agent" = "pwsh"
+              "Accept"     = "application/vnd.github+json"
+              "Authorization" = "******"
+          }
+
+          # Get releases
+          $releases = Invoke-RestMethod -Uri $api -Headers $headers -RetryIntervalSec 30 -MaximumRetryCount 10
+
+          # Pick latest by publish date (handles prerelease vs stable automatically)
+          $latest = $releases |
+              Sort-Object published_at -Descending |
+              Select-Object -First 1
+
+          Write-Host "Latest version: $($latest.tag_name) (prerelease=$($latest.prerelease))"
+
+          if ($IsWindows) {
+              $assetFilter = "x86_64-pc-windows-msvc"
+          }
+          elseif ($IsMacOs) {
+              $assetFilter = "x86_64-apple-darwin"
+          }
+          else {
+              $assetFilter = "x86_64-linux"
+          }
+
+          $assets = $latest.assets |
+              Where-Object { $_.name -match $assetFilter }
+
+          Write-Host "Filtered assets: $($assets.Count)"
+
+          $selectedAsset = $assets | Select-Object -First 1
+
+          Write-Host "Selected asset: $($selectedAsset.name)"
+
+          $outFile = Join-Path $PWD $selectedAsset.name
+
+          Write-Host "Downloading $($selectedAsset.name)"
+
+          Invoke-WebRequest `
+              -Uri $selectedAsset.browser_download_url `
+              -Headers @{ "User-Agent"="pwsh" } `
+              -OutFile $outFile
+
+          if ($IsWindows) {
+            Expand-Archive -Path $outFile -DestinationPath $env:RUNNER_TEMP -Force -Verbose
+          }
+          else {
+            tar -xzf $outFile -C $env:RUNNER_TEMP
+          }
+
+          $executableName = 'dsc'
+          $executableExt = if ($IsWindows) { '.exe' } else { '' }
+
+          $executableFileName = $executableName + $executableExt
+
+          $executable = Get-ChildItem -Path $env:RUNNER_TEMP -File -Recurse -Verbose | Where-Object { $_.Name -eq $executableFileName } | Select-Object -First 1
+
+          if (-not $executable) {
+            throw "Could not find dsc executable in the downloaded package"
+          }
+
+          $dscRoot = Split-Path -Path $executable.FullName -Parent
+
+          "DSC_ROOT=$dscRoot" >> $env:GITHUB_ENV
+
+      - name: Capture environment
+        shell: pwsh
+        run: Get-ChildItem -Path "env:" | Out-String -Width 9999 -Stream | Write-Verbose -Verbose
+
+      # ADO: "Setup Azure Container Registry secret" (condition: useAzAuth == false)
+      - name: Setup Azure Container Registry secret
+        shell: pwsh
+        run: |
+          Write-Verbose -Verbose "Installing Az.Accounts module"
+          Install-Module -Name Az.Accounts -Force -Scope CurrentUser -AllowClobber
+
+          Write-Verbose -Verbose "Getting Azure Container Registry"
+          Get-AzContainerRegistry -ResourceGroupName 'PSResourceGet' -Name 'psresourcegettest' | Select-Object -Property *
+          Write-Verbose -Verbose "Setting up secret for Azure Container Registry"
+          $azt = Get-AzAccessToken
+          $tenantId = $azt.TenantId
+          Set-Secret -Name $tenantId -Secret $azt.Token -Verbose
+          "TenantId=$tenantId" >> $env:GITHUB_ENV
+
+      # ADO: "Upload empty file for ACR functional tests to write test repository names to"
+      - name: Create empty file for ACR functional tests to write test repository names to
+        shell: pwsh
+        run: |
+          $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
+          Write-Verbose -Verbose "Creating new folder for acr repository names file to be placed with path: $acrRepositoryNamesFolder"
+          $null = New-Item -Path $acrRepositoryNamesFolder -ItemType Directory
+          $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
+          New-Item -Path $acrRepositoryNamesFilePath
+
+      # ADO: "Execute functional tests" (condition: useAzAuth == false, errorActionPreference: continue)
+      - name: Execute functional tests
+        shell: powershell
+        working-directory: ${{ github.workspace }}
+        continue-on-error: true
+        env:
+          MAPPED_GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+          MAPPED_ADO_PUBLIC_PAT: ${{ secrets.ADO_PUBLIC_PAT }}
+          MAPPED_ADO_PRIVATE_PAT: ${{ secrets.ADO_PRIVATE_PAT }}
+          MAPPED_ADO_PRIVATE_REPO_URL: ${{ secrets.ADO_PRIVATE_REPO_URL }}
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+          Import-Module -Name (Join-Path -Path '.' -ChildPath 'buildtools.psd1') -Force
+          Invoke-ModuleTests -Type Functional
+
+      # ADO: "Delete test repositories from ACR"
+      - name: Delete test repositories from ACR
+        shell: pwsh
+        run: |
+          Write-Verbose -Verbose "Installing Az.ContainerRegistry module"
+          Install-Module -Name Az.ContainerRegistry -Force -Scope CurrentUser -AllowClobber
+
+          $registryName = 'psresourcegettest'
+          $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
+          $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
+          $repositoryNames = Get-Content -Path $acrRepositoryNamesFilePath
+          foreach ($name in $repositoryNames)
+          {
+            # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
+            Remove-AzContainerRegistryRepository -Name $name -RegistryName $registryName
+          }
+
+  # ---------------------------------------------------------------------------------------
+  # ADO: TestPkgWinAzAuth - AzAuth PowerShell Core on Windows
+  # Kept as a separate job because its steps diverge significantly from the matrix above
+  # (no secret store, sets UsingAzAuth env var, uses Invoke-ModuleTestsACR instead of
+  # Invoke-ModuleTests).
+  # ---------------------------------------------------------------------------------------
+  test-azauth:
+    name: AzAuth PowerShell Core on Windows
+    needs: build
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      # ADO: task DownloadBuildArtifacts@0
+      - name: Download artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0 (fixes arbitrary file write vuln, patched >=4.1.3)
+        with:
+          name: Microsoft.PowerShell.PSResourceGet
+          path: ${{ runner.temp }}/artifacts
+
+      - name: Capture artifacts directory
+        shell: pwsh
+        run: Get-ChildItem -Path "${{ runner.temp }}/artifacts"
+
+      # ADO: "Create temporary module path"
+      - name: Create temporary module path
+        shell: pwsh
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          if (Test-Path -Path $modulePath) {
+            Write-Verbose -Verbose "Deleting existing temp module path: $modulePath"
+            Remove-Item -Path $modulePath -Recurse -Force -ErrorAction Ignore
+          }
+          if (! (Test-Path -Path $modulePath)) {
+            Write-Verbose -Verbose "Creating new temp module path: $modulePath"
+            $null = New-Item -Path $modulePath -ItemType Directory
+          }
+
+      # ADO: "Install Microsoft.PowerShell.PSResourceGet and Pester"
+      - name: Install Microsoft.PowerShell.PSResourceGet and Pester
+        shell: pwsh
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          Write-Verbose -Verbose "Install Microsoft.PowerShell.PSResourceGet to temp module path"
+          Save-Module -Name Microsoft.PowerShell.PSResourceGet -Path $modulePath -Force -Verbose
+          Write-Verbose -Verbose "Install Pester 4.X to temp module path"
+          Save-Module -Name "Pester" -MaximumVersion 4.99 -Path $modulePath -Force
+
+      # ADO: "Install module for test from downloaded artifact"
+      - name: Install module for test from downloaded artifact
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+          Import-Module -Name (Join-Path -Path '.' -ChildPath 'buildtools.psd1') -Force
+          #
+          Install-ModulePackageForTest -PackagePath "${{ runner.temp }}/artifacts" -ErrorAction stop -Verbose
+
+      # ADO: task AzurePowerShell@5 with azureSubscription: PSResourceGetACR -> azure/login OIDC
+      # See the PR description for step-by-step instructions on registering the Azure AD app,
+      # configuring its federated credentials, and creating the AZURE_* secrets this step requires.
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # ADO: "Install latest DSC v3" - uses secrets.GITHUB_TOKEN (built-in, no new secret needed)
+      - name: Install latest DSC v3
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $repo = "PowerShell/DSC"
+          $api  = "https://api.github.com/repos/$repo/releases"
+
+          $headers = @{
+              "User-Agent" = "pwsh"
+              "Accept"     = "application/vnd.github+json"
+              "Authorization" = "******"
+          }
+
+          # Get releases
+          $releases = Invoke-RestMethod -Uri $api -Headers $headers -RetryIntervalSec 30 -MaximumRetryCount 10
+
+          # Pick latest by publish date (handles prerelease vs stable automatically)
+          $latest = $releases |
+              Sort-Object published_at -Descending |
+              Select-Object -First 1
+
+          Write-Host "Latest version: $($latest.tag_name) (prerelease=$($latest.prerelease))"
+
+          if ($IsWindows) {
+              $assetFilter = "x86_64-pc-windows-msvc"
+          }
+          elseif ($IsMacOs) {
+              $assetFilter = "x86_64-apple-darwin"
+          }
+          else {
+              $assetFilter = "x86_64-linux"
+          }
+
+          $assets = $latest.assets |
+              Where-Object { $_.name -match $assetFilter }
+
+          Write-Host "Filtered assets: $($assets.Count)"
+
+          $selectedAsset = $assets | Select-Object -First 1
+
+          Write-Host "Selected asset: $($selectedAsset.name)"
+
+          $outFile = Join-Path $PWD $selectedAsset.name
+
+          Write-Host "Downloading $($selectedAsset.name)"
+
+          Invoke-WebRequest `
+              -Uri $selectedAsset.browser_download_url `
+              -Headers @{ "User-Agent"="pwsh" } `
+              -OutFile $outFile
+
+          if ($IsWindows) {
+            Expand-Archive -Path $outFile -DestinationPath $env:RUNNER_TEMP -Force -Verbose
+          }
+          else {
+            tar -xzf $outFile -C $env:RUNNER_TEMP
+          }
+
+          $executableName = 'dsc'
+          $executableExt = if ($IsWindows) { '.exe' } else { '' }
+
+          $executableFileName = $executableName + $executableExt
+
+          $executable = Get-ChildItem -Path $env:RUNNER_TEMP -File -Recurse -Verbose | Where-Object { $_.Name -eq $executableFileName } | Select-Object -First 1
+
+          if (-not $executable) {
+            throw "Could not find dsc executable in the downloaded package"
+          }
+
+          $dscRoot = Split-Path -Path $executable.FullName -Parent
+
+          "DSC_ROOT=$dscRoot" >> $env:GITHUB_ENV
+
+      - name: Capture environment
+        shell: pwsh
+        run: Get-ChildItem -Path "env:" | Out-String -Width 9999 -Stream | Write-Verbose -Verbose
+
+      # ADO: "Set UsingAzAuth environment variable" (condition: useAzAuth == true)
+      - name: Set UsingAzAuth environment variable
+        shell: powershell
+        run: |
+          "UsingAzAuth=true" >> $env:GITHUB_ENV
+
+      # ADO: "Upload empty file for ACR functional tests to write test repository names to"
+      - name: Create empty file for ACR functional tests to write test repository names to
+        shell: pwsh
+        run: |
+          $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
+          Write-Verbose -Verbose "Creating new folder for acr repository names file to be placed with path: $acrRepositoryNamesFolder"
+          $null = New-Item -Path $acrRepositoryNamesFolder -ItemType Directory
+          $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
+          New-Item -Path $acrRepositoryNamesFilePath
+
+      # ADO: "Execute functional tests with AzAuth" (condition: useAzAuth == true)
+      - name: Execute functional tests with AzAuth
+        shell: pwsh
+        env:
+          MAPPED_GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+          MAPPED_ADO_PUBLIC_PAT: ${{ secrets.ADO_PUBLIC_PAT }}
+          MAPPED_ADO_PRIVATE_PAT: ${{ secrets.ADO_PRIVATE_PAT }}
+          MAPPED_ADO_PRIVATE_REPO_URL: ${{ secrets.ADO_PRIVATE_REPO_URL }}
+        run: |
+          $modulePath = Join-Path -Path $env:RUNNER_TEMP -ChildPath 'TempModules'
+          $env:PSModulePath = $modulePath + [System.IO.Path]::PathSeparator + $env:PSModulePath
+
+          Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
+          Import-Module -Name (Join-Path -Path '.' -ChildPath 'buildtools.psd1') -Force
+          Invoke-ModuleTestsACR -Type Functional
+
+      # ADO: "Delete test repositories from ACR"
+      - name: Delete test repositories from ACR
+        shell: pwsh
+        run: |
+          Write-Verbose -Verbose "Installing Az.ContainerRegistry module"
+          Install-Module -Name Az.ContainerRegistry -Force -Scope CurrentUser -AllowClobber
+
+          $registryName = 'psresourcegettest'
+          $acrRepositoryNamesFolder = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath 'TempModules'
+          $acrRepositoryNamesFilePath = Join-Path -Path $acrRepositoryNamesFolder -ChildPath 'ACRTestRepositoryNames.txt'
+          $repositoryNames = Get-Content -Path $acrRepositoryNamesFilePath
+          foreach ($name in $repositoryNames)
+          {
+            # Delete images in the repository (including tags, unique layers, manifests) created for ACR tests
+            Remove-AzContainerRegistryRepository -Name $name -RegistryName $registryName
+          }
