@@ -1068,7 +1068,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 var tempDirNameVersion = Path.Combine(tempInstallPath, pkgName, pkgVersion);
                 Directory.CreateDirectory(tempDirNameVersion);
 
-                if (!TryExtractToDirectory(pathToFile, tempDirNameVersion, out ErrorRecord error))
+                if (!TryExtractToDirectory(pathToFile, tempDirNameVersion, warningMsgs, debugMsgs, out ErrorRecord error))
                 {
                     Utils.EnqueueIfNotNull(errorMsgs, error);
                     return false;
@@ -1296,7 +1296,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// - Root-level RID folder entries (e.g., win-x64/) based on the current platform's RID
         /// - lib/{tfm}/ entries to only extract the best matching Target Framework Moniker
         /// </summary>
-        private bool TryExtractToDirectory(string zipPath, string extractPath, out ErrorRecord error)
+        /// <remarks>
+        /// This method may run on a background thread (via Parallel.ForEach), so it must not call
+        /// cmdlet Write* methods directly. Messages are enqueued and written out by the pipeline thread.
+        /// </remarks>
+        private bool TryExtractToDirectory(
+            string zipPath,
+            string extractPath,
+            ConcurrentQueue<string> warningMsgs,
+            ConcurrentQueue<string> debugMsgs,
+            out ErrorRecord error)
         {
             error = null;
             // Normalize the path
@@ -1321,24 +1330,24 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         bestLibFramework = NuGetFramework.ParseFolder(_targetFramework);
                         if (bestLibFramework == null || bestLibFramework.IsUnsupported)
                         {
-                            _cmdletPassedIn.WriteDebug($"Could not parse specified TargetFramework '{_targetFramework}', falling back to auto-detection.");
-                            bestLibFramework = GetBestLibFramework(archive);
+                            debugMsgs.Enqueue($"Could not parse specified TargetFramework '{_targetFramework}', falling back to auto-detection.");
+                            bestLibFramework = GetBestLibFramework(archive, debugMsgs);
                         }
                         else
                         {
-                            _cmdletPassedIn.WriteDebug($"Using user-specified TargetFramework: {bestLibFramework.GetShortFolderName()}");
+                            debugMsgs.Enqueue($"Using user-specified TargetFramework: {bestLibFramework.GetShortFolderName()}");
                         }
                     }
                     else
                     {
-                        bestLibFramework = GetBestLibFramework(archive);
+                        bestLibFramework = GetBestLibFramework(archive, debugMsgs);
                     }
 
                     // Warn if TFM filtering is skipping assemblies for a different .NET lineage
                     // (e.g., installing on PS7/.NET 8 but package also has net472 for WinPS 5.1)
                     if (bestLibFramework != null)
                     {
-                        WarnIfCrossLineageTfmSkipped(archive, bestLibFramework);
+                        WarnIfCrossLineageTfmSkipped(archive, bestLibFramework, warningMsgs);
                     }
 
                     foreach (ZipArchiveEntry entry in archive.Entries.Where(entry => entry.CompressedLength > 0))
@@ -1351,7 +1360,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                             if (!includeEntry)
                             {
-                                _cmdletPassedIn.WriteDebug($"Skipping runtime entry not matching target platform: {entry.FullName}");
+                                debugMsgs.Enqueue($"Skipping runtime entry not matching target platform: {entry.FullName}");
                                 continue;
                             }
                         }
@@ -1359,7 +1368,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         // TFM filtering: for lib/ entries, only extract the best matching TFM
                         if (bestLibFramework != null && !ShouldIncludeLibEntry(entry.FullName, bestLibFramework))
                         {
-                            _cmdletPassedIn.WriteDebug($"Skipping lib entry not matching target framework: {entry.FullName}");
+                            debugMsgs.Enqueue($"Skipping lib entry not matching target framework: {entry.FullName}");
                             continue;
                         }
 
@@ -1412,7 +1421,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                                 .Select(s => s[1])
                                 .Distinct(StringComparer.OrdinalIgnoreCase);
                             string available = string.Join(", ", availableTfms);
-                            _cmdletPassedIn.WriteWarning(
+                            warningMsgs.Enqueue(
                                 $"The specified TargetFramework '{_targetFramework}' was not found in this package. " +
                                 $"No lib/ assemblies were installed. Available TFMs: {(string.IsNullOrEmpty(available) ? "none" : available)}");
                         }
@@ -1427,7 +1436,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         if (!hasMatchingRid)
                         {
                             string available = string.Join(", ", availableRids);
-                            _cmdletPassedIn.WriteWarning(
+                            warningMsgs.Enqueue(
                                 $"The specified RuntimeIdentifier '{_runtimeIdentifier}' was not found in this package. " +
                                 $"No platform-specific assets were installed. Available RIDs: {(string.IsNullOrEmpty(available) ? "none" : available)}");
                         }
@@ -1454,7 +1463,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         /// <param name="archive">The zip archive to analyze.</param>
         /// <returns>The best matching NuGetFramework, or null if no lib/ folders exist or no match is found.</returns>
-        private NuGetFramework GetBestLibFramework(ZipArchive archive)
+        private NuGetFramework GetBestLibFramework(ZipArchive archive, ConcurrentQueue<string> debugMsgs)
         {
             // Collect all TFMs from lib/ folder entries
             var libFrameworks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -1504,14 +1513,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                 if (bestMatch != null)
                 {
-                    _cmdletPassedIn.WriteDebug($"Selected best matching TFM: {bestMatch.GetShortFolderName()} (from {string.Join(", ", libFrameworks)})");
+                    debugMsgs.Enqueue($"Selected best matching TFM: {bestMatch.GetShortFolderName()} (from {string.Join(", ", libFrameworks)})");
                 }
 
                 return bestMatch;
             }
             catch (Exception e)
             {
-                _cmdletPassedIn.WriteDebug($"TFM selection failed, extracting all lib/ folders: {e.Message}");
+                debugMsgs.Enqueue($"TFM selection failed, extracting all lib/ folders: {e.Message}");
                 return null;
             }
         }
@@ -1609,7 +1618,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// .NET Framework assemblies (net472), those will be skipped — which means the module
         /// won't work if later used on Windows PowerShell 5.1.
         /// </summary>
-        private void WarnIfCrossLineageTfmSkipped(ZipArchive archive, NuGetFramework bestFramework)
+        private void WarnIfCrossLineageTfmSkipped(ZipArchive archive, NuGetFramework bestFramework, ConcurrentQueue<string> warningMsgs)
         {
             try
             {
@@ -1653,7 +1662,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     string skippedList = string.Join(", ", skippedLineageTfms);
                     string otherHost = bestIsNetCore ? "Windows PowerShell 5.1" : "PowerShell 7+";
                     string skippedTfm = skippedLineageTfms.First();
-                    _cmdletPassedIn.WriteWarning(
+                    warningMsgs.Enqueue(
                         $"This package contains assemblies for {skippedList} which were not installed because " +
                         $"the current runtime selected {bestFramework.GetShortFolderName()}. " +
                         $"If you also use this module on {otherHost}, run: Install-PSResource -Name <ModuleName> -TargetFramework '{skippedTfm}'");
