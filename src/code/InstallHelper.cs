@@ -874,8 +874,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (!skipDependencyCheck)
             {
                 // List returned only includes dependencies, so we'll add the parent pkg to this list to pass on to installation method.
-                parentAndDeps.AddRange(_findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs));
+                IEnumerable<PSResourceInfo> depPkgs = _findHelper.FindDependencyPackages(currentServer, currentResponseUtil, pkgToInstall, repository, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
                 debugMsgs.Enqueue("In InstallHelper::DownloadParentAndDeps(), found all dependencies");
+
+                // Do not reinstall dependencies that are already installed, unless -Reinstall was specified or an explicit
+                // -TargetFramework/-RuntimeIdentifier requires re-downloading to merge additional platform content.
+                // _packagesOnMachine is only mutated on the pipeline thread after this parallel phase, so reading it here is safe.
+                bool skipInstalledDeps = !_reinstall && string.IsNullOrEmpty(_targetFramework) && string.IsNullOrEmpty(_runtimeIdentifier);
+                foreach (PSResourceInfo depPkg in depPkgs)
+                {
+                    if (skipInstalledDeps && _packagesOnMachine != null)
+                    {
+                        string depPkgVersion = string.IsNullOrEmpty(depPkg.Prerelease) ? depPkg.Version.ToString() : $"{depPkg.Version}-{depPkg.Prerelease}";
+                        if (_packagesOnMachine.Contains($"{depPkg.Name}{depPkgVersion}"))
+                        {
+                            verboseMsgs.Enqueue($"Dependency '{depPkg.Name}' with version '{depPkgVersion}' is already installed.");
+                            continue;
+                        }
+                    }
+
+                    parentAndDeps.Add(depPkg);
+                }
             }
 
             parentAndDeps.Add(pkgToInstall);
