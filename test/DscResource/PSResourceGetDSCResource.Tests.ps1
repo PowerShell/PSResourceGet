@@ -50,6 +50,23 @@ function SetupTestRepos {
     New-TestModule -moduleName $script:testModuleName3 -repoName $script:localRepo -packageVersion "1.0.0" -prereleaseLabel "" -tags @()
 }
 
+function ResetDscTestModules {
+    # Remove the local test modules so that a test does not depend on the state left by another test
+    foreach ($moduleToRemove in @($script:testModuleName, $script:testModuleName2, $script:testModuleName3)) {
+        Uninstall-PSResource -Name $moduleToRemove -ErrorAction SilentlyContinue
+    }
+}
+
+function InvokePSResourceListOperation {
+    param(
+        [string]$Operation,
+        [hashtable]$Properties
+    )
+
+    $resourceInput = $Properties | ConvertTo-Json -Depth 5
+    & $script:dscExe resource $Operation --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+}
+
 Describe "DSC resource schema tests" -tags 'CI' {
     BeforeAll {
 
@@ -77,6 +94,18 @@ Describe "DSC resource schema tests" -tags 'CI' {
 
         $pkgResource = & $script:dscExe resource list Microsoft.PowerShell.PSResourceGet/PSResourceList -o json | convertfrom-json  | select-object -ExpandProperty type
         $pkgResource | Should -BeExactly 'Microsoft.PowerShell.PSResourceGet/PSResourceList'
+    }
+
+    It 'DSC v3 resources are loaded from the build output' -Skip:$skipTest {
+        # DSC can also discover the resources of an installed PSResourceGet module. The manifest versions are the same,
+        # so that copy can win and the tests would then not run against the resources that were just built.
+        $expectedModulePath = (Resolve-Path -Path (Join-Path $env:BUILD_SOURCESDIRECTORY 'out')).Path
+        $resources = & $script:dscExe resource list 'Microsoft.PowerShell.PSResourceGet/*' -o json | ConvertFrom-Json
+
+        $resources | Should -Not -BeNullOrEmpty
+        foreach ($resource in $resources) {
+            $resource.directory | Should -BeLike "$expectedModulePath*" -Because "the tests have to run against the built resources. Set DSC_RESOURCE_PATH to the module folder in 'out' (and the folder of pwsh) when another copy is discovered"
+        }
     }
 
     It 'Repository resource has expected properties' {
@@ -180,6 +209,23 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
         $outputText | Should -Match 'requires'
         $outputText | Should -Not -Match 'Cannot bind argument to parameter'
         $outputText | Should -Not -Match 'Unhandled exception'
+    }
+
+    It 'Shows the error message when an operation fails' {
+        # The uri scheme is not supported, so registering the repository fails without changing anything
+        $repoParams = @{
+            name = 'TestRepoWithInvalidUri'
+            uri  = 'ssh://www.doesnotexist.com/repo'
+        }
+
+        $resourceInput = $repoParams | ConvertTo-Json -Depth 5
+
+        # The default trace level has to show the reason, and not only the description of the exit code
+        $output = & $script:dscExe resource set --resource Microsoft.PowerShell.PSResourceGet/Repository --input $resourceInput 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        $output | Out-String | Should -Match 'Invalid Uri'
+
+        Get-PSResourceRepository -Name 'TestRepoWithInvalidUri' -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
     }
 
     It 'Can delete a Repository resource instance' {
@@ -443,6 +489,25 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
         $getResult.actualState.resources[0].name | Should -BeExactly $script:testModuleName
         $getResult.actualState.resources[0].version | Should -BeExactly '5.0.0'
         $getResult.actualState.resources[0]._exist | Should -BeTrue
+    }
+
+    It 'Test returns one state and one diff when the repository does not exist' {
+        $resourceInput = @{
+            repositoryName = 'RepositoryThatDoesNotExist'
+            resources      = @(@{ name = $script:testModuleName })
+        } | ConvertTo-Json -Depth 5 -Compress
+
+        $testResult = & $script:dscExe resource test --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $LASTEXITCODE | Should -Be 0
+        $testResult.inDesiredState | Should -BeFalse
+
+        # DSC only reads the first two lines of the output, so invoke the resource script directly to verify all of it
+        $resourceDirectory = (& $script:dscExe resource list Microsoft.PowerShell.PSResourceGet/PSResourceList -o json | ConvertFrom-Json).directory
+        $resourceScript = Join-Path -Path $resourceDirectory -ChildPath 'psresourceget.ps1'
+        $stdout = $resourceInput | pwsh -NoLogo -NonInteractive -NoProfile -Command "`$Input | & '$resourceScript' -ResourceType psresourcelist -Operation test" 2>$null
+
+        @($stdout).Count | Should -Be 2
+        ($stdout[0] | ConvertFrom-Json)._inDesiredState | Should -BeFalse
     }
 }
 
@@ -763,5 +828,325 @@ resources:
 
         $result = $out.results.result[0].afterState
         $result.resources[0]._metadata | Should -BeNullOrEmpty
+    }
+
+    It 'What-if only reports the version that is not installed when a resource is listed twice' {
+        Uninstall-PSResource -Name $script:testModuleName -ErrorAction SilentlyContinue
+        Install-PSResource -Name $script:testModuleName -Version '1.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        $config_yaml = @"
+`$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+resources:
+- name: PSResourceList what-if same resource twice
+  type: Microsoft.PowerShell.PSResourceGet/PSResourceList
+  properties:
+    repositoryName: $script:localRepo
+    trustedRepository: true
+    resources:
+    - name: $script:testModuleName
+      version: '[[1.0.0,2.0.0)'
+    - name: $script:testModuleName
+      version: '[[5.0.0,6.0.0)'
+"@
+
+        $out = & $script:dscExe config set --what-if --input $config_yaml 2>$TestDrive/error.log | ConvertFrom-Json
+        $LASTEXITCODE | Should -Be 0 -Because (Get-Content -Path $TestDrive/error.log -Raw)
+
+        $result = $out.results.result[0].afterState
+        $result.resources.Count | Should -Be 2
+        $result.resources[0]._exist | Should -BeTrue
+        $result.resources[0]._metadata | Should -BeNullOrEmpty
+        $result.resources[1]._metadata.whatIf[0] | Should -Match 'Would install'
+
+        Get-PSResource -Name $script:testModuleName -Version '5.0.0' -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'PSResourceList desired state tests' -Tags 'CI' {
+    BeforeAll {
+        $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
+
+        if ($skipTest) {
+            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $PSDefaultParameterValues['it:skip'] = $skipTest
+            return
+        }
+
+        SetupDsc
+        SetupTestRepos
+
+        ## The tests install modules in-process to set up the state. DSC uses PowerShell 7, which does not see modules installed by Windows PowerShell.
+        $isOnWindowsPowerShell = $PSVersionTable.PSVersion.Major -lt 6
+
+        $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+        $PSDefaultParameterValues['it:skip'] = $isOnWindowsPowerShell
+    }
+
+    AfterAll {
+        $global:PSDefaultParameterValues = $originalDefaultParameterValues
+
+        if ($skipTest) {
+            return
+        }
+
+        ResetDscTestModules
+        Get-RevertPSResourceRepositoryFile
+    }
+
+    It 'Test checks every resource and not only the first one' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        $installed = @{ name = $script:testModuleName; version = '5.0.0' }
+        $notInstalled = @{ name = $script:testModuleName3; version = '1.0.0' }
+
+        $testResult = InvokePSResourceListOperation -Operation test -Properties @{ repositoryName = $script:localRepo; resources = @($installed, $notInstalled) }
+        $testResult.inDesiredState | Should -BeFalse
+
+        $testResult = InvokePSResourceListOperation -Operation test -Properties @{ repositoryName = $script:localRepo; resources = @($notInstalled, $installed) }
+        $testResult.inDesiredState | Should -BeFalse
+    }
+
+    It 'Test is in desired state regardless of the order of the resources' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        Install-PSResource -Name $script:testModuleName2 -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        Install-PSResource -Name $script:testModuleName3 -Version '1.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        $first = @{ name = $script:testModuleName; version = '5.0.0' }
+        $second = @{ name = $script:testModuleName2 }
+        $third = @{ name = $script:testModuleName3; version = '[1.0.0,2.0.0)' }
+
+        $testResult = InvokePSResourceListOperation -Operation test -Properties @{ repositoryName = $script:localRepo; resources = @($first, $second, $third) }
+        $testResult.inDesiredState | Should -BeTrue
+
+        $testResult = InvokePSResourceListOperation -Operation test -Properties @{ repositoryName = $script:localRepo; resources = @($third, $first, $second) }
+        $testResult.inDesiredState | Should -BeTrue
+    }
+
+    It 'Test is in desired state for an installed resource without a version' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        $testResult = InvokePSResourceListOperation -Operation test -Properties @{
+            repositoryName = $script:localRepo
+            resources      = @(@{ name = $script:testModuleName })
+        }
+
+        $testResult.inDesiredState | Should -BeTrue
+    }
+
+    It 'Test is in desired state when the version that should not exist is not installed' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        $testResult = InvokePSResourceListOperation -Operation test -Properties @{
+            repositoryName = $script:localRepo
+            resources      = @(@{ name = $script:testModuleName; version = '[1.0.0,2.0.0)'; _exist = $false })
+        }
+
+        $testResult.inDesiredState | Should -BeTrue
+    }
+
+    It 'Set installs a resource without a version and does not install it again' {
+        ResetDscTestModules
+
+        $properties = @{
+            repositoryName    = $script:localRepo
+            trustedRepository = $true
+            resources         = @(@{ name = $script:testModuleName3 })
+        }
+
+        $setResult = InvokePSResourceListOperation -Operation set -Properties $properties
+        $LASTEXITCODE | Should -Be 0
+        $setResult.changedProperties | Should -Contain 'resources'
+
+        $installed = Get-PSResource -Name $script:testModuleName3
+        $installed.Version | Should -Be '1.0.0'
+
+        $setResult = InvokePSResourceListOperation -Operation set -Properties $properties
+        $LASTEXITCODE | Should -Be 0
+        $setResult.changedProperties | Should -BeNullOrEmpty
+        (Get-PSResource -Name $script:testModuleName3).InstalledDate | Should -Be $installed.InstalledDate
+    }
+
+    It 'Set does not install resources again that are in desired state' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        Install-PSResource -Name $script:testModuleName2 -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        $installedDates = (Get-PSResource -Name $script:testModuleName, $script:testModuleName2).InstalledDate
+
+        $setResult = InvokePSResourceListOperation -Operation set -Properties @{
+            repositoryName    = $script:localRepo
+            trustedRepository = $true
+            resources         = @(
+                @{ name = $script:testModuleName; version = '5.0.0' },
+                @{ name = $script:testModuleName2; version = '5.0.0' }
+            )
+        }
+
+        $LASTEXITCODE | Should -Be 0
+        $setResult.changedProperties | Should -BeNullOrEmpty
+        (Get-PSResource -Name $script:testModuleName, $script:testModuleName2).InstalledDate | Should -Be $installedDates
+    }
+
+    It 'Set only uninstalls the resource that should not exist' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '1.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        Install-PSResource -Name $script:testModuleName2 -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        $installedDate = (Get-PSResource -Name $script:testModuleName -Version '5.0.0').InstalledDate
+
+        $null = InvokePSResourceListOperation -Operation set -Properties @{
+            repositoryName    = $script:localRepo
+            trustedRepository = $true
+            resources         = @(
+                @{ name = $script:testModuleName; version = '5.0.0' },
+                @{ name = $script:testModuleName2; _exist = $false }
+            )
+        }
+
+        $LASTEXITCODE | Should -Be 0
+        Get-PSResource -Name $script:testModuleName2 -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+        Get-PSResource -Name $script:testModuleName | Should -HaveCount 2
+        (Get-PSResource -Name $script:testModuleName -Version '5.0.0').InstalledDate | Should -Be $installedDate
+    }
+
+    It 'Set only uninstalls the version that should not exist' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '1.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        $installedDate = (Get-PSResource -Name $script:testModuleName -Version '5.0.0').InstalledDate
+
+        $null = InvokePSResourceListOperation -Operation set -Properties @{
+            repositoryName    = $script:localRepo
+            trustedRepository = $true
+            resources         = @(
+                @{ name = $script:testModuleName; version = '5.0.0' },
+                @{ name = $script:testModuleName; version = '[1.0.0,2.0.0)'; _exist = $false }
+            )
+        }
+
+        $LASTEXITCODE | Should -Be 0
+        $installed = Get-PSResource -Name $script:testModuleName
+        $installed | Should -HaveCount 1
+        $installed.Version | Should -Be '5.0.0'
+        $installed.InstalledDate | Should -Be $installedDate
+    }
+
+    It 'Set uninstalls a resource from the scope it is installed in' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        # The scope of the last resource must not be used for the other resources
+        $null = InvokePSResourceListOperation -Operation set -Properties @{
+            repositoryName = $script:localRepo
+            resources      = @(
+                @{ name = $script:testModuleName; _exist = $false },
+                @{ name = $script:testModuleName3; scope = 'AllUsers'; _exist = $false }
+            )
+        }
+
+        $LASTEXITCODE | Should -Be 0
+        Get-PSResource -Name $script:testModuleName -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+    }
+
+    It 'Set installs a resource in its own scope' {
+        ResetDscTestModules
+
+        try {
+            # The scope of the last resource must not be used for the other resources
+            $null = InvokePSResourceListOperation -Operation set -Properties @{
+                repositoryName    = $script:localRepo
+                trustedRepository = $true
+                resources         = @(
+                    @{ name = $script:testModuleName; version = '5.0.0' },
+                    @{ name = $script:testModuleName3; scope = 'AllUsers'; _exist = $false }
+                )
+            }
+
+            $LASTEXITCODE | Should -Be 0
+            Get-PSResource -Name $script:testModuleName -Scope CurrentUser -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+            Get-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+        }
+        finally {
+            Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'Set installs a resource in the AllUsers scope - Windows only' -Skip:(!((Get-IsWindows) -and (Test-IsAdmin)) -or $PSVersionTable.PSVersion.Major -lt 6) {
+        ResetDscTestModules
+        Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
+
+        try {
+            $null = InvokePSResourceListOperation -Operation set -Properties @{
+                repositoryName    = $script:localRepo
+                trustedRepository = $true
+                resources         = @(
+                    @{ name = $script:testModuleName; version = '5.0.0'; scope = 'AllUsers' },
+                    @{ name = $script:testModuleName3; _exist = $false }
+                )
+            }
+
+            $LASTEXITCODE | Should -Be 0
+            Get-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+            Get-PSResource -Name $script:testModuleName -Scope CurrentUser -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+        }
+        finally {
+            Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'Set converges on the AllUsers scope when the resource is already installed for the current user - Windows only' -Skip:(!((Get-IsWindows) -and (Test-IsAdmin)) -or $PSVersionTable.PSVersion.Major -lt 6) {
+        ResetDscTestModules
+        Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        try {
+            $properties = @{
+                repositoryName    = $script:localRepo
+                trustedRepository = $true
+                resources         = @(@{ name = $script:testModuleName; scope = 'AllUsers' })
+            }
+
+            $setResult = InvokePSResourceListOperation -Operation set -Properties $properties
+            $LASTEXITCODE | Should -Be 0
+            $setResult.changedProperties | Should -Contain 'resources'
+            Get-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+
+            # The CurrentUser copy must not hide the AllUsers copy, otherwise set never converges
+            $testResult = InvokePSResourceListOperation -Operation test -Properties $properties
+            $testResult.inDesiredState | Should -BeTrue
+
+            $setResult = InvokePSResourceListOperation -Operation set -Properties $properties
+            $LASTEXITCODE | Should -Be 0
+            $setResult.changedProperties | Should -BeNullOrEmpty
+        }
+        finally {
+            Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'Set installs the same resource in both scopes - Windows only' -Skip:(!((Get-IsWindows) -and (Test-IsAdmin)) -or $PSVersionTable.PSVersion.Major -lt 6) {
+        ResetDscTestModules
+        Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
+
+        try {
+            $null = InvokePSResourceListOperation -Operation set -Properties @{
+                repositoryName    = $script:localRepo
+                trustedRepository = $true
+                resources         = @(
+                    @{ name = $script:testModuleName; version = '5.0.0' },
+                    @{ name = $script:testModuleName; version = '5.0.0'; scope = 'AllUsers' }
+                )
+            }
+
+            $LASTEXITCODE | Should -Be 0
+            Get-PSResource -Name $script:testModuleName -Scope CurrentUser -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+            Get-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+        }
+        finally {
+            Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
+        }
     }
 }
