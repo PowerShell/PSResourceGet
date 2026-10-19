@@ -259,6 +259,7 @@ jobs:
     inputs:
       azureSubscription: PSResourceGetACR
       azurePowerShellVersion: LatestVersion
+      pwsh: true
       ScriptType: InlineScript
       inline: |
         $registryName = 'psresourcegettest'
