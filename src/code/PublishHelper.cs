@@ -700,6 +700,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         noSymbols: false,
                         noServiceEndpoint: false,  // enable server endpoint
                         skipDuplicate: false, // if true-- if a package and version already exists, skip it and continue with the next package in the push, if any.
+                        allowInsecureConnections: false,
                         logger: NullLogger.Instance // nuget logger
                         ).GetAwaiter().GetResult();
             }
