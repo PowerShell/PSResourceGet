@@ -50,7 +50,7 @@
         'usres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'preview2'
+            Prerelease   = 'rc1'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -60,6 +60,14 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.3.0-rc1
+
+### Bug Fixes
+- Initialize the repository store before resolving `Set-PSResourceRepository` dynamic parameters so setting PSGallery trust works on a fresh installation (#2067)
+- Use concurrent queues for installation messages and avoid reinstalling dependencies that are already installed unless `-Reinstall` is specified (#2064)
+- Fix V3 `packageContent` URL selection by comparing parsed package versions (#2019)
+- Revert platform-aware installation filtering and remove the `-RuntimeIdentifier` and `-TargetFramework` parameters, restoring installation of all package runtime and library assets (#2070)
+
 ## 1.3.0-preview2
 
 ### New Features
