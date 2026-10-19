@@ -107,13 +107,6 @@ jobs:
           "Authorization" = "Bearer $env:GITHUB_TOKEN"
       }
 
-      # Secret variables are not exposed to fork PR builds. Use the public API without
-      # authentication in that case instead of sending an invalid Authorization header.
-      if ([string]::IsNullOrWhiteSpace($env:GITHUB_TOKEN) -or
-          $env:GITHUB_TOKEN -match '^\$\([^)]+\)$') {
-          $null = $headers.Remove("Authorization")
-      }
-
       # Get releases
       $releases = Invoke-RestMethod -Uri $api -Headers $headers -RetryIntervalSec 30 -MaximumRetryCount 10
 
@@ -266,7 +259,6 @@ jobs:
     inputs:
       azureSubscription: PSResourceGetACR
       azurePowerShellVersion: LatestVersion
-      pwsh: true
       ScriptType: InlineScript
       inline: |
         $registryName = 'psresourcegettest'
