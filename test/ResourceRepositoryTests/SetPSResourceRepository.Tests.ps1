@@ -41,6 +41,20 @@ Describe "Test Set-PSResourceRepository" -tags 'CI' {
         Get-RemoveTestDirs($tmpDirPaths)
     }
 
+    It "set PSGallery trust when repository store file doesn't exist" {
+        $powerShellGetPath = Join-Path -Path ([Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)) -ChildPath "PSResourceGet"
+        $repoFilePath = Join-Path -Path $powerShellGetPath -ChildPath "PSResourceRepository.xml"
+        Remove-Item -LiteralPath $repoFilePath -Force -ErrorAction Stop
+        Test-Path -LiteralPath $repoFilePath | Should -Be False
+
+        $result = Set-PSResourceRepository -Name PSGallery -Trusted -PassThru -ErrorAction Stop
+
+        Test-Path -LiteralPath $repoFilePath | Should -Be True
+        $result | Should -Not -BeNullOrEmpty
+        $result.Name | Should -Be $PSGalleryName
+        $result.Trusted | Should -Be True
+    }
+
     It "set repository given Name and Uri parameters" {
         Register-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir1Path
         Set-PSResourceRepository -Name $TestRepoName1 -Uri $tmpDir2Path
