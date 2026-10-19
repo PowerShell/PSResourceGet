@@ -400,3 +400,49 @@ Describe 'Test Uninstall-PSResource for Modules' -tags 'CI' {
         (Get-Alias usres).Definition | Should -BeExactly 'Uninstall-PSResource'
     }
 }
+
+Describe 'Test Uninstall-PSResource dependency check with minimum version requirements' -tags 'CI' {
+
+    BeforeAll {
+        $localRepo = "psgettestlocal"
+        $dependencyModuleName = "DependencyMinVersionChild"
+        $parentModuleName = "DependencyMinVersionParent"
+        Get-NewPSResourceRepositoryFile
+        Register-LocalRepos
+
+        New-TestModule -moduleName $dependencyModuleName -repoName $localRepo -packageVersion "2.0.0" -prereleaseLabel ""
+        New-TestModule -moduleName $dependencyModuleName -repoName $localRepo -packageVersion "3.0.0" -prereleaseLabel ""
+        New-TestModule -moduleName $parentModuleName -repoName $localRepo -packageVersion "1.0.0" -prereleaseLabel "" `
+            -requiredModulesEntry "@(@{ ModuleName = '$dependencyModuleName'; ModuleVersion = '2.0.0' })"
+    }
+
+    BeforeEach {
+        Uninstall-PSResource -Name $dependencyModuleName, $parentModuleName -Version "*" -ErrorAction SilentlyContinue -SkipDependencyCheck
+        Install-PSResource -Name $dependencyModuleName -Version "2.0.0" -Repository $localRepo -TrustRepository
+        Install-PSResource -Name $dependencyModuleName -Version "3.0.0" -Repository $localRepo -TrustRepository
+        Install-PSResource -Name $parentModuleName -Repository $localRepo -TrustRepository -SkipDependencyCheck
+    }
+
+    AfterAll {
+        Uninstall-PSResource -Name $dependencyModuleName, $parentModuleName -Version "*" -ErrorAction SilentlyContinue -SkipDependencyCheck
+        Get-RevertPSResourceRepositoryFile
+    }
+
+    It "Uninstall a dependency's minimum required version when a newer installed version still satisfies the requirement" {
+        Uninstall-PSResource -Name $dependencyModuleName -Version "2.0.0" -ErrorAction SilentlyContinue -ErrorVariable err
+        $err.Count | Should -Be 0
+
+        Get-InstalledPSResource -Name $dependencyModuleName -Version "2.0.0" | Should -BeNullOrEmpty
+        (Get-InstalledPSResource -Name $dependencyModuleName -Version "3.0.0").Version | Should -Be "3.0.0"
+    }
+
+    It "Should not uninstall a dependency's minimum required version when no other installed version satisfies the requirement" {
+        Uninstall-PSResource -Name $dependencyModuleName -Version "3.0.0" -SkipDependencyCheck
+
+        Uninstall-PSResource -Name $dependencyModuleName -Version "2.0.0" -ErrorAction SilentlyContinue -ErrorVariable err
+        $err.Count | Should -Not -Be 0
+        $err[0].FullyQualifiedErrorId | Should -BeExactly 'UninstallPSResourcePackageIsADependency,Microsoft.PowerShell.PSResourceGet.Cmdlets.UninstallPSResource'
+
+        (Get-InstalledPSResource -Name $dependencyModuleName -Version "2.0.0") | Should -Not -BeNullOrEmpty
+    }
+}
