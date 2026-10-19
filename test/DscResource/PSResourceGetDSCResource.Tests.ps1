@@ -228,6 +228,18 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
         Get-PSResourceRepository -Name 'TestRepoWithInvalidUri' -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
     }
 
+    It 'Set with _exist false succeeds when the repository does not exist' {
+        # DSC routes _exist: false to the delete operation of this resource, so the set operation of the script is invoked directly
+        $resourceDirectory = (& $script:dscExe resource list Microsoft.PowerShell.PSResourceGet/Repository -o json | ConvertFrom-Json).directory
+        $resourceScript = Join-Path -Path $resourceDirectory -ChildPath 'psresourceget.ps1'
+        $resourceInput = @{ name = 'RepositoryThatDoesNotExist'; _exist = $false } | ConvertTo-Json -Compress
+
+        # A repository that is already absent is in the desired state, so the operation must not fail
+        $stdout = $resourceInput | pwsh -NoLogo -NonInteractive -NoProfile -Command "`$Input | & '$resourceScript' -ResourceType repository -Operation set; exit `$LASTEXITCODE" 2>$TestDrive/error.log
+        $LASTEXITCODE | Should -Be 0 -Because (Get-Content -Path $TestDrive/error.log -Raw)
+        ($stdout | ConvertFrom-Json)._exist | Should -BeFalse
+    }
+
     It 'Can delete a Repository resource instance' {
         # First, create a repository to delete
         Register-PSResourceRepository -Name 'TestRepoToDelete' -uri 'https://www.doesnotexist.com' -ErrorAction SilentlyContinue -APIVersion Local
@@ -1032,6 +1044,95 @@ Describe 'PSResourceList desired state tests' -Tags 'CI' {
         $installed | Should -HaveCount 1
         $installed.Version | Should -Be '5.0.0'
         $installed.InstalledDate | Should -Be $installedDate
+    }
+
+    It 'Get and test treat a bare version as that exact version, like Install-PSResource does' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        # 5.0.0 is not 'at least 1.0.0', it is another version than the one that was asked for
+        $properties = @{
+            repositoryName    = $script:localRepo
+            trustedRepository = $true
+            resources         = @(@{ name = $script:testModuleName; version = '1.0.0' })
+        }
+
+        $getResult = InvokePSResourceListOperation -Operation get -Properties $properties
+        $getResult.actualState.resources[0].version | Should -BeExactly '5.0.0'
+        $getResult.actualState.resources[0]._exist | Should -BeFalse
+
+        $testResult = InvokePSResourceListOperation -Operation test -Properties $properties
+        $testResult.inDesiredState | Should -BeFalse
+
+        $setResult = InvokePSResourceListOperation -Operation set -Properties $properties
+        $LASTEXITCODE | Should -Be 0
+        $setResult.changedProperties | Should -Contain 'resources'
+        Get-PSResource -Name $script:testModuleName | Should -HaveCount 2
+        Get-PSResource -Name $script:testModuleName -Version '1.0.0' | Should -Not -BeNullOrEmpty
+
+        $testResult = InvokePSResourceListOperation -Operation test -Properties $properties
+        $testResult.inDesiredState | Should -BeTrue
+    }
+
+    It 'Set does not uninstall anything when the exact version that should not exist is not installed' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        $installedDate = (Get-PSResource -Name $script:testModuleName).InstalledDate
+
+        # Uninstall-PSResource -Version 1.0.0 removes exactly 1.0.0, so test and set must not treat 5.0.0 as a match either
+        $properties = @{
+            repositoryName    = $script:localRepo
+            trustedRepository = $true
+            resources         = @(@{ name = $script:testModuleName; version = '1.0.0'; _exist = $false })
+        }
+
+        $testResult = InvokePSResourceListOperation -Operation test -Properties $properties
+        $testResult.inDesiredState | Should -BeTrue
+
+        $setResult = InvokePSResourceListOperation -Operation set -Properties $properties
+        $LASTEXITCODE | Should -Be 0
+        $setResult.changedProperties | Should -BeNullOrEmpty
+        $installed = Get-PSResource -Name $script:testModuleName
+        $installed | Should -HaveCount 1
+        $installed.Version | Should -Be '5.0.0'
+        $installed.InstalledDate | Should -Be $installedDate
+    }
+
+    It 'Get and test only consider the specified scope' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        # The copy for the current user does not make the resource present for all users
+        $properties = @{
+            repositoryName = $script:localRepo
+            resources      = @(@{ name = $script:testModuleName; scope = 'AllUsers' })
+        }
+
+        $getResult = InvokePSResourceListOperation -Operation get -Properties $properties
+        $getResult.actualState.resources[0]._exist | Should -BeFalse
+        $getResult.actualState.resources[0].scope | Should -BeExactly 'AllUsers'
+
+        $testResult = InvokePSResourceListOperation -Operation test -Properties $properties
+        $testResult.inDesiredState | Should -BeFalse
+    }
+
+    It 'Set with an explicit scope does not uninstall the resource from another scope' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        # Nothing is installed for all users, so there is nothing to remove and the copy for the current user has to stay
+        $properties = @{
+            repositoryName = $script:localRepo
+            resources      = @(@{ name = $script:testModuleName; scope = 'AllUsers'; _exist = $false })
+        }
+
+        $testResult = InvokePSResourceListOperation -Operation test -Properties $properties
+        $testResult.inDesiredState | Should -BeTrue
+
+        $setResult = InvokePSResourceListOperation -Operation set -Properties $properties
+        $LASTEXITCODE | Should -Be 0
+        $setResult.changedProperties | Should -BeNullOrEmpty
+        Get-PSResource -Name $script:testModuleName -Scope CurrentUser -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
     }
 
     It 'Set uninstalls a resource from the scope it is installed in' {

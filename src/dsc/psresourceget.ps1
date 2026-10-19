@@ -218,6 +218,26 @@ function Write-Trace {
     $host.ui.WriteErrorLine($trace)
 }
 
+function ConvertToVersionRange {
+    param(
+        [string]$versionRange
+    )
+
+    if ($versionRange.Trim() -eq '*') {
+        return [NuGet.Versioning.VersionRange]::All
+    }
+
+    try {
+        $exactVersion = [NuGet.Versioning.NuGetVersion]::Parse($versionRange)
+    }
+    catch {
+        ## Not a single version, so it has to be a version range
+        return [NuGet.Versioning.VersionRange]::Parse($versionRange)
+    }
+
+    return [NuGet.Versioning.VersionRange]::new($exactVersion, $true, $exactVersion, $true, $null, $versionRange)
+}
+
 function SatisfiesVersion {
     param(
         [string]$version,
@@ -237,7 +257,7 @@ function SatisfiesVersion {
     }
 
     try {
-        $versionRangeObj = [NuGet.Versioning.VersionRange]::Parse($versionRange)
+        $versionRangeObj = ConvertToVersionRange -versionRange $versionRange
         $resourceVersion = [NuGet.Versioning.NuGetVersion]::Parse($version)
         return $versionRangeObj.Satisfies($resourceVersion)
     }
@@ -323,23 +343,35 @@ function GetInstalledPSResources {
     }
 }
 
-## Resolves the current state of one desired resource. The installed resources are matched by name, and a copy in the
-## desired scope is preferred over a copy in the other scope, so that set converges when the resource is installed in both.
+## Resolves the current state of one desired resource. The installed resources are matched by name. When the scope is
+## specified it is a filter, so that a copy in the other scope does not count and '_exist: false' in one scope never
+## removes the copy in the other scope. When the scope is omitted a copy in any scope counts, and a copy in the default
+## scope is preferred over a copy in the other scope, so that set converges when the resource is installed in both.
 function ResolveCurrentPSResource {
     param(
         [PSResource]$desiredResource,
-        [PSResource[]]$installedResources
+        [PSResource[]]$installedResources,
+        [switch]$scopeSpecified
     )
 
     $name = $desiredResource.name
     $matchingResources = @($installedResources | Where-Object { $_.name -eq $name })
 
-    if ($matchingResources.Count -eq 0) {
-        Write-Trace -message "Resource '$name' is not installed. Reporting _exist = false." -level debug
-        return [PSResource]::new($name)
+    $candidates = if ($scopeSpecified) {
+        @($matchingResources | Where-Object { $_.scope -eq $desiredResource.scope })
+    }
+    else {
+        @($matchingResources | Where-Object { $_.scope -eq $desiredResource.scope }) + @($matchingResources | Where-Object { $_.scope -ne $desiredResource.scope })
     }
 
-    $candidates = @($matchingResources | Where-Object { $_.scope -eq $desiredResource.scope }) + @($matchingResources | Where-Object { $_.scope -ne $desiredResource.scope })
+    if ($candidates.Count -eq 0) {
+        $where = if ($scopeSpecified) { " in scope $($desiredResource.scope)" } else { '' }
+        Write-Trace -message "Resource '$name' is not installed$where. Reporting _exist = false." -level debug
+        $notInstalled = [PSResource]::new($name)
+        ## Report the scope that was asked about, which is the default scope when none was specified
+        $notInstalled.scope = $desiredResource.scope
+        return $notInstalled
+    }
 
     if (-not $desiredResource.version) {
         # No version constraint: any installed version means the resource exists.
@@ -373,7 +405,7 @@ function GetPSResourceListActions {
         [PSCustomObject]$inputObj
     )
 
-    $desiredResources = @(ConvertInputToPSResourceList -inputObj $inputObj)
+    $inputResources = if ($inputObj.resources) { @($inputObj.resources) } else { @() }
 
     if (Get-PSResourceRepository -Name $inputObj.repositoryName -ErrorAction SilentlyContinue) {
         $installedResources = @(GetInstalledPSResources -repositoryName $inputObj.repositoryName)
@@ -384,8 +416,11 @@ function GetPSResourceListActions {
         $installedResources = @()
     }
 
-    foreach ($desired in $desiredResources) {
-        $current = ResolveCurrentPSResource -desiredResource $desired -installedResources $installedResources
+    foreach ($inputResource in $inputResources) {
+        $desired = ConvertInputToPSResource -inputObj $inputResource -repositoryName $inputObj.repositoryName
+        ## The desired resource defaults to the CurrentUser scope, so only the input tells whether the scope was specified
+        $scopeSpecified = -not [string]::IsNullOrEmpty($inputResource.scope)
+        $current = ResolveCurrentPSResource -desiredResource $desired -installedResources $installedResources -scopeSpecified:$scopeSpecified
 
         $action = if ($current.IsInDesiredState($desired)) {
             'None'
@@ -792,17 +827,21 @@ function SetOperation {
                 }
             }
 
-            if ($null -eq $rep -and $inputObj._exist -ne $false) {
-                Register-PSResourceRepository @splatt -ErrorAction Stop
-            }
-            else {
-                if ($inputObj._exist -eq $false) {
+            if ($inputObj._exist -eq $false) {
+                ## A repository that is already absent is in the desired state, unregistering it again would fail
+                if ($null -ne $rep) {
                     Write-Trace -message "Repository $($inputObj.Name) exists and _exist is false. Deleting it." -level debug
                     Unregister-PSResourceRepository -Name $inputObj.Name -ErrorAction Stop
                 }
                 else {
-                    Set-PSResourceRepository @splatt -ErrorAction Stop
+                    Write-Trace -message "Repository not found: $($inputObj.Name). Nothing to delete." -level debug
                 }
+            }
+            elseif ($null -eq $rep) {
+                Register-PSResourceRepository @splatt -ErrorAction Stop
+            }
+            else {
+                Set-PSResourceRepository @splatt -ErrorAction Stop
             }
 
             return GetOperation -ResourceType $ResourceType
