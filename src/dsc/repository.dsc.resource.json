@@ -77,17 +77,20 @@
             "required": ["name"],
             "allOf": [
                 {
+                    "$comment": "If the repository name is not `PSGallery` (case-insensitive) and `_exist` is `true` or undefined, then the 'uri' property is required.",
                     "if": {
-                        "properties": {
-                            "_exist": {
-                                "const": true
+                        "not": {
+                            "properties": {
+                                "name": { "pattern": "(?i)^PSGallery$" }
                             }
+                        },
+                        "properties": {
+                            "_exist": { "const": true }
                         }
                     },
                     "then": {
-                        "required": [
-                            "uri"
-                        ]
+                        "required": ["uri"],
+                        "errorMessage": "The `uri` property is required when `name` is not `PSGallery` (case-insensitive) and `_exist` is not defined as `false`"
                     }
                 }
             ],

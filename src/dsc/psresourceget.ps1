@@ -104,23 +104,25 @@ class PSResource {
     [OrderedDictionary] ToData([bool]$forTest) {
         $data = [OrderedDictionary]::new()
         
-        $data.name = $this.name
+        $data['name'] = $this.name
         if (-not [string]::IsNullOrEmpty($this.version)) {
-            $data.version = $this.version
+            $data['version'] = $this.version
         }
-        $data.scope = $this.scope
+        $data['scope'] = $this.scope
         if (-not [string]::IsNullOrEmpty($this.repositoryName)) {
-            $data.repositoryName = $this.repositoryName
+            $data['repositoryName'] = $this.repositoryName
+        } else {
+            $data['repositoryName'] = ""
         }
-        $data.preRelease = $this.preRelease
-        $data._exist = $this._exist
+        $data['preRelease'] = $this.preRelease
+        $data['_exist'] = $this._exist
 
         if ($forTest) {
-            $data._inDesiredState = $this._inDesiredState
+            $data['_inDesiredState'] = $this._inDesiredState
         }
 
         if ($null -ne $this._metadata) {
-            $data._metadata = $this._metadata
+            $data['_metadata'] = $this._metadata
         }
 
         return $data
@@ -131,7 +133,7 @@ class PSResource {
     }
 
     [string] ToJson() {
-        $retVal = $this.ToData() | ConvertTo-Json -Compress -EnumsAsStrings
+        $retVal = $this.ToData() | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
         $this.WriteSerializationTrace($retVal)
         return $retVal
     }
@@ -212,6 +214,8 @@ class PSResourceList {
         $data = [OrderedDictionary]::new()
         if (-not [string]::IsNullOrEmpty($this.repositoryName)) {
             $data['repositoryName'] = $this.repositoryName
+        } else {
+            $data['repositoryName'] = ""
         }
         if ($this.resources) {
             [OrderedDictionary[]] $resourceData = $this.resources | ForEach-Object { $_.ToData($forTest) }
@@ -230,14 +234,14 @@ class PSResourceList {
     }
 
     [string] ToJson() {
-        $retVal = $this.ToData() | ConvertTo-Json -Compress -EnumsAsStrings
+        $retVal = $this.ToData() | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings
         $this.WriteSerializationTrace($retVal)
 
         return $retVal
     }
 
     [string] ToJsonForTest() {
-        $retVal = $this.ToData($true) | ConvertTo-Json -Compress -EnumsAsStrings
+        $retVal = $this.ToData($true) | ConvertTo-Json -Compress -Depth 5 -EnumsAsStrings 
         $this.WriteSerializationTrace($retVal, $true)
         return $retVal
     }
@@ -302,8 +306,10 @@ class Repository {
         if (-not [string]::IsNullOrEmpty($this.uri)) {
             $data['uri'] = $this.uri
         }
-        $data['trusted'] = $this.trusted
-        $data['priority'] = $this.priority
+        if ($this._exist) {
+            $data['trusted'] = $this.trusted
+            $data['priority'] = $this.priority
+        }
         if (-not [string]::IsNullOrEmpty($this.repositoryType)) {
             $data['repositoryType'] = $this.repositoryType
         }
@@ -317,7 +323,7 @@ class Repository {
     }
 
     [string] ToJson() {
-        $retVal = $this.ToData() | ConvertTo-Json -Compress -EnumsAsStrings
+        $retVal = $this.ToData() | ConvertTo-Json -Compress -EnumsAsStrings -Depth 5
         return $retVal
     }
 }
@@ -863,6 +869,9 @@ function SetOperation {
                     if ($property -eq 'repositoryType') {
                         $splatt['ApiVersion'] = $inputObj.$property
                     }
+                    elseif ($property -eq 'uri' -and $inputObj._exist -and $inputObj.name -eq 'PSGallery') {
+                        continue
+                    }
                     else {
                         $splatt[$property] = $inputObj.$property
                     }
@@ -1013,7 +1022,7 @@ function PopulatePSResourceListObject {
 
     $allPSResources = @()
 
-    if ($allUsersPSResources.count -gt 1) {
+    if (@($allUsersPSResources).count -gt 0) {
         $allPSResources += $allUsersPSResources | ForEach-Object {
             return [PSResource]::new(
                 $_.Name,
@@ -1027,7 +1036,7 @@ function PopulatePSResourceListObject {
         Write-Trace -level info "No PSResources found for AllUsers scope."
     }
 
-    if ($currentUserPSResources.count -gt 1) {
+    if (@($currentUserPSResources).count -gt 0) {
         $allPSResources += $currentUserPSResources | ForEach-Object {
             return [PSResource]::new(
                 $_.Name,
