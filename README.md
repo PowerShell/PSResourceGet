@@ -80,6 +80,88 @@ C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet
 c:\> PowerShell
 C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet\PSResourceGet.psd1
 ```
+
+### GitHub Actions CI
+
+`.github/workflows/ci.yml` builds and packages the module, then executes the existing
+Pester 4 CI tests on Windows (PowerShell 7 and Windows PowerShell), Ubuntu, and
+macOS. Every run (pull requests targeting `master`, pushes to `master`, and manual
+runs on any branch) uses the same five-job matrix: the complete CI suite on all
+four platforms plus the ACR-only suite with AzAuth on Windows. There is no
+credential-free subset or event-based test exclusion. The existing `CI` tag and
+`ManualValidationOnly` exclusion are preserved. Failed tests fail the job; NUnit
+XML is retained as an artifact even on failure. Runs are not automatically
+cancelled or replaced by newer runs.
+
+Before enabling authenticated runs:
+
+1. Create a GitHub environment named `ci-integration`. Set deployment branches and
+   tags to **No restriction** to support PR merge refs and manual runs on any
+   branch. Configure **required reviewers**, enable **Prevent self-review**, and
+   disable administrator bypass. Review the exact workflow, scripts, tests, and
+   source revision before approval: all checked-out code can access the test
+   credentials and Azure identity once the environment is approved. The previous
+   master-only restriction must be removed; `ci-public` is no longer used.
+2. Configure a Microsoft Entra application/service principal with a GitHub OIDC
+   federated credential: issuer `https://token.actions.githubusercontent.com`,
+   subject `repo:PowerShell/PSResourceGet:environment:ci-integration`, audience
+   `api://AzureADTokenExchange`. No client secret is needed.
+3. Add environment **variables** `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and
+   `AZURE_SUBSCRIPTION_ID` for that identity and subscription. Add
+   `CI_GITHUB_PACKAGES_USERNAME` (the GitHub PAT owner), `CI_ADO_USERNAME` (a nonempty
+   ADO credential username), and `CI_ADO_PRIVATE_REPO_URL` (the private test feed's
+   NuGet v3 index URL).
+4. Add environment **secrets** `CI_GITHUB_PACKAGES_PAT`, `CI_ADO_PUBLIC_PAT`, and
+   `CI_ADO_PRIVATE_PAT`. Use a classic GitHub PAT with `read:packages` and access to
+   the PowerShell organization's `test_module` and `test_script` packages; authorize
+   organizational SSO if required. ADO PATs need Packaging Read & write and Feed
+   Publisher access to the corresponding test feeds. These replace the
+   `GithubTestingFeedCreds` variable group. Never put tokens in variables.
+5. Grant the Azure identity registry-scoped `AcrPush` and `AcrDelete` on
+   `psresourcegettest`, and `AcrPull` on `psresourcegettestwildcard`, for registries in
+   legacy RBAC mode. For ABAC-enabled registries, use Container Registry Repository
+   Contributor on the main registry, Repository Reader on the wildcard registry,
+   and Repository Catalog Lister on both, with conditions allowing the fixture and
+   generated test repositories. Also grant registry-scoped `Reader` on
+   `psresourcegettest` for Azure CLI's management-plane registry lookup.
+   Ensure ARM-audience authentication is enabled.
+   Add the service principal to the `powershell-rel` Azure DevOps organization,
+   grant access to the `PSResourceGet` project, and grant Feed Reader on
+   `psrg-credprovidertest`. Azure RBAC alone does not grant Azure Artifacts access.
+6. Enable GitHub Actions and allow the pinned `actions/checkout`,
+   `actions/setup-dotnet`, `actions/upload-artifact`, `actions/download-artifact`,
+   and `azure/login` actions. The workflow grants `id-token: write` only to
+   authenticated jobs; the default token otherwise only needs `contents: read`.
+   DSC downloads use the automatically supplied GitHub token, replacing the
+   `InstallDSC` variable group. No separate DSC token or Azure service connection
+   is needed.
+
+GitHub does not provide secrets or a writable OIDC token to fork pull-request
+workflows (including Dependabot PRs); environment approval does not lift that
+restriction. Those runs cannot complete authenticated tests and do not fall back
+to a smaller suite. After reviewing the changes, a maintainer must create a branch
+in this repository containing the reviewed revision and run CI there (a same-repo
+PR or manual dispatch), then approve `ci-integration`. Never use
+`pull_request_target` to check out and execute untrusted PR code with credentials.
+The workflow fails when required credentials are unavailable rather than reporting
+partial test coverage as success.
+
+The existing test feeds and ACR registries must retain their fixture packages and
+be reachable from GitHub-hosted runners. The registry and public-feed URLs are
+hard-coded in the tests; changing environment variables does not retarget them.
+AzAuth uses the Azure CLI session established by `azure/login`. Other ACR tests
+use a short-lived ARM token in the runner-local SecretStore; credential-provider
+tests use a separate Azure DevOps-audience token. Neither token is printed or
+uploaded. ACR cleanup runs even after test failures, but a terminated/timed-out
+runner can leave generated repositories requiring manual cleanup.
+
+The Azure DevOps pipeline files are retained for transition and release consumers.
+The external `PowerShell/compliance` stage is **not** ported by this test migration.
+Keep the old compliance coverage until its owners approve a replacement. After
+successful GitHub runs, replace Azure DevOps test branch-policy checks with the
+five `Tests` checks and `Build package`. All five test jobs apply to PRs as well as
+pushes and manual runs, and wait for the environment approval described above.
+
 ## Module Support Lifecycle 
 Microsoft.PowerShell.PSResourceGet follows the support lifecycle of the version of PowerShell that it ships in. 
 For example, PSResourceGet 1.0.x shipped in PowerShell 7.4 which is an LTS release so it will be supported for 3 years.
