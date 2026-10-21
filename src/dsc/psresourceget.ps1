@@ -343,11 +343,12 @@ function GetInstalledPSResources {
     }
 }
 
-## Resolves the current state of one desired resource. The installed resources are matched by name. When the scope is
+## Finds the installed copies of one desired resource. The installed resources are matched by name. When the scope is
 ## specified it is a filter, so that a copy in the other scope does not count and '_exist: false' in one scope never
-## removes the copy in the other scope. When the scope is omitted a copy in any scope counts, and a copy in the default
-## scope is preferred over a copy in the other scope, so that set converges when the resource is installed in both.
-function ResolveCurrentPSResource {
+## removes the copy in the other scope. When the scope is omitted a copy in any scope counts, and the copies in the
+## default scope come first, so that set converges when the resource is installed in both.
+## Returns the candidates (every version) and the matching copies (the candidates that satisfy the version constraint).
+function FindInstalledPSResources {
     param(
         [PSResource]$desiredResource,
         [PSResource[]]$installedResources,
@@ -355,13 +356,46 @@ function ResolveCurrentPSResource {
     )
 
     $name = $desiredResource.name
-    $matchingResources = @($installedResources | Where-Object { $_.name -eq $name })
+    $sameName = @($installedResources | Where-Object { $_.name -eq $name })
 
     $candidates = if ($scopeSpecified) {
-        @($matchingResources | Where-Object { $_.scope -eq $desiredResource.scope })
+        @($sameName | Where-Object { $_.scope -eq $desiredResource.scope })
     }
     else {
-        @($matchingResources | Where-Object { $_.scope -eq $desiredResource.scope }) + @($matchingResources | Where-Object { $_.scope -ne $desiredResource.scope })
+        @($sameName | Where-Object { $_.scope -eq $desiredResource.scope }) + @($sameName | Where-Object { $_.scope -ne $desiredResource.scope })
+    }
+
+    $matching = if (-not $desiredResource.version) {
+        ## No version constraint: any installed version is a match
+        $candidates
+    }
+    else {
+        @($candidates | Where-Object { try { SatisfiesVersion -version $_.version -versionRange $desiredResource.version } catch { $false } })
+    }
+
+    return [pscustomobject]@{
+        candidates = @($candidates)
+        matching   = @($matching)
+    }
+}
+
+## Resolves the current state of one desired resource from its installed copies. The first matching copy is the current
+## state. Without a match the resource is reported with _exist = false, with the installed version when there is one.
+function ResolveCurrentPSResource {
+    param(
+        [PSResource]$desiredResource,
+        [PSResource[]]$candidates,
+        [PSResource[]]$matching,
+        [switch]$scopeSpecified
+    )
+
+    $name = $desiredResource.name
+
+    if ($matching.Count -gt 0) {
+        $current = $matching[0]
+        $constraint = if ($desiredResource.version) { " and satisfies requested version '$($desiredResource.version)'" } else { '' }
+        Write-Trace -message "Resource '$name' version '$($current.version)' is installed in scope $($current.scope)$constraint." -level debug
+        return $current
     }
 
     if ($candidates.Count -eq 0) {
@@ -371,21 +405,6 @@ function ResolveCurrentPSResource {
         ## Report the scope that was asked about, which is the default scope when none was specified
         $notInstalled.scope = $desiredResource.scope
         return $notInstalled
-    }
-
-    if (-not $desiredResource.version) {
-        # No version constraint: any installed version means the resource exists.
-        Write-Trace -message "No version constraint for input: $name. Treating installed version $($candidates[0].version) in scope $($candidates[0].scope) as a match." -level debug
-        return $candidates[0]
-    }
-
-    $preferred = $candidates | Where-Object {
-        try { SatisfiesVersion -version $_.version -versionRange $desiredResource.version } catch { $false }
-    } | Select-Object -First 1
-
-    if ($preferred) {
-        Write-Trace -message "Resource '$name' version '$($preferred.version)' in scope $($preferred.scope) satisfies requested range '$($desiredResource.version)'." -level debug
-        return $preferred
     }
 
     # Installed but doesn't satisfy the version range - report actual installed version with _exist = false
@@ -399,6 +418,7 @@ function ResolveCurrentPSResource {
 
 ## Pairs every desired resource with its current resource and decides the action needed to reach the desired state.
 ## Every desired resource resolves its own current resource by name, so the order of the installed resources does not matter.
+## An Uninstall action lists every installed copy that has to go in uninstallTargets, one per version and scope.
 ## The get, test, set and what-if operations all use this, so that they always agree on what has to happen.
 function GetPSResourceListActions {
     param(
@@ -420,7 +440,8 @@ function GetPSResourceListActions {
         $desired = ConvertInputToPSResource -inputObj $inputResource -repositoryName $inputObj.repositoryName
         ## The desired resource defaults to the CurrentUser scope, so only the input tells whether the scope was specified
         $scopeSpecified = -not [string]::IsNullOrEmpty($inputResource.scope)
-        $current = ResolveCurrentPSResource -desiredResource $desired -installedResources $installedResources -scopeSpecified:$scopeSpecified
+        $installed = FindInstalledPSResources -desiredResource $desired -installedResources $installedResources -scopeSpecified:$scopeSpecified
+        $current = ResolveCurrentPSResource -desiredResource $desired -candidates $installed.candidates -matching $installed.matching -scopeSpecified:$scopeSpecified
 
         $action = if ($current.IsInDesiredState($desired)) {
             'None'
@@ -433,9 +454,12 @@ function GetPSResourceListActions {
         }
 
         [pscustomobject]@{
-            desired = $desired
-            current = $current
-            action  = $action
+            desired          = $desired
+            current          = $current
+            action           = $action
+            ## Every matching copy has to be removed from the scope it is installed in, otherwise set does not converge
+            ## when the resource is installed in both scopes
+            uninstallTargets = if ($action -eq 'Uninstall') { @($installed.matching) } else { @() }
         }
     }
 }
@@ -635,8 +659,11 @@ function WhatIfPSResourceList {
         $version = $resourceDesiredState.version
 
         if ($resourceAction.action -eq 'Uninstall') {
-            $msg = if ($version) { "Would uninstall resource '$name' version '$version'" } else { "Would uninstall resource '$name'" }
-            Write-Trace -message "WhatIf: $msg." -level debug
+            ## One message per installed copy that set is going to remove
+            $messages = @($resourceAction.uninstallTargets | ForEach-Object { "Would uninstall resource '$name' version '$($_.version)' from scope $($_.scope)" })
+            foreach ($msg in $messages) {
+                Write-Trace -message "WhatIf: $msg." -level debug
+            }
             $resource = [PSResource]::new(
                 $currentResource.name,
                 $currentResource.version,
@@ -645,7 +672,7 @@ function WhatIfPSResourceList {
                 $currentResource.preRelease
             )
             $resource._exist = $false
-            $resource._metadata = [pscustomobject]@{ whatIf = @($msg) }
+            $resource._metadata = [pscustomobject]@{ whatIf = $messages }
             $projectedResources += $resource
         }
         elseif ($resourceAction.action -eq 'Install') {
@@ -703,11 +730,14 @@ function SetPSResourceList {
 
         # Uninstall if resource should not exist but does
         if ($resourceAction.action -eq 'Uninstall') {
-            Write-Trace -message "Resource $name exists but _exist is false. Adding to uninstall list." -level debug
-            # The resource has to be removed from the scope it is currently installed in
-            $key = $name.ToLowerInvariant() + '-' + $versionStr.ToLowerInvariant() + '-' + $resourceAction.current.scope
-            if (-not $resourcesToUninstall.ContainsKey($key)) {
-                $resourcesToUninstall[$key] = $resourceAction
+            # Every matching installed copy is removed from the scope it is installed in. Two entries can describe the same
+            # copy (such as '1.0.0' and '[1.0.0]'), so the key is the installed version and scope rather than the input
+            foreach ($target in $resourceAction.uninstallTargets) {
+                $key = $target.name.ToLowerInvariant() + '-' + $target.version.ToLowerInvariant() + '-' + $target.scope
+                if (-not $resourcesToUninstall.ContainsKey($key)) {
+                    Write-Trace -message "Resource $name version $($target.version) in scope $($target.scope) exists but _exist is false. Adding to uninstall list." -level debug
+                    $resourcesToUninstall[$key] = $target
+                }
             }
         }
         # Install if resource should exist but doesn't, or exists but not in desired state
@@ -726,16 +756,11 @@ function SetPSResourceList {
     }
 
     if ($resourcesToUninstall.Count -gt 0) {
-        Write-Trace -message "Uninstalling resources: $($resourcesToUninstall.Values | ForEach-Object { "$($_.current.name) - $($_.current.version)" })" -level debug
+        Write-Trace -message "Uninstalling resources: $($resourcesToUninstall.Values | ForEach-Object { "$($_.name) - $($_.version) ($($_.scope))" })" -level debug
         $resourcesToUninstall.Values | ForEach-Object {
-            # Only remove the requested version (range) when there is one, otherwise all versions are removed
-            $versionParam = @{}
-            if ($_.desired.version) {
-                $versionParam['Version'] = $_.desired.version
-            }
-
+            # Remove exactly the installed version that was matched, so that the cmdlet and the planner agree on what goes
             $cmdWarnings = $null
-            Uninstall-PSResource -Name $_.current.name @versionParam -Scope $_.current.scope -ErrorAction Stop -WarningVariable cmdWarnings
+            Uninstall-PSResource -Name $_.name -Version $_.version -Scope $_.scope -ErrorAction Stop -WarningVariable cmdWarnings
             foreach ($w in $cmdWarnings) {
                 Write-Trace -message ([string]$w) -level warn
             }

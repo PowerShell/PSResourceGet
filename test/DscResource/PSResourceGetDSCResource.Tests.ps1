@@ -67,6 +67,27 @@ function InvokePSResourceListOperation {
     & $script:dscExe resource $Operation --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
 }
 
+## Invokes the resource script directly, for code paths that DSC does not reach and output that DSC does not show.
+## The input goes through a file. Windows PowerShell prepends a byte order mark when it pipes a string into a native
+## command, and pwsh passes it on as the first character of the JSON.
+function InvokeResourceScript {
+    param(
+        [ValidateSet('repository', 'psresourcelist')]
+        [string]$ResourceType,
+        [string]$Operation,
+        [hashtable]$Properties
+    )
+
+    $dscType = @{ repository = 'Repository'; psresourcelist = 'PSResourceList' }[$ResourceType]
+    $resourceDirectory = (& $script:dscExe resource list "Microsoft.PowerShell.PSResourceGet/$dscType" -o json | ConvertFrom-Json).directory
+    $resourceScript = Join-Path -Path $resourceDirectory -ChildPath 'psresourceget.ps1'
+
+    $inputFile = Join-Path -Path (Get-PSDrive -Name TestDrive).Root -ChildPath "$ResourceType-$Operation-input.json"
+    [System.IO.File]::WriteAllText($inputFile, ($Properties | ConvertTo-Json -Depth 5 -Compress))
+
+    pwsh -NoLogo -NonInteractive -NoProfile -Command "Get-Content -Raw -LiteralPath '$inputFile' | & '$resourceScript' -ResourceType $ResourceType -Operation $Operation; exit `$LASTEXITCODE"
+}
+
 Describe "DSC resource schema tests" -tags 'CI' {
     BeforeAll {
 
@@ -229,13 +250,9 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
     }
 
     It 'Set with _exist false succeeds when the repository does not exist' {
-        # DSC routes _exist: false to the delete operation of this resource, so the set operation of the script is invoked directly
-        $resourceDirectory = (& $script:dscExe resource list Microsoft.PowerShell.PSResourceGet/Repository -o json | ConvertFrom-Json).directory
-        $resourceScript = Join-Path -Path $resourceDirectory -ChildPath 'psresourceget.ps1'
-        $resourceInput = @{ name = 'RepositoryThatDoesNotExist'; _exist = $false } | ConvertTo-Json -Compress
-
+        # DSC routes _exist: false to the delete operation of this resource, so the set operation of the script is invoked directly.
         # A repository that is already absent is in the desired state, so the operation must not fail
-        $stdout = $resourceInput | pwsh -NoLogo -NonInteractive -NoProfile -Command "`$Input | & '$resourceScript' -ResourceType repository -Operation set; exit `$LASTEXITCODE" 2>$TestDrive/error.log
+        $stdout = InvokeResourceScript -ResourceType repository -Operation set -Properties @{ name = 'RepositoryThatDoesNotExist'; _exist = $false } 2>$TestDrive/error.log
         $LASTEXITCODE | Should -Be 0 -Because (Get-Content -Path $TestDrive/error.log -Raw)
         ($stdout | ConvertFrom-Json)._exist | Should -BeFalse
     }
@@ -504,19 +521,17 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
     }
 
     It 'Test returns one state and one diff when the repository does not exist' {
-        $resourceInput = @{
+        $properties = @{
             repositoryName = 'RepositoryThatDoesNotExist'
             resources      = @(@{ name = $script:testModuleName })
-        } | ConvertTo-Json -Depth 5 -Compress
+        }
 
-        $testResult = & $script:dscExe resource test --resource Microsoft.PowerShell.PSResourceGet/PSResourceList --input $resourceInput -o json | ConvertFrom-Json
+        $testResult = InvokePSResourceListOperation -Operation test -Properties $properties
         $LASTEXITCODE | Should -Be 0
         $testResult.inDesiredState | Should -BeFalse
 
         # DSC only reads the first two lines of the output, so invoke the resource script directly to verify all of it
-        $resourceDirectory = (& $script:dscExe resource list Microsoft.PowerShell.PSResourceGet/PSResourceList -o json | ConvertFrom-Json).directory
-        $resourceScript = Join-Path -Path $resourceDirectory -ChildPath 'psresourceget.ps1'
-        $stdout = $resourceInput | pwsh -NoLogo -NonInteractive -NoProfile -Command "`$Input | & '$resourceScript' -ResourceType psresourcelist -Operation test" 2>$null
+        $stdout = InvokeResourceScript -ResourceType psresourcelist -Operation test -Properties $properties 2>$null
 
         @($stdout).Count | Should -Be 2
         ($stdout[0] | ConvertFrom-Json)._inDesiredState | Should -BeFalse
@@ -1046,6 +1061,44 @@ Describe 'PSResourceList desired state tests' -Tags 'CI' {
         $installed.InstalledDate | Should -Be $installedDate
     }
 
+    It 'Set uninstalls every version of a resource that should not exist' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '1.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        $properties = @{
+            repositoryName = $script:localRepo
+            resources      = @(@{ name = $script:testModuleName; _exist = $false })
+        }
+
+        $setResult = InvokePSResourceListOperation -Operation set -Properties $properties
+        $LASTEXITCODE | Should -Be 0
+        $setResult.changedProperties | Should -Contain 'resources'
+        $setResult.afterState.resources[0]._exist | Should -BeFalse
+        Get-PSResource -Name $script:testModuleName -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+    }
+
+    It 'Set removes a version only once when two entries describe it' {
+        ResetDscTestModules
+        Install-PSResource -Name $script:testModuleName -Version '1.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+
+        # '1.0.0' and '[1.0.0]' describe the same installed copy, a second uninstall would fail because it is already gone
+        $setResult = InvokePSResourceListOperation -Operation set -Properties @{
+            repositoryName = $script:localRepo
+            resources      = @(
+                @{ name = $script:testModuleName; version = '1.0.0'; _exist = $false },
+                @{ name = $script:testModuleName; version = '[1.0.0]'; _exist = $false }
+            )
+        }
+
+        $LASTEXITCODE | Should -Be 0
+        $setResult.changedProperties | Should -Contain 'resources'
+        $installed = Get-PSResource -Name $script:testModuleName
+        $installed | Should -HaveCount 1
+        $installed.Version | Should -Be '5.0.0'
+    }
+
     It 'Get and test treat a bare version as that exact version, like Install-PSResource does' {
         ResetDscTestModules
         Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
@@ -1245,6 +1298,34 @@ Describe 'PSResourceList desired state tests' -Tags 'CI' {
             $LASTEXITCODE | Should -Be 0
             Get-PSResource -Name $script:testModuleName -Scope CurrentUser -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
             Get-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+        }
+        finally {
+            Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'Set uninstalls a resource from both scopes when no scope is specified - Windows only' -Skip:(!((Get-IsWindows) -and (Test-IsAdmin)) -or $PSVersionTable.PSVersion.Major -lt 6) {
+        ResetDscTestModules
+        Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall
+        Install-PSResource -Name $script:testModuleName -Version '5.0.0' -Repository $script:localRepo -TrustRepository -Reinstall -Scope AllUsers
+
+        try {
+            $properties = @{
+                repositoryName = $script:localRepo
+                resources      = @(@{ name = $script:testModuleName; _exist = $false })
+            }
+
+            # What-if projects the resource as absent, so one set has to remove every copy
+            $setResult = InvokePSResourceListOperation -Operation set -Properties $properties
+            $LASTEXITCODE | Should -Be 0
+            $setResult.changedProperties | Should -Contain 'resources'
+            $setResult.afterState.resources[0]._exist | Should -BeFalse
+            Get-PSResource -Name $script:testModuleName -Scope CurrentUser -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+            Get-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+
+            $testResult = InvokePSResourceListOperation -Operation test -Properties $properties
+            $testResult.inDesiredState | Should -BeTrue
         }
         finally {
             Uninstall-PSResource -Name $script:testModuleName -Scope AllUsers -ErrorAction SilentlyContinue
