@@ -10,7 +10,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     {
         private static readonly Assembly s_self;
         private static readonly string s_dependencyFolder;
-        private static readonly HashSet<string> s_dependencies;
+        private static readonly Dictionary<string, AssemblyName> s_dependencies;
         private static readonly AssemblyLoadContextProxy s_proxy;
 
         private static readonly HashSet<string> NetFrameworkLoadFromPath = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -30,12 +30,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             s_self = Assembly.GetExecutingAssembly();
             s_dependencyFolder = Path.Combine(Path.GetDirectoryName(s_self.Location), "dependencies");
-            s_dependencies = new HashSet<string>(StringComparer.Ordinal);
+            s_dependencies = new Dictionary<string, AssemblyName>(StringComparer.OrdinalIgnoreCase);
             s_proxy = AssemblyLoadContextProxy.CreateLoadContext("psresourceget-load-context");
 
             foreach (string filePath in Directory.EnumerateFiles(s_dependencyFolder, "*.dll"))
             {
-                s_dependencies.Add(AssemblyName.GetAssemblyName(filePath).FullName);
+                AssemblyName dependency = AssemblyName.GetAssemblyName(filePath);
+                s_dependencies[dependency.Name] = dependency;
             }
         }
 
@@ -58,8 +59,57 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             // Sometimes the requesting assembly can be one of the NuGet.* dlls, in such case, we check if the
             // requesting assembly is part of our pre-defined dependencies list.
             return requestingAssembly is not null
-                ? (requestingAssembly == s_self || (s_dependencies.Contains(requestingAssembly.FullName))) && s_dependencies.Contains(assemblyName.FullName)
-                : s_dependencies.Contains(assemblyName.FullName);
+                ? (requestingAssembly == s_self || IsBundledDependency(requestingAssembly.GetName())) && IsCompatibleDependency(assemblyName)
+                : IsCompatibleDependency(assemblyName);
+        }
+
+        private static bool IsBundledDependency(AssemblyName assemblyName)
+        {
+            return s_dependencies.TryGetValue(assemblyName.Name, out AssemblyName dependency)
+                && string.Equals(dependency.FullName, assemblyName.FullName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Dependencies are often compiled against older versions of shared assemblies than the ones bundled
+        // with this module (e.g. Azure.Core references System.Text.Json 10.0.0.3 while 10.0.0.13 is bundled).
+        // Without binding redirects, accept any request for the same assembly whose version is not newer than the bundled one.
+        private static bool IsCompatibleDependency(AssemblyName requested)
+        {
+            if (!s_dependencies.TryGetValue(requested.Name, out AssemblyName bundled))
+            {
+                return false;
+            }
+
+            if (requested.Version is not null && requested.Version > bundled.Version)
+            {
+                return false;
+            }
+
+            if (!string.Equals(requested.CultureName ?? string.Empty, bundled.CultureName ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            byte[] requestedToken = requested.GetPublicKeyToken();
+            if (requestedToken is null || requestedToken.Length == 0)
+            {
+                return true;
+            }
+
+            byte[] bundledToken = bundled.GetPublicKeyToken();
+            if (bundledToken is null || bundledToken.Length != requestedToken.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < requestedToken.Length; i++)
+            {
+                if (requestedToken[i] != bundledToken[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static Assembly HandleAssemblyResolve(object sender, ResolveEventArgs args)
