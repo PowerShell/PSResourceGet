@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.PowerShell.PSResourceGet.UtilClasses;
+using NuGet.Frameworks;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using System;
@@ -53,6 +54,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool _noClobber;
         private bool _authenticodeCheck;
         private bool _savePkg;
+        private bool _filterByTargetFramework;
+        private bool _targetFrameworkSpecified;
+        private NuGetFramework _targetFramework;
         List<string> _pathsToSearch;
         List<string> _pkgNamesToInstall;
         private string _tmpPath;
@@ -99,7 +103,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> pathsToInstallPkg,
             ScopeType? scope,
             string tmpPath,
-            HashSet<string> pkgsInstalled)
+            HashSet<string> pkgsInstalled,
+            bool filterByTargetFramework = false,
+            string targetFramework = null)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::BeginInstallPackages()");
             _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; VersionRange: '{1}'; NuGetVersion: '{2}'; VersionType: '{3}'; Version: '{4}'; Prerelease: '{5}'; Repository: '{6}'; " +
@@ -141,6 +147,44 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _asNupkg = asNupkg;
             _includeXml = includeXml;
             _savePkg = savePkg;
+            _filterByTargetFramework = filterByTargetFramework;
+            _targetFrameworkSpecified = _filterByTargetFramework && !string.IsNullOrWhiteSpace(targetFramework);
+            _targetFramework = null;
+
+            if (_filterByTargetFramework)
+            {
+                if (_targetFrameworkSpecified)
+                {
+                    try
+                    {
+                        _targetFramework = NuGetFramework.ParseFolder(targetFramework);
+                    }
+                    catch (Exception e)
+                    {
+                        _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                            new ArgumentException($"Target framework '{targetFramework}' is not valid.", e),
+                            "InvalidTargetFramework",
+                            ErrorCategory.InvalidArgument,
+                            targetFramework));
+                    }
+
+                    if (_targetFramework == null || _targetFramework.IsUnsupported)
+                    {
+                        _cmdletPassedIn.ThrowTerminatingError(new ErrorRecord(
+                            new ArgumentException($"Target framework '{targetFramework}' is not valid."),
+                            "InvalidTargetFramework",
+                            ErrorCategory.InvalidArgument,
+                            targetFramework));
+                    }
+                }
+                else
+                {
+                    _targetFramework = GetCurrentFramework();
+                }
+
+                _cmdletPassedIn.WriteDebug($"Filtering lib assets for target framework '{_targetFramework.GetShortFolderName()}'.");
+            }
+
             _pathsToInstallPkg = pathsToInstallPkg;
             _tmpPath = tmpPath ?? Path.GetTempPath();
 
@@ -402,7 +446,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string installPath,
             string newVersion,
             string moduleManifestVersion,
-            string scriptPath)
+            string scriptPath,
+            bool mergeTargetFrameworkContent = false)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::MoveFilesIntoInstallPath()");
             // Creating the proper installation path depending on whether pkg is a module or script
@@ -424,6 +469,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     _cmdletPassedIn.WriteVerbose($"Attempting to move '{tempModuleVersionDir}' to '{finalModuleVersionDir}'");
                     Directory.CreateDirectory(newPathParent);
                     Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
+                }
+                else if (mergeTargetFrameworkContent && Directory.Exists(finalModuleVersionDir))
+                {
+                    _cmdletPassedIn.WriteVerbose(
+                        $"Merging target framework content from '{tempModuleVersionDir}' into '{finalModuleVersionDir}'");
+                    Utils.MergeDirContents(tempModuleVersionDir, finalModuleVersionDir);
+                    Utils.DeleteDirectory(tempModuleVersionDir);
                 }
                 else
                 {
@@ -555,15 +607,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     continue;
                 }
 
+                bool mergeTargetFrameworkContent = false;
+
                 // Check to see if the pkg is already installed (unless -Reinstall was specified).
                 if (!_reinstall && _packagesOnMachine.Contains($"{pkgToInstall.Name}{pkgVersion}"))
                 {
-                    _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
+                    if (_targetFrameworkSpecified && pkgToInstall.Type != ResourceType.Script)
+                    {
+                        _cmdletPassedIn.WriteVerbose(
+                            $"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed. " +
+                            $"Proceeding to merge assets for target framework '{_targetFramework.GetShortFolderName()}'.");
+                        mergeTargetFrameworkContent = true;
+                    }
+                    else
+                    {
+                        _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
 
-                    // Remove from tracking list of packages to install.
-                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
+                        // Remove from tracking list of packages to install.
+                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
 
-                    continue;
+                        continue;
+                    }
                 }
 
                 // ShouldProcess gate (handles -WhatIf / -Confirm) on the pipeline thread.
@@ -579,7 +643,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     PkgToInstall = pkgToInstall,
                     PkgVersion = pkgVersion,
-                    TempInstallPath = CreateInstallationTempPath()
+                    TempInstallPath = CreateInstallationTempPath(),
+                    MergeTargetFrameworkContent = mergeTargetFrameworkContent
                 });
             }
 
@@ -632,7 +697,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     // Parent package and dependencies are now installed to temp directory.
                     // Try to move all package directories from temp directory to final destination.
-                    if (!TryMoveInstallContent(workItem.TempInstallPath, scope, workItem.PackagesHash))
+                    if (!TryMoveInstallContent(
+                        workItem.TempInstallPath,
+                        scope,
+                        workItem.PackagesHash,
+                        workItem.MergeTargetFrameworkContent))
                     {
                         _cmdletPassedIn.WriteError(new ErrorRecord(
                             new InvalidOperationException(),
@@ -683,6 +752,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             public string TempInstallPath;
             public ConcurrentDictionary<string, Hashtable> PackagesHash;
             public bool Succeeded;
+            public bool MergeTargetFrameworkContent;
             public readonly ConcurrentQueue<ErrorRecord> ErrorMsgs = new();
             public readonly ConcurrentQueue<string> WarningMsgs = new();
             public readonly ConcurrentQueue<string> DebugMsgs = new();
@@ -1302,8 +1372,44 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 using (ZipArchive archive = ZipFile.OpenRead(zipPath))
                 {
+                    HashSet<string> selectedLibAssetEntries = null;
+                    if (_filterByTargetFramework)
+                    {
+                        selectedLibAssetEntries = GetCompatibleLibAssetEntries(
+                            archive,
+                            _targetFramework,
+                            out HashSet<string> availableTargetFrameworks);
+
+                        debugMsgs.Enqueue(
+                            $"Selected {selectedLibAssetEntries.Count} compatible lib asset entries for target framework " +
+                            $"'{_targetFramework.GetShortFolderName()}'.");
+
+                        if (_targetFrameworkSpecified &&
+                            availableTargetFrameworks.Count > 0 &&
+                            selectedLibAssetEntries.Count == 0)
+                        {
+                            warningMsgs.Enqueue(
+                                $"No compatible lib assets were found for target framework '{_targetFramework.GetShortFolderName()}'. " +
+                                $"Available target frameworks: {string.Join(", ", availableTargetFrameworks.OrderBy(tfm => tfm))}.");
+                        }
+                    }
+
                     foreach (ZipArchiveEntry entry in archive.Entries.Where(entry => entry.CompressedLength > 0))
                     {
+                        if (selectedLibAssetEntries != null &&
+                            TryGetLibAssetInfo(
+                                entry.FullName,
+                                out string normalizedEntryName,
+                                out string _,
+                                out NuGetFramework _) &&
+                            !selectedLibAssetEntries.Contains(normalizedEntryName))
+                        {
+                            debugMsgs.Enqueue(
+                                $"Skipping lib asset '{entry.FullName}' because it is not the nearest compatible variant " +
+                                $"for target framework '{_targetFramework.GetShortFolderName()}'.");
+                            continue;
+                        }
+
                         // If a file has one or more parent directories.
                         if (entry.FullName.Contains(Path.DirectorySeparatorChar) || entry.FullName.Contains(Path.AltDirectorySeparatorChar))
                         {
@@ -1346,9 +1452,163 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
+        /// Selects lib assets independently by relative path. For duplicate assets, only the nearest compatible
+        /// framework variant is selected. Unique compatible assets remain selected even when they are spread
+        /// across different target framework folders.
+        /// </summary>
+        private static HashSet<string> GetCompatibleLibAssetEntries(
+            ZipArchive archive,
+            NuGetFramework targetFramework,
+            out HashSet<string> availableTargetFrameworks)
+        {
+            var candidatesByRelativePath = new Dictionary<string, List<LibAssetCandidate>>(StringComparer.OrdinalIgnoreCase);
+            availableTargetFrameworks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (ZipArchiveEntry entry in archive.Entries)
+            {
+                if (!TryGetLibAssetInfo(
+                    entry.FullName,
+                    out string normalizedEntryName,
+                    out string relativePath,
+                    out NuGetFramework entryFramework))
+                {
+                    continue;
+                }
+
+                availableTargetFrameworks.Add(entryFramework.GetShortFolderName());
+
+                if (!candidatesByRelativePath.TryGetValue(relativePath, out List<LibAssetCandidate> candidates))
+                {
+                    candidates = new List<LibAssetCandidate>();
+                    candidatesByRelativePath.Add(relativePath, candidates);
+                }
+
+                candidates.Add(new LibAssetCandidate(normalizedEntryName, entryFramework));
+            }
+
+            var selectedEntries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var reducer = new FrameworkReducer();
+
+            foreach (List<LibAssetCandidate> candidates in candidatesByRelativePath.Values)
+            {
+                NuGetFramework nearestFramework = reducer.GetNearest(
+                    targetFramework,
+                    candidates.Select(candidate => candidate.Framework));
+
+                if (nearestFramework == null)
+                {
+                    continue;
+                }
+
+                foreach (LibAssetCandidate candidate in candidates)
+                {
+                    if (candidate.Framework.Equals(nearestFramework))
+                    {
+                        selectedEntries.Add(candidate.EntryName);
+                    }
+                }
+            }
+
+            return selectedEntries;
+        }
+
+        private static bool TryGetLibAssetInfo(
+            string entryFullName,
+            out string normalizedEntryName,
+            out string relativePath,
+            out NuGetFramework framework)
+        {
+            normalizedEntryName = entryFullName.Replace('\\', '/');
+            relativePath = null;
+            framework = null;
+
+            if (!normalizedEntryName.StartsWith("lib/", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            int frameworkEndIndex = normalizedEntryName.IndexOf('/', "lib/".Length);
+            if (frameworkEndIndex <= "lib/".Length || frameworkEndIndex == normalizedEntryName.Length - 1)
+            {
+                return false;
+            }
+
+            string frameworkFolder = normalizedEntryName.Substring(
+                "lib/".Length,
+                frameworkEndIndex - "lib/".Length);
+
+            try
+            {
+                framework = NuGetFramework.ParseFolder(frameworkFolder);
+            }
+            catch
+            {
+                return false;
+            }
+
+            if (framework == null || framework.IsUnsupported)
+            {
+                framework = null;
+                return false;
+            }
+
+            relativePath = normalizedEntryName.Substring(frameworkEndIndex + 1);
+            return !string.IsNullOrEmpty(relativePath);
+        }
+
+        /// <summary>
+        /// Gets the target framework represented by the current PowerShell host.
+        /// </summary>
+        private static NuGetFramework GetCurrentFramework()
+        {
+            string runtimeDescription = RuntimeInformation.FrameworkDescription ?? string.Empty;
+
+            if (runtimeDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase))
+            {
+                return NuGetFramework.ParseFolder("net472");
+            }
+
+            string versionPart = runtimeDescription;
+            if (versionPart.StartsWith(".NET Core ", StringComparison.OrdinalIgnoreCase))
+            {
+                versionPart = versionPart.Substring(".NET Core ".Length);
+            }
+            else if (versionPart.StartsWith(".NET ", StringComparison.OrdinalIgnoreCase))
+            {
+                versionPart = versionPart.Substring(".NET ".Length);
+            }
+
+            if (Version.TryParse(versionPart, out Version runtimeVersion))
+            {
+                return new NuGetFramework(
+                    ".NETCoreApp",
+                    new Version(runtimeVersion.Major, runtimeVersion.Minor));
+            }
+
+            return NuGetFramework.ParseFolder("netstandard2.0");
+        }
+
+        private sealed class LibAssetCandidate
+        {
+            public LibAssetCandidate(string entryName, NuGetFramework framework)
+            {
+                EntryName = entryName;
+                Framework = framework;
+            }
+
+            public string EntryName { get; }
+
+            public NuGetFramework Framework { get; }
+        }
+
+        /// <summary>
         /// Moves package files/directories from the temp install path into the final install path location.
         /// </summary>
-        private bool TryMoveInstallContent(string tempInstallPath, ScopeType scope, ConcurrentDictionary<string, Hashtable> packagesHash)
+        private bool TryMoveInstallContent(
+            string tempInstallPath,
+            ScopeType scope,
+            ConcurrentDictionary<string, Hashtable> packagesHash,
+            bool mergeTargetFrameworkContent)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::TryMoveInstallContent()");
             foreach (string pkgName in packagesHash.Keys)
@@ -1373,7 +1633,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         installPath,
                         newVersion: pkgVersion, // would not have prerelease label in this string
                         moduleManifestVersion: pkgVersion,
-                        scriptPath);
+                        scriptPath,
+                        mergeTargetFrameworkContent);
 
                     _cmdletPassedIn.WriteVerbose($"Successfully installed package '{pkgName}' to location '{installPath}'");
 
