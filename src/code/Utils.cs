@@ -1947,6 +1947,33 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             DeleteDirectory(sourceDirPath);
         }
 
+        /// <summary>
+        /// Copies missing files and directories from a source directory into an existing destination.
+        /// Existing files are preserved.
+        /// </summary>
+        public static void MergeDirContents(string sourceDirPath, string destDirPath)
+        {
+            if (!Directory.Exists(destDirPath))
+            {
+                Directory.CreateDirectory(destDirPath);
+            }
+
+            foreach (string filePath in Directory.GetFiles(sourceDirPath))
+            {
+                string destFilePath = Path.Combine(destDirPath, Path.GetFileName(filePath));
+                if (!File.Exists(destFilePath))
+                {
+                    File.Copy(filePath, destFilePath);
+                }
+            }
+
+            foreach (string sourceSubDirPath in Directory.GetDirectories(sourceDirPath))
+            {
+                string destSubDirPath = Path.Combine(destDirPath, Path.GetFileName(sourceSubDirPath));
+                MergeDirContents(sourceSubDirPath, destSubDirPath);
+            }
+        }
+
         private static void CopyDirContents(
             string sourceDirPath,
             string destDirPath,
