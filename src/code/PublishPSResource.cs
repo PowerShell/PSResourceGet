@@ -32,6 +32,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public string ApiKey { get; set; }
 
         /// <summary>
+        /// Allows publishing to HTTP NuGet repositories. Defaults to true.
+        /// </summary>
+        [Parameter]
+        public bool AllowInsecureConnection { get; set; } = true;
+
+        /// <summary>
         /// Specifies the repository to publish to.
         /// </summary>
         [Parameter]
@@ -185,7 +191,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 DestinationPath,
                 SkipModuleManifestValidate,
                 _cancellationToken,
-                _isNupkgPathSpecified);
+                _isNupkgPathSpecified,
+                AllowInsecureConnection);
 
             _publishHelper.CheckAllParameterPaths();
         }

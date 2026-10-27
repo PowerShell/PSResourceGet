@@ -118,6 +118,60 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Remove-Item $pkgsToDelete -Recurse -ErrorAction SilentlyContinue
     }
 
+    It "AllowInsecureConnection is a Boolean parameter defaulting to true in both parameter sets" {
+        $command = Get-Command Publish-PSResource
+        $command.Parameters['AllowInsecureConnection'].ParameterType | Should -Be ([bool])
+        foreach ($parameterSet in $command.ParameterSets) {
+            $parameterSet.Parameters.Name | Should -Contain 'AllowInsecureConnection'
+        }
+
+        $cmdlet = New-Object Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource
+        $cmdlet.AllowInsecureConnection | Should -BeTrue
+    }
+
+    It "Publish a module with AllowInsecureConnection set to <AllowInsecureConnection>" -TestCases @(
+        @{ AllowInsecureConnection = $true }
+        @{ AllowInsecureConnection = $false }
+    ) {
+        param($AllowInsecureConnection)
+
+        $version = "1.0.0"
+        New-ModuleManifest -Path (Join-Path $script:PublishModuleBase "$script:PublishModuleName.psd1") -ModuleVersion $version -Description "$script:PublishModuleName module"
+
+        Publish-PSResource -Path $script:PublishModuleBase -Repository $testRepository2 -AllowInsecureConnection $AllowInsecureConnection
+
+        $expectedPath = Join-Path $script:repositoryPath2 "$script:PublishModuleName.$version.nupkg"
+        Test-Path $expectedPath | Should -BeTrue
+    }
+
+    It "Reject HTTP publishing with AllowInsecureConnection false using <ParameterName>" -TestCases @(
+        @{ ParameterName = 'Path' }
+        @{ ParameterName = 'NupkgPath' }
+    ) {
+        param($ParameterName)
+
+        $repositoryName = 'InsecurePublishTest'
+        Register-PSResourceRepository -Name $repositoryName -Uri 'http://127.0.0.1:1/v2' -ApiVersion v2
+        try {
+            New-ModuleManifest -Path (Join-Path $script:PublishModuleBase "$script:PublishModuleName.psd1") -ModuleVersion '1.0.0' -Description "$script:PublishModuleName module"
+            $publishParameters = @{ Path = $script:PublishModuleBase }
+            if ($ParameterName -eq 'NupkgPath') {
+                Compress-PSResource -Path $script:PublishModuleBase -DestinationPath $script:destinationPath
+                $publishParameters = @{ NupkgPath = (Join-Path $script:destinationPath "$script:PublishModuleName.1.0.0.nupkg") }
+            }
+
+            $publishErrors = @()
+            Publish-PSResource @publishParameters -Repository $repositoryName -AllowInsecureConnection $false -SkipDependenciesCheck -ErrorAction SilentlyContinue -ErrorVariable publishErrors
+
+            $publishErrors.Count | Should -Be 1
+            $publishErrors[0].FullyQualifiedErrorId | Should -Be 'PushNupkgError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource'
+            $publishErrors[0].Exception.Message | Should -Match 'HTTPS'
+        }
+        finally {
+            Unregister-PSResourceRepository -Name $repositoryName
+        }
+    }
+
     It "Publish module with required module not installed on the local machine using -SkipModuleManifestValidate" {
         # Skip the module manifest validation test, which fails from the missing manifest required module.
         $testModulePath = Join-Path -Path $TestDrive -ChildPath ModuleWithMissingRequiredModule
