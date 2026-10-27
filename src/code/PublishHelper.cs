@@ -52,6 +52,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private ResourceType resourceType = ResourceType.None;
         string userAgentString = UserAgentInfo.UserAgentString();
         private bool _isNupkgPathSpecified = false;
+        private readonly bool _allowInsecureConnection;
         private Hashtable dependencies;
         private Hashtable parsedMetadata;
         private PSCredential Credential;
@@ -87,7 +88,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string destinationPath,
             bool skipModuleManifestValidate,
             CancellationToken cancellationToken,
-            bool isNupkgPathSpecified)
+            bool isNupkgPathSpecified,
+            bool allowInsecureConnection)
         {
             _callerCmdlet = CallerCmdlet.PublishPSResource;
             _cmdOperation = "Publish";
@@ -99,6 +101,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             SkipModuleManifestValidate = skipModuleManifestValidate;
             _cancellationToken = cancellationToken;
             _isNupkgPathSpecified = isNupkgPathSpecified;
+            _allowInsecureConnection = allowInsecureConnection;
             outputDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
             outputNupkgDir = System.IO.Path.Combine(outputDir, "nupkg");
         }
@@ -700,6 +703,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         noSymbols: false,
                         noServiceEndpoint: false,  // enable server endpoint
                         skipDuplicate: false, // if true-- if a package and version already exists, skip it and continue with the next package in the push, if any.
+                        allowInsecureConnections: _allowInsecureConnection,
                         logger: NullLogger.Instance // nuget logger
                         ).GetAwaiter().GetResult();
             }
