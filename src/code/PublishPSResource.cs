@@ -32,10 +32,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public string ApiKey { get; set; }
 
         /// <summary>
-        /// Allows publishing to HTTP NuGet repositories. Defaults to true.
+        /// Allows publishing to HTTP NuGet repositories. Defaults to false.
         /// </summary>
         [Parameter]
-        public bool AllowInsecureConnection { get; set; } = true;
+        public bool AllowInsecureConnection { get; set; } = false;
 
         /// <summary>
         /// Specifies the repository to publish to.

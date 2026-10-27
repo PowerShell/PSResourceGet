@@ -118,7 +118,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Remove-Item $pkgsToDelete -Recurse -ErrorAction SilentlyContinue
     }
 
-    It "AllowInsecureConnection is a Boolean parameter defaulting to true in both parameter sets" {
+    It "AllowInsecureConnection is a Boolean parameter defaulting to false in both parameter sets" {
         $command = Get-Command Publish-PSResource
         $command.Parameters['AllowInsecureConnection'].ParameterType | Should -Be ([bool])
         foreach ($parameterSet in $command.ParameterSets) {
@@ -126,7 +126,7 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         }
 
         $cmdlet = New-Object Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource
-        $cmdlet.AllowInsecureConnection | Should -BeTrue
+        $cmdlet.AllowInsecureConnection | Should -BeFalse
     }
 
     It "Publish a module with AllowInsecureConnection set to <AllowInsecureConnection>" -TestCases @(
@@ -144,11 +144,13 @@ Describe "Test Publish-PSResource" -tags 'CI' {
         Test-Path $expectedPath | Should -BeTrue
     }
 
-    It "Reject HTTP publishing with AllowInsecureConnection false using <ParameterName>" -TestCases @(
-        @{ ParameterName = 'Path' }
-        @{ ParameterName = 'NupkgPath' }
+    It "Reject HTTP publishing using <ParameterName> with AllowInsecureConnection omitted: <OmitParameter>" -TestCases @(
+        @{ ParameterName = 'Path'; OmitParameter = $true }
+        @{ ParameterName = 'Path'; OmitParameter = $false }
+        @{ ParameterName = 'NupkgPath'; OmitParameter = $true }
+        @{ ParameterName = 'NupkgPath'; OmitParameter = $false }
     ) {
-        param($ParameterName)
+        param($ParameterName, $OmitParameter)
 
         $repositoryName = 'InsecurePublishTest'
         Register-PSResourceRepository -Name $repositoryName -Uri 'http://127.0.0.1:1/v2' -ApiVersion v2
@@ -160,8 +162,12 @@ Describe "Test Publish-PSResource" -tags 'CI' {
                 $publishParameters = @{ NupkgPath = (Join-Path $script:destinationPath "$script:PublishModuleName.1.0.0.nupkg") }
             }
 
+            if (!$OmitParameter) {
+                $publishParameters.AllowInsecureConnection = $false
+            }
+
             $publishErrors = @()
-            Publish-PSResource @publishParameters -Repository $repositoryName -AllowInsecureConnection $false -SkipDependenciesCheck -ErrorAction SilentlyContinue -ErrorVariable publishErrors
+            Publish-PSResource @publishParameters -Repository $repositoryName -SkipDependenciesCheck -ErrorAction SilentlyContinue -ErrorVariable publishErrors
 
             $publishErrors.Count | Should -Be 1
             $publishErrors[0].FullyQualifiedErrorId | Should -Be 'PushNupkgError,Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource'
