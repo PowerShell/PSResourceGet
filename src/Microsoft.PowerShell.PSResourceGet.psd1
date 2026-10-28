@@ -50,7 +50,7 @@
         'usres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'rc1'
+            Prerelease   = 'rc2'
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -60,6 +60,11 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.3.0-rc2
+
+### New Features
+- Add `-AllowInsecureConnection` to `Publish-PSResource` to explicitly allow publishing to HTTP NuGet repositories (#2072)
+
 ## 1.3.0-rc1
 
 ### Bug Fixes
