@@ -1,5 +1,10 @@
 # Preview Changelog
 
+## [1.3.0-rc2](https://github.com/PowerShell/PSResourceGet/compare/v1.3.0-rc1..v1.3.0-rc2) - 2026-10-28
+
+### New Features
+- Add `-AllowInsecureConnection` to `Publish-PSResource` to explicitly allow publishing to HTTP NuGet repositories (#2072)
+
 ## [1.3.0-rc1](https://github.com/PowerShell/PSResourceGet/compare/v1.3.0-preview2..v1.3.0-rc1) - 2026-10-19
 
 ### Bug Fixes
