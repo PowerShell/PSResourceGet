@@ -74,25 +74,23 @@
             "description": "A PowerShell Resource repository from where to acquire the resources.",
             "type": "object",
             "additionalProperties": false,
+            "required": ["name"],
             "allOf": [
                 {
+                    "$comment": "If the repository name is not `PSGallery` (case-insensitive) and `_exist` is `true` or undefined, then the 'uri' property is required.",
                     "if": {
-                        "properties": {
-                            "_exist": {
-                                "const": false
+                        "not": {
+                            "properties": {
+                                "name": { "pattern": "(?i)^PSGallery$" }
                             }
+                        },
+                        "properties": {
+                            "_exist": { "const": true }
                         }
                     },
                     "then": {
-                        "required": [
-                            "name"
-                        ]
-                    },
-                    "else": {
-                        "required": [
-                            "name",
-                            "uri"
-                        ]
+                        "required": ["uri"],
+                        "errorMessage": "The `uri` property is required when `name` is not `PSGallery` (case-insensitive) and `_exist` is not defined as `false`"
                     }
                 }
             ],
@@ -105,7 +103,7 @@
                 "uri": {
                     "title": "URI",
                     "description": "The URI of the repository.",
-                    "type": ["string", "null"],
+                    "type": "string",
                     "format": "uri"
                 },
                 "trusted": {
