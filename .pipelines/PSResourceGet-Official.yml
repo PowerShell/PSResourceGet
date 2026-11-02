@@ -377,6 +377,11 @@ extends:
           inputs:
             azureDevOpsServiceConnection: 'mscodehub-PushToPSRelFeed-ADO'
             feedUrl: 'https://pkgs.dev.azure.com/powershell-rel/PowerShell/_packaging/powershell-module-earlyaccess/nuget/v3/index.json'
+        - task: UseDotNet@2
+          inputs:
+            packageType: 'sdk'
+            useGlobalJson: true
+          displayName: 'Install .NET SDK'
         - pwsh: |
             $publishNupkg = Get-ChildItem -Path '$(Pipeline.Workspace)\PSResourceGet\signed\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg' -Recurse -File | Select-Object -First 1
             if (-not $publishNupkg)
