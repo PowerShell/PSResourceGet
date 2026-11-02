@@ -5,6 +5,7 @@ using Microsoft.PowerShell.PSResourceGet.UtilClasses;
 using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Xml;
 
@@ -72,15 +73,32 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         #region V2 Specific Methods
 
+        private static readonly XmlReaderSettings XmlDocumentReaderSettings = new XmlReaderSettings()
+        {
+            DtdProcessing = DtdProcessing.Prohibit,     // Disallow any DTD elements
+            XmlResolver = null,                         // Do not resolve external links
+            CheckCharacters = true,
+            IgnoreComments = true,
+            IgnoreProcessingInstructions = true,
+            IgnoreWhitespace = true,
+            MaxCharactersFromEntities = 1024,
+            MaxCharactersInDocument = 512 * 1024 * 1024, // 512M characters = 1GB
+            ValidationFlags = System.Xml.Schema.XmlSchemaValidationFlags.None,
+            ValidationType = ValidationType.None
+        };
+
         public XmlNode[] ConvertResponseToXML(string httpResponse) {
             NuGetVersion emptyVersion = new NuGetVersion("0.0.0.0");
             NuGetVersion firstVersion = emptyVersion;
             NuGetVersion lastVersion = emptyVersion;
             bool shouldFixOrder = true;
 
-            //Create the XmlDocument.
             XmlDocument doc = new XmlDocument();
-            doc.LoadXml(httpResponse);
+            using (StringReader stringReader = new StringReader(httpResponse))
+            using (XmlReader xmlReader = XmlReader.Create(stringReader, XmlDocumentReaderSettings))
+            {
+                doc.Load(xmlReader);
+            }
 
             XmlNodeList entryNode = doc.GetElementsByTagName("entry");
 
