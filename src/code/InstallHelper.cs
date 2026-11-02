@@ -56,7 +56,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         List<string> _pathsToSearch;
         List<string> _pkgNamesToInstall;
         private string _tmpPath;
-        private NetworkCredential _networkCredential;
+        private NetworkCredential _explicitCredential;
         private HashSet<string> _packagesOnMachine;
         private FindHelper _findHelper;
 
@@ -69,9 +69,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             CancellationTokenSource source = new();
             _cancellationToken = source.Token;
             _cmdletPassedIn = cmdletPassedIn;
-            _networkCredential = networkCredential;
+            _explicitCredential = networkCredential;
 
-            _findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
+            _findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _explicitCredential);
         }
 
         /// <summary>
@@ -269,7 +269,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             var yesToAll = false;
             var noToAll = false;
 
-            var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _networkCredential);
+            var findHelper = new FindHelper(_cancellationToken, _cmdletPassedIn, _explicitCredential);
             List<string> repositoryNamesToSearch = new();
             bool sourceTrusted = false;
 
@@ -295,9 +295,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 sourceTrusted = currentRepository.Trusted || trustRepository;
 
                 // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
-                _networkCredential = currentRepository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
+                NetworkCredential repoCredential = currentRepository.SetNetworkCredentials(_explicitCredential, _cmdletPassedIn);
 
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, repoCredential);
 
                 if (currentServer == null)
                 {

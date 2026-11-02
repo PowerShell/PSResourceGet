@@ -16,7 +16,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// The Save-PSResource cmdlet saves a resource to a machine.
     /// It returns nothing.
     /// </summary>
-    [Cmdlet(VerbsData.Save, "PSResource", DefaultParameterSetName = "IncludeXmlParameterSet", SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.Low)]
+    [Cmdlet(VerbsData.Save, "PSResource", DefaultParameterSetName = "IncludeXmlParameterSet", SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.Medium)]
     [Alias("svres")]
     public sealed class SavePSResource : PSCmdlet
     {
@@ -202,6 +202,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void ProcessRecord()
         {
+            if (Credential != null && (Repository == null || Repository.Length != 1) &&
+                !ShouldProcess("Potentially search multiple repositories for save operation using the supplied Credential"))
+            {
+                return;
+            }
+
             switch (ParameterSetName)
             {
                 case AsNupkgParameterSet:

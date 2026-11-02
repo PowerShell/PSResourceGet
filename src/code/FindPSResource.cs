@@ -18,7 +18,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// </summary>
     [Cmdlet(VerbsCommon.Find,
         "PSResource",
-        DefaultParameterSetName = NameParameterSet)]
+        DefaultParameterSetName = NameParameterSet,
+        SupportsShouldProcess = true,
+        ConfirmImpact = ConfirmImpact.Medium)]
     [Alias("fdres")]
     [OutputType(typeof(PSResourceInfo), typeof(PSCommandResourceInfo))]
     public sealed class FindPSResource : PSCmdlet
@@ -99,6 +101,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Specifies optional credentials to be used when accessing a repository.
+        /// Confirmation is requested before using the same credential when zero or multiple repository names are specified.
         /// </summary>
         [Parameter()]
         public PSCredential Credential { get; set; }
@@ -142,6 +145,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void ProcessRecord()
         {
+            if (Credential != null && (Repository == null || Repository.Length != 1) &&
+                !ShouldProcess("Potentially search multiple repositories using the supplied Credential"))
+            {
+                return;
+            }
+
             switch (ParameterSetName)
             {
                 case NameParameterSet:
