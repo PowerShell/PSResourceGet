@@ -408,13 +408,13 @@ extends:
         displayName: Manual validation
         pool:
           type: server
-        timeoutInMinutes: 1440
+        timeoutInMinutes: 14400
         steps:
         - task: ManualValidation@0
           displayName: Wait 24 hours for validation
           inputs:
             instructions: Please validate the release
-            timeoutInMinutes: 1440
+            timeoutInMinutes: 14400
 
       - job: PSGalleryPublish
         displayName: Publish to PSGallery
