@@ -10,8 +10,16 @@ parameters: # parameters are shown up in ADO UI in a build queue time
   displayName: 'Enable debug output'
   type: boolean
   default: false
-- name: 'onlyPublishToCFSFeed'
-  displayName: 'Only publish to ADO CFS feed (i.e excludes PSGallery)'
+- name: 'releaseMARModulesCFS'
+  displayName: 'Publish to MAR module CFS feed'
+  type: boolean
+  default: false
+- name: 'releasePowerShellModuleCFS'
+  displayName: 'Publish to PowerShell module CFS feed'
+  type: boolean
+  default: false
+- name: 'releasePSGallery'
+  displayName: 'Publish to PSGallery'
   type: boolean
   default: false
 
@@ -291,9 +299,10 @@ extends:
             Get-ChildItem "$(ob_outputDirectory)" -Recurse
           displayName: Find Signed Nupkg
 
-    - stage: releaseCFS
+    - stage: releaseMARModulesCFS
       displayName: 'Publish Package to CFS feed (msazure)'
       dependsOn: stagebuild
+      condition: and(succeeded(), ${{ eq(parameters.releaseMARModulesCFS, true) }})
       jobs:
       - job: validation
         displayName: Publish to CFS feed
@@ -337,10 +346,53 @@ extends:
             dotnet nuget push $publishNupkgPath --source $adoRepoUri --api-key az --skip-duplicate
           displayName: 'Push package to external Azure Artifacts feed'
 
+    - stage: releasePowerShellModuleCFS
+      displayName: 'Publish Package to PowerShell modules CFS feed'
+      dependsOn: stagebuild
+      condition: and(succeeded(), ${{ eq(parameters.releasePowerShellModuleCFS, true) }})
+      jobs:
+      - job: releaseCFSJob
+        displayName: Publish to CFS feed
+        variables:
+        - name: ob_outputDirectory
+          value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+        pool:
+          type: windows
+        steps:
+        - task: DownloadPipelineArtifact@2
+          inputs:
+            targetPath: '$(Pipeline.Workspace)'
+            artifact: drop_stagebuild_nupkg
+          displayName: 'Download drop_stagebuild_nupkg artifact that has .nupkg file needed'
+        - pwsh: |
+            Get-ChildItem '$(Pipeline.Workspace)' -Recurse | Out-String -Stream | write-Verbose -Verbose
+          displayName: 'Capture Workspace'
+        - pwsh: |
+            $publishNupkg = Get-ChildItem -Path '$(Pipeline.Workspace)\drop_stagebuild_nupkg\PSResourceGet\signed\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg' -Recurse -File | Select-Object -First 1
+            $pkgFound = Test-Path $publishNupkg
+            Write-Verbose -Verbose "pkg found: $pkgFound"
+          displayName: 'Verify downloaded .nupkg is present'
+        - task: NuGetAuthenticate@1
+          displayName: 'Authenticate to external Azure Artifacts feed'
+          inputs:
+            azureDevOpsServiceConnection: 'mscodehub-PushToPSRelFeed-ADO'
+            feedUrl: 'https://pkgs.dev.azure.com/powershell-rel/PowerShell/_packaging/powershell-module-earlyaccess/nuget/v3/index.json'
+        - pwsh: |
+            $publishNupkg = Get-ChildItem -Path '$(Pipeline.Workspace)\drop_stagebuild_nupkg\PSResourceGet\signed\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg' -Recurse -File | Select-Object -First 1
+            if (-not $publishNupkg)
+            {
+              throw "No nupkg found under $(Pipeline.Workspace) matching Microsoft.PowerShell.PSResourceGet.*.nupkg"
+            }
+            $publishNupkgPath = $publishNupkg.FullName
+            Write-Verbose -Verbose "Package found at path: $publishNupkgPath"
+            $adoRepoUri = "https://pkgs.dev.azure.com/powershell-rel/PowerShell/_packaging/powershell-module-earlyaccess/nuget/v3/index.json"
+            dotnet nuget push $publishNupkgPath --source $adoRepoUri --api-key az --skip-duplicate
+          displayName: 'Push package to external Azure Artifacts feed'
+
     - stage: release
       displayName: Release PSResourceGet
       dependsOn: stagebuild
-      condition: and(succeeded(), not(${{ parameters.onlyPublishToCFSFeed }}))
+      condition: and(succeeded(), ${{ eq(parameters.releasePSGallery, true) }})
       variables:
         version: $[ stageDependencies.build.main.outputs['package.version'] ]
         drop: $(Pipeline.Workspace)/drop_stagebuild_nupkg
