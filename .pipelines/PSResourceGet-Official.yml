@@ -368,7 +368,7 @@ extends:
             Get-ChildItem '$(Pipeline.Workspace)' -Recurse | Out-String -Stream | write-Verbose -Verbose
           displayName: 'Capture Workspace'
         - pwsh: |
-            $publishNupkg = Get-ChildItem -Path '$(Pipeline.Workspace)\drop_stagebuild_nupkg\PSResourceGet\signed\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg' -Recurse -File | Select-Object -First 1
+            $publishNupkg = Get-ChildItem -Path '$(Pipeline.Workspace)\PSResourceGet\signed\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg' -Recurse -File | Select-Object -First 1
             $pkgFound = Test-Path $publishNupkg
             Write-Verbose -Verbose "pkg found: $pkgFound"
           displayName: 'Verify downloaded .nupkg is present'
@@ -378,7 +378,7 @@ extends:
             azureDevOpsServiceConnection: 'mscodehub-PushToPSRelFeed-ADO'
             feedUrl: 'https://pkgs.dev.azure.com/powershell-rel/PowerShell/_packaging/powershell-module-earlyaccess/nuget/v3/index.json'
         - pwsh: |
-            $publishNupkg = Get-ChildItem -Path '$(Pipeline.Workspace)\drop_stagebuild_nupkg\PSResourceGet\signed\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg' -Recurse -File | Select-Object -First 1
+            $publishNupkg = Get-ChildItem -Path '$(Pipeline.Workspace)\PSResourceGet\signed\PublishedNupkg\Microsoft.PowerShell.PSResourceGet.*.nupkg' -Recurse -File | Select-Object -First 1
             if (-not $publishNupkg)
             {
               throw "No nupkg found under $(Pipeline.Workspace) matching Microsoft.PowerShell.PSResourceGet.*.nupkg"
