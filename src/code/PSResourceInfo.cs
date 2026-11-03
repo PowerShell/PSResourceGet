@@ -1145,7 +1145,9 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
                 List<Hashtable> requiredModulesHashList = new List<Hashtable>();
                 if (pkgMetadata.ContainsKey("RequiredModules"))
                 {
-                    var requiredModules = pkgMetadata["RequiredModules"] as Object[];
+                    // A manifest can specify a single module name or hashtable instead of an array.
+                    var requiredModules = LanguagePrimitives.ConvertTo<object[]>(pkgMetadata["RequiredModules"])
+                        ?? Array.Empty<object>();
                     foreach (Object obj in requiredModules)
                     {
                         if (obj != null)
