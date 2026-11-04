@@ -139,6 +139,15 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public SwitchParameter AuthenticodeCheck { get; set; }
 
         /// <summary>
+        /// Specifies the Target Framework Moniker (TFM) used to select compatible assets from lib/ folders.
+        /// When omitted, the current PowerShell host framework is used.
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty]
+        [ArgumentCompleter(typeof(TargetFrameworkCompleter))]
+        public string TargetFramework { get; set; }
+
+        /// <summary>
         /// Passes the resource installed to the console.
         /// </summary>
         [Parameter]
@@ -597,7 +606,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 pathsToInstallPkg: _pathsToInstallPkg,
                 scope: scope,
                 tmpPath: _tmpPath,
-                pkgsInstalled: _packagesOnMachine);
+                pkgsInstalled: _packagesOnMachine,
+                filterByTargetFramework: true,
+                targetFramework: TargetFramework);
 
             if (PassThru)
             {
