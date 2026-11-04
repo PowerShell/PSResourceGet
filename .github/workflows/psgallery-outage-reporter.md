@@ -33,7 +33,7 @@ network:
 tools:
   github:
     toolsets: [issues]
-  bash: ["curl:*", "jq:*"]
+  bash: ["curl:*", "jq:*", "sleep", "date"]
 
 safe-outputs:
   # PAT or GitHub App token with 'issues: write' on PowerShell/PowerShellGallery.
@@ -65,9 +65,15 @@ Health check run: ${{ github.event.inputs.health_check_run_url }}
 
 1. **Re-verify.** For every failing probe, request its `uri` again with
    `curl --silent --location --output /dev/null --max-time 60 --write-out '%{http_code}' '<uri>'`,
-   up to 3 times, about 20 seconds apart. Treat a probe as still failing only if every attempt
-   returns 404 or a status code of 500 or higher. If no probe is still failing, the incident has
-   recovered: do **not** create an issue or comment; finish by reporting that no action was needed.
+   up to 3 times, running `sleep 20` between attempts. Treat a probe as still failing only if every
+   attempt returns 404 or a status code of 500 or higher. If no probe is still failing, the incident
+   has recovered: do **not** create an issue or comment; finish by reporting that no action was needed.
+
+   Shell commands are restricted to an allowlist: run each `curl`, `sleep`, and `date` invocation as
+   its own separate command. Do not use loops, pipes, `;`, `&&`, subshells, or variables.
+
+   Every probe URI targets a package or endpoint that is expected to exist, so a 404 is a failure.
+   Do not second-guess whether a 404 is "expected" based on the package name.
 
 2. **Look for an existing report.** Search open issues in `alerickson/PSResourceGet` whose
    title starts with `[Service Status]` and that were created in the last 24 hours. Also consider
