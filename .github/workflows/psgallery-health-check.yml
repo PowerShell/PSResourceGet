@@ -1,0 +1,79 @@
+# PowerShell Gallery Health Check
+#
+# Cheap, deterministic probe of the PowerShell Gallery endpoints that PSResourceGet depends on.
+# A probe fails only if it keeps returning 404 or 5xx across several retries. When a failure is
+# confirmed, this workflow dispatches the 'psgallery-outage-reporter' agentic workflow, which
+# opens (or updates) a service-status issue in PowerShell/PowerShellGallery so the status page
+# at https://aka.ms/psgallery can be updated.
+name: 'PowerShell Gallery Health Check'
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: psgallery-health-check
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: 'Probe PowerShell Gallery endpoints'
+        id: probe
+        shell: pwsh
+        run: |
+          $probes = [ordered]@{
+            'V2 service root'      = 'https://www.powershellgallery.com/api/v2/'
+            'Find by name'         = "https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PowerShellGet'"
+            'Find specific version'= "https://www.powershellgallery.com/api/v2/Packages(Id='PowerShellGet',Version='2.2.5')"
+            'Search'               = "https://www.powershellgallery.com/api/v2/Search()?searchTerm='PSReadLine'&includePrerelease=false&`$top=1"
+            'Package download'     = 'https://www.powershellgallery.com/api/v2/package/PowerShellGet/2.2.5'
+          }
+
+          $maxAttempts = 3
+          $failures = @()
+          foreach ($name in $probes.Keys) {
+            $uri = $probes[$name]
+            $status = 0
+            for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+              $status = [int](curl --silent --location --output /dev/null --max-time 60 --write-out '%{http_code}' $uri)
+              if ($status -ne 404 -and $status -lt 500) { break }
+              if ($attempt -lt $maxAttempts) { Start-Sleep -Seconds 30 }
+            }
+
+            Write-Host "$name -> HTTP $status ($uri)"
+            if ($status -eq 404 -or $status -ge 500) {
+              $failures += [pscustomobject]@{
+                probe      = $name
+                uri        = $uri
+                statusCode = $status
+                attempts   = $maxAttempts
+                checkedAt  = (Get-Date).ToUniversalTime().ToString('o')
+              }
+            }
+          }
+
+          $json = if ($failures.Count) { ConvertTo-Json -InputObject $failures -Compress -Depth 3 } else { '[]' }
+          "failed=$([bool]$failures.Count)".ToLower() >> $env:GITHUB_OUTPUT
+          "results=$json" >> $env:GITHUB_OUTPUT
+
+      - name: 'Dispatch outage reporter'
+        if: steps.probe.outputs.failed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROBE_RESULTS: ${{ steps.probe.outputs.results }}
+        run: |
+          gh workflow run psgallery-outage-reporter.lock.yml \
+            --repo "${{ github.repository }}" \
+            --ref "${{ github.ref_name }}" \
+            -f probe_results="$PROBE_RESULTS" \
+            -f health_check_run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
