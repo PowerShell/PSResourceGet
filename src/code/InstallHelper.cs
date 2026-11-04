@@ -53,6 +53,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private bool _noClobber;
         private bool _authenticodeCheck;
         private bool _savePkg;
+        private bool _filterRuntimeAssets;
+        private string _runtimeIdentifier;
         List<string> _pathsToSearch;
         List<string> _pkgNamesToInstall;
         private string _tmpPath;
@@ -99,12 +101,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> pathsToInstallPkg,
             ScopeType? scope,
             string tmpPath,
-            HashSet<string> pkgsInstalled)
+            HashSet<string> pkgsInstalled,
+            bool filterRuntimeAssets = false,
+            string runtimeIdentifier = null)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::BeginInstallPackages()");
             _cmdletPassedIn.WriteDebug(string.Format("Parameters passed in >>> Name: '{0}'; VersionRange: '{1}'; NuGetVersion: '{2}'; VersionType: '{3}'; Version: '{4}'; Prerelease: '{5}'; Repository: '{6}'; " +
                 "AcceptLicense: '{7}'; Quiet: '{8}'; Reinstall: '{9}'; TrustRepository: '{10}'; NoClobber: '{11}'; AsNupkg: '{12}'; IncludeXml '{13}'; SavePackage '{14}'; TemporaryPath '{15}'; SkipDependencyCheck: '{16}'; " +
-                "AuthenticodeCheck: '{17}'; PathsToInstallPkg: '{18}'; Scope '{19}'",
+                "AuthenticodeCheck: '{17}'; PathsToInstallPkg: '{18}'; Scope '{19}'; FilterRuntimeAssets: '{20}'; RuntimeIdentifier: '{21}'",
                 string.Join(",", names),
                 versionRange != null ? (versionRange.OriginalString != null ? versionRange.OriginalString : string.Empty) : string.Empty,
                 nugetVersion != null ? nugetVersion.ToString() : string.Empty,
@@ -124,7 +128,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 skipDependencyCheck,
                 authenticodeCheck,
                 pathsToInstallPkg != null ? string.Join(",", pathsToInstallPkg) : string.Empty,
-                scope?.ToString() ?? string.Empty));
+                scope?.ToString() ?? string.Empty,
+                filterRuntimeAssets,
+                runtimeIdentifier ?? string.Empty));
 
             _versionRange = versionRange;
             _nugetVersion = nugetVersion;
@@ -141,6 +147,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _asNupkg = asNupkg;
             _includeXml = includeXml;
             _savePkg = savePkg;
+            _filterRuntimeAssets = filterRuntimeAssets;
+            _runtimeIdentifier = runtimeIdentifier;
             _pathsToInstallPkg = pathsToInstallPkg;
             _tmpPath = tmpPath ?? Path.GetTempPath();
 
@@ -402,7 +410,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             string installPath,
             string newVersion,
             string moduleManifestVersion,
-            string scriptPath)
+            string scriptPath,
+            bool mergeRuntimeContent)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::MoveFilesIntoInstallPath()");
             // Creating the proper installation path depending on whether pkg is a module or script
@@ -424,6 +433,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     _cmdletPassedIn.WriteVerbose($"Attempting to move '{tempModuleVersionDir}' to '{finalModuleVersionDir}'");
                     Directory.CreateDirectory(newPathParent);
                     Utils.MoveDirectory(tempModuleVersionDir, finalModuleVersionDir);
+                }
+                else if (mergeRuntimeContent && Directory.Exists(finalModuleVersionDir))
+                {
+                    _cmdletPassedIn.WriteVerbose(
+                        $"Merging runtime content from '{tempModuleVersionDir}' into '{finalModuleVersionDir}'");
+                    Utils.MergeDirContents(tempModuleVersionDir, finalModuleVersionDir);
+                    Utils.DeleteDirectory(tempModuleVersionDir);
                 }
                 else
                 {
@@ -555,15 +571,27 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     continue;
                 }
 
+                bool mergeRuntimeContent = false;
+
                 // Check to see if the pkg is already installed (unless -Reinstall was specified).
                 if (!_reinstall && _packagesOnMachine.Contains($"{pkgToInstall.Name}{pkgVersion}"))
                 {
-                    _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
+                    if (_filterRuntimeAssets && !string.IsNullOrEmpty(_runtimeIdentifier))
+                    {
+                        _cmdletPassedIn.WriteVerbose(
+                            $"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed. " +
+                            $"Proceeding to merge runtime content for RuntimeIdentifier '{_runtimeIdentifier}'.");
+                        mergeRuntimeContent = true;
+                    }
+                    else
+                    {
+                        _cmdletPassedIn.WriteWarning($"Resource '{pkgToInstall.Name}' with version '{pkgVersion}' is already installed.  If you would like to reinstall, please run the cmdlet again with the -Reinstall parameter");
 
-                    // Remove from tracking list of packages to install.
-                    _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
+                        // Remove from tracking list of packages to install.
+                        _pkgNamesToInstall.RemoveAll(x => x.Equals(pkgToInstall.Name, StringComparison.InvariantCultureIgnoreCase));
 
-                    continue;
+                        continue;
+                    }
                 }
 
                 // ShouldProcess gate (handles -WhatIf / -Confirm) on the pipeline thread.
@@ -579,7 +607,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     PkgToInstall = pkgToInstall,
                     PkgVersion = pkgVersion,
-                    TempInstallPath = CreateInstallationTempPath()
+                    TempInstallPath = CreateInstallationTempPath(),
+                    MergeRuntimeContent = mergeRuntimeContent,
                 });
             }
 
@@ -632,7 +661,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
                     // Parent package and dependencies are now installed to temp directory.
                     // Try to move all package directories from temp directory to final destination.
-                    if (!TryMoveInstallContent(workItem.TempInstallPath, scope, workItem.PackagesHash))
+                    string mergePackageName = workItem.MergeRuntimeContent
+                        ? workItem.PkgToInstall.Name
+                        : null;
+                    if (!TryMoveInstallContent(
+                        workItem.TempInstallPath,
+                        scope,
+                        workItem.PackagesHash,
+                        mergePackageName))
                     {
                         _cmdletPassedIn.WriteError(new ErrorRecord(
                             new InvalidOperationException(),
@@ -683,6 +719,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             public string TempInstallPath;
             public ConcurrentDictionary<string, Hashtable> PackagesHash;
             public bool Succeeded;
+            public bool MergeRuntimeContent;
             public readonly ConcurrentQueue<ErrorRecord> ErrorMsgs = new();
             public readonly ConcurrentQueue<string> WarningMsgs = new();
             public readonly ConcurrentQueue<string> DebugMsgs = new();
@@ -1272,9 +1309,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         }
 
         /// <summary>
-        /// Extracts files from .nupkg
+        /// Extracts files from .nupkg.
         /// Similar functionality as System.IO.Compression.ZipFile.ExtractToDirectory,
         /// but while ExtractToDirectory cannot overwrite files, this method can.
+        /// Install-PSResource additionally filters root-level RID folders.
         /// </summary>
         /// <remarks>
         /// This method may run on a background thread (via Parallel.ForEach), so it must not call
@@ -1304,6 +1342,22 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     foreach (ZipArchiveEntry entry in archive.Entries.Where(entry => entry.CompressedLength > 0))
                     {
+                        if (_filterRuntimeAssets)
+                        {
+                            bool includeEntry = string.IsNullOrEmpty(_runtimeIdentifier)
+                                ? RuntimePackageHelper.ShouldIncludeEntry(entry.FullName)
+                                : RuntimePackageHelper.ShouldIncludeEntry(entry.FullName, _runtimeIdentifier);
+
+                            if (!includeEntry)
+                            {
+                                string targetRid = _runtimeIdentifier ??
+                                    RuntimeIdentifierHelper.GetCurrentRuntimeIdentifier();
+                                debugMsgs.Enqueue(
+                                    $"Skipping runtime entry not compatible with RuntimeIdentifier '{targetRid}': {entry.FullName}");
+                                continue;
+                            }
+                        }
+
                         // If a file has one or more parent directories.
                         if (entry.FullName.Contains(Path.DirectorySeparatorChar) || entry.FullName.Contains(Path.AltDirectorySeparatorChar))
                         {
@@ -1329,6 +1383,23 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                             entry.ExtractToFile(destinationPath, overwrite: true);
                         }
                     }
+
+                    if (_filterRuntimeAssets && !string.IsNullOrEmpty(_runtimeIdentifier))
+                    {
+                        IReadOnlyList<string> availableRids =
+                            RuntimePackageHelper.GetAvailableRidsFromArchive(archive);
+                        bool hasMatchingRid = availableRids.Any(
+                            rid => RuntimeIdentifierHelper.IsCompatibleRid(rid, _runtimeIdentifier));
+
+                        if (availableRids.Count > 0 && !hasMatchingRid)
+                        {
+                            string available = string.Join(", ", availableRids);
+                            warningMsgs.Enqueue(
+                                $"The specified RuntimeIdentifier '{_runtimeIdentifier}' was not found in this package. " +
+                                $"No matching root-level runtime assets were installed. " +
+                                $"Available root-level RIDs: {available}");
+                        }
+                    }
                 }
             }
             catch (Exception e)
@@ -1348,7 +1419,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// <summary>
         /// Moves package files/directories from the temp install path into the final install path location.
         /// </summary>
-        private bool TryMoveInstallContent(string tempInstallPath, ScopeType scope, ConcurrentDictionary<string, Hashtable> packagesHash)
+        private bool TryMoveInstallContent(
+            string tempInstallPath,
+            ScopeType scope,
+            ConcurrentDictionary<string, Hashtable> packagesHash,
+            string mergePackageName)
         {
             _cmdletPassedIn.WriteDebug("In InstallHelper::TryMoveInstallContent()");
             foreach (string pkgName in packagesHash.Keys)
@@ -1361,6 +1436,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 string pkgVersion = pkgInfo["pkgVersion"] as string;
                 string scriptPath = pkgInfo["scriptPath"] as string;
                 string installPath = pkgInfo["installPath"] as string;
+                bool mergeRuntimeContent = !string.IsNullOrEmpty(mergePackageName) &&
+                    string.Equals(pkgName, mergePackageName, StringComparison.OrdinalIgnoreCase);
 
                 try
                 {
@@ -1373,7 +1450,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         installPath,
                         newVersion: pkgVersion, // would not have prerelease label in this string
                         moduleManifestVersion: pkgVersion,
-                        scriptPath);
+                        scriptPath,
+                        mergeRuntimeContent);
 
                     _cmdletPassedIn.WriteVerbose($"Successfully installed package '{pkgName}' to location '{installPath}'");
 

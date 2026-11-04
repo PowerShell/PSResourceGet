@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
@@ -42,6 +43,61 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         public static string GetUserString()
         {
             return Microsoft.PowerShell.PSResourceGet.Cmdlets.UserAgentInfo.UserAgentString();
+        }
+
+        public static string GetCurrentRuntimeIdentifier()
+        {
+            return RuntimeIdentifierHelper.GetCurrentRuntimeIdentifier();
+        }
+
+        public static IReadOnlyList<string> GetCompatibleRuntimeIdentifiers()
+        {
+            return RuntimeIdentifierHelper.GetCompatibleRuntimeIdentifiers();
+        }
+
+        public static IReadOnlyList<string> GetCompatibleRuntimeIdentifiersFor(string rid)
+        {
+            return RuntimeIdentifierHelper.GetCompatibleRuntimeIdentifiers(rid);
+        }
+
+        public static bool IsCompatibleRid(string rid)
+        {
+            return RuntimeIdentifierHelper.IsCompatibleRid(rid);
+        }
+
+        public static bool IsCompatibleRidWith(string candidateRid, string targetRid)
+        {
+            return RuntimeIdentifierHelper.IsCompatibleRid(candidateRid, targetRid);
+        }
+
+        public static bool IsRidFolder(string folderName)
+        {
+            return RuntimePackageHelper.IsRidFolder(folderName);
+        }
+
+        public static bool IsRuntimeAssetEntry(string entryFullName)
+        {
+            return RuntimePackageHelper.IsRuntimeAssetEntry(entryFullName);
+        }
+
+        public static string GetRidFromRuntimeAssetEntry(string entryFullName)
+        {
+            return RuntimePackageHelper.GetRidFromRuntimeAssetEntry(entryFullName);
+        }
+
+        public static bool ShouldIncludeRuntimeAssetEntry(string entryFullName)
+        {
+            return RuntimePackageHelper.ShouldIncludeEntry(entryFullName);
+        }
+
+        public static bool ShouldIncludeRuntimeAssetEntryForRid(string entryFullName, string targetRid)
+        {
+            return RuntimePackageHelper.ShouldIncludeEntry(entryFullName, targetRid);
+        }
+
+        public static IReadOnlyList<string> GetAvailableRidsFromZipFile(string zipPath)
+        {
+            return RuntimePackageHelper.GetAvailableRidsFromZipFile(zipPath);
         }
     }
 }

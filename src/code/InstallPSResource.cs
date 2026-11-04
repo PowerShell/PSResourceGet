@@ -139,6 +139,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         public SwitchParameter AuthenticodeCheck { get; set; }
 
         /// <summary>
+        /// Specifies the Runtime Identifier (RID) used to select root-level runtime asset folders.
+        /// When omitted, the RID for the current process is used. Specify a RID to prepare a
+        /// package for a different platform.
+        /// </summary>
+        [Parameter]
+        [ValidateNotNullOrEmpty]
+        [ArgumentCompleter(typeof(RuntimeIdentifierCompleter))]
+        public string RuntimeIdentifier { get; set; }
+
+        /// <summary>
         /// Passes the resource installed to the console.
         /// </summary>
         [Parameter]
@@ -597,7 +607,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 pathsToInstallPkg: _pathsToInstallPkg,
                 scope: scope,
                 tmpPath: _tmpPath,
-                pkgsInstalled: _packagesOnMachine);
+                pkgsInstalled: _packagesOnMachine,
+                filterRuntimeAssets: true,
+                runtimeIdentifier: RuntimeIdentifier);
 
             if (PassThru)
             {
