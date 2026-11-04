@@ -47,6 +47,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         public static readonly string[] EmptyStrArray = Array.Empty<string>();
         public static readonly char[] WhitespaceSeparator = new char[] { ' ' };
+        private static readonly char[] PathTraversalChars =
+#if UNIX
+            new char[] { '\\', '/' };
+#else
+            new char[] { '\\', '/', ':' };
+#endif
         public const string PSDataFileExt = ".psd1";
         public const string PSScriptFileExt = ".ps1";
         private const string ConvertJsonToHashtableScript = @"
@@ -1000,6 +1006,36 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             return networkCredential;
+        }
+
+        #endregion
+
+        #region Sanitization methods
+        public static bool IsUnsafeRemoteName(string name, string propertyName, out ErrorRecord error)
+        {
+            error = null;
+
+            if (string.IsNullOrEmpty(name))
+            {
+                error = new ErrorRecord(
+                    new ArgumentException($"{propertyName} cannot be null or empty."),
+                    "InvalidRemoteName",
+                    ErrorCategory.InvalidArgument,
+                    propertyName);
+                return true;
+            }
+
+            if (name.IndexOfAny(PathTraversalChars) >= 0 || string.Equals(name, ".", StringComparison.Ordinal) || string.Equals(name, "..", StringComparison.Ordinal))
+            {
+                error = new ErrorRecord(
+                    new ArgumentException($"{propertyName} contains invalid characters: '{name}'."),
+                    "InvalidRemoteName",
+                    ErrorCategory.InvalidArgument,
+                    propertyName);
+                return true;
+            }
+
+            return false;
         }
 
         #endregion

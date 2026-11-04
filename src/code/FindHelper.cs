@@ -34,7 +34,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         private string[] _tag;
         private bool _includeDependencies = false;
         private bool _repositoryNameContainsWildcard = true;
-        private NetworkCredential _networkCredential;
+        private NetworkCredential _explicitCredential; // explicitly passed in credential via Credential parameter.
         private Dictionary<string, List<string>> _packagesFound;
 
         #endregion
@@ -47,7 +47,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             _cancellationToken = cancellationToken;
             _cmdletPassedIn = cmdletPassedIn;
-            _networkCredential = networkCredential;
+            _explicitCredential = networkCredential;
             _packagesFound = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         }
 
@@ -204,9 +204,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repositoryNamesToSearch.Add(currentRepository.Name);
 
                 // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
-                _networkCredential = currentRepository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
+                NetworkCredential repoCredential = currentRepository.SetNetworkCredentials(_explicitCredential, _cmdletPassedIn);
 
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, repoCredential);
                 if (currentServer == null)
                 {
                     // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
@@ -392,9 +392,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repositoryNamesToSearch.Add(currentRepository.Name);
 
                 // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
-                _networkCredential = currentRepository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
+                NetworkCredential repoCredential = currentRepository.SetNetworkCredentials(_explicitCredential, _cmdletPassedIn);
 
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, repoCredential);
                 if (currentServer == null)
                 {
                     // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown
@@ -599,9 +599,9 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 repositoryNamesToSearch.Add(currentRepository.Name);
 
                 // Set network credentials via passed in credentials, AzArtifacts CredentialProvider, or SecretManagement.
-                _networkCredential = currentRepository.SetNetworkCredentials(_networkCredential, _cmdletPassedIn);
+                NetworkCredential repoCredential = currentRepository.SetNetworkCredentials(_explicitCredential, _cmdletPassedIn);
 
-                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, _networkCredential);
+                ServerApiCall currentServer = ServerFactory.GetServer(currentRepository, _cmdletPassedIn, repoCredential);
                 if (currentServer == null)
                 {
                     // this indicates that PSRepositoryInfo.APIVersion = PSRepositoryInfo.APIVersion.unknown

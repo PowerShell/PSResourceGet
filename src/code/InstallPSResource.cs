@@ -20,7 +20,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     [Cmdlet(VerbsLifecycle.Install,
         "PSResource",
         DefaultParameterSetName = "NameParameterSet",
-        SupportsShouldProcess = true)]
+        SupportsShouldProcess = true,
+        ConfirmImpact = ConfirmImpact.Medium)]
     [Alias("isres")]
     public sealed
     class InstallPSResource : PSCmdlet
@@ -277,6 +278,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void ProcessRecord()
         {
+            if (Credential != null && (Repository == null || Repository.Length != 1) &&
+                !ShouldProcess("Potentially search multiple repositories for install operation using the supplied Credential"))
+            {
+                return;
+            }
+
             switch (ParameterSetName)
             {
                 case NameParameterSet:
