@@ -39,12 +39,12 @@ safe-outputs:
   # PAT or GitHub App token with 'issues: write' on PowerShell/PowerShellGallery.
   github-token: ${{ secrets.PSGALLERY_STATUS_ISSUE_TOKEN }}
   create-issue:
-    target-repo: "alerickson/PSResourceGet"
+    target-repo: "PowerShell/PowerShellGallery"
     title-prefix: "[Service Status] "
     max: 1
   add-comment:
     target: "*"
-    target-repo: "alerickson/PSResourceGet"
+    target-repo: "PowerShell/PowerShellGallery"
     max: 1
 ---
 
@@ -75,14 +75,14 @@ Health check run: ${{ github.event.inputs.health_check_run_url }}
    Every probe URI targets a package or endpoint that is expected to exist, so a 404 is a failure.
    Do not second-guess whether a 404 is "expected" based on the package name.
 
-2. **Look for an existing report.** Search open issues in `alerickson/PSResourceGet` whose
+2. **Look for an existing report.** Search open issues in `PowerShell/PowerShellGallery` whose
    title starts with `[Service Status]` and that were created in the last 24 hours. Also consider
    any open issue that clearly describes the same outage (same endpoints / status codes).
 
 3. **Report.**
    - If a matching open issue exists, add **one** comment to it with the latest re-verification
      results (timestamp in UTC, endpoint, status code). Keep it short.
-   - Otherwise create **one** issue in `alerickson/PSResourceGet`:
+   - Otherwise create **one** issue in `PowerShell/PowerShellGallery`:
      - Title: a short summary such as `PowerShell Gallery returning HTTP 503 for package downloads`
        (the `[Service Status]` prefix is added automatically).
      - Body must include:

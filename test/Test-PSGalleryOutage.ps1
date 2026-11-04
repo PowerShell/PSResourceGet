@@ -6,12 +6,16 @@
     2. Starts a tiny local HTTP server that returns the given status code for every request.
     3. Registers a temporary V2 repository pointing at the fake host and runs Find-PSResource against it.
     4. Cleans everything up.
+
+    This is a manual test (not run by CI). Build the module first, then run from an elevated PowerShell 7 session:
+        ./build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework net472
+        ./test/FindPSResourceTests/Test-PSGalleryOutage.ps1 -StatusCode 503
 #>
 param(
     [int] $StatusCode = 503,
     [int] $Port = 8080,
     [string] $FakeHost = 'test.powershellgallery.com',
-    [string] $ModulePath = (Join-Path $PSScriptRoot 'out\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.psd1'),
+    [string] $ModulePath = (Join-Path $PSScriptRoot '..\..\out\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.psd1'),
     [switch] $SkipHostsFile
 )
 
