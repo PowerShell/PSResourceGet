@@ -1569,9 +1569,9 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return false;
             }
 
-            // Create config.json file
-            var configFilePath = System.IO.Path.Combine(outputNupkgDir, "config.json");
-            _cmdletPassedIn.WriteVerbose($"Create config.json file at path: {configFilePath}");
+            // Create config file
+            var configFilePath = System.IO.Path.Combine(outputNupkgDir, Guid.NewGuid().ToString() + ".json");
+            _cmdletPassedIn.WriteVerbose($"Create config file at path: {configFilePath}");
             string configDigest = CreateConfigFile(configFilePath, out errRecord);
             if (errRecord != null)
             {
@@ -1714,11 +1714,6 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::CreateConfigFile()");
             string configFileDigest = string.Empty;
             _cmdletPassedIn.WriteVerbose("Create the config file");
-            while (File.Exists(configFilePath))
-            {
-                configFilePath = Guid.NewGuid().ToString() + ".json";
-            }
-
             try
             {
                 File.WriteAllText(configFilePath, emptyConfigContent);

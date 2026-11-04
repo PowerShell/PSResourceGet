@@ -20,6 +20,7 @@ using System.Threading.Tasks;
 public class ConfigBlobUploadHandler : HttpMessageHandler
 {
     public byte[] UploadedContent { get; private set; }
+    public byte[] UploadedManifest { get; private set; }
     public Uri UploadUri { get; private set; }
     public HttpStatusCode UploadStatusCode = HttpStatusCode.Created;
 
@@ -32,8 +33,17 @@ public class ConfigBlobUploadHandler : HttpMessageHandler
             return response;
         }
 
-        UploadedContent = await request.Content.ReadAsByteArrayAsync();
-        UploadUri = request.RequestUri;
+        var content = await request.Content.ReadAsByteArrayAsync();
+        if (request.RequestUri.AbsolutePath.Contains("/manifests/"))
+        {
+            UploadedManifest = content;
+        }
+        else
+        {
+            UploadedContent = content;
+            UploadUri = request.RequestUri;
+        }
+
         return new HttpResponseMessage(UploadStatusCode);
     }
 }
@@ -53,6 +63,7 @@ public class ConfigBlobUploadHandler : HttpMessageHandler
                 if ($Handler) {
                     $clientProperty.GetValue($api).Dispose()
                     $clientProperty.SetValue($api, [System.Net.Http.HttpClient]::new($Handler))
+                    $type.GetField('_cachedContainterRegistryToken', $flags).SetValue($api, 'test-token')
                 }
 
                 for ($i = 0; $i -lt $MethodArguments.Length; $i++) {
@@ -115,5 +126,39 @@ public class ConfigBlobUploadHandler : HttpMessageHandler
         Invoke-ContainerRegistryMethod 'UploadConfigFile' $uploadArguments $handler
 
         $uploadArguments[4].FullyQualifiedErrorId | Should -BeExactly 'UploadConfigFileError'
+    }
+
+    It 'Publishes matching config bytes and manifest when the module already contains config.json' {
+        $outputDirectory = Join-Path $TestDrive 'nupkg'
+        $null = New-Item $outputDirectory -ItemType Directory
+        $existingConfigPath = Join-Path $outputDirectory 'config.json'
+        $existingConfigContent = '{"module":true}'
+        [IO.File]::WriteAllText($existingConfigPath, $existingConfigContent)
+        [IO.File]::WriteAllText((Join-Path $outputDirectory 'test.1.0.0.nupkg'), 'package')
+
+        $handler = [ConfigBlobUploadHandler]::new()
+        $type = [Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource].Assembly.GetType('Microsoft.PowerShell.PSResourceGet.ContainerRegistryServerAPICalls')
+        $versionType = $type.GetMethod('PushNupkgContainerRegistry', [Reflection.BindingFlags]'Instance,NonPublic').GetParameters()[3].ParameterType
+        $version = [Activator]::CreateInstance($versionType, @('1.0.0'))
+        $publishArguments = @(
+            $outputDirectory, 'test', $null, $version,
+            [Microsoft.PowerShell.PSResourceGet.UtilClasses.ResourceType]::Module,
+            @{ ModuleVersion = '1.0.0' }, @{}, $false, $null, $null)
+        Push-Location $TestDrive
+        try {
+            $published = Invoke-ContainerRegistryMethod 'PushNupkgContainerRegistry' $publishArguments $handler
+        }
+        finally {
+            Pop-Location
+        }
+
+        $published | Should -Be $true
+        $publishArguments[9] | Should -BeNullOrEmpty
+        [Text.Encoding]::UTF8.GetString($handler.UploadedContent) | Should -BeExactly '{}'
+        $handler.UploadUri.Query | Should -Match "digest=sha256:$configDigest"
+        $manifest = [Text.Encoding]::UTF8.GetString($handler.UploadedManifest) | ConvertFrom-Json
+        $manifest.config.digest | Should -BeExactly "sha256:$configDigest"
+        $manifest.config.size | Should -Be $handler.UploadedContent.Length
+        [IO.File]::ReadAllText($existingConfigPath) | Should -BeExactly $existingConfigContent
     }
 }
