@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 $modPath = "$psscriptroot/../PSGetTestUtils.psm1"
 Import-Module $modPath -Force -Verbose
 
@@ -497,6 +500,7 @@ Describe 'E2E tests for Repository resource' -Tags 'CI' {
         $testRepo.name | Should -BeExactly 'TestRepository'
         $testRepo.uri | Should -BeExactly 'https://www.powershellgallery.com/api/v2'
         $testRepo._exist | Should -Be $true
+        $testRepo.PSObject.Properties.Name | Should -Not -Contain '_inDesiredState'
     }
 
     It 'Unregister test repository via DSC configuration' {
@@ -504,6 +508,54 @@ Describe 'E2E tests for Repository resource' -Tags 'CI' {
         & $dscExe config set -f $configPath
         $repo = Get-PSResourceRepository -Name 'TestRepository' -ErrorAction SilentlyContinue
         $repo | Should -BeNullOrEmpty
+    }
+
+    It 'Applies a local repository path only when it changes' {
+        $repoName = 'DscLocalRepo' + [guid]::NewGuid().ToString('N')
+        $initialPath = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'initial repository')).FullName
+        $updatedPath = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'updated repository')).FullName
+        $properties = @{ name = $repoName; uri = $initialPath }
+        $configuration = @{
+            '$schema' = 'https://aka.ms/dsc/schemas/v3/bundled/config/document.json'
+            resources = @(@{
+                name = 'Local repository'
+                type = 'Microsoft.PowerShell.PSResourceGet/Repository'
+                properties = $properties
+            })
+        }
+
+        try {
+            $configJson = $configuration | ConvertTo-Json -Depth 5 -Compress
+            $initial = & $dscExe config set --input $configJson -o json | ConvertFrom-Json
+            $LASTEXITCODE | Should -Be 0
+            $initial.hadErrors | Should -Be $false
+            $initial.results.result.afterState._exist | Should -Be $true
+
+            $test = & $dscExe config test --input $configJson -o json | ConvertFrom-Json
+            $LASTEXITCODE | Should -Be 0
+            $test.results.result.inDesiredState | Should -Be $true
+            $test.results.result.differingProperties | Should -BeNullOrEmpty
+
+            $repeat = & $dscExe config set --input $configJson -o json | ConvertFrom-Json
+            $LASTEXITCODE | Should -Be 0
+            $repeat.hadErrors | Should -Be $false
+            $repeat.results.result.changedProperties | Should -BeNullOrEmpty
+
+            $properties.uri = $updatedPath
+            $configJson = $configuration | ConvertTo-Json -Depth 5 -Compress
+            $test = & $dscExe config test --input $configJson -o json | ConvertFrom-Json
+            $LASTEXITCODE | Should -Be 0
+            $test.results.result.inDesiredState | Should -Be $false
+            $test.results.result.differingProperties | Should -Be @('uri')
+
+            $updated = & $dscExe config set --input $configJson -o json | ConvertFrom-Json
+            $LASTEXITCODE | Should -Be 0
+            ([uri]$updated.results.result.afterState.uri).LocalPath | Should -BeExactly $updatedPath
+        }
+        finally {
+            Get-PSResourceRepository -Name $repoName -ErrorAction SilentlyContinue |
+                Unregister-PSResourceRepository -ErrorAction Stop
+        }
     }
 }
 

@@ -207,6 +207,7 @@ class Repository {
     [int]$priority
     [string]$repositoryType
     [bool]$_exist
+    [Nullable[bool]]$_inDesiredState
 
     Repository([string]$name) {
         $this.name = $name
@@ -223,15 +224,6 @@ class Repository {
         $this._exist = $true
     }
 
-    Repository([PSCustomObject]$repositoryInfo) {
-        $this.name = $repositoryInfo.Name
-        $this.uri = $repositoryInfo.Uri
-        $this.trusted = $repositoryInfo.Trusted
-        $this.priority = $repositoryInfo.Priority
-        $this.repositoryType = $repositoryInfo.ApiVersion
-        $this._exist = $true
-    }
-
     Repository([string]$name, [bool]$exist) {
         $this.name = $name
         $this._exist = $exist
@@ -240,6 +232,10 @@ class Repository {
 
     [string] ToJson() {
         return ($this | ConvertTo-Json -Compress -EnumsAsStrings)
+    }
+
+    [string] ToJsonForExport() {
+        return ($this | Select-Object -Property * -ExcludeProperty _inDesiredState | ConvertTo-Json -Compress -EnumsAsStrings)
     }
 }
 
@@ -407,6 +403,23 @@ function GetPSResourceList {
     PopulatePSResourceListObjectByRepository -resourcesExist $resolvedResources -inputResources $inputResources -repositoryName $inputPSResourceList.RepositoryName -trustedRepository $inputPSResourceList.trustedRepository
 }
 
+function GetRepository {
+    param([string]$Name)
+
+    try {
+        $rep = Get-PSResourceRepository -Name $Name -ErrorAction Stop
+    }
+    catch {
+        if ($_.FullyQualifiedErrorId -eq 'ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSResourceRepository') {
+            Write-Trace -message "Repository not found: $Name. Returning _exist = false" -level debug
+            return [Repository]::new($Name, $false)
+        }
+        throw
+    }
+
+    return [Repository]::new($rep.Name, $rep.Uri, $rep.Trusted, $rep.Priority, $rep.ApiVersion)
+}
+
 function GetOperation {
     param(
         [string]$ResourceType
@@ -423,32 +436,7 @@ function GetOperation {
 
     switch ($ResourceType) {
         'repository' {
-            $inputRepository = [Repository]::new($inputObj)
-            $rep = Get-PSResourceRepository -Name $inputRepository.Name -ErrorVariable err -ErrorAction SilentlyContinue
-            Write-Trace -message "Get-PSResourceRepository returned: $($rep | ConvertTo-Json -Compress)" -level trace
-
-            $ret = if ($err.FullyQualifiedErrorId -eq 'ErrorGettingSpecifiedRepo,Microsoft.PowerShell.PSResourceGet.Cmdlets.GetPSResourceRepository') {
-                Write-Trace -message "Repository not found: $($inputRepository.Name). Returning _exist = false" -level debug
-                [Repository]::new(
-                    $InputRepository.Name,
-                    $false
-                )
-            }
-            else {
-                [Repository]::new(
-                    $rep.Name,
-                    $rep.Uri,
-                    $rep.Trusted,
-                    $rep.Priority,
-                    $rep.ApiVersion
-                )
-
-                Write-Trace -message "Returning repository object for: $($ret.Name)" -level trace
-            }
-
-            Write-Trace -message "Serialized JSON output for Get operation: $($ret.ToJson())" -level trace
-
-            return ( $ret.ToJson() )
+            return (GetRepository -Name $inputObj.name).ToJson()
         }
 
         'repositorylist' {
@@ -467,6 +455,53 @@ function GetOperation {
             exit [ExitCode]::ResourceNotImplemented
         }
     }
+}
+
+function TestRepositoryUri {
+    param([string]$DesiredUri, [string]$ActualUri)
+
+    if ([string]::Equals($DesiredUri, $ActualUri, [StringComparison]::Ordinal)) {
+        return $true
+    }
+
+    # Compare a local path and its file URI in the same form used by the repository cmdlets.
+    $desired = $null
+    $actual = $null
+    return ([uri]::TryCreate($DesiredUri, [UriKind]::Absolute, [ref]$desired) -and $desired.IsFile -and
+        [uri]::TryCreate($ActualUri, [UriKind]::Absolute, [ref]$actual) -and $actual.IsFile -and
+        [string]::Equals($desired.AbsoluteUri, $actual.AbsoluteUri, [StringComparison]::Ordinal))
+}
+
+function TestRepository {
+    param([PSCustomObject]$inputObj)
+
+    $actual = GetRepository -Name $inputObj.name
+    $shouldExist = $inputObj._exist -ne $false
+    $differingProperties = @(
+        if ($actual._exist -ne $shouldExist) {
+            '_exist'
+        }
+        elseif ($shouldExist) {
+            foreach ($property in 'name', 'uri', 'trusted', 'priority', 'repositoryType') {
+                if ($null -eq $inputObj.PSObject.Properties[$property]) {
+                    continue
+                }
+
+                if ($property -eq 'uri') {
+                    if (-not (TestRepositoryUri -DesiredUri $inputObj.uri -ActualUri $actual.uri)) {
+                        $property
+                    }
+                }
+                elseif ($actual.$property -cne $inputObj.$property) {
+                    $property
+                }
+            }
+        }
+    )
+
+    $actual._inDesiredState = $differingProperties.Count -eq 0
+    $actual.ToJson()
+    ConvertTo-Json -InputObject $differingProperties -Compress
 }
 
 function TestPSResourceList {
@@ -516,8 +551,7 @@ function TestOperation {
 
     switch ($ResourceType) {
         'repository' {
-            Write-Trace -level error -message "Test operation is not implemented for Repository resource."
-            exit [ExitCode]::TestNotImplemented
+            TestRepository -inputObj $inputObj
         }
         'repositorylist' {
             Write-Trace -level error -message "Test operation is not implemented for RepositoryList resource."
@@ -555,7 +589,7 @@ function ExportOperation {
                     $_.Trusted,
                     $_.Priority,
                     $_.ApiVersion
-                ).ToJson()
+                ).ToJsonForExport()
             }
         }
 
