@@ -152,7 +152,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             if (Credential != null && string.IsNullOrEmpty(Repository) &&
                 !ShouldProcess("Use repository registered with highest priority for publish operation using the supplied Credential"))
             {
-                return;
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSInvalidOperationException("Confirm operation when using Credential parameter with no explicit Repository specified, or re-run command with '-Confirm:$false'."),
+                    "CredentialWithoutRepositoryConfirmationDenied",
+                    ErrorCategory.InvalidOperation,
+                    this));
             }
 
             // Create the repository store file (PSResourceRepository.xml) if it does not already exist
