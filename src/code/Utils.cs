@@ -223,6 +223,61 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return exMsg;
         }
 
+        public const string PSGalleryStatusUri = "https://aka.ms/psgallery";
+
+        /// <summary>
+        /// Formats an HTTP request exception and, when the request targeted the PowerShell Gallery and failed
+        /// with a 5xx status code, appends a pointer to the PowerShell Gallery status page.
+        /// </summary>
+        public static string FormatRequestsExceptions(Exception exception, HttpRequestMessage request, HttpStatusCode statusCode)
+        {
+            return FormatRequestsExceptions(exception, request) + GetPSGalleryStatusMessage(request?.RequestUri, statusCode);
+        }
+
+        /// <summary>
+        /// Returns a sentence pointing to the PowerShell Gallery status page when the request targeted the
+        /// PowerShell Gallery and failed with a 5xx status code; otherwise returns an empty string.
+        /// </summary>
+        public static string GetPSGalleryStatusMessage(Uri requestUri, HttpStatusCode statusCode)
+        {
+            return IsPSGalleryServiceError(requestUri, statusCode)
+                ? $" The PowerShell Gallery may be experiencing an issue. Check {PSGalleryStatusUri} for the current service status."
+                : string.Empty;
+        }
+
+        /// <summary>
+        /// Same as GetPSGalleryStatusMessage, for callers (such as NuGet's PushRunner) that only expose the
+        /// status code inside an exception message like "Response status code does not indicate success: 503 (...)".
+        /// </summary>
+        public static string GetPSGalleryStatusMessage(string requestUri, string exceptionMessage)
+        {
+            if (string.IsNullOrEmpty(exceptionMessage) || !Uri.TryCreate(requestUri, UriKind.Absolute, out Uri uri))
+            {
+                return string.Empty;
+            }
+
+            Match match = Regex.Match(exceptionMessage, @"status code does not indicate success: (\d{3})", RegexOptions.IgnoreCase);
+            return match.Success ? GetPSGalleryStatusMessage(uri, (HttpStatusCode)int.Parse(match.Groups[1].Value)) : string.Empty;
+        }
+
+        /// <summary>
+        /// True when the request targeted the PowerShell Gallery and failed with a server-side (5xx) error.
+        /// 404 is deliberately excluded because it can legitimately mean the requested resource doesn't exist.
+        /// </summary>
+        public static bool IsPSGalleryServiceError(Uri requestUri, HttpStatusCode statusCode)
+        {
+            if (requestUri == null || !requestUri.IsAbsoluteUri)
+            {
+                return false;
+            }
+
+            string host = requestUri.Host;
+            bool isPSGallery = host.Equals("powershellgallery.com", StringComparison.OrdinalIgnoreCase) ||
+                host.EndsWith(".powershellgallery.com", StringComparison.OrdinalIgnoreCase);
+
+            return isPSGallery && (int)statusCode >= 500 && (int)statusCode < 600;
+        }
+
         public static string FormatCredentialRequestExceptions(Exception exception)
         {
             string exMsg = $"'{exception.Message}' Re-run the command with -Credential.";
