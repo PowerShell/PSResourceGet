@@ -227,7 +227,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         /// <summary>
         /// Formats an HTTP request exception and, when the request targeted the PowerShell Gallery and failed
-        /// with a 404 or 5xx status code, appends a pointer to the PowerShell Gallery status page.
+        /// with a 5xx status code, appends a pointer to the PowerShell Gallery status page.
         /// </summary>
         public static string FormatRequestsExceptions(Exception exception, HttpRequestMessage request, HttpStatusCode statusCode)
         {
@@ -236,7 +236,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         /// <summary>
         /// Returns a sentence pointing to the PowerShell Gallery status page when the request targeted the
-        /// PowerShell Gallery and failed with a 404 or 5xx status code; otherwise returns an empty string.
+        /// PowerShell Gallery and failed with a 5xx status code; otherwise returns an empty string.
         /// </summary>
         public static string GetPSGalleryStatusMessage(Uri requestUri, HttpStatusCode statusCode)
         {
@@ -260,6 +260,10 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return match.Success ? GetPSGalleryStatusMessage(uri, (HttpStatusCode)int.Parse(match.Groups[1].Value)) : string.Empty;
         }
 
+        /// <summary>
+        /// True when the request targeted the PowerShell Gallery and failed with a server-side (5xx) error.
+        /// 404 is deliberately excluded because it can legitimately mean the requested resource doesn't exist.
+        /// </summary>
         public static bool IsPSGalleryServiceError(Uri requestUri, HttpStatusCode statusCode)
         {
             if (requestUri == null || !requestUri.IsAbsoluteUri)
@@ -271,7 +275,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             bool isPSGallery = host.Equals("powershellgallery.com", StringComparison.OrdinalIgnoreCase) ||
                 host.EndsWith(".powershellgallery.com", StringComparison.OrdinalIgnoreCase);
 
-            return isPSGallery && (statusCode == HttpStatusCode.NotFound || (int)statusCode >= 500);
+            return isPSGallery && (int)statusCode >= 500 && (int)statusCode < 600;
         }
 
         public static string FormatCredentialRequestExceptions(Exception exception)

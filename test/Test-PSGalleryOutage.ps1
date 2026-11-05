@@ -11,13 +11,15 @@
        and Publish against it, printing every error each command reports.
     4. Cleans everything up.
 
-    Every error from the fake gallery should end with:
+    For a 5xx -StatusCode, every error from the fake gallery should end with:
         The PowerShell Gallery may be experiencing an issue. Check https://aka.ms/psgallery for the current service status.
+    For any other status code (for example 404, which can legitimately mean "not found"), the errors should NOT include it.
 
     This is a manual test (not run by CI). Build the module first, then run from an elevated PowerShell 7 session:
         ./build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework net472
         ./test/Test-PSGalleryOutage.ps1 -StatusCode 503
-        ./test/Test-PSGalleryOutage.ps1 -StatusCode 404 -Mode DownloadOnly -UpdateName <outdated module you have installed>
+        ./test/Test-PSGalleryOutage.ps1 -StatusCode 500 -Mode DownloadOnly -UpdateName <outdated module you have installed>
+        ./test/Test-PSGalleryOutage.ps1 -StatusCode 404
 .PARAMETER UpdateName
     Name of a module installed for the current user that has a newer version on the PowerShell Gallery. Update-PSResource
     only reaches the download step for such a module. If omitted, the Update case is skipped. Downloads always fail, so the
@@ -33,6 +35,26 @@ param(
     [string] $ModulePath = (Join-Path $PSScriptRoot '..\out\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.psd1'),
     [switch] $SkipHostsFile
 )
+
+# Run in a fresh pwsh process so the module under test is loaded from the current build and released afterward.
+# Importing it into the caller's session would lock the DLLs in .\out (breaking ./build.ps1 -Clean) and, because
+# .NET can't unload assemblies, later runs in the same session would keep using the old build.
+if (-not $env:PSRESOURCEGET_OUTAGE_TEST_CHILD) {
+    $childArgs = @('-NoProfile', '-File', $PSCommandPath)
+    foreach ($param in $PSBoundParameters.GetEnumerator()) {
+        if ($param.Value -is [switch]) {
+            if ($param.Value.IsPresent) { $childArgs += "-$($param.Key)" }
+        }
+        else {
+            $childArgs += "-$($param.Key)", "$($param.Value)"
+        }
+    }
+
+    $env:PSRESOURCEGET_OUTAGE_TEST_CHILD = '1'
+    try { & (Get-Process -Id $PID).Path @childArgs }
+    finally { Remove-Item Env:\PSRESOURCEGET_OUTAGE_TEST_CHILD -ErrorAction SilentlyContinue }
+    return
+}
 
 $ErrorActionPreference = 'Stop'
 $hostsFile = "$env:SystemRoot\System32\drivers\etc\hosts"
@@ -107,6 +129,8 @@ try {
 
     Write-Host "Fake gallery: http://${FakeHost}:$Port/api/v2  Mode: $Mode  Status: $StatusCode" -ForegroundColor Cyan
     Write-Host 'Errors that include the aka.ms/psgallery hint are shown in yellow; other errors in gray.' -ForegroundColor Cyan
+    $expectHint = $StatusCode -ge 500 -and $StatusCode -lt 600
+    Write-Host ("Expected for HTTP {0}: {1}" -f $StatusCode, $(if ($expectHint) { 'gallery errors include the hint (yellow).' } else { 'no error includes the hint (all gray).' })) -ForegroundColor Cyan
 
     $ErrorActionPreference = 'Continue'
     Invoke-OutageCase 'Find-PSResource -Name' { Find-PSResource -Name PowerShellGet -Repository $repoName }
