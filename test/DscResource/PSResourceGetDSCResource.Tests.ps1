@@ -557,6 +557,63 @@ Describe 'E2E tests for Repository resource' -Tags 'CI' {
                 Unregister-PSResourceRepository -ErrorAction Stop
         }
     }
+
+    It 'Converges when only <Property> changes' -TestCases @(
+        @{ Property = 'trusted'; DesiredValue = $false }
+        @{ Property = 'priority'; DesiredValue = 0 }
+        @{ Property = 'repositoryType'; DesiredValue = 'V3' }
+    ) {
+        param($Property, $DesiredValue)
+
+        $repoName = 'DscPropertyRepo' + [guid]::NewGuid().ToString('N')
+        $properties = @{
+            name = $repoName
+            uri = 'https://example.invalid/feed/index.json'
+            trusted = $true
+            priority = 50
+            repositoryType = 'V2'
+        }
+        $configuration = @{
+            '$schema' = 'https://aka.ms/dsc/schemas/v3/bundled/config/document.json'
+            resources = @(@{
+                name = 'Repository property drift'
+                type = 'Microsoft.PowerShell.PSResourceGet/Repository'
+                properties = $properties
+            })
+        }
+
+        try {
+            $configJson = $configuration | ConvertTo-Json -Depth 5 -Compress
+            $initial = & $dscExe config set --input $configJson -o json | ConvertFrom-Json
+            $LASTEXITCODE | Should -Be 0
+            $initial.hadErrors | Should -Be $false
+            $initial.results.result.afterState.$Property | Should -Be $properties[$Property]
+
+            $properties[$Property] = $DesiredValue
+            $configJson = $configuration | ConvertTo-Json -Depth 5 -Compress
+            $drift = & $dscExe config test --input $configJson -o json | ConvertFrom-Json
+            $LASTEXITCODE | Should -Be 0
+            $drift.hadErrors | Should -Be $false
+            $drift.results.result.inDesiredState | Should -Be $false
+            @($drift.results.result.differingProperties).Count | Should -Be 1
+            $drift.results.result.differingProperties[0] | Should -BeExactly $Property
+
+            $updated = & $dscExe config set --input $configJson -o json | ConvertFrom-Json
+            $LASTEXITCODE | Should -Be 0
+            $updated.hadErrors | Should -Be $false
+            $updated.results.result.afterState.$Property | Should -Be $DesiredValue
+
+            $converged = & $dscExe config test --input $configJson -o json | ConvertFrom-Json
+            $LASTEXITCODE | Should -Be 0
+            $converged.hadErrors | Should -Be $false
+            $converged.results.result.inDesiredState | Should -Be $true
+            $converged.results.result.differingProperties | Should -BeNullOrEmpty
+        }
+        finally {
+            Get-PSResourceRepository -Name $repoName -ErrorAction SilentlyContinue |
+                Unregister-PSResourceRepository -ErrorAction Stop
+        }
+    }
 }
 
 Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
