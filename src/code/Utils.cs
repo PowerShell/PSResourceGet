@@ -2216,6 +2216,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return nuspecHashtable;
         }
 
+        private static readonly XmlReaderSettings XmlDocumentReaderSettings = new XmlReaderSettings()
+        {
+            DtdProcessing = DtdProcessing.Prohibit,     // Disallow any DTD elements
+            XmlResolver = null,                         // Do not resolve external links
+            CheckCharacters = true,
+            IgnoreComments = true,
+            IgnoreProcessingInstructions = true,
+            MaxCharactersFromEntities = 1024,
+            MaxCharactersInDocument = 512 * 1024 * 1024, // 512M characters = 1GB
+            ValidationFlags = System.Xml.Schema.XmlSchemaValidationFlags.None,
+            ValidationType = ValidationType.None
+        };
+
         /// <summary>
         /// Method that loads file content into XMLDocument. Used when reading .nuspec file.
         /// </summary>
@@ -2224,7 +2237,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             errRecord = null;
             XmlDocument doc = new XmlDocument();
             doc.PreserveWhitespace = true;
-            try { doc.Load(filePath); }
+            try {
+                using (XmlReader xmlReader = XmlReader.Create(filePath, XmlDocumentReaderSettings))
+                {
+                    doc.Load(xmlReader);
+                }
+            }
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(

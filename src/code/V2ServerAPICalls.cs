@@ -1954,6 +1954,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             return typeFilterPart;
         }
 
+        private static readonly XmlReaderSettings XmlDocumentReaderSettings = new XmlReaderSettings()
+        {
+            DtdProcessing = DtdProcessing.Prohibit,     // Disallow any DTD elements
+            XmlResolver = null,                         // Do not resolve external links
+            CheckCharacters = true,
+            IgnoreComments = true,
+            IgnoreProcessingInstructions = true,
+            MaxCharactersFromEntities = 1024,
+            MaxCharactersInDocument = 512 * 1024 * 1024, // 512M characters = 1GB
+            ValidationFlags = System.Xml.Schema.XmlSchemaValidationFlags.None,
+            ValidationType = ValidationType.None
+        };
+
         /// <summary>
         /// Helper method that makes gets 'count' property from http response string.
         /// The count property is used to determine the number of total results found (for pagination).
@@ -1968,7 +1981,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             try
             {
-                doc.LoadXml(httpResponse);
+                using (StringReader stringReader = new StringReader(httpResponse))
+                using (XmlReader xmlReader = XmlReader.Create(stringReader, XmlDocumentReaderSettings))
+                {
+                    doc.Load(xmlReader);
+                }
 
                 bool countSearchSucceeded = false;
                 XmlNodeList elemList = doc.GetElementsByTagName("m:count");

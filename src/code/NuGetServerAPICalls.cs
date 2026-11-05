@@ -1185,6 +1185,19 @@ filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
             return response.ReadAsStreamAsync().Result;
         }
 
+        private static readonly XmlReaderSettings XmlDocumentReaderSettings = new XmlReaderSettings()
+        {
+            DtdProcessing = DtdProcessing.Prohibit,     // Disallow any DTD elements
+            XmlResolver = null,                         // Do not resolve external links
+            CheckCharacters = true,
+            IgnoreComments = true,
+            IgnoreProcessingInstructions = true,
+            MaxCharactersFromEntities = 1024,
+            MaxCharactersInDocument = 512 * 1024 * 1024, // 512M characters = 1GB
+            ValidationFlags = System.Xml.Schema.XmlSchemaValidationFlags.None,
+            ValidationType = ValidationType.None
+        };
+
         /// <summary>
         /// Helper method that makes gets 'count' property from http response string.
         /// The count property is used to determine the number of total results found (for pagination).
@@ -1199,7 +1212,11 @@ filterBuilder.AddCriterion($"NormalizedVersion eq '{version}'");
 
             try
             {
-                doc.LoadXml(httpResponse);
+                using (StringReader stringReader = new StringReader(httpResponse))
+                using (XmlReader xmlReader = XmlReader.Create(stringReader, XmlDocumentReaderSettings))
+                {
+                    doc.Load(xmlReader);
+                }
             }
             catch (XmlException e)
             {

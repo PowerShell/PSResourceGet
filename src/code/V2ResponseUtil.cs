@@ -80,7 +80,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             CheckCharacters = true,
             IgnoreComments = true,
             IgnoreProcessingInstructions = true,
-            IgnoreWhitespace = true,
             MaxCharactersFromEntities = 1024,
             MaxCharactersInDocument = 512 * 1024 * 1024, // 512M characters = 1GB
             ValidationFlags = System.Xml.Schema.XmlSchemaValidationFlags.None,
