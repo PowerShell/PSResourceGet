@@ -223,6 +223,37 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return exMsg;
         }
 
+        public const string PSGalleryStatusUri = "https://aka.ms/psgallery";
+
+        /// <summary>
+        /// Formats an HTTP request exception and, when the request targeted the PowerShell Gallery and failed
+        /// with a 404 or 5xx status code, appends a pointer to the PowerShell Gallery status page.
+        /// </summary>
+        public static string FormatRequestsExceptions(Exception exception, HttpRequestMessage request, HttpStatusCode statusCode)
+        {
+            string exMsg = FormatRequestsExceptions(exception, request);
+            if (IsPSGalleryServiceError(request?.RequestUri, statusCode))
+            {
+                exMsg += $" The PowerShell Gallery may be experiencing an issue. Check {PSGalleryStatusUri} for the current service status.";
+            }
+
+            return exMsg;
+        }
+
+        public static bool IsPSGalleryServiceError(Uri requestUri, HttpStatusCode statusCode)
+        {
+            if (requestUri == null || !requestUri.IsAbsoluteUri)
+            {
+                return false;
+            }
+
+            string host = requestUri.Host;
+            bool isPSGallery = host.Equals("powershellgallery.com", StringComparison.OrdinalIgnoreCase) ||
+                host.EndsWith(".powershellgallery.com", StringComparison.OrdinalIgnoreCase);
+
+            return isPSGallery && (statusCode == HttpStatusCode.NotFound || (int)statusCode >= 500);
+        }
+
         public static string FormatCredentialRequestExceptions(Exception exception)
         {
             string exMsg = $"'{exception.Message}' Re-run the command with -Credential.";

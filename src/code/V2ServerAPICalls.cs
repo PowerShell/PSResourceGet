@@ -435,6 +435,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response = string.Empty;
+            int errorCountBeforeRequest = errorMsgs.Count;
             try
             {
                 response = await HttpRequestCallAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
@@ -474,6 +475,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ErrorCategory.NotSpecified,
                         this));
                 }
+            }
+
+            // HttpRequestCallAsync reports failures through errorMsgs rather than throwing; don't also report a parse/not-found error.
+            if (string.IsNullOrEmpty(response) && errorMsgs.Count > errorCountBeforeRequest)
+            {
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
             int count = GetCountFromResponse(response, out string errStr);
@@ -833,6 +840,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
             string response = string.Empty;
+            int errorCountBeforeRequest = errorMsgs.Count;
             try
             {
                 response = await HttpRequestCallAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
@@ -872,6 +880,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                         ErrorCategory.NotSpecified,
                         this));
                 }
+            }
+
+            // HttpRequestCallAsync reports failures through errorMsgs rather than throwing; don't also report a parse/not-found error.
+            if (string.IsNullOrEmpty(response) && errorMsgs.Count > errorCountBeforeRequest)
+            {
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
 
             int count = GetCountFromResponse(response, out string errStr);
@@ -1087,7 +1101,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (ResourceNotFoundException e)
             {
                 errorMsgs.Enqueue(new ErrorRecord(
-                    new ResourceNotFoundException($"Failure when attempting to make request for '{requestUrlV2}'", e),
+                    e,
                     "ResourceNotFound",
                     ErrorCategory.InvalidResult,
                     this));
@@ -1095,7 +1109,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (UnauthorizedException e)
             {
                 errorMsgs.Enqueue(new ErrorRecord(
-                    new UnauthorizedException($"Failure when attempting to make request for '{requestUrlV2}'", e),
+                    new UnauthorizedException($"Failure when attempting to make request for '{requestUrlV2}'. {e.Message}", e),
                     "UnauthorizedRequest",
                     ErrorCategory.InvalidResult,
                     this));
@@ -1103,7 +1117,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (HttpRequestException e)
             {
                 errorMsgs.Enqueue(new ErrorRecord(
-                    new HttpRequestException($"Failure when attempting to make request for '{requestUrlV2}'", e),
+                    e,
                     "HttpRequestCallFailure",
                     ErrorCategory.ConnectionError,
                     this));
@@ -1143,7 +1157,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             catch (HttpRequestException e)
             {
                 errorMsgs.Enqueue(new ErrorRecord(
-                    new HttpRequestException($"Failure when attempting to make request for content with '{requestUrlV2}'", e),
+                    e,
                     "HttpRequestFailure",
                     ErrorCategory.ConnectionError,
                     this));
@@ -2027,7 +2041,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound))
                 {
-                    throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                    throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message, responseStatusCode));
                 }
                 // ADO feed will return a 401 if a package does not exist on the feed, with the following message:
                 // 401 (Unauthorized - No local versions of package 'NonExistentModule'; please provide authentication to access
@@ -2036,13 +2050,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 {
                     if (e.Message.Contains("access versions from upstream that have not yet been saved to your feed"))
                     {
-                        throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                        throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message, responseStatusCode));
                     }
 
                     throw new UnauthorizedException(Utils.FormatCredentialRequestExceptions(e));
                 }
 
-                throw new HttpRequestException(Utils.FormatRequestsExceptions(e, message));
+                throw new HttpRequestException(Utils.FormatRequestsExceptions(e, message, responseStatusCode));
             }
             catch (ArgumentNullException e)
             {
@@ -2072,14 +2086,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             {
                 if (responseStatusCode.Equals(HttpStatusCode.NotFound))
                 {
-                    throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message));
+                    throw new ResourceNotFoundException(Utils.FormatRequestsExceptions(e, message, responseStatusCode));
                 }
                 if (responseStatusCode.Equals(HttpStatusCode.Unauthorized))
                 {
                     throw new UnauthorizedException(Utils.FormatCredentialRequestExceptions(e));
                 }
 
-                throw new HttpRequestException(Utils.FormatRequestsExceptions(e, message));
+                throw new HttpRequestException(Utils.FormatRequestsExceptions(e, message, responseStatusCode));
             }
             catch (ArgumentNullException e)
             {

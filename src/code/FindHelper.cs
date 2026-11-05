@@ -924,7 +924,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 
                             responses = response.GetAwaiter().GetResult();
 
+                            bool requestFailed = !errorMsgs.IsEmpty;
                             Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+                            if (requestFailed)
+                            {
+                                continue;
+                            }
                         }
                         else
                         {
