@@ -231,13 +231,33 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         /// </summary>
         public static string FormatRequestsExceptions(Exception exception, HttpRequestMessage request, HttpStatusCode statusCode)
         {
-            string exMsg = FormatRequestsExceptions(exception, request);
-            if (IsPSGalleryServiceError(request?.RequestUri, statusCode))
+            return FormatRequestsExceptions(exception, request) + GetPSGalleryStatusMessage(request?.RequestUri, statusCode);
+        }
+
+        /// <summary>
+        /// Returns a sentence pointing to the PowerShell Gallery status page when the request targeted the
+        /// PowerShell Gallery and failed with a 404 or 5xx status code; otherwise returns an empty string.
+        /// </summary>
+        public static string GetPSGalleryStatusMessage(Uri requestUri, HttpStatusCode statusCode)
+        {
+            return IsPSGalleryServiceError(requestUri, statusCode)
+                ? $" The PowerShell Gallery may be experiencing an issue. Check {PSGalleryStatusUri} for the current service status."
+                : string.Empty;
+        }
+
+        /// <summary>
+        /// Same as GetPSGalleryStatusMessage, for callers (such as NuGet's PushRunner) that only expose the
+        /// status code inside an exception message like "Response status code does not indicate success: 503 (...)".
+        /// </summary>
+        public static string GetPSGalleryStatusMessage(string requestUri, string exceptionMessage)
+        {
+            if (string.IsNullOrEmpty(exceptionMessage) || !Uri.TryCreate(requestUri, UriKind.Absolute, out Uri uri))
             {
-                exMsg += $" The PowerShell Gallery may be experiencing an issue. Check {PSGalleryStatusUri} for the current service status.";
+                return string.Empty;
             }
 
-            return exMsg;
+            Match match = Regex.Match(exceptionMessage, @"status code does not indicate success: (\d{3})", RegexOptions.IgnoreCase);
+            return match.Success ? GetPSGalleryStatusMessage(uri, (HttpStatusCode)int.Parse(match.Groups[1].Value)) : string.Empty;
         }
 
         public static bool IsPSGalleryServiceError(Uri requestUri, HttpStatusCode statusCode)

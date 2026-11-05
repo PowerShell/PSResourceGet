@@ -1146,6 +1146,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             debugMsgs.Enqueue("In V2ServerAPICalls::HttpRequestCallForContentAsync()");
             HttpContent content = null;
+            int errorCountBeforeRequest = errorMsgs.Count;
 
             try
             {
@@ -1153,6 +1154,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
 
                 content = await SendV2RequestForContentAsync(request, _sessionClient);
+            }
+            catch (ResourceNotFoundException e)
+            {
+                errorMsgs.Enqueue(new ErrorRecord(
+                    e,
+                    "ResourceNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this));
             }
             catch (HttpRequestException e)
             {
@@ -1179,7 +1188,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     this));
             }
 
-            if (content == null || string.IsNullOrEmpty(content.ToString()))
+            // Only report an empty response if the request itself didn't already report a failure.
+            if ((content == null || string.IsNullOrEmpty(content.ToString())) && errorMsgs.Count == errorCountBeforeRequest)
             {
                 errorMsgs.Enqueue(new ErrorRecord(
                     new ArgumentException($"Response returned is null or empty. Request for content made: '{requestUrlV2}'"),
@@ -1203,6 +1213,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
 
                 content = SendV2RequestForContentAsync(request, _sessionClient).GetAwaiter().GetResult();
+            }
+            catch (ResourceNotFoundException e)
+            {
+                errRecord = new ErrorRecord(
+                    exception: e,
+                    "ResourceNotFound",
+                    ErrorCategory.ObjectNotFound,
+                    this);
             }
             catch (HttpRequestException e)
             {
@@ -1727,7 +1745,14 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> responses = new List<string>();
             int skip = 0;
 
+            int errorCountBeforeRequest = errorMsgs.Count;
             var initialResponse = await FindVersionGlobbingAsync(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
+
+            // HttpRequestCallAsync reports failures through errorMsgs rather than throwing; don't also report a parse/not-found error.
+            if (string.IsNullOrEmpty(initialResponse) && errorMsgs.Count > errorCountBeforeRequest)
+            {
+                return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
+            }
 
             int initialCount = GetCountFromResponse(initialResponse, out string errStr);
             if (errStr != null)
@@ -1936,15 +1961,19 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
             }
 
+            int errorCountBeforeRequest = errorMsgs.Count;
             var response = await HttpRequestCallForContentAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
             if (response is null)
             {
-                errorMsgs.Enqueue(new ErrorRecord(
-                    new Exception($"No content was returned by repository '{Repository.Name}'"),
-                    "InstallFailureContentNullv2Async",
-                    ErrorCategory.InvalidResult,
-                    this));
+                if (errorMsgs.Count == errorCountBeforeRequest)
+                {
+                    errorMsgs.Enqueue(new ErrorRecord(
+                        new Exception($"No content was returned by repository '{Repository.Name}'"),
+                        "InstallFailureContentNullv2Async",
+                        ErrorCategory.InvalidResult,
+                        this));
+                }
 
                 return new MemoryStream();
             }
