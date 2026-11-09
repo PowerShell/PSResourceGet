@@ -434,8 +434,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
-            string response = string.Empty;
-            int errorCountBeforeRequest = errorMsgs.Count;
+            string response = null;
             try
             {
                 response = await HttpRequestCallAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
@@ -477,8 +476,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            // HttpRequestCallAsync reports failures through errorMsgs rather than throwing; don't also report a parse/not-found error.
-            if (string.IsNullOrEmpty(response) && errorMsgs.Count > errorCountBeforeRequest)
+            // The request failure has already been reported; don't also report a parse/not-found error.
+            if (response == null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -839,8 +838,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             var requestUrlV2 = $"{Repository.Uri}/FindPackagesById()?{queryBuilder.BuildQueryString()}";
-            string response = string.Empty;
-            int errorCountBeforeRequest = errorMsgs.Count;
+            string response = null;
             try
             {
                 response = await HttpRequestCallAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
@@ -882,8 +880,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 }
             }
 
-            // HttpRequestCallAsync reports failures through errorMsgs rather than throwing; don't also report a parse/not-found error.
-            if (string.IsNullOrEmpty(response) && errorMsgs.Count > errorCountBeforeRequest)
+            // The request failure has already been reported; don't also report a parse/not-found error.
+            if (response == null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -1085,11 +1083,13 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         /// <summary>
         /// Helper method that makes the HTTP request for the V2 server protocol url passed in for find APIs.
+        /// Returns null if the request failed (the failure has already been added to errorMsgs), so callers
+        /// must not report an additional parse/not-found error for it.
         /// </summary>
         private async Task<string> HttpRequestCallAsync(string requestUrlV2, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
         {
             debugMsgs.Enqueue("In V2ServerAPICalls::HttpRequestCallAsync()");
-            string response = string.Empty;
+            string response = null;
 
             try
             {
@@ -1146,7 +1146,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         {
             debugMsgs.Enqueue("In V2ServerAPICalls::HttpRequestCallForContentAsync()");
             HttpContent content = null;
-            int errorCountBeforeRequest = errorMsgs.Count;
+            bool requestFailed = true;
 
             try
             {
@@ -1154,6 +1154,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrlV2);
 
                 content = await SendV2RequestForContentAsync(request, _sessionClient);
+                requestFailed = false;
             }
             catch (ResourceNotFoundException e)
             {
@@ -1189,7 +1190,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             }
 
             // Only report an empty response if the request itself didn't already report a failure.
-            if ((content == null || string.IsNullOrEmpty(content.ToString())) && errorMsgs.Count == errorCountBeforeRequest)
+            if (!requestFailed && (content == null || string.IsNullOrEmpty(content.ToString())))
             {
                 errorMsgs.Enqueue(new ErrorRecord(
                     new ArgumentException($"Response returned is null or empty. Request for content made: '{requestUrlV2}'"),
@@ -1745,11 +1746,10 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             List<string> responses = new List<string>();
             int skip = 0;
 
-            int errorCountBeforeRequest = errorMsgs.Count;
             var initialResponse = await FindVersionGlobbingAsync(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
-            // HttpRequestCallAsync reports failures through errorMsgs rather than throwing; don't also report a parse/not-found error.
-            if (string.IsNullOrEmpty(initialResponse) && errorMsgs.Count > errorCountBeforeRequest)
+            // The request failure has already been reported; don't also report a parse/not-found error.
+            if (initialResponse == null)
             {
                 return new FindResults(stringResponse: Utils.EmptyStrArray, hashtableResponse: emptyHashResponses, responseType: v2FindResponseType);
             }
@@ -1782,7 +1782,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                     // skip 100
                     skip += 100;
                     var tmpResponse = await FindVersionGlobbingAsync(packageName, versionRange, includePrerelease, type, skip, getOnlyLatest, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
-                    responses.Add(tmpResponse);
+                    responses.Add(tmpResponse ?? string.Empty);
                     count--;
                 }
             }
@@ -1961,20 +1961,11 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 requestUrlV2 = $"{Repository.Uri}/package/{packageName}/{version}";
             }
 
-            int errorCountBeforeRequest = errorMsgs.Count;
             var response = await HttpRequestCallForContentAsync(requestUrlV2, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
 
+            // HttpRequestCallForContentAsync has already reported why no content was returned.
             if (response is null)
             {
-                if (errorMsgs.Count == errorCountBeforeRequest)
-                {
-                    errorMsgs.Enqueue(new ErrorRecord(
-                        new Exception($"No content was returned by repository '{Repository.Name}'"),
-                        "InstallFailureContentNullv2Async",
-                        ErrorCategory.InvalidResult,
-                        this));
-                }
-
                 return new MemoryStream();
             }
 

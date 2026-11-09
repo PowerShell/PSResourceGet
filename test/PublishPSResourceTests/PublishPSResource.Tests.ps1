@@ -42,6 +42,23 @@ function script:CreateTestModule
 '@ | Out-File -FilePath $moduleSrc
 }
 
+Describe 'PowerShell Gallery status hint' -tags 'CI' {
+    BeforeAll {
+        $utilsType = [Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource].Assembly.GetType('Microsoft.PowerShell.PSResourceGet.UtilClasses.Utils')
+        $statusMessageMethod = $utilsType.GetMethod('GetPSGalleryStatusMessage', [type[]]@([uri], [System.Net.HttpStatusCode]))
+    }
+
+    It 'includes the hint for a 503 from the PowerShell Gallery' {
+        $hint = $statusMessageMethod.Invoke($null, @([uri]'https://www.powershellgallery.com/api/v2', [System.Net.HttpStatusCode]::ServiceUnavailable))
+        $hint | Should -Match 'https://aka.ms/psgallery'
+    }
+
+    It 'does not include the hint for a 503 from a non-Gallery host' {
+        $hint = $statusMessageMethod.Invoke($null, @([uri]'https://example.org/api/v2', [System.Net.HttpStatusCode]::ServiceUnavailable))
+        $hint | Should -BeNullOrEmpty
+    }
+}
+
 Describe "Test Publish-PSResource" -tags 'CI' {
     BeforeAll {
         Get-NewPSResourceRepositoryFile
