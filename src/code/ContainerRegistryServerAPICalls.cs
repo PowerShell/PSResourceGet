@@ -52,7 +52,6 @@ namespace Microsoft.PowerShell.PSResourceGet
         const string catalogScope = "&scope=registry:catalog:*";
         const string grantTypeTemplate = "grant_type=access_token&service={0}{1}"; // 0 - registry, 1 - scope
         const string authUrlTemplate = "{0}?service={1}{2}"; // 0 - realm, 1 - service, 2 - scope
-        const string emptyConfigContent = "{}";
 
         const string containerRegistryRepositoryListTemplate = "https://{0}/v2/_catalog"; // 0 - registry
 
@@ -1569,16 +1568,17 @@ namespace Microsoft.PowerShell.PSResourceGet
                 return false;
             }
 
-            // Create config file
-            var configFilePath = System.IO.Path.Combine(outputNupkgDir, Guid.NewGuid().ToString() + ".json");
-            _cmdletPassedIn.WriteVerbose($"Create config file at path: {configFilePath}");
-            string configDigest = CreateConfigFile(configFilePath, out errRecord);
+            // Create and upload an empty file-- needed by ContainerRegistry server
+            CreateAndUploadEmptyFile(outputNupkgDir, packageNameLowercase, containerRegistryAccessToken, out errRecord);
             if (errRecord != null)
             {
                 return false;
             }
 
-            UploadConfigFile(configFilePath, configDigest, packageNameLowercase, containerRegistryAccessToken, out errRecord);
+            // Create config.json file
+            var configFilePath = System.IO.Path.Combine(outputNupkgDir, "config.json");
+            _cmdletPassedIn.WriteVerbose($"Create config.json file at path: {configFilePath}");
+            string configDigest = CreateConfigFile(configFilePath, out errRecord);
             if (errRecord != null)
             {
                 return false;
@@ -1667,27 +1667,38 @@ namespace Microsoft.PowerShell.PSResourceGet
         }
 
         /// <summary>
-        /// Uploads the config file referenced by the package manifest.
+        /// Uploads an empty file at the start of publish as is needed.
         /// </summary>
-        private void UploadConfigFile(string configFilePath, string configDigest, string pkgNameLower, string containerRegistryAccessToken, out ErrorRecord errRecord)
+        private void CreateAndUploadEmptyFile(string outputNupkgDir, string pkgNameLower, string containerRegistryAccessToken, out ErrorRecord errRecord)
         {
-            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::UploadConfigFile()");
-            errRecord = null;
+            _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::CreateAndUploadEmptyFile()");
+            _cmdletPassedIn.WriteVerbose("Create an empty file");
+            string emptyFileName = "empty" + Guid.NewGuid().ToString() + ".txt";
+            var emptyFilePath = System.IO.Path.Combine(outputNupkgDir, emptyFileName);
 
             try
             {
-                _cmdletPassedIn.WriteVerbose("Start uploading the config file");
-                string configLocation = GetStartUploadBlobLocation(pkgNameLower, containerRegistryAccessToken).Result;
+                Utils.CreateFile(emptyFilePath);
 
-                _cmdletPassedIn.WriteVerbose("Finish uploading the config file");
-                var configResponse = EndUploadBlob(configLocation, configFilePath, configDigest, false, containerRegistryAccessToken).Result;
-                bool uploadSuccessful = configResponse.IsSuccessStatusCode;
+                _cmdletPassedIn.WriteVerbose("Start uploading an empty file");
+                string emptyLocation = GetStartUploadBlobLocation(pkgNameLower, containerRegistryAccessToken).Result;
+
+                _cmdletPassedIn.WriteVerbose("Computing digest for empty file");
+                string emptyFileDigest = CreateDigest(emptyFilePath, out errRecord);
+                if (errRecord != null)
+                {
+                    return;
+                }
+
+                _cmdletPassedIn.WriteVerbose("Finish uploading empty file");
+                var emptyResponse = EndUploadBlob(emptyLocation, emptyFilePath, emptyFileDigest, false, containerRegistryAccessToken).Result;
+                bool uploadSuccessful = emptyResponse.IsSuccessStatusCode;
 
                 if (!uploadSuccessful)
                 {
                     errRecord = new ErrorRecord(
-                        new UploadBlobException($"Error occurred while uploading blob, response code was: {configResponse.StatusCode} with reason {configResponse.ReasonPhrase}"),
-                        "UploadConfigFileError",
+                        new UploadBlobException($"Error occurred while uploading blob, response code was: {emptyResponse.StatusCode} with reason {emptyResponse.ReasonPhrase}"),
+                        "UploadEmptyFileError",
                         ErrorCategory.InvalidResult,
                         _cmdletPassedIn);
 
@@ -1698,7 +1709,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 errRecord = new ErrorRecord(
                     e,
-                    "UploadConfigFileError",
+                    "UploadEmptyFileError",
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
 
@@ -1714,9 +1725,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             _cmdletPassedIn.WriteDebug("In ContainerRegistryServerAPICalls::CreateConfigFile()");
             string configFileDigest = string.Empty;
             _cmdletPassedIn.WriteVerbose("Create the config file");
+            while (File.Exists(configFilePath))
+            {
+                configFilePath = Guid.NewGuid().ToString() + ".json";
+            }
+
             try
             {
-                File.WriteAllText(configFilePath, emptyConfigContent);
+                Utils.CreateFile(configFilePath);
 
                 _cmdletPassedIn.WriteVerbose("Computing digest for config");
                 configFileDigest = CreateDigest(configFilePath, out errRecord);
@@ -1821,7 +1837,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             jsonWriter.WritePropertyName("digest");
             jsonWriter.WriteValue($"sha256:{configDigest}");
             jsonWriter.WritePropertyName("size");
-            jsonWriter.WriteValue(Encoding.UTF8.GetByteCount(emptyConfigContent));
+            jsonWriter.WriteValue(0);
             jsonWriter.WriteEndObject();
 
             jsonWriter.WritePropertyName("layers");
