@@ -4,7 +4,7 @@
 @{
     RootModule             = './Microsoft.PowerShell.PSResourceGet.dll'
     NestedModules          = @('./Microsoft.PowerShell.PSResourceGet.psm1')
-    ModuleVersion          = '1.3.0'
+    ModuleVersion          = '1.3.1'
     CompatiblePSEditions   = @('Core', 'Desktop')
     GUID                   = 'e4e0bda1-0703-44a5-b70d-8fe704cd0643'
     Author                 = 'Microsoft Corporation'
@@ -50,7 +50,7 @@
         'usres')
     PrivateData = @{
         PSData = @{
-            Prerelease   = 'rc2'
+            # Prerelease = ''
             Tags         = @('PackageManagement',
                 'PSEdition_Desktop',
                 'PSEdition_Core',
@@ -60,6 +60,10 @@
             ProjectUri   = 'https://go.microsoft.com/fwlink/?LinkId=828955'
             LicenseUri   = 'https://go.microsoft.com/fwlink/?LinkId=829061'
             ReleaseNotes = @'
+## 1.3.1
+
+## 1.3.0
+
 ## 1.3.0-rc2
 
 ### New Features

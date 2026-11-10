@@ -15,7 +15,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// </summary>
     [Cmdlet(VerbsData.Publish,
         "PSResource",
-        SupportsShouldProcess = true)]
+        SupportsShouldProcess = true,
+        ConfirmImpact = ConfirmImpact.Medium)]
     [Alias("pbres")]
     public sealed class PublishPSResource : PSCmdlet
     {
@@ -147,6 +148,16 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
             _cancellationToken = new CancellationToken();
 
             _networkCredential = Credential != null ? new NetworkCredential(Credential.UserName, Credential.Password) : null;
+
+            if (Credential != null && string.IsNullOrEmpty(Repository) &&
+                !ShouldProcess("Use repository registered with highest priority for publish operation using the supplied Credential"))
+            {
+                ThrowTerminatingError(new ErrorRecord(
+                    new PSInvalidOperationException("Confirm operation when using Credential parameter with no explicit Repository specified, or re-run command with '-Confirm:$false'."),
+                    "CredentialWithoutRepositoryConfirmationDenied",
+                    ErrorCategory.InvalidOperation,
+                    this));
+            }
 
             // Create the repository store file (PSResourceRepository.xml) if it does not already exist
             // This is to create a better experience for those who have just installed v3 and want to get up and running quickly
