@@ -20,7 +20,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     [Cmdlet(VerbsLifecycle.Install,
         "PSResource",
         DefaultParameterSetName = "NameParameterSet",
-        SupportsShouldProcess = true)]
+        SupportsShouldProcess = true,
+        ConfirmImpact = ConfirmImpact.Medium)]
     [Alias("isres")]
     public sealed
     class InstallPSResource : PSCmdlet
@@ -137,28 +138,6 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
         /// </summary>
         [Parameter]
         public SwitchParameter AuthenticodeCheck { get; set; }
-
-        /// <summary>
-        /// Specifies the Runtime Identifier (RID) to filter platform-specific assets for.
-        /// When specified, only runtime assets matching this RID are installed instead of the auto-detected platform.
-        /// Use this for cross-platform deployment scenarios (e.g., preparing a Linux package from Windows).
-        /// Valid values follow the .NET RID catalog: win-x64, linux-x64, osx-arm64, etc.
-        /// </summary>
-        [Parameter]
-        [ValidateNotNullOrEmpty]
-        [ArgumentCompleter(typeof(RuntimeIdentifierCompleter))]
-        public string RuntimeIdentifier { get; set; }
-
-        /// <summary>
-        /// Specifies the Target Framework Moniker (TFM) to select for lib/ folder filtering.
-        /// When specified, only lib/ assets matching this TFM are installed instead of the auto-detected framework.
-        /// Use this for cross-platform deployment scenarios (e.g., preparing a .NET 6 package from a .NET 8 host).
-        /// Valid values follow NuGet TFM format: net472, netstandard2.0, net6.0, net8.0, etc.
-        /// </summary>
-        [Parameter]
-        [ValidateNotNullOrEmpty]
-        [ArgumentCompleter(typeof(TargetFrameworkCompleter))]
-        public string TargetFramework { get; set; }
 
         /// <summary>
         /// Passes the resource installed to the console.
@@ -299,6 +278,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void ProcessRecord()
         {
+            if (Credential != null && (Repository == null || Repository.Length != 1) &&
+                !ShouldProcess("Potentially search multiple repositories for install operation using the supplied Credential"))
+            {
+                return;
+            }
+
             switch (ParameterSetName)
             {
                 case NameParameterSet:
@@ -619,9 +604,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 pathsToInstallPkg: _pathsToInstallPkg,
                 scope: scope,
                 tmpPath: _tmpPath,
-                pkgsInstalled: _packagesOnMachine,
-                runtimeIdentifier: RuntimeIdentifier,
-                targetFramework: TargetFramework);
+                pkgsInstalled: _packagesOnMachine);
 
             if (PassThru)
             {

@@ -883,11 +883,6 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
         {
             debugMsgs.Enqueue("In V3ServerAPICalls::InstallHelper()");
             Stream pkgStream = null;
-            bool getLatestVersion = true;
-            if (version != null)
-            {
-                getLatestVersion = false;
-            }
 
             string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, packageContentProperty, isSearch: false, out errRecord, errorMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
@@ -906,28 +901,10 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
                 return null;
             }
 
-            string pkgContentUrl = String.Empty;
-            if (getLatestVersion)
-            {
-                pkgContentUrl = versionedResponses[0];
-            }
-            else
-            {
-                // loop through responses to find one containing required version
-                foreach (string response in versionedResponses)
-                {
-                    // Response will be "packageContent" element value that looks like: "{packageBaseAddress}/{packageName}/{normalizedVersion}/{packageName}.{normalizedVersion}.nupkg"
-                    // Ex: https://api.nuget.org/v3-flatcontainer/test_module/1.0.0/test_module.1.0.0.nupkg
-                    if (response.Contains(version.ToNormalizedString()))
-                    {
-                        pkgContentUrl = response;
-                        break;
-                    }
-                }
-            }
-
+            string pkgContentUrl = GetPackageContentUrl(versionedResponses, version);
             if (String.IsNullOrEmpty(pkgContentUrl))
             {
+                debugMsgs.Enqueue($"No registration entry for package '{packageName}' had a 'catalogEntry' version matching '{version}' and a 'packageContent' URL.");
                 errRecord = new ErrorRecord(
                     new Exception($"Package with name '{packageName}' and version '{version}' could not be found in repository '{Repository.Name}'"),
                     "InstallFailure",
@@ -966,11 +943,6 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
         {
             debugMsgs.Enqueue("In V3ServerAPICalls::InstallHelperAsync()");
             Stream pkgStream = null;
-            bool getLatestVersion = true;
-            if (version != null)
-            {
-                getLatestVersion = false;
-            }
 
             string[] versionedResponses = GetVersionedPackageEntriesFromRegistrationsResource(packageName, packageContentProperty, isSearch: false, out ErrorRecord errRecord, errorMsgs, debugMsgs, verboseMsgs);
             if (errRecord != null)
@@ -990,28 +962,10 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
                 return null;
             }
 
-            string pkgContentUrl = String.Empty;
-            if (getLatestVersion)
-            {
-                pkgContentUrl = versionedResponses[0];
-            }
-            else
-            {
-                // loop through responses to find one containing required version
-                foreach (string response in versionedResponses)
-                {
-                    // Response will be "packageContent" element value that looks like: "{packageBaseAddress}/{packageName}/{normalizedVersion}/{packageName}.{normalizedVersion}.nupkg"
-                    // Ex: https://api.nuget.org/v3-flatcontainer/test_module/1.0.0/test_module.1.0.0.nupkg
-                    if (response.Contains(version.ToNormalizedString()))
-                    {
-                        pkgContentUrl = response;
-                        break;
-                    }
-                }
-            }
-
+            string pkgContentUrl = GetPackageContentUrl(versionedResponses, version);
             if (String.IsNullOrEmpty(pkgContentUrl))
             {
+                debugMsgs.Enqueue($"No registration entry for package '{packageName}' had a 'catalogEntry' version matching '{version}' and a 'packageContent' URL.");
                 errorMsgs.Enqueue(new ErrorRecord(
                     new Exception($"Package with name '{packageName}' and version '{version}' could not be found in repository '{Repository.Name}'"),
                     "InstallFailure",
@@ -1037,6 +991,87 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
             pkgStream = await content.ReadAsStreamAsync();
 
             return pkgStream;
+        }
+
+        /// <summary>
+        /// Selects the "packageContent" URL (i.e the .nupkg download URL) of the registration entry for the required version,
+        /// or of the latest version if the required version is null.
+        /// The version is taken from the entry's "catalogEntry" > "version" property and compared as a NuGetVersion,
+        /// rather than being inferred from the URL text (a substring search for '1.2.3' would match the URL for '1.2.30').
+        /// </summary>
+        internal static string GetPackageContentUrl(string[] registrationEntries, NuGetVersion requiredVersion)
+        {
+            string pkgContentUrl = String.Empty;
+            if (registrationEntries == null)
+            {
+                return pkgContentUrl;
+            }
+
+            NuGetVersion latestVersion = null;
+            foreach (string registrationEntry in registrationEntries)
+            {
+                if (!TryGetPackageContentEntry(registrationEntry, out NuGetVersion entryVersion, out string entryPkgContentUrl))
+                {
+                    continue;
+                }
+
+                if (requiredVersion != null)
+                {
+                    if (entryVersion == requiredVersion)
+                    {
+                        return entryPkgContentUrl;
+                    }
+                }
+                else if (latestVersion == null || entryVersion > latestVersion)
+                {
+                    latestVersion = entryVersion;
+                    pkgContentUrl = entryPkgContentUrl;
+                }
+            }
+
+            return pkgContentUrl;
+        }
+
+        /// <summary>
+        /// Gets the version and "packageContent" URL from a registration entry, which looks like:
+        /// { "catalogEntry": { "version": "1.0.0", ... }, "packageContent": "https://api.nuget.org/v3-flatcontainer/test_module/1.0.0/test_module.1.0.0.nupkg", ... }
+        /// </summary>
+        private static bool TryGetPackageContentEntry(string registrationEntry, out NuGetVersion version, out string pkgContentUrl)
+        {
+            version = null;
+            pkgContentUrl = String.Empty;
+            if (String.IsNullOrWhiteSpace(registrationEntry))
+            {
+                return false;
+            }
+
+            try
+            {
+                using (JsonDocument registrationEntryJson = JsonDocument.Parse(registrationEntry))
+                {
+                    JsonElement rootDom = registrationEntryJson.RootElement;
+                    if (rootDom.ValueKind != JsonValueKind.Object ||
+                        !rootDom.TryGetProperty(packageContentProperty, out JsonElement pkgContentElement) ||
+                        pkgContentElement.ValueKind != JsonValueKind.String ||
+                        !rootDom.TryGetProperty(catalogEntryProperty, out JsonElement catalogEntryElement) ||
+                        catalogEntryElement.ValueKind != JsonValueKind.Object ||
+                        !catalogEntryElement.TryGetProperty(versionName, out JsonElement versionElement) ||
+                        !NuGetVersion.TryParse(versionElement.ToString(), out version))
+                    {
+                        version = null;
+                        return false;
+                    }
+
+                    pkgContentUrl = pkgContentElement.GetString();
+                }
+            }
+            catch (JsonException)
+            {
+                version = null;
+                return false;
+            }
+
+            return !String.IsNullOrWhiteSpace(pkgContentUrl);
         }
 
         /// <summary>
@@ -1451,8 +1486,9 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
 
                         if (metadataElement.ValueKind == JsonValueKind.String)
                         {
-                            // This is when property is "packageContent"
-                            versionedPkgResponses.Add(metadataElement.ToString());
+                            // This is when property is "packageContent".
+                            // The whole entry is returned so the version can be read from its "catalogEntry" rather than inferred from the URL.
+                            versionedPkgResponses.Add(item.ToString());
                         }
                         else if(metadataElement.ValueKind == JsonValueKind.Object)
                         {
@@ -1494,7 +1530,8 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
         /// This contains an inner items element (containing the package metadata) and the packageContent element (containing URI through which the .nupkg can be downloaded)
         /// <param name="property"> This can be the "catalogEntry" or "packageContent" property.
         ///     The "catalogEntry" property is used for search, and the value is package metadata.
-        ///     The "packageContent" property is used for download, and the value is a URI for the .nupkg file.
+        ///     The "packageContent" property is used for download, and the value is the whole registration entry,
+        ///     containing both the "catalogEntry" (with the package version) and the "packageContent" URI for the .nupkg file.
         /// </param>
         /// <summary>
         private string[] GetVersionedResponsesFromRegistrationsResource(string registrationsBaseUrl, string packageName, string property, bool isSearch, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
@@ -1526,25 +1563,16 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
             }
 
             // Reverse array of versioned responses, if needed, so that version entries are in descending order.
-            if (String.IsNullOrEmpty(upperVersion))
+            // Install selects its entry by comparing versions, so it does not depend on the order.
+            if (String.IsNullOrEmpty(upperVersion) || !isSearch)
             {
                 // add write Debug and use these results
                 return versionedResponseArr;
             }
 
-            if (isSearch)
+            if (!IsLatestVersionFirstForSearch(versionedResponseArr, out errRecord, errorMsgs, debugMsgs, verboseMsgs))
             {
-                if (!IsLatestVersionFirstForSearch(versionedResponseArr, out errRecord, errorMsgs, debugMsgs, verboseMsgs))
-                {
-                    Array.Reverse(versionedResponseArr);
-                }
-            }
-            else
-            {
-                if (!IsLatestVersionFirstForInstall(versionedResponseArr, upperVersion, out errRecord, errorMsgs, debugMsgs, verboseMsgs))
-                {
-                    Array.Reverse(versionedResponseArr);
-                }
+                Array.Reverse(versionedResponseArr);
             }
 
             return versionedResponseArr;
@@ -1644,33 +1672,6 @@ debugMsgs.Enqueue($"'{packageName}' version parsed as '{requiredVersion}'");
                     this);
 
                 return true;
-            }
-
-            return latestVersionFirst;
-        }
-
-        /// <summary>
-        /// Returns true if the nupkg URI entries for each package version are arranged in descending order with respect to the package's version.
-        /// ADO feeds usually return version entries in descending order, but Nuget.org repository returns them in ascending order.
-        /// Entries do not reflect prerelease preference so all versions (including prerelease) are being considered here, so upper version (including prerelease) can be used for comparison.
-        /// </summary>
-        private bool IsLatestVersionFirstForInstall(string[] versionedResponses, string upperVersion, out ErrorRecord errRecord, ConcurrentQueue<ErrorRecord> errorMsgs, ConcurrentQueue<string> debugMsgs, ConcurrentQueue<string> verboseMsgs)
-        {
-            debugMsgs.Enqueue("In V3ServerAPICalls::IsLatestVersionFirstForInstall()");
-            errRecord = null;
-            bool latestVersionFirst = true;
-
-            // We don't need to perform this check if no responses, or single response
-            if (versionedResponses.Length < 2)
-            {
-                return latestVersionFirst;
-            }
-
-            string firstResponse = versionedResponses[0];
-            // for Install, response will be a URI value for the package .nupkg, not JSON
-            if (!firstResponse.Contains(upperVersion))
-            {
-                latestVersionFirst = false;
             }
 
             return latestVersionFirst;

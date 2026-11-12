@@ -19,7 +19,8 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
     /// </summary>
     [Cmdlet(VerbsData.Update,
         "PSResource",
-        SupportsShouldProcess = true)]
+        SupportsShouldProcess = true,
+        ConfirmImpact = ConfirmImpact.Medium)]
     [Alias("udres")]
     public sealed class UpdatePSResource : PSCmdlet
     {
@@ -173,6 +174,12 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
 
         protected override void ProcessRecord()
         {
+            if (Credential != null && (Repository == null || Repository.Length != 1) &&
+                !ShouldProcess("Potentially search multiple repositories for update operation using the supplied Credential"))
+            {
+                return;
+            }
+
             // determine/parse out Version param
             if (!Utils.TryGetVersionType(
                 version: Version,

@@ -54,7 +54,7 @@ function Invoke-ModuleBuild {
 
     Write-Verbose -Verbose -Message "Invoking build script"
 
-    $BuildScript.Invoke()
+    & $BuildScript
 
     Write-Verbose -Verbose -Message "Finished invoking build script"
 }

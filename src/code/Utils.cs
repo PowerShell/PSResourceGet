@@ -48,6 +48,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         public static readonly string[] EmptyStrArray = Array.Empty<string>();
         public static readonly char[] WhitespaceSeparator = new char[] { ' ' };
+        private static readonly char[] PathTraversalChars =
+#if UNIX
+            new char[] { '\\', '/' };
+#else
+            new char[] { '\\', '/', ':' };
+#endif
         public const string PSDataFileExt = ".psd1";
         public const string PSScriptFileExt = ".ps1";
         private const string ConvertJsonToHashtableScript = @"
@@ -1050,6 +1056,36 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
 
         #endregion
 
+        #region Sanitization methods
+        public static bool IsUnsafeRemoteName(string name, string propertyName, out ErrorRecord error)
+        {
+            error = null;
+
+            if (string.IsNullOrEmpty(name))
+            {
+                error = new ErrorRecord(
+                    new ArgumentException($"{propertyName} cannot be null or empty."),
+                    "InvalidRemoteName",
+                    ErrorCategory.InvalidArgument,
+                    propertyName);
+                return true;
+            }
+
+            if (name.IndexOfAny(PathTraversalChars) >= 0 || string.Equals(name, ".", StringComparison.Ordinal) || string.Equals(name, "..", StringComparison.Ordinal))
+            {
+                error = new ErrorRecord(
+                    new ArgumentException($"{propertyName} contains invalid characters: '{name}'."),
+                    "InvalidRemoteName",
+                    ErrorCategory.InvalidArgument,
+                    propertyName);
+                return true;
+            }
+
+            return false;
+        }
+
+        #endregion
+
         #region Path methods
 
         public static string[] GetSubDirectories(string dirPath)
@@ -1947,34 +1983,6 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             DeleteDirectory(sourceDirPath);
         }
 
-        /// <summary>
-        /// Merges the contents of a source directory into an existing destination directory.
-        /// Only adds new files and subdirectories; does not delete or overwrite existing content.
-        /// Used when merging additional TFM or RID content into an already-installed module.
-        /// </summary>
-        public static void MergeDirContents(string sourceDirPath, string destDirPath)
-        {
-            if (!Directory.Exists(destDirPath))
-            {
-                Directory.CreateDirectory(destDirPath);
-            }
-
-            foreach (var filePath in Directory.GetFiles(sourceDirPath))
-            {
-                var destFilePath = Path.Combine(destDirPath, Path.GetFileName(filePath));
-                if (!File.Exists(destFilePath))
-                {
-                    File.Copy(filePath, destFilePath);
-                }
-            }
-
-            foreach (var srcSubDirPath in Directory.GetDirectories(sourceDirPath))
-            {
-                var destSubDirPath = Path.Combine(destDirPath, Path.GetFileName(srcSubDirPath));
-                MergeDirContents(srcSubDirPath, destSubDirPath);
-            }
-        }
-
         private static void CopyDirContents(
             string sourceDirPath,
             string destDirPath,
@@ -2208,6 +2216,19 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             return nuspecHashtable;
         }
 
+        private static readonly XmlReaderSettings XmlDocumentReaderSettings = new XmlReaderSettings()
+        {
+            DtdProcessing = DtdProcessing.Prohibit,     // Disallow any DTD elements
+            XmlResolver = null,                         // Do not resolve external links
+            CheckCharacters = true,
+            IgnoreComments = true,
+            IgnoreProcessingInstructions = true,
+            MaxCharactersFromEntities = 1024,
+            MaxCharactersInDocument = 512 * 1024 * 1024, // 512M characters = 1GB
+            ValidationFlags = System.Xml.Schema.XmlSchemaValidationFlags.None,
+            ValidationType = ValidationType.None
+        };
+
         /// <summary>
         /// Method that loads file content into XMLDocument. Used when reading .nuspec file.
         /// </summary>
@@ -2216,7 +2237,12 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             errRecord = null;
             XmlDocument doc = new XmlDocument();
             doc.PreserveWhitespace = true;
-            try { doc.Load(filePath); }
+            try {
+                using (XmlReader xmlReader = XmlReader.Create(filePath, XmlDocumentReaderSettings))
+                {
+                    doc.Load(xmlReader);
+                }
+            }
             catch (Exception e)
             {
                 errRecord = new ErrorRecord(
