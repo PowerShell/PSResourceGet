@@ -715,7 +715,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 //  look in PS repo for how httpRequestExceptions are handled
 
                 // Unfortunately there is no response message  are no status codes provided with the exception and no
-                var ex = new ArgumentException(String.Format("Repository '{0}': {1}", repoName, e.Message));
+                var ex = new ArgumentException(String.Format("Repository '{0}': {1}. {2}", repoName, e.Message, Utils.GetPSGalleryStatusMessage(publishLocation, e)));
                 if (e.Message.Contains("400"))
                 {
                     if (e.Message.Contains("Api"))
@@ -850,7 +850,7 @@ namespace Microsoft.PowerShell.PSResourceGet.Cmdlets
                 else
                 {
                     error = new ErrorRecord(
-                        new ArgumentException($"Repository '{repoName}': {e.InnerException.Message}"),
+                        new ArgumentException($"Repository '{repoName}': {e.InnerException.Message}. {Utils.GetPSGalleryStatusMessage(publishLocation, e) }"),
                         "ProtocolFailError",
                         ErrorCategory.ProtocolError,
                         this);
