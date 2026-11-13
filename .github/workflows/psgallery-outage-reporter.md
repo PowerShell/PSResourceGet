@@ -1,9 +1,9 @@
 ---
 description: |
   Reports PowerShell Gallery outages. Triggered by the 'PowerShell Gallery Health Check'
-  workflow when gallery queries return too many 404/5xx or timed-out responses. Re-verifies the failure, then
-  opens (or updates) a service-status issue in PowerShell/PowerShellGallery so the status
-  page at https://aka.ms/psgallery can be updated.
+  workflow when gallery queries return too many 404/5xx or timed-out responses. Re-verifies the
+  failure, then opens a pull request in PowerShell/PowerShellGallery that adds an "Ongoing" entry to
+  psgallery_status.md (or comments on an existing one) for the Gallery team to review and merge.
 
 on:
   workflow_dispatch:
@@ -20,6 +20,7 @@ on:
 permissions:
   contents: read
   issues: read
+  pull-requests: read
 
 engine: copilot
 
@@ -30,17 +31,28 @@ network:
     - defaults
     - powershell
 
+checkout:
+  - repository: PowerShell/PowerShellGallery
+    ref: master
+    path: PowerShellGallery
+    current: true
+
 tools:
   github:
-    toolsets: [issues]
-  bash: ["curl:*", "jq:*", "sleep", "date"]
+    toolsets: [pull_requests, issues]
+  edit:
+  bash: ["curl:*", "jq:*", "sleep", "date", "cat:*", "head:*"]
 
 safe-outputs:
-  # PAT or GitHub App token with 'issues: write' on PowerShell/PowerShellGallery.
-  github-token: ${{ secrets.PSGALLERY_STATUS_ISSUE_TOKEN }}
-  create-issue:
+  # PAT or GitHub App token with 'contents: write' and 'pull-requests: write' on
+  # PowerShell/PowerShellGallery ('issues: write' too, for comments and the issue fallback).
+  github-token: ${{ secrets.PSGALLERY_STATUS_PR_TOKEN }}
+  create-pull-request:
     target-repo: "PowerShell/PowerShellGallery"
+    base-branch: master
     title-prefix: "[Service Status] "
+    draft: false
+    allowed-files: ["psgallery_status.md"]
     max: 1
   add-comment:
     target: "*"
@@ -68,6 +80,9 @@ ${{ github.event.inputs.probe_results }}
 
 Health check run: ${{ github.event.inputs.health_check_run_url }}
 
+The `PowerShell/PowerShellGallery` repository is checked out in the `PowerShellGallery` directory.
+Its `psgallery_status.md` file is the public PowerShell Gallery status page.
+
 ## Steps
 
 1. **Re-verify.** For every failing probe, request its `uri` again with
@@ -76,7 +91,7 @@ Health check run: ${{ github.event.inputs.health_check_run_url }}
    (timed out or could not connect), 404, or 500 or higher; slow responses that succeed are fine. Stop re-checking a probe as soon
    as you see a bad response. Treat a probe as still failing if **any** attempt was bad; it has
    recovered only if all 4 attempts were good. If no probe is still failing, the incident has
-   recovered: do **not** create an issue or comment; finish by reporting that no action was needed.
+   recovered: do **not** open a pull request or comment; finish by reporting that no action was needed.
 
    Shell commands are restricted to an allowlist: run each `curl`, `sleep`, and `date` invocation as
    its own separate command. Do not use loops, pipes, `;`, `&&`, subshells, or variables.
@@ -84,17 +99,37 @@ Health check run: ${{ github.event.inputs.health_check_run_url }}
    Every probe URI targets a package or endpoint that is expected to exist, so a 404 is a failure.
    Do not second-guess whether a 404 is "expected" based on the package name.
 
-2. **Look for an existing report.** Search open issues in `PowerShell/PowerShellGallery` whose
-   title starts with `[Service Status]` and that were created in the last 24 hours. Also consider
-   any open issue that clearly describes the same outage (same endpoints / status codes).
+2. **Look for an existing report.**
+   - Search open pull requests in `PowerShell/PowerShellGallery` whose title starts with
+     `[Service Status]` and that were created in the last 24 hours.
+   - Read `PowerShellGallery/psgallery_status.md`. If its newest entry is marked `__Status: Ongoing__`,
+     is dated today or yesterday (UTC), and describes the same kind of problem (for example, search or
+     install failures), the Gallery team has already posted this outage.
 
 3. **Report.**
-   - If a matching open issue exists, add **one** comment to it with the latest re-verification
+   - If a matching open pull request exists, add **one** comment to it with the latest re-verification
      results (timestamp in UTC, endpoint, bad responses out of attempts, status codes). Keep it short.
-   - Otherwise create **one** issue in `PowerShell/PowerShellGallery`:
-     - Title: a short summary such as `PowerShell Gallery returning HTTP 500 for package searches`
-       (the `[Service Status]` prefix is added automatically).
-     - Body must include:
+   - Otherwise, if the status page already has a matching ongoing entry, do nothing and finish by
+     reporting that the outage is already posted.
+   - Otherwise open **one** pull request against `master` that changes only `psgallery_status.md`:
+     - **Edit:** add a new entry directly below the `=========================` line under the
+       `PowerShell Gallery Status` heading, above all existing entries, separated by blank lines.
+       Do not change any existing entry. Match the existing entries' format exactly:
+
+       ```markdown
+       ### Nov 13th 2026, Errors when searching for packages.
+       Since 9:00pm UTC we have been observing intermittent errors and timeouts when searching for packages (for example, `Find-PSResource -Tag` and `Find-PSResource -Name` with wildcards). We are investigating, but you may see failures or delays when searching for or installing packages.
+
+       __Status: Ongoing__
+       ```
+
+       Use the current UTC date (`date -u`) in the `<Mon> <day><ordinal> <yyyy>` style, the earliest
+       failure time you observed (`checkedAt` from the health check) rounded down to the hour, and a
+       short, user-facing description of the impact. Do not include probe URIs, status-code tables,
+       internal details, or speculation about the cause in the status page entry.
+     - **Title:** a short summary such as `Errors when searching for packages` (the `[Service Status]`
+       prefix is added automatically).
+     - **Body** must include:
        - A one-paragraph summary of the impact on users (for example: `Find-PSResource` /
          `Install-PSResource` / `Save-PSResource` against `PSGallery` fail).
        - A Markdown table of still-failing probes: probe, URI, bad responses out of samples (from
@@ -104,12 +139,13 @@ Health check run: ${{ github.event.inputs.health_check_run_url }}
          single unhealthy instance) rather than a full outage.
        - Any probes from the health check that recovered during re-verification.
        - A link to the health check run (above).
-       - A request to the PowerShell Gallery team to update the service status at
-         [aka.ms/psgallery](https://aka.ms/psgallery) and to close this issue once resolved.
-       - A note that this issue was opened automatically by the PSResourceGet health monitor.
+       - A request to the PowerShell Gallery team to review the wording, merge this pull request to
+         publish the status, and update the entry to `__Status: Resolved__` once the issue is fixed.
+       - A note that this pull request was opened automatically by the PSResourceGet health monitor.
 
 ## Rules
 
-- Never include secrets, tokens, or request headers in the issue or comment.
-- Never create more than one issue or more than one comment per run.
+- Never include secrets, tokens, or request headers in the pull request, status entry, or comment.
+- Never open more than one pull request or post more than one comment per run.
+- Only modify `psgallery_status.md`; never change any other file.
 - Do not speculate about root cause; report only what you observed.

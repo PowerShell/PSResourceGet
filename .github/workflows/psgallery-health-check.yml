@@ -5,8 +5,8 @@
 # single unhealthy instance behind the load balancer (which fails only a fraction of requests) is
 # still detected. When a failure is
 # confirmed, this workflow dispatches the 'psgallery-outage-reporter' agentic workflow, which
-# opens (or updates) a service-status issue in PowerShell/PowerShellGallery so the status page
-# at https://aka.ms/psgallery can be updated.
+# opens a pull request in PowerShell/PowerShellGallery adding an "Ongoing" entry to
+# psgallery_status.md (or comments on an existing one) for the Gallery team to review and merge.
 name: 'PowerShell Gallery Health Check'
 
 on:
