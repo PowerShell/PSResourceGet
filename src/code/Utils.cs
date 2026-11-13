@@ -246,18 +246,54 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
         }
 
         /// <summary>
-        /// Same as GetPSGalleryStatusMessage, for callers (such as NuGet's PushRunner) that only expose the
-        /// status code inside an exception message like "Response status code does not indicate success: 503 (...)".
+        /// Same as GetPSGalleryStatusMessage, for callers (such as NuGet's PushRunner) that only surface the failure
+        /// as an exception. The status code is read from the exception (or its inner exceptions) without relying on
+        /// the English exception message, so the hint also works on localized .NET Framework installations.
         /// </summary>
-        public static string GetPSGalleryStatusMessage(string requestUri, string exceptionMessage)
+        public static string GetPSGalleryStatusMessage(string requestUri, Exception exception)
         {
-            if (string.IsNullOrEmpty(exceptionMessage) || !Uri.TryCreate(requestUri, UriKind.Absolute, out Uri uri))
+            if (!Uri.TryCreate(requestUri, UriKind.Absolute, out Uri uri) || !TryGetHttpStatusCode(exception, out HttpStatusCode statusCode))
             {
                 return string.Empty;
             }
 
-            Match match = Regex.Match(exceptionMessage, @"status code does not indicate success: (\d{3})", RegexOptions.IgnoreCase);
-            return match.Success ? GetPSGalleryStatusMessage(uri, (HttpStatusCode)int.Parse(match.Groups[1].Value)) : string.Empty;
+            return GetPSGalleryStatusMessage(uri, statusCode);
+        }
+
+        // HttpRequestException.StatusCode only exists on .NET 5+; look it up at runtime since this assembly targets net472.
+        private static readonly System.Reflection.PropertyInfo s_httpRequestExceptionStatusCode = typeof(HttpRequestException).GetProperty("StatusCode");
+
+        // EnsureSuccessStatusCode formats its message as "<localized text>{0} ({1})" in every locale, where {0} is the
+        // numeric status code and {1} the server's reason phrase, so match on that shape rather than on the English text.
+        private static readonly Regex s_statusCodeInMessage = new Regex(@"(?<![\d.])([1-5]\d{2})\s*\(", RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// Gets the HTTP status code from an exception or its inner exceptions, preferring the structured
+        /// HttpRequestException.StatusCode (.NET 5+) and falling back to a locale-independent parse of the message.
+        /// </summary>
+        internal static bool TryGetHttpStatusCode(Exception exception, out HttpStatusCode statusCode)
+        {
+            for (Exception ex = exception; ex != null; ex = ex.InnerException)
+            {
+                if (ex is HttpRequestException && s_httpRequestExceptionStatusCode?.GetValue(ex) is HttpStatusCode structuredCode)
+                {
+                    statusCode = structuredCode;
+                    return true;
+                }
+            }
+
+            for (Exception ex = exception; ex != null; ex = ex.InnerException)
+            {
+                Match match = string.IsNullOrEmpty(ex.Message) ? Match.Empty : s_statusCodeInMessage.Match(ex.Message);
+                if (match.Success)
+                {
+                    statusCode = (HttpStatusCode)int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+                    return true;
+                }
+            }
+
+            statusCode = default;
+            return false;
         }
 
         /// <summary>

@@ -46,6 +46,7 @@ Describe 'PowerShell Gallery status hint' -tags 'CI' {
     BeforeAll {
         $utilsType = [Microsoft.PowerShell.PSResourceGet.Cmdlets.PublishPSResource].Assembly.GetType('Microsoft.PowerShell.PSResourceGet.UtilClasses.Utils')
         $statusMessageMethod = $utilsType.GetMethod('GetPSGalleryStatusMessage', [type[]]@([uri], [System.Net.HttpStatusCode]))
+        $exceptionStatusMessageMethod = $utilsType.GetMethod('GetPSGalleryStatusMessage', [type[]]@([string], [System.Exception]))
     }
 
     It 'includes the hint for a 503 from the PowerShell Gallery' {
@@ -55,6 +56,40 @@ Describe 'PowerShell Gallery status hint' -tags 'CI' {
 
     It 'does not include the hint for a 503 from a non-Gallery host' {
         $hint = $statusMessageMethod.Invoke($null, @([uri]'https://example.org/api/v2', [System.Net.HttpStatusCode]::ServiceUnavailable))
+        $hint | Should -BeNullOrEmpty
+    }
+
+    # Publish only gets an exception from NuGet's PushRunner. On localized .NET Framework installations the
+    # EnsureSuccessStatusCode message is translated, but always keeps the "<code> (<reason phrase>)" shape.
+    # Non-ASCII text is \u-escaped so this file parses the same in Windows PowerShell 5.1 and PowerShell 7.
+    It 'includes the hint for a localized publish failure message: <Culture>' -TestCases @(
+        @{ Culture = 'en-US'; Message = 'Response status code does not indicate success: 503 (Service Unavailable).' }
+        @{ Culture = 'de-DE'; Message = 'Der Antwortstatuscode gibt keinen Erfolg an: 503 (Service Unavailable).' }
+        @{ Culture = 'fr-FR'; Message = [regex]::Unescape("Le code d'\u00e9tat de la r\u00e9ponse n'indique pas la r\u00e9ussite : 503 (Service Unavailable).") }
+        @{ Culture = 'ja-JP'; Message = [regex]::Unescape('\u5fdc\u7b54\u72b6\u614b\u30b3\u30fc\u30c9\u306f\u6210\u529f\u3092\u793a\u3057\u3066\u3044\u307e\u305b\u3093: 503 (Service Unavailable)\u3002') }
+    ) {
+        param($Culture, $Message)
+        $exception = [System.Net.Http.HttpRequestException]::new($Message)
+        $hint = $exceptionStatusMessageMethod.Invoke($null, @('https://www.powershellgallery.com/api/v2/package', $exception))
+        $hint | Should -Match 'https://aka.ms/psgallery'
+    }
+
+    It 'finds the status code in an inner exception (FatalProtocolException path)' {
+        $inner = [System.Net.Http.HttpRequestException]::new('Der Antwortstatuscode gibt keinen Erfolg an: 502 (Bad Gateway).')
+        $outer = [System.InvalidOperationException]::new('Push failed.', $inner)
+        $hint = $exceptionStatusMessageMethod.Invoke($null, @('https://www.powershellgallery.com/api/v2/package', $outer))
+        $hint | Should -Match 'https://aka.ms/psgallery'
+    }
+
+    It 'uses the structured StatusCode when the message has no status code' -Skip:(-not $IsCoreCLR) {
+        $exception = [System.Net.Http.HttpRequestException]::new('Localized text without a code', $null, [System.Net.HttpStatusCode]::ServiceUnavailable)
+        $hint = $exceptionStatusMessageMethod.Invoke($null, @('https://www.powershellgallery.com/api/v2/package', $exception))
+        $hint | Should -Match 'https://aka.ms/psgallery'
+    }
+
+    It 'does not include the hint for a localized 4xx publish failure' {
+        $exception = [System.Net.Http.HttpRequestException]::new('Der Antwortstatuscode gibt keinen Erfolg an: 409 (Conflict).')
+        $hint = $exceptionStatusMessageMethod.Invoke($null, @('https://www.powershellgallery.com/api/v2/package', $exception))
         $hint | Should -BeNullOrEmpty
     }
 }
