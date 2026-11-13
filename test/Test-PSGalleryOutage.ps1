@@ -116,7 +116,7 @@ function Invoke-OutageCase([string] $Name, [scriptblock] $Command) {
 
 try {
     if (-not $SkipHostsFile) {
-        Add-Content -Path $hostsFile -Value $hostsLine
+        Add-Content -Path $hostsFile -Value "`r`n$hostsLine"
         Clear-DnsClientCache
     }
 
