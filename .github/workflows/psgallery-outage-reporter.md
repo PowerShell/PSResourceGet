@@ -46,10 +46,11 @@ tools:
   bash: ["curl:*", "jq:*", "sleep", "date", "cat:*", "head:*"]
 
 safe-outputs:
-  # PAT or GitHub App token with 'contents: write' and 'pull-requests: write' on
-  # PowerShell/PowerShellGallery ('issues: write' too, for comments and the issue fallback).
-  github-token: ${{ secrets.PSGALLERY_STATUS_PR_TOKEN }}
+  # The Gallery token is scoped to the two outputs that write to PowerShell/PowerShellGallery. It needs
+  # 'contents: write', 'pull-requests: write' and 'issues: write' there. gh-aw's own diagnostics (failure /
+  # missing-tool issues in this repository) use the workflow's GITHUB_TOKEN instead.
   create-pull-request:
+    github-token: ${{ secrets.PSGALLERY_STATUS_PR_TOKEN }}
     target-repo: "PowerShell/PowerShellGallery"
     base-branch: master
     title-prefix: "[Service Status] "
@@ -57,6 +58,7 @@ safe-outputs:
     allowed-files: ["psgallery_status.md"]
     max: 1
   add-comment:
+    github-token: ${{ secrets.PSGALLERY_STATUS_PR_TOKEN }}
     target: "*"
     target-repo: "PowerShell/PowerShellGallery"
     max: 1
