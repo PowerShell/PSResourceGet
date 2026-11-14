@@ -123,8 +123,9 @@ Its `psgallery_status.md` file is the public PowerShell Gallery status page.
        __Status: Ongoing__
        ```
 
-       Use the current UTC date (`date -u`) in the `<Mon> <day><ordinal> <yyyy>` style, the earliest
-       failure time you observed (`checkedAt` from the health check) rounded down to the hour, and a
+       Use the UTC date and time of the earliest failure you observed (`checkedAt` from the health check):
+       the date in the `<Mon> <day><ordinal> <yyyy>` style and the time rounded down to the hour, so the
+       heading's date matches the "Since" time even if the run happens after midnight UTC. Write a
        short, user-facing description of the impact. Do not include probe URIs, status-code tables,
        internal details, or speculation about the cause in the status page entry.
      - **Title:** a short summary such as `Errors when searching for packages` (the `[Service Status]`
