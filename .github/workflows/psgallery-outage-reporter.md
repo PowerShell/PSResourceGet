@@ -26,10 +26,12 @@ engine: copilot
 
 timeout-minutes: 15
 
+# Only the PowerShell Gallery (subdomains included) for the agent's curl re-checks. GitHub and Copilot
+# traffic is allowed separately by gh-aw; 'defaults' is omitted because it adds package mirrors and
+# other hosts this workflow doesn't need.
 network:
   allowed:
-    - defaults
-    - powershell
+    - powershellgallery.com
 
 checkout:
   - repository: PowerShell/PowerShellGallery
