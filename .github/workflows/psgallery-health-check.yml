@@ -63,11 +63,15 @@ jobs:
             $codes = @(); $times = @(); $bad = 0
             for ($i = 0; $i -lt $attempts; $i++) {
               $out = curl --silent --location --output /dev/null --max-time 60 --write-out '%{http_code} %{time_total}' $probe.uri
+              $curlExit = $LASTEXITCODE
               $code, $time = "$out".Split(' ')
               $code = [int]$code; $time = [double]$time
-              $codes += $code; $times += $time
+              # A non-zero curl exit (e.g. 28 = timed out) is a failed transfer even when the headers already
+              # reported 200, such as a server that sends 200 and then stalls the body.
+              $codes += if ($curlExit -ne 0) { "curl$curlExit" } else { "$code" }
+              $times += $time
               # Only hard failures count; slow responses that eventually succeed are not reported.
-              $isBad = $code -eq 0 -or $code -eq 404 -or $code -ge 500
+              $isBad = $curlExit -ne 0 -or $code -eq 0 -or $code -eq 404 -or $code -ge 500
               if ($isBad) { $bad++ }
               if (-not $probe.search -and -not $isBad) { break }
             }

@@ -63,13 +63,14 @@ safe-outputs:
 # PowerShell Gallery outage reporter
 
 You are an on-call assistant for PSResourceGet. The scheduled health check detected that one or
-more PowerShell Gallery endpoints returned too many bad responses (HTTP 404, 5xx, or no response
-within 60 seconds). Each probe mirrors a query PSResourceGet sends for
+more PowerShell Gallery endpoints returned too many bad responses (HTTP 404, 5xx, or a transfer that
+timed out or failed within 60 seconds). Each probe mirrors a query PSResourceGet sends for
 `Find-PSResource`. Outages are often partial: a single unhealthy instance behind the load balancer
 fails only a fraction of requests, so a probe that succeeds some of the time can still be failing.
 
 Each reported probe includes `samples` (requests sent), `failures` (bad responses), `statusCodes`
-(distribution of HTTP codes; `0` means the request timed out or could not connect) and
+(distribution of results: an HTTP status code, or `curlNN` when curl itself failed with exit code NN,
+for example `curl28` for a timeout, even if the server had already sent a 200 status) and
 `slowestSeconds` (informational only; slow responses that succeed are not failures).
 
 Failing probes reported by the health check (JSON):
@@ -86,9 +87,11 @@ Its `psgallery_status.md` file is the public PowerShell Gallery status page.
 ## Steps
 
 1. **Re-verify.** For every failing probe, request its `uri` again with
-   `curl --silent --location --output /dev/null --max-time 60 --write-out '%{http_code} %{time_total}' '<uri>'`,
-   up to 4 times (no sleep needed between attempts). A response is bad if the status code is `000`
-   (timed out or could not connect), 404, or 500 or higher; slow responses that succeed are fine. Stop re-checking a probe as soon
+   `curl --silent --location --output /dev/null --max-time 60 --write-out '%{http_code} %{time_total} %{exitcode}' '<uri>'`,
+   up to 4 times (no sleep needed between attempts). The output is the HTTP status code, the time in
+   seconds, and curl's exit code. A response is bad if curl's exit code is not `0` (for example `28`
+   when the transfer timed out, even if the status code is `200`), or the status code is `000`, 404,
+   or 500 or higher; slow responses that complete successfully are fine. Stop re-checking a probe as soon
    as you see a bad response. Treat a probe as still failing if **any** attempt was bad; it has
    recovered only if all 4 attempts were good. If no probe is still failing, the incident has
    recovered: do **not** open a pull request or comment; finish by reporting that no action was needed.
