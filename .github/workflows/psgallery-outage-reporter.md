@@ -107,11 +107,11 @@ Its `psgallery_status.md` file is the public PowerShell Gallery status page.
    Do not second-guess whether a 404 is "expected" based on the package name.
 
 2. **Look for an existing report.**
-   - Search open pull requests in `PowerShell/PowerShellGallery` whose title starts with
-     `[Service Status]` and that were created in the last 24 hours.
-   - Read `PowerShellGallery/psgallery_status.md`. If its newest entry is marked `__Status: Ongoing__`,
-     is dated today or yesterday (UTC), and describes the same kind of problem (for example, search or
-     install failures), the Gallery team has already posted this outage.
+   - Search all open pull requests in `PowerShell/PowerShellGallery` whose title starts with
+     `[Service Status]` and that describe the same kind of problem, regardless of creation date.
+   - Read `PowerShellGallery/psgallery_status.md`. If any entry is marked `__Status: Ongoing__`
+     and describes the same kind of problem (for example, search or install failures),
+     the Gallery team has already posted this outage.
 
 3. **Report.**
    - If a matching open pull request exists, add **one** comment to it with the latest re-verification
