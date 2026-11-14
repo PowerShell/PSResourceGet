@@ -1,0 +1,116 @@
+# PowerShell Gallery Health Check
+#
+# Probes the PowerShell Gallery with the same queries PSResourceGet sends for its Find-PSResource
+# tests. Search-backend queries are sampled several times and their bad responses pooled, so that a
+# single unhealthy instance behind the load balancer (which fails only a fraction of requests) is
+# still detected. When a failure is
+# confirmed, this workflow dispatches the 'psgallery-outage-reporter' agentic workflow, which
+# opens a pull request in PowerShell/PowerShellGallery adding an "Ongoing" entry to
+# psgallery_status.md (or comments on an existing one) for the Gallery team to review and merge.
+name: 'PowerShell Gallery Health Check'
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: psgallery-health-check
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: 'Probe PowerShell Gallery endpoints'
+        id: probe
+        shell: pwsh
+        run: |
+          # Probes mirror the exact requests PSResourceGet sends for the Find-PSResource CI tests that most
+          # often fail with 500s. These OData queries ($filter/substringof on Tags, $orderby, $top=6000,
+          # items/psscript route) exercise the gallery search backend, unlike simple lookups.
+          $base = 'https://www.powershellgallery.com/api/v2'
+          function Get-QueryUri([string] $Path, [string] $Filter, [string] $Extra = '') {
+            "$base/$Path`?`$filter=$([uri]::EscapeDataString($Filter))&`$inlinecount=allpages$Extra"
+          }
+          $tagPaging = '&$skip=0&$top=6000&$orderby=Id%20desc'
+
+          # 'search' probes all hit the gallery search backend, where a single unhealthy instance behind the
+          # load balancer fails only a fraction of requests. They are sampled several times and their bad
+          # responses are pooled. Find by name sends one request (retried only on failure) to catch full outages.
+          $probes = @(
+            @{ name = 'Find by name (FindPackagesById)'; search = $false; uri = Get-QueryUri 'FindPackagesById()' "Id eq 'test_module' and IsLatestVersion eq true" "&id='test_module'" }
+            @{ name = 'Find by name glob and Type';      search = $true;  uri = Get-QueryUri 'Search()' "IsLatestVersion and startswith(Id, 'test') and substringof('PSScript', Tags) eq false" '&$skip=0&$top=100&$orderby=Id%20desc' }
+            @{ name = 'Find by tag (modules)';           search = $true;  uri = Get-QueryUri 'Search()' "IsLatestVersion and substringof('PSModule', Tags) eq true and substringof('CommandsAndResource', Tags) eq true" $tagPaging }
+            @{ name = 'Find by tag (scripts)';           search = $true;  uri = Get-QueryUri 'items/psscript/Search()' "IsLatestVersion and substringof('PSScript', Tags) eq true and substringof('Tag-Required-Script1-2.5', Tags) eq true" $tagPaging }
+            @{ name = 'Find by tag (prerelease)';        search = $true;  uri = Get-QueryUri 'Search()' "IsAbsoluteLatestVersion and substringof('PSModule', Tags) eq true and substringof('MyPSTag', Tags) eq true" "$tagPaging&includePrerelease=true" }
+          )
+
+          $searchSamples = 4          # per search probe; 4 probes x 4 = 16 pooled requests
+          $searchFailureThreshold = 2 # pooled bad responses across all search probes
+          $otherMaxAttempts = 3       # find by name stops at the first good response
+
+          $results = $probes | ForEach-Object -ThrottleLimit 6 -Parallel {
+            $probe = $_
+            $attempts = if ($probe.search) { $using:searchSamples } else { $using:otherMaxAttempts }
+            $codes = @(); $times = @(); $bad = 0
+            for ($i = 0; $i -lt $attempts; $i++) {
+              $out = curl --silent --location --output /dev/null --max-time 60 --write-out '%{http_code} %{time_total}' $probe.uri
+              $curlExit = $LASTEXITCODE
+              $code, $time = "$out".Split(' ')
+              $code = [int]$code; $time = [double]$time
+              # A non-zero curl exit (e.g. 28 = timed out) is a failed transfer even when the headers already
+              # reported 200, such as a server that sends 200 and then stalls the body.
+              $codes += if ($curlExit -ne 0) { "curl$curlExit" } else { "$code" }
+              $times += $time
+              # Only hard failures count; slow responses that eventually succeed are not reported.
+              $isBad = $curlExit -ne 0 -or $code -eq 0 -or $code -eq 404 -or $code -ge 500
+              if ($isBad) { $bad++ }
+              if (-not $probe.search -and -not $isBad) { break }
+            }
+
+            [pscustomobject]@{
+              probe          = $probe.name
+              uri            = $probe.uri
+              search         = $probe.search
+              samples        = $codes.Count
+              failures       = $bad
+              statusCodes    = ($codes | Group-Object | Sort-Object Name | ForEach-Object { "$($_.Name) x$($_.Count)" }) -join ', '
+              slowestSeconds = [math]::Round(($times | Measure-Object -Maximum).Maximum, 2)
+              checkedAt      = (Get-Date).ToUniversalTime().ToString('o')
+            }
+          }
+
+          foreach ($r in $results) {
+            Write-Host "$($r.probe) -> $($r.failures)/$($r.samples) bad [$($r.statusCodes)] slowest $($r.slowestSeconds)s ($($r.uri))"
+          }
+
+          $searchBad = ($results | Where-Object search | Measure-Object failures -Sum).Sum
+          Write-Host "Search backend: $searchBad bad response(s) pooled (threshold $searchFailureThreshold)"
+
+          $failures = @(@(
+            if ($searchBad -ge $searchFailureThreshold) { $results | Where-Object { $_.search -and $_.failures -gt 0 } }
+            $results | Where-Object { -not $_.search -and $_.failures -eq $_.samples }
+          ) | Select-Object -Property * -ExcludeProperty search)
+          $json = if ($failures.Count) { ConvertTo-Json -InputObject $failures -Compress -Depth 3 } else { '[]' }
+          "failed=$([bool]$failures.Count)".ToLower() >> $env:GITHUB_OUTPUT
+          "results=$json" >> $env:GITHUB_OUTPUT
+
+      - name: 'Dispatch outage reporter'
+        if: steps.probe.outputs.failed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROBE_RESULTS: ${{ steps.probe.outputs.results }}
+        run: |
+          gh workflow run psgallery-outage-reporter.lock.yml \
+            --repo "${{ github.repository }}" \
+            --ref "${{ github.ref_name }}" \
+            -f probe_results="$PROBE_RESULTS" \
+            -f health_check_run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
