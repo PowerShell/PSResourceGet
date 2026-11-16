@@ -6,7 +6,6 @@ Import-Module $modPath -Force -Verbose
 
 Describe 'Test HTTP Find-PSResource for Github Packages Server' -tags 'CI' {
 
-    Get-ChildItem -Path env: | Out-String | Write-Verbose -Verbose
     BeforeAll{
         $testModuleName = "test_module"
         $testScriptName = "test_script"
