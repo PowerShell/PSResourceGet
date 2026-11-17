@@ -4,9 +4,11 @@
 # tests. Search-backend queries are sampled several times and their bad responses pooled, so that a
 # single unhealthy instance behind the load balancer (which fails only a fraction of requests) is
 # still detected. When a failure is
-# confirmed, this workflow dispatches the 'psgallery-outage-reporter' agentic workflow, which
-# opens a pull request in PowerShell/PowerShellGallery adding an "Ongoing" entry to
-# psgallery_status.md (or comments on an existing one) for the Gallery team to review and merge.
+# confirmed, this workflow dispatches the 'psgallery-outage-reporter' agentic workflow, which opens a
+# pull request in PowerShell/PowerShellGallery adding an "Ongoing" entry to psgallery_status.md for the
+# Gallery team to review and merge. Once that entry is published and the Gallery is healthy again, this
+# workflow opens a follow-up pull request marking it Resolved. Both pull requests are also announced in
+# the PowerShell Gallery team's Teams channel when PSGALLERY_TEAMS_WEBHOOK_URL is set.
 name: 'PowerShell Gallery Health Check'
 
 on:
@@ -28,6 +30,9 @@ jobs:
     permissions:
       contents: read
       actions: write
+    outputs:
+      resolved_title: ${{ steps.resolve.outputs.resolved_title }}
+      resolve_pr_url: ${{ steps.resolve.outputs.resolve_pr_url }}
     steps:
       - name: 'Probe PowerShell Gallery endpoints'
         id: probe
@@ -114,3 +119,83 @@ jobs:
             --ref "${{ github.ref_name }}" \
             -f probe_results="$PROBE_RESULTS" \
             -f health_check_run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      # When the Gallery is healthy again, open a pull request marking the status entry the outage reporter
+      # added as Resolved, for the Gallery team to review and merge. Only entries carrying the reporter's
+      # hidden marker are touched, and only after the reporter has been quiet for a while, so a flapping
+      # partial outage isn't resolved prematurely.
+      - name: 'Resolve status page entry'
+        id: resolve
+        if: steps.probe.outputs.failed == 'false'
+        shell: pwsh
+        env:
+          GALLERY_TOKEN: ${{ secrets.PSGALLERY_STATUS_PR_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+          STATUS_REPO: PowerShell/PowerShellGallery
+          STATUS_FILE: psgallery_status.md
+          STATUS_BRANCH: master
+          REPORTER_WORKFLOW: psgallery-outage-reporter.lock.yml
+          QUIET_MINUTES: '60'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $marker = '<!-- psresourceget-health-monitor -->'
+          if (-not $env:GALLERY_TOKEN) { Write-Host 'PSGALLERY_STATUS_PR_TOKEN is not set; skipping.'; return }
+
+          $env:GH_TOKEN = $env:GALLERY_TOKEN
+          $file = gh api "repos/$env:STATUS_REPO/contents/$($env:STATUS_FILE)?ref=$env:STATUS_BRANCH" | ConvertFrom-Json
+          $content = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($file.content))
+
+          # The newest entry is the first '### ' section; entries are listed newest first.
+          $start = $content.IndexOf("`n### ")
+          if ($start -lt 0) { Write-Host 'No status entries found.'; return }
+          $next = $content.IndexOf("`n### ", $start + 1)
+          $entry = if ($next -lt 0) { $content.Substring($start) } else { $content.Substring($start, $next - $start) }
+          if (-not $entry.Contains($marker) -or -not $entry.Contains('__Status: Ongoing__')) {
+            Write-Host 'Newest status entry is not an ongoing entry from the health monitor; nothing to resolve.'
+            return
+          }
+
+          $env:GH_TOKEN = $env:ACTIONS_TOKEN
+          $lastReport = gh run list --repo $env:GITHUB_REPOSITORY --workflow $env:REPORTER_WORKFLOW --limit 1 --json createdAt --jq '.[0].createdAt'
+          if ($lastReport -and ((Get-Date).ToUniversalTime() - ([datetime]$lastReport).ToUniversalTime()).TotalMinutes -lt [int]$env:QUIET_MINUTES) {
+            Write-Host "Outage reporter last ran at $lastReport; waiting for $env:QUIET_MINUTES quiet minutes before resolving."
+            return
+          }
+
+          $resolvedEntry = $entry.Replace('__Status: Ongoing__', '__Status: Resolved__')
+          $newContent = $content.Substring(0, $start) + $resolvedEntry + $content.Substring($start + $entry.Length)
+          $title = ($entry.Trim() -split "`n")[0] -replace '^###\s*', '' -replace '\.\s*$', ''
+
+          # Resolve PRs are reviewed and merged by the Gallery team, so don't open another while one is pending.
+          $env:GH_TOKEN = $env:GALLERY_TOKEN
+          $pending = gh pr list --repo $env:STATUS_REPO --state open --json title,url --jq '.[] | select(.title | startswith("[Service Status] Resolved: ")) | .url'
+          if ($pending) { Write-Host "A resolve pull request is already open: $pending"; return }
+
+          $branch = "service-status-resolve-$env:GITHUB_RUN_ID"
+          $baseSha = gh api "repos/$env:STATUS_REPO/git/ref/heads/$env:STATUS_BRANCH" --jq '.object.sha'
+          gh api -X POST "repos/$env:STATUS_REPO/git/refs" -f "ref=refs/heads/$branch" -f "sha=$baseSha" | Out-Null
+          gh api -X PUT "repos/$env:STATUS_REPO/contents/$env:STATUS_FILE" `
+            -f "message=Mark '$title' as resolved" `
+            -f "content=$([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($newContent)))" `
+            -f "sha=$($file.sha)" -f "branch=$branch" | Out-Null
+          $body = "The PowerShell Gallery has been healthy for at least $env:QUIET_MINUTES minutes, so this marks the automatically reported entry as resolved. Please review and merge to update the status page.`n`nHealth check run: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID`n`n_Opened automatically by the PSResourceGet health monitor._"
+          $prUrl = gh pr create --repo $env:STATUS_REPO --base $env:STATUS_BRANCH --head $branch --title "[Service Status] Resolved: $title" --body $body
+          Write-Host "Opened a pull request to resolve status entry '$title': $prUrl"
+
+          "resolved_title=$title" >> $env:GITHUB_OUTPUT
+          "resolve_pr_url=$prUrl" >> $env:GITHUB_OUTPUT
+
+  # Tells the PowerShell Gallery team's Teams channel that a resolve pull request is waiting for review
+  # (skipped if the PSGALLERY_TEAMS_WEBHOOK_URL secret isn't set).
+  alert_resolved:
+    needs: probe
+    if: needs.probe.outputs.resolved_title != ''
+    permissions: {}
+    uses: ./.github/workflows/psgallery-teams-alert.yml
+    with:
+      kind: resolved
+      title: ${{ needs.probe.outputs.resolved_title }}
+      details_url: ${{ needs.probe.outputs.resolve_pr_url }}
+    secrets:
+      webhook_url: ${{ secrets.PSGALLERY_TEAMS_WEBHOOK_URL }}

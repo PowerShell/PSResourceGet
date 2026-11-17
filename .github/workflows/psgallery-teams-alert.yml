@@ -1,0 +1,95 @@
+# PowerShell Gallery Teams alert
+#
+# Reusable workflow that posts a PowerShell Gallery outage or resolution notice to the PowerShell
+# Gallery team's Microsoft Teams channel through a Teams Workflows webhook, pointing them at the status
+# pull request to review and merge. Called by the outage reporter (when it opens a pull request adding an
+# Ongoing status entry) and the health check (when it opens one marking that entry Resolved).
+#
+# The webhook URL is a secret: anyone holding it can post to the channel. It is only ever passed to
+# curl through an environment variable and is never printed. If it isn't configured, the alert is skipped.
+name: 'PowerShell Gallery Teams Alert'
+
+on:
+  workflow_call:
+    inputs:
+      kind:
+        description: "'outage' or 'resolved'"
+        required: true
+        type: string
+      title:
+        description: 'Status page entry title (optional)'
+        required: false
+        type: string
+        default: ''
+      details_url:
+        description: 'Link to the status pull request to review'
+        required: false
+        type: string
+        default: ''
+      status_repo:
+        description: 'Repository hosting psgallery_status.md'
+        required: false
+        type: string
+        default: 'PowerShell/PowerShellGallery'
+    secrets:
+      webhook_url:
+        description: 'Teams Workflows webhook URL for the PowerShell Gallery team channel'
+        required: false
+
+permissions: {}
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Post to Teams
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.webhook_url }}
+          KIND: ${{ inputs.kind }}
+          ENTRY_TITLE: ${{ inputs.title }}
+          DETAILS_URL: ${{ inputs.details_url }}
+          STATUS_PAGE_URL: https://github.com/${{ inputs.status_repo }}/blob/master/psgallery_status.md
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TEAMS_WEBHOOK_URL:-}" ]; then echo "PSGALLERY_TEAMS_WEBHOOK_URL is not set; skipping the Teams alert."; exit 0; fi
+
+          if [ "$KIND" = "resolved" ]; then
+            heading="PowerShell Gallery outage appears resolved"; color="Good"
+            summary="The PowerShell Gallery is healthy again, so the PSResourceGet health monitor opened a pull request marking the status page entry Resolved. Please review and merge it to update the status page."
+          else
+            heading="PowerShell Gallery outage detected"; color="Attention"
+            summary="The PSResourceGet health monitor confirmed failing PowerShell Gallery requests and opened a pull request adding an Ongoing entry to the status page. Please review and merge it to publish the status."
+          fi
+
+          jq -n --arg heading "$heading" --arg color "$color" --arg title "$ENTRY_TITLE" --arg summary "$summary" \
+                --arg page "$STATUS_PAGE_URL" --arg details "$DETAILS_URL" --arg run "$RUN_URL" '{
+            type: "message",
+            attachments: [{
+              contentType: "application/vnd.microsoft.card.adaptive",
+              content: {
+                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                type: "AdaptiveCard",
+                version: "1.4",
+                body: (
+                  [ { type: "TextBlock", size: "Large", weight: "Bolder", color: $color, wrap: true, text: $heading } ]
+                  + (if $title != "" then [ { type: "TextBlock", weight: "Bolder", wrap: true, text: $title } ] else [] end)
+                  + [ { type: "TextBlock", isSubtle: true, wrap: true, text: $summary } ]
+                ),
+                actions: (
+                  [ { type: "Action.OpenUrl", title: "Status page", url: $page } ]
+                  + (if $details != "" then [ { type: "Action.OpenUrl", title: "Review pull request", url: $details } ] else [] end)
+                  + [ { type: "Action.OpenUrl", title: "Workflow run", url: $run } ]
+                )
+              }
+            }]
+          }' > alert.json
+
+          if curl --silent --fail --max-time 30 --output /dev/null -X POST -H 'Content-Type: application/json' \
+               --data-binary @alert.json "$TEAMS_WEBHOOK_URL"; then
+            echo "Posted the '$KIND' alert to Teams."
+          else
+            echo "::warning::Failed to post the Teams alert (the status pull request was still opened)."
+          fi

@@ -3,7 +3,8 @@ description: |
   Reports PowerShell Gallery outages. Triggered by the 'PowerShell Gallery Health Check'
   workflow when gallery queries return too many 404/5xx or timed-out responses. Re-verifies the
   failure, then opens a pull request in PowerShell/PowerShellGallery that adds an "Ongoing" entry to
-  psgallery_status.md (or comments on an existing one) for the Gallery team to review and merge.
+  psgallery_status.md (or comments on an existing one) for the Gallery team to review and merge, and alerts the
+  PowerShell Gallery team's Teams channel.
 
 on:
   workflow_dispatch:
@@ -62,6 +63,21 @@ safe-outputs:
     target: "*"
     target-repo: "PowerShell/PowerShellGallery"
     max: 1
+
+# Alerts the PowerShell Gallery team's Teams channel that a status page pull request is waiting for review.
+# The webhook URL is passed to the reusable workflow as a declared secret (it is never used directly in a
+# script here); the alert is skipped if it isn't set. Runs only after threat detection passes.
+jobs:
+  alert_gallery_team:
+    needs: [safe_outputs]
+    if: needs.safe_outputs.outputs.created_pr_number != ''
+    permissions: {}
+    uses: ./.github/workflows/psgallery-teams-alert.yml
+    with:
+      kind: outage
+      details_url: ${{ needs.safe_outputs.outputs.created_pr_url }}
+    secrets:
+      webhook_url: ${{ secrets.PSGALLERY_TEAMS_WEBHOOK_URL }}
 ---
 
 # PowerShell Gallery outage reporter
@@ -125,10 +141,15 @@ Its `psgallery_status.md` file is the public PowerShell Gallery status page.
 
        ```markdown
        ### Nov 13th 2026, Errors when searching for packages.
+       <!-- psresourceget-health-monitor -->
        Since 9:00pm UTC we have been observing intermittent errors and timeouts when searching for packages (for example, `Find-PSResource -Tag` and `Find-PSResource -Name` with wildcards). We are investigating, but you may see failures or delays when searching for or installing packages.
 
        __Status: Ongoing__
        ```
+
+       Always include the `<!-- psresourceget-health-monitor -->` line exactly as shown, directly below
+       the heading. It is hidden when rendered and lets the health check open a pull request marking
+       this entry as resolved once the Gallery recovers.
 
        Use the UTC date and time of the earliest failure you observed (`checkedAt` from the health check):
        the date in the `<Mon> <day><ordinal> <yyyy>` style and the time rounded down to the hour, so the
@@ -147,8 +168,9 @@ Its `psgallery_status.md` file is the public PowerShell Gallery status page.
          single unhealthy instance) rather than a full outage.
        - Any probes from the health check that recovered during re-verification.
        - A link to the health check run (above).
-       - A request to the PowerShell Gallery team to review the wording, merge this pull request to
-         publish the status, and update the entry to `__Status: Resolved__` once the issue is fixed.
+       - A request to the PowerShell Gallery team to review the wording and merge this pull request to
+         publish the status. Once it is merged and the Gallery is healthy again, the health check opens
+         a follow-up pull request that marks the entry `__Status: Resolved__`.
        - A note that this pull request was opened automatically by the PSResourceGet health monitor.
 
 ## Rules
