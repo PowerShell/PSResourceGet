@@ -36,6 +36,20 @@
         ],
         "input": "stdin"
     },
+    "test": {
+        "executable": "pwsh",
+        "args": [
+            "-NoLogo",
+            "-NonInteractive",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$Input | ./psresourceget.ps1 -resourcetype 'repository' -operation 'test'"
+        ],
+        "input": "stdin",
+        "return": "stateAndDiff"
+    },
     "delete": {
         "executable": "pwsh",
         "args": [
@@ -127,6 +141,9 @@
                 },
                 "_exist": {
                     "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/exist.json"
+                },
+                "_inDesiredState": {
+                    "$ref": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json"
                 }
             },
             "$defs": {
@@ -154,6 +171,14 @@
                         false,
                         true
                     ]
+                },
+                "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "$id": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/resource/properties/inDesiredState.json",
+                    "title": "Instance is in desired state",
+                    "description": "Indicates whether the repository is in the desired state.",
+                    "type": ["boolean", "null"],
+                    "readOnly": true
                 }
             }
         }
