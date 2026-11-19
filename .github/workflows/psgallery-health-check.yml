@@ -1,0 +1,201 @@
+# PowerShell Gallery Health Check
+#
+# Probes the PowerShell Gallery with the same queries PSResourceGet sends for its Find-PSResource
+# tests. Search-backend queries are sampled several times and their bad responses pooled, so that a
+# single unhealthy instance behind the load balancer (which fails only a fraction of requests) is
+# still detected. When a failure is
+# confirmed, this workflow dispatches the 'psgallery-outage-reporter' agentic workflow, which opens a
+# pull request in PowerShell/PowerShellGallery adding an "Ongoing" entry to psgallery_status.md for the
+# Gallery team to review and merge. Once that entry is published and the Gallery is healthy again, this
+# workflow opens a follow-up pull request marking it Resolved. Both pull requests are also announced in
+# the PowerShell Gallery team's Teams channel when PSGALLERY_TEAMS_WEBHOOK_URL is set.
+name: 'PowerShell Gallery Health Check'
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: psgallery-health-check
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: write
+    outputs:
+      resolved_title: ${{ steps.resolve.outputs.resolved_title }}
+      resolve_pr_url: ${{ steps.resolve.outputs.resolve_pr_url }}
+    steps:
+      - name: 'Probe PowerShell Gallery endpoints'
+        id: probe
+        shell: pwsh
+        run: |
+          # Probes mirror the exact requests PSResourceGet sends for the Find-PSResource CI tests that most
+          # often fail with 500s. These OData queries ($filter/substringof on Tags, $orderby, $top=6000,
+          # items/psscript route) exercise the gallery search backend, unlike simple lookups.
+          $base = 'https://www.powershellgallery.com/api/v2'
+          function Get-QueryUri([string] $Path, [string] $Filter, [string] $Extra = '') {
+            "$base/$Path`?`$filter=$([uri]::EscapeDataString($Filter))&`$inlinecount=allpages$Extra"
+          }
+          $tagPaging = '&$skip=0&$top=6000&$orderby=Id%20desc'
+
+          # 'search' probes all hit the gallery search backend, where a single unhealthy instance behind the
+          # load balancer fails only a fraction of requests. They are sampled several times and their bad
+          # responses are pooled. Find by name sends one request (retried only on failure) to catch full outages.
+          $probes = @(
+            @{ name = 'Find by name (FindPackagesById)'; search = $false; uri = Get-QueryUri 'FindPackagesById()' "Id eq 'test_module' and IsLatestVersion eq true" "&id='test_module'" }
+            @{ name = 'Find by name glob and Type';      search = $true;  uri = Get-QueryUri 'Search()' "IsLatestVersion and startswith(Id, 'test') and substringof('PSScript', Tags) eq false" '&$skip=0&$top=100&$orderby=Id%20desc' }
+            @{ name = 'Find by tag (modules)';           search = $true;  uri = Get-QueryUri 'Search()' "IsLatestVersion and substringof('PSModule', Tags) eq true and substringof('CommandsAndResource', Tags) eq true" $tagPaging }
+            @{ name = 'Find by tag (scripts)';           search = $true;  uri = Get-QueryUri 'items/psscript/Search()' "IsLatestVersion and substringof('PSScript', Tags) eq true and substringof('Tag-Required-Script1-2.5', Tags) eq true" $tagPaging }
+            @{ name = 'Find by tag (prerelease)';        search = $true;  uri = Get-QueryUri 'Search()' "IsAbsoluteLatestVersion and substringof('PSModule', Tags) eq true and substringof('MyPSTag', Tags) eq true" "$tagPaging&includePrerelease=true" }
+          )
+
+          $searchSamples = 4          # per search probe; 4 probes x 4 = 16 pooled requests
+          $searchFailureThreshold = 2 # pooled bad responses across all search probes
+          $otherMaxAttempts = 3       # find by name stops at the first good response
+
+          $results = $probes | ForEach-Object -ThrottleLimit 6 -Parallel {
+            $probe = $_
+            $attempts = if ($probe.search) { $using:searchSamples } else { $using:otherMaxAttempts }
+            $codes = @(); $times = @(); $bad = 0
+            for ($i = 0; $i -lt $attempts; $i++) {
+              $out = curl --silent --location --output /dev/null --max-time 60 --write-out '%{http_code} %{time_total}' $probe.uri
+              $curlExit = $LASTEXITCODE
+              $code, $time = "$out".Split(' ')
+              $code = [int]$code; $time = [double]$time
+              # A non-zero curl exit (e.g. 28 = timed out) is a failed transfer even when the headers already
+              # reported 200, such as a server that sends 200 and then stalls the body.
+              $codes += if ($curlExit -ne 0) { "curl$curlExit" } else { "$code" }
+              $times += $time
+              # Only hard failures count; slow responses that eventually succeed are not reported.
+              $isBad = $curlExit -ne 0 -or $code -eq 0 -or $code -eq 404 -or $code -ge 500
+              if ($isBad) { $bad++ }
+              if (-not $probe.search -and -not $isBad) { break }
+            }
+
+            [pscustomobject]@{
+              probe          = $probe.name
+              uri            = $probe.uri
+              search         = $probe.search
+              samples        = $codes.Count
+              failures       = $bad
+              statusCodes    = ($codes | Group-Object | Sort-Object Name | ForEach-Object { "$($_.Name) x$($_.Count)" }) -join ', '
+              slowestSeconds = [math]::Round(($times | Measure-Object -Maximum).Maximum, 2)
+              checkedAt      = (Get-Date).ToUniversalTime().ToString('o')
+            }
+          }
+
+          foreach ($r in $results) {
+            Write-Host "$($r.probe) -> $($r.failures)/$($r.samples) bad [$($r.statusCodes)] slowest $($r.slowestSeconds)s ($($r.uri))"
+          }
+
+          $searchBad = ($results | Where-Object search | Measure-Object failures -Sum).Sum
+          Write-Host "Search backend: $searchBad bad response(s) pooled (threshold $searchFailureThreshold)"
+
+          $failures = @(@(
+            if ($searchBad -ge $searchFailureThreshold) { $results | Where-Object { $_.search -and $_.failures -gt 0 } }
+            $results | Where-Object { -not $_.search -and $_.failures -eq $_.samples }
+          ) | Select-Object -Property * -ExcludeProperty search)
+          $json = if ($failures.Count) { ConvertTo-Json -InputObject $failures -Compress -Depth 3 } else { '[]' }
+          "failed=$([bool]$failures.Count)".ToLower() >> $env:GITHUB_OUTPUT
+          "results=$json" >> $env:GITHUB_OUTPUT
+
+      - name: 'Dispatch outage reporter'
+        if: steps.probe.outputs.failed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROBE_RESULTS: ${{ steps.probe.outputs.results }}
+        run: |
+          gh workflow run psgallery-outage-reporter.lock.yml \
+            --repo "${{ github.repository }}" \
+            --ref "${{ github.ref_name }}" \
+            -f probe_results="$PROBE_RESULTS" \
+            -f health_check_run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      # When the Gallery is healthy again, open a pull request marking the status entry the outage reporter
+      # added as Resolved, for the Gallery team to review and merge. Only entries carrying the reporter's
+      # hidden marker are touched, and only after the reporter has been quiet for a while, so a flapping
+      # partial outage isn't resolved prematurely.
+      - name: 'Resolve status page entry'
+        id: resolve
+        if: steps.probe.outputs.failed == 'false'
+        shell: pwsh
+        env:
+          GALLERY_TOKEN: ${{ secrets.PSGALLERY_STATUS_PR_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+          STATUS_REPO: PowerShell/PowerShellGallery
+          STATUS_FILE: psgallery_status.md
+          STATUS_BRANCH: master
+          REPORTER_WORKFLOW: psgallery-outage-reporter.lock.yml
+          QUIET_MINUTES: '60'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $marker = '<!-- psresourceget-health-monitor -->'
+          if (-not $env:GALLERY_TOKEN) { Write-Host 'PSGALLERY_STATUS_PR_TOKEN is not set; skipping.'; return }
+
+          $env:GH_TOKEN = $env:GALLERY_TOKEN
+          $file = gh api "repos/$env:STATUS_REPO/contents/$($env:STATUS_FILE)?ref=$env:STATUS_BRANCH" | ConvertFrom-Json
+          $content = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($file.content))
+
+          # The newest entry is the first '### ' section; entries are listed newest first.
+          $start = $content.IndexOf("`n### ")
+          if ($start -lt 0) { Write-Host 'No status entries found.'; return }
+          $next = $content.IndexOf("`n### ", $start + 1)
+          $entry = if ($next -lt 0) { $content.Substring($start) } else { $content.Substring($start, $next - $start) }
+          if (-not $entry.Contains($marker) -or -not $entry.Contains('__Status: Ongoing__')) {
+            Write-Host 'Newest status entry is not an ongoing entry from the health monitor; nothing to resolve.'
+            return
+          }
+
+          $env:GH_TOKEN = $env:ACTIONS_TOKEN
+          $lastReport = gh run list --repo $env:GITHUB_REPOSITORY --workflow $env:REPORTER_WORKFLOW --limit 1 --json createdAt --jq '.[0].createdAt'
+          if ($lastReport -and ((Get-Date).ToUniversalTime() - ([datetime]$lastReport).ToUniversalTime()).TotalMinutes -lt [int]$env:QUIET_MINUTES) {
+            Write-Host "Outage reporter last ran at $lastReport; waiting for $env:QUIET_MINUTES quiet minutes before resolving."
+            return
+          }
+
+          $resolvedEntry = $entry.Replace('__Status: Ongoing__', '__Status: Resolved__')
+          $newContent = $content.Substring(0, $start) + $resolvedEntry + $content.Substring($start + $entry.Length)
+          $title = ($entry.Trim() -split "`n")[0] -replace '^###\s*', '' -replace '\.\s*$', ''
+
+          # Resolve PRs are reviewed and merged by the Gallery team, so don't open another while one is pending.
+          $env:GH_TOKEN = $env:GALLERY_TOKEN
+          $pending = gh pr list --repo $env:STATUS_REPO --state open --json title,url --jq '.[] | select(.title | startswith("[Service Status] Resolved: ")) | .url'
+          if ($pending) { Write-Host "A resolve pull request is already open: $pending"; return }
+
+          $branch = "service-status-resolve-$env:GITHUB_RUN_ID"
+          $baseSha = gh api "repos/$env:STATUS_REPO/git/ref/heads/$env:STATUS_BRANCH" --jq '.object.sha'
+          gh api -X POST "repos/$env:STATUS_REPO/git/refs" -f "ref=refs/heads/$branch" -f "sha=$baseSha" | Out-Null
+          gh api -X PUT "repos/$env:STATUS_REPO/contents/$env:STATUS_FILE" `
+            -f "message=Mark '$title' as resolved" `
+            -f "content=$([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($newContent)))" `
+            -f "sha=$($file.sha)" -f "branch=$branch" | Out-Null
+          $body = "The PowerShell Gallery has been healthy for at least $env:QUIET_MINUTES minutes, so this marks the automatically reported entry as resolved. Please review and merge to update the status page.`n`nHealth check run: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID`n`n_Opened automatically by the PSResourceGet health monitor._"
+          $prUrl = gh pr create --repo $env:STATUS_REPO --base $env:STATUS_BRANCH --head $branch --title "[Service Status] Resolved: $title" --body $body
+          Write-Host "Opened a pull request to resolve status entry '$title': $prUrl"
+
+          "resolved_title=$title" >> $env:GITHUB_OUTPUT
+          "resolve_pr_url=$prUrl" >> $env:GITHUB_OUTPUT
+
+  # Tells the PowerShell Gallery team's Teams channel that a resolve pull request is waiting for review
+  # (skipped if the PSGALLERY_TEAMS_WEBHOOK_URL secret isn't set).
+  alert_resolved:
+    needs: probe
+    if: needs.probe.outputs.resolved_title != ''
+    permissions: {}
+    uses: ./.github/workflows/psgallery-teams-alert.yml
+    with:
+      kind: resolved
+      title: ${{ needs.probe.outputs.resolved_title }}
+      details_url: ${{ needs.probe.outputs.resolve_pr_url }}
+    secrets:
+      webhook_url: ${{ secrets.PSGALLERY_TEAMS_WEBHOOK_URL }}
