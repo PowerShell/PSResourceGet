@@ -1,0 +1,129 @@
+name: CI tests
+
+on:
+  workflow_call:
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    # Require environment review before granting PR code access to test credentials.
+    environment: ci-integration
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows pwsh
+            os: windows-latest
+            shell: pwsh
+            azAuth: false
+          - name: Windows PowerShell
+            os: windows-latest
+            shell: powershell
+            azAuth: false
+          - name: Ubuntu pwsh
+            os: ubuntu-latest
+            shell: pwsh
+            azAuth: false
+          - name: macOS pwsh
+            os: macos-latest
+            shell: pwsh
+            azAuth: false
+          - name: Windows AzAuth
+            os: windows-latest
+            shell: pwsh
+            azAuth: true
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    env:
+      BUILD_SOURCESDIRECTORY: ${{ github.workspace }}
+      AZURE_CORE_OUTPUT: none
+      NUGET_CREDENTIALPROVIDER_SESSIONTOKENCACHE_ENABLED: 'false'
+      NUGET_CREDENTIALPROVIDER_MSAL_FILECACHE_ENABLED: 'false'
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          global-json-file: global.json
+
+      - name: Download package from this run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: nupkg
+          path: artifacts/nupkg
+
+      - name: Install test tools and DSC
+        shell: pwsh
+        run: |
+          .\.github\scripts\Initialize-CI.ps1 -ForTest `
+              -UseAzAuth:([bool]::Parse($env:CI_AZ_AUTH))
+        env:
+          CI_AZ_AUTH: ${{ matrix.azAuth }}
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Install built package
+        shell: pwsh
+        run: |
+          Import-Module .\buildtools.psd1 -Force
+          Install-ModulePackageForTest -PackagePath (Join-Path $PWD 'artifacts') -ErrorAction Stop
+
+      - name: Check CI helpers
+        run: |
+          Import-Module Pester -RequiredVersion 4.10.1 -Force
+          $result = Invoke-Pester .\.github\scripts\tests -PassThru
+          if ($result.FailedCount -gt 0 -or $result.TotalCount -eq 0) {
+              throw 'CI helper tests failed.'
+          }
+
+      - name: Validate Azure configuration
+        shell: pwsh
+        run: |
+          foreach ($name in 'AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_SUBSCRIPTION_ID') {
+              if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+                  throw "Set environment variable $name in the GitHub ci-integration environment."
+              }
+          }
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign in to Azure with OIDC
+        id: azure-login
+        uses: azure/login@8216e11d8cd9b42fe925c852af8e76311ff067ac # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Execute functional tests
+        run: .\.github\scripts\Invoke-CITests.ps1 -Suite $env:CI_SUITE
+        env:
+          CI_SUITE: ${{ matrix.azAuth && 'AzAuth' || 'Full' }}
+          TENANTID: ${{ vars.AZURE_TENANT_ID }}
+          GITHUB_USERNAME: ${{ vars.CI_GITHUB_PACKAGES_USERNAME }}
+          ADO_USERNAME: ${{ vars.CI_ADO_USERNAME }}
+          MAPPED_ADO_PRIVATE_REPO_URL: ${{ vars.CI_ADO_PRIVATE_REPO_URL }}
+          MAPPED_GITHUB_PAT: ${{ !matrix.azAuth && secrets.CI_GITHUB_PACKAGES_PAT || '' }}
+          MAPPED_ADO_PUBLIC_PAT: ${{ !matrix.azAuth && secrets.CI_ADO_PUBLIC_PAT || '' }}
+          MAPPED_ADO_PRIVATE_PAT: ${{ !matrix.azAuth && secrets.CI_ADO_PRIVATE_PAT || '' }}
+
+      - name: Delete test repositories from ACR
+        if: ${{ always() && steps.azure-login.outcome == 'success' }}
+        shell: pwsh
+        run: .\.github\scripts\Remove-CITestRepositories.ps1
+
+      - name: Upload Pester results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pester-${{ matrix.os }}-${{ matrix.shell }}-${{ matrix.azAuth }}
+          path: test/result.pester.xml
+          if-no-files-found: warn
+          retention-days: 14
