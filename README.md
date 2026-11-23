@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/PowerShell/PSResourceGet/blob/master/LICENSE)
 [![Documentation - PSResourceGet](https://img.shields.io/badge/Documentation-PowerShellGet-blue.svg)](https://learn.microsoft.com/powershell/module/microsoft.powershell.psresourceget)
 [![PowerShell Gallery - PSResourceGet](https://img.shields.io/badge/PowerShell%20Gallery-PSResourceGet-blue.svg)](https://www.powershellgallery.com/packages/Microsoft.PowerShell.PSResourceGet)
-[![Minimum Supported PowerShell Version](https://img.shields.io/badge/PowerShell-5.0-blue.svg)](https://github.com/PowerShell/PSResourceGet)
+[![Minimum Supported PowerShell Version](https://img.shields.io/badge/PowerShell-7.6-blue.svg)](https://github.com/PowerShell/PSResourceGet)
 
 ## Important Notes
 
@@ -27,7 +27,7 @@ PSResourceGet is a PowerShell module with commands for discovering, installing, 
 
 ## Requirements
 
-* PowerShell 5.0 or higher.
+* PowerShell 7.6 or higher running on .NET 10. Windows PowerShell is not supported by this build.
 
 ## Install the PSResourceGet module
 
@@ -54,8 +54,8 @@ Please use the [PowerShell Gallery](https://www.powershellgallery.com) to get th
 
 Note:  Please ensure you have the exact version of the .NET SDK installed. The current version can be found in the [global.json](https://github.com/PowerShell/PSResourceGet/blob/master/global.json) and installed from the [.NET website](https://dotnet.microsoft.com/en-us/download).
   ```powershell
-  # Build for the net472 framework
-  PS C:\Repos\PSResourceGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework net472
+  # Build for the net10.0 framework
+  PS C:\Repos\PSResourceGet> .\build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework net10.0
   ```
 
 ### Run functional tests
@@ -72,13 +72,9 @@ Note:  Please ensure you have the exact version of the .NET SDK installed. The c
 ### Import the built module into a new PowerShell session
 
 ```powershell
-# If running PowerShell 6+
+# Run in a fresh PowerShell 7.6+ session
 C:\> pwsh
-C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet
-
-# If running Windows PowerShell
-c:\> PowerShell
-C:\> Import-Module C:\Repos\PSResourceGet\out\PSResourceGet\PSResourceGet.psd1
+C:\> Import-Module C:\Repos\PSResourceGet\out\Microsoft.PowerShell.PSResourceGet\Microsoft.PowerShell.PSResourceGet.psd1
 ```
 ## Module Support Lifecycle 
 Microsoft.PowerShell.PSResourceGet follows the support lifecycle of the version of PowerShell that it ships in. 

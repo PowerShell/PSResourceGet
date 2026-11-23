@@ -70,7 +70,7 @@ stages:
         Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
         Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
         #
-        $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net8.0'
+        $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net10.0'
       displayName: Build Module
 
     - pwsh: |
@@ -123,13 +123,6 @@ stages:
       jobName: TestPkgWin
       displayName: PowerShell Core on Windows
       imageName: windows-latest
-
-  - template: test.yml
-    parameters:
-      jobName: TestPkgWinPS
-      displayName: Windows PowerShell on Windows
-      imageName: windows-latest
-      powershellExecutable: powershell
 
   - template: test.yml
     parameters:

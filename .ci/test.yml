@@ -14,6 +14,12 @@ jobs:
   variables:
   - group: InstallDSC
   steps:
+  - pwsh: |
+      if ($PSVersionTable.PSVersion -lt [version]'7.6' -or [Environment]::Version.Major -lt 10) {
+          throw "Tests require PowerShell 7.6 or newer running on .NET 10 or newer."
+      }
+    displayName: Verify PowerShell and .NET runtime requirements
+
   - ${{ parameters.powershellExecutable }}: |
         Install-Module -Name 'Microsoft.PowerShell.SecretManagement' -force -SkipPublisherCheck -AllowClobber
         Install-Module -Name 'Microsoft.PowerShell.SecretStore' -force -SkipPublisherCheck -AllowClobber

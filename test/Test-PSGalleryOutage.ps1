@@ -15,8 +15,8 @@
         The PowerShell Gallery may be experiencing an issue. Check https://aka.ms/psgallery for the current service status.
     For any other status code (for example 404, which can legitimately mean "not found"), the errors should NOT include it.
 
-    This is a manual test (not run by CI). Build the module first, then run from an elevated PowerShell 7 session:
-        ./build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework net472
+    This is a manual test (not run by CI). Build the module first, then run from an elevated PowerShell 7.6+ session:
+        ./build.ps1 -Clean -Build -BuildConfiguration Debug -BuildFramework net10.0
         ./test/Test-PSGalleryOutage.ps1 -StatusCode 503
         ./test/Test-PSGalleryOutage.ps1 -StatusCode 500 -Mode DownloadOnly -UpdateName <outdated module you have installed>
         ./test/Test-PSGalleryOutage.ps1 -StatusCode 404

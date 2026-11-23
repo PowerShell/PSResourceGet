@@ -95,7 +95,6 @@ function DoBuild
                 'Azure.Core'
                 'Azure.Identity'
                 'Microsoft.Bcl.AsyncInterfaces'
-                'Microsoft.Bcl.Cryptography'
                 'Microsoft.Extensions.Caching.Abstractions'
                 'Microsoft.Extensions.Caching.Memory'
                 'Microsoft.Extensions.Configuration.Abstractions'
@@ -124,14 +123,9 @@ function DoBuild
                 'NuGet.Versioning'
                 'OrasProject.Oras'
                 'System.ClientModel'
-                'System.Diagnostics.DiagnosticSource'
-                'System.Formats.Asn1'
-                'System.IO.Pipelines'
                 'System.Memory.Data'
                 'System.Security.Cryptography.Pkcs'
                 'System.Security.Cryptography.ProtectedData'
-                'System.Text.Encodings.Web'
-                'System.Text.Json'
             )
 
             $buildSuccess = $true
