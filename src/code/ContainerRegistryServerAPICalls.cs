@@ -46,7 +46,7 @@ namespace Microsoft.PowerShell.PSResourceGet
         // ORAS SDK objects
         private readonly HttpClient _httpClient;
         private readonly IClient _orasClient;
-        private readonly ICredentialProvider _credentialProvider;
+        private readonly PSResourceGetCredentialProvider _credentialProvider;
         private readonly IMemoryCache _memoryCache;
 
         #endregion
@@ -388,6 +388,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             ConcurrentQueue<string> debugMsgs = new ConcurrentQueue<string>();
             ConcurrentQueue<string> verboseMsgs = new ConcurrentQueue<string>();
             results = InstallVersion(packageNameForInstall, packageVersion, out errRecord, debugMsgs, verboseMsgs);
+            DrainCredentialMessages(warningMsgs, verboseMsgs);
             Utils.WriteOutConcurrentQueue(_cmdletPassedIn, errorMsgs, warningMsgs, debugMsgs, verboseMsgs);
             return results;
         }
@@ -417,6 +418,7 @@ namespace Microsoft.PowerShell.PSResourceGet
 
             string packageNameForInstall = PrependMARPrefix(packageName);
             results = InstallVersion(packageNameForInstall, packageVersion, out ErrorRecord errRecord, debugMsgs, verboseMsgs);
+            DrainCredentialMessages(warningMsgs, verboseMsgs);
             if (errRecord != null)
             {
                 errorMsgs.Enqueue(errRecord);
@@ -494,6 +496,19 @@ namespace Microsoft.PowerShell.PSResourceGet
         #endregion
 
         #region ORAS Helper Methods
+
+        private void DrainCredentialMessages(ConcurrentQueue<string> warningMsgs, ConcurrentQueue<string> verboseMsgs)
+        {
+            while (_credentialProvider.WarningMsgs.TryDequeue(out string warning))
+            {
+                warningMsgs.Enqueue(warning);
+            }
+
+            while (_credentialProvider.VerboseMsgs.TryDequeue(out string verbose))
+            {
+                verboseMsgs.Enqueue(verbose);
+            }
+        }
 
         /// <summary>
         /// Creates an ORAS Repository instance for the given package name.
@@ -588,6 +603,10 @@ namespace Microsoft.PowerShell.PSResourceGet
                     "ListAllRepositoriesOrasError",
                     ErrorCategory.InvalidResult,
                     _cmdletPassedIn);
+            }
+            finally
+            {
+                Utils.WriteOutConcurrentQueue(_cmdletPassedIn, new ConcurrentQueue<ErrorRecord>(), _credentialProvider.WarningMsgs, new ConcurrentQueue<string>(), _credentialProvider.VerboseMsgs);
             }
 
             return repositories;
@@ -879,6 +898,10 @@ namespace Microsoft.PowerShell.PSResourceGet
 
                 return false;
             }
+            finally
+            {
+                Utils.WriteOutConcurrentQueue(_cmdletPassedIn, new ConcurrentQueue<ErrorRecord>(), _credentialProvider.WarningMsgs, new ConcurrentQueue<string>(), _credentialProvider.VerboseMsgs);
+            }
 
             return true;
         }
@@ -943,6 +966,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             string packageNameForFind = PrependMARPrefix(packageNameLowercase);
 
             var allVersionsList = ListImageTags(packageNameForFind, out errRecord, debugMsgs);
+            DrainCredentialMessages(warningMsgs, verboseMsgs);
             if (errRecord != null || allVersionsList == null)
             {
                 return emptyHashResponses;
@@ -963,6 +987,7 @@ namespace Microsoft.PowerShell.PSResourceGet
             {
                 string exactTagVersion = pkgVersionTag.Value.ToString();
                 Hashtable metadata = GetContainerRegistryMetadata(packageNameForFind, exactTagVersion, out errRecord, debugMsgs);
+                DrainCredentialMessages(warningMsgs, verboseMsgs);
                 if (errRecord != null || metadata.Count == 0)
                 {
                     return emptyHashResponses;

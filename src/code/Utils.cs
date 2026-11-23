@@ -797,7 +797,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
         }
 
-        public static string GetAzAccessToken(PSCmdlet cmdletPassedIn)
+        public static string GetAzAccessToken(PSCmdlet cmdletPassedIn, ConcurrentQueue<string> warningMsgs = null)
         {
             var credOptions = new DefaultAzureCredentialOptions
             {
@@ -824,12 +824,26 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
             catch (OperationCanceledException)
             {
-                cmdletPassedIn.WriteWarning("Timeout occurred while acquiring Azure access token.");
+                if (warningMsgs != null)
+                {
+                    warningMsgs.Enqueue("Timeout occurred while acquiring Azure access token.");
+                }
+                else
+                {
+                    cmdletPassedIn.WriteWarning("Timeout occurred while acquiring Azure access token.");
+                }
                 return null;
             }
             catch (Exception ex)
             {
-                cmdletPassedIn.WriteWarning($"Failed to acquire Azure access token: {ex.Message}");
+                if (warningMsgs != null)
+                {
+                    warningMsgs.Enqueue($"Failed to acquire Azure access token: {ex.Message}");
+                }
+                else
+                {
+                    cmdletPassedIn.WriteWarning($"Failed to acquire Azure access token: {ex.Message}");
+                }
                 return null;
             }
         }
