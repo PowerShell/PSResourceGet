@@ -115,7 +115,7 @@ namespace Microsoft.PowerShell.PSResourceGet.UtilClasses
             }
 
             Version = !String.IsNullOrEmpty(version) ? new NuGetVersion (version) : new NuGetVersion("1.0.0.0");
-            Guid = guid;
+            Guid = (guid == null || guid == Guid.Empty) ? Guid.NewGuid() : guid;
             Author = !String.IsNullOrEmpty(author) ? author : Environment.UserName;
             CompanyName = companyName;
             Copyright = copyright;
