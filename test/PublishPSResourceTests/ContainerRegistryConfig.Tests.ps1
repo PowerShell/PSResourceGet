@@ -178,6 +178,14 @@ public class ConfigBlobUploadHandler : HttpMessageHandler
         $publishArguments[9].FullyQualifiedErrorId | Should -BeExactly 'PackagePublishOrasError'
     }
 
+    It 'Preserves the publish authentication information record for Azure authentication' {
+        Invoke-ContainerRegistryMethod 'PushNupkgContainerRegistry' $publishArguments -InformationVariable registryInformation | Should -Be $true
+
+        $registryInformation | Should -HaveCount 1
+        $registryInformation[0].Tags | Should -Be 'PSRGContainerRegistryUnauthenticatedCheck'
+        $registryInformation[0].MessageData | Should -BeExactly 'Value of isRepositoryUnauthenticated: False'
+    }
+
     It 'Finds a package through each concurrent find path' -TestCases @(
         @{ MethodName = 'FindNameAsync' }
         @{ MethodName = 'FindVersionAsync' }

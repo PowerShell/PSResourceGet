@@ -834,6 +834,14 @@ namespace Microsoft.PowerShell.PSResourceGet
             string pkgNameForUpload = string.IsNullOrEmpty(modulePrefix) ? packageName : modulePrefix + "/" + packageName;
             string packageNameLowercase = pkgNameForUpload.ToLower();
 
+            if (Repository.CredentialInfo == null)
+            {
+                // Publishing requires authentication even when the registry permits anonymous pulls.
+                _cmdletPassedIn.WriteInformation(
+                    "Value of isRepositoryUnauthenticated: False",
+                    new[] { "PSRGContainerRegistryUnauthenticatedCheck" });
+            }
+
             try
             {
                 var repo = CreateOrasRepository(packageNameLowercase);
