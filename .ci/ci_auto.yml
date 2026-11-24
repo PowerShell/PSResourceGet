@@ -39,6 +39,10 @@ stages:
 
     steps:
 
+    - task: UseDotNet@2
+      inputs:
+        useGlobalJson: true
+
     - pwsh: |
         Get-ChildItem -Path env:
       displayName: Capture environment for build
@@ -68,8 +72,8 @@ stages:
         Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
         Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
         #
-        # Build for net472 framework
-        $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net472'
+        # Build for net10.0 framework
+        $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net10.0'
       displayName: Build module
 
     - pwsh: |
@@ -104,17 +108,17 @@ stages:
           $null = New-Item -Path $thirdPartySignSrcPath -ItemType Directory -Verbose
         }
 
-        # Net472 directory
-        $net472Path = Join-Path -Path $thirdPartySignSrcPath -ChildPath "net472"
-        if (! (Test-Path -Path $net472Path)) {
-          $null = New-Item -Path $net472Path -ItemType Directory -Verbose
+        # dependency directory
+        $depsPath = Join-Path -Path $thirdPartySignSrcPath -ChildPath "dependencies"
+        if (! (Test-Path -Path $depsPath)) {
+          $null = New-Item -Path $depsPath -ItemType Directory -Verbose
         }
-        Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "net472") -Filter '*.dll' | Foreach-Object {
-          if ($_.Name -ne 'PSResourceGet.dll') {
+        Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "dependencies") -Filter '*.dll' | Foreach-Object {
+          if ($_.Name -ne 'Microsoft.PowerShell.PSResourceGet.dll') {
             $sig = Get-AuthenticodeSignature -FilePath $_.FullName
             if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notlike '*Microsoft*' -or $sig.SignerCertificate.Issuer -notlike '*Microsoft Code Signing PCA*') {
               # Copy for third party signing
-              Copy-Item -Path $_.FullName -Dest $net472Path -Force -Verbose
+              Copy-Item -Path $_.FullName -Dest $depsPath -Force -Verbose
             }
           }
         }
@@ -160,17 +164,17 @@ stages:
         # Copy LICENSE
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "LICENSE") -Dest $signOutPath
 
-        # Net472 directory
-        $net472SignedOutPath = Join-Path -Path $signOutPath -ChildPath "net472"
-        if (! (Test-Path -Path $net472SignedOutPath)) {
-          $null = New-Item -Path $net472SignedOutPath -ItemType Directory -Verbose
+        # dependency directory
+        $depsSignedOutPath = Join-Path -Path $signOutPath -ChildPath "dependencies"
+        if (! (Test-Path -Path $depsSignedOutPath)) {
+          $null = New-Item -Path $depsSignedOutPath -ItemType Directory -Verbose
         }
-        Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "net472") -Filter '*.dll' | Foreach-Object {
-          if ($_.Name -ne 'PSResourceGet.dll') {
+        Get-ChildItem -Path (Join-Path -Path $srcPath -ChildPath "dependencies") -Filter '*.dll' | Foreach-Object {
+          if ($_.Name -ne 'Microsoft.PowerShell.PSResourceGet.dll') {
             $sig = Get-AuthenticodeSignature -FilePath $_.FullName
             if ($sig.Status -eq 'Valid' -and ($sig.SignerCertificate.Subject -like '*Microsoft*' -and $sig.SignerCertificate.Issuer -like '*Microsoft Code Signing PCA*')) {
               # Copy already signed files directly to output
-              Copy-Item -Path $_.FullName -Dest $net472SignedOutPath -Force -Verbose
+              Copy-Item -Path $_.FullName -Dest $depsSignedOutPath -Force -Verbose
             }
           }
         }
@@ -190,14 +194,11 @@ stages:
         if (! (Test-Path -Path $createdSignSrcPath)) {
           $null = New-Item -Path $createdSignSrcPath -ItemType Directory -Verbose
         }
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "PSResourceGet.psd1") -Dest $createdSignSrcPath -Force -Verbose
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Microsoft.PowerShell.PSResourceGet.psd1") -Dest $createdSignSrcPath -Force -Verbose
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Microsoft.PowerShell.PSResourceGet.psm1") -Dest $createdSignSrcPath -Force -Verbose
         Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "PSGet.Format.ps1xml") -Dest $createdSignSrcPath -Force -Verbose
 
-        $net472Path = Join-Path -Path $createdSignSrcPath -ChildPath "net472"
-        if (! (Test-Path -Path $net472Path)) {
-          $null = New-Item -Path $net472Path -ItemType Directory -Verbose
-        }
-        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "net472\PSResourceGet.dll") -Dest $net472Path -Force -Verbose
+        Copy-Item -Path (Join-Path -Path $srcPath -ChildPath "Microsoft.PowerShell.PSResourceGet.dll") -Dest $createdSignSrcPath -Force -Verbose
 
         # Set signing src path variable
         $vstsCommandString = "vso[task.setvariable variable=signSrcPath]${createdSignSrcPath}"
@@ -294,11 +295,11 @@ stages:
     - checkout: ComplianceRepo
       clean: true
     - download: current
-      artifact: 'PSResourceGet'
+      artifact: 'Microsoft.PowerShell.PSResourceGet'
     - template: assembly-module-compliance.yml@ComplianceRepo
       parameters:
         # binskim
-        AnalyzeTarget: '$(Pipeline.Workspace)/PSResourceGet/net472/PSResourceGet.dll'
+        AnalyzeTarget: '$(Pipeline.Workspace)/Microsoft.PowerShell.PSResourceGet/Microsoft.PowerShell.PSResourceGet.dll'
         AnalyzeSymPath: 'SRV*'
         # component-governance
         sourceScanPath: '$(Build.SourcesDirectory)'
@@ -321,13 +322,6 @@ stages:
       jobName: TestPkgWin
       displayName: PowerShell Core on Windows
       imageName: windows-latest
-
-  - template: test.yml
-    parameters:
-      jobName: TestPkgWinPS
-      displayName: Windows PowerShell on Windows
-      imageName: windows-latest
-      powershellExecutable: powershell
 
   - template: test.yml
     parameters:

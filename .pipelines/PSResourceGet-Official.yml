@@ -130,7 +130,7 @@ extends:
         # this is installing .NET
         - pwsh: |
             Set-Location "$(repoRoot)"
-            try { ./build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net472'} catch { throw $_ }
+            try { ./build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net10.0'} catch { throw $_ }
           displayName: Execute build
           env:
             ob_restore_phase: true # Set ob_restore_phase to run this step before '🔒 Setup Signing' step.

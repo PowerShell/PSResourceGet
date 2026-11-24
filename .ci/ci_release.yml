@@ -29,6 +29,10 @@ stages:
       - ImageOverride -equals PSMMS2019-Secure
 
     steps:
+    - task: UseDotNet@2
+      inputs:
+        useGlobalJson: true
+
     - pwsh: |
         Get-ChildItem -Path env:
         Get-ChildItem -Path . -Recurse -Directory
@@ -59,8 +63,8 @@ stages:
         Write-Verbose -Verbose "Importing build utilities (buildtools.psd1)"
         Import-Module -Name $(Build.SourcesDirectory)/buildtools.psd1 -Force
         #
-        # Build for net472 framework
-        $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net472'
+        # Build for net10.0 framework
+        $(Build.SourcesDirectory)/build.ps1 -Build -Clean -BuildConfiguration Release -BuildFramework 'net10.0'
       displayName: Build and publish artifact
 
     - pwsh: |
@@ -397,13 +401,6 @@ stages:
       jobName: TestPkgWin
       displayName: PowerShell Core on Windows
       imageName: windows-latest
-
-  - template: test.yml
-    parameters:
-      jobName: TestPkgWinPS
-      displayName: Windows PowerShell on Windows
-      imageName: windows-latest
-      powershellExecutable: powershell
 
   - template: test.yml
     parameters:

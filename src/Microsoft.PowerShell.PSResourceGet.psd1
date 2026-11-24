@@ -5,15 +5,13 @@
     RootModule             = './Microsoft.PowerShell.PSResourceGet.dll'
     NestedModules          = @('./Microsoft.PowerShell.PSResourceGet.psm1')
     ModuleVersion          = '1.3.1'
-    CompatiblePSEditions   = @('Core', 'Desktop')
+    CompatiblePSEditions   = @('Core')
     GUID                   = 'e4e0bda1-0703-44a5-b70d-8fe704cd0643'
     Author                 = 'Microsoft Corporation'
     CompanyName            = 'Microsoft Corporation'
     Copyright              = '(c) Microsoft Corporation. All rights reserved.'
     Description            = 'PowerShell module with commands for discovering, installing, updating and publishing the PowerShell artifacts like Modules, Scripts, and DSC Resources.'
-    PowerShellVersion      = '5.1'
-    DotNetFrameworkVersion = '2.0'
-    CLRVersion             = '4.0.0'
+    PowerShellVersion      = '7.6'
     FormatsToProcess       = 'PSGet.Format.ps1xml'
     CmdletsToExport        = @(
         'Compress-PSResource',
@@ -52,7 +50,6 @@
         PSData = @{
             # Prerelease = ''
             Tags         = @('PackageManagement',
-                'PSEdition_Desktop',
                 'PSEdition_Core',
                 'Linux',
                 'Mac',
