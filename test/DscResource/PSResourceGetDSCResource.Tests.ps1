@@ -56,7 +56,11 @@ Describe "DSC resource schema tests" -tags 'CI' {
         $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
 
         if ($skipTest) {
-            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $originalDefaultParameterValues = if ($null -ne $PSDefaultParameterValues) {
+                $PSDefaultParameterValues.Clone()
+            } else {
+                @{}
+            }
             $PSDefaultParameterValues['it:skip'] = $skipTest
             return
         }
@@ -105,7 +109,11 @@ Describe 'Repository Resource Tests' -Tags 'CI' {
         $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
 
         if ($skipTest) {
-            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $originalDefaultParameterValues = if ($null -ne $PSDefaultParameterValues) {
+                $PSDefaultParameterValues.Clone()
+            } else {
+                @{}
+            }
             $PSDefaultParameterValues['it:skip'] = $skipTest
             return
         }
@@ -207,7 +215,11 @@ Describe "PSResourceList Resource Tests" -Tags 'CI' {
         $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
 
         if ($skipTest) {
-            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $originalDefaultParameterValues = if ($null -ne $PSDefaultParameterValues) {
+                $PSDefaultParameterValues.Clone()
+            } else {
+                @{}
+            }
             $PSDefaultParameterValues['it:skip'] = $skipTest
             return
         }
@@ -451,7 +463,11 @@ Describe 'E2E tests for Repository resource' -Tags 'CI' {
         $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
 
         if ($skipTest) {
-            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $originalDefaultParameterValues = if ($null -ne $PSDefaultParameterValues) {
+                $PSDefaultParameterValues.Clone()
+            } else {
+                @{}
+            }
             $PSDefaultParameterValues['it:skip'] = $skipTest
             return
         }
@@ -512,7 +528,11 @@ Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
         $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
 
         if ($skipTest) {
-            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $originalDefaultParameterValues = if ($null -ne $PSDefaultParameterValues) {
+                $PSDefaultParameterValues.Clone()
+            } else {
+                @{}
+            }
             $PSDefaultParameterValues['it:skip'] = $skipTest
             return
         }
@@ -523,7 +543,11 @@ Describe 'E2E tests for PSResourceList resource' -Tags 'CI' {
         ## Therefore, skipping these tests on Windows PowerShell is necessary because the modules installed by DSC will not be visible in that environment.
         $isOnWindowsPowerShell = $PSVersionTable.PSVersion.Major -lt 6
 
-        $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+        $originalDefaultParameterValues = if ($null -ne $PSDefaultParameterValues) {
+            $PSDefaultParameterValues.Clone()
+        } else {
+            @{}
+        }
         $PSDefaultParameterValues['it:skip'] = $isOnWindowsPowerShell
     }
 
@@ -636,7 +660,11 @@ Describe "Error code tests" -Tags 'CI' {
         $skipTest = $null -eq (Get-Command -Type Application -Name pwsh -ErrorAction SilentlyContinue)
 
         if ($skipTest) {
-            $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+            $originalDefaultParameterValues = if ($null -ne $PSDefaultParameterValues) {
+                $PSDefaultParameterValues.Clone()
+            } else {
+                @{}
+            }
             $PSDefaultParameterValues['it:skip'] = $skipTest
             return
         }
@@ -677,7 +705,11 @@ Describe 'PSResourceList what-if tests' -Tags 'CI' {
         SetupTestRepos
 
         $isOnWindowsPowerShell = $PSVersionTable.PSVersion.Major -lt 6
-        $originalDefaultParameterValues = $PSDefaultParameterValues.Clone()
+        $originalDefaultParameterValues = if ($null -ne $PSDefaultParameterValues) {
+            $PSDefaultParameterValues.Clone()
+        } else {
+            @{}
+        }
         $PSDefaultParameterValues['it:skip'] = $isOnWindowsPowerShell
     }
 
