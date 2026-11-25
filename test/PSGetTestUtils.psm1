@@ -498,7 +498,10 @@ function New-TestModule
         $dscResourceToExport = "Test-ModuleDSCResource",
 
         [string[]]
-        $tags
+        $tags,
+
+        [string]
+        $requiredModulesEntry = "@()"
     )
 
     $modulePath = Join-Path -Path $path -ChildPath $ModuleName
@@ -525,7 +528,7 @@ function New-TestModule
         CmdletsToExport = @('{1}', '{2}')
         DscResourcesToExport = @('{3}')
         FunctionsToExport = @()
-        RequiredModules   = @()
+        RequiredModules   = {6}
         PrivateData = @{{
             PSData = @{{
                 {4}
@@ -533,7 +536,7 @@ function New-TestModule
             }}
         }}
     }}
-'@ -f $packageVersion, $cmdletToExport, $cmdletToExport2, $dscResourceToExport, $prereleaseEntry, $tagsEntry | Out-File -FilePath $moduleMan
+'@ -f $packageVersion, $cmdletToExport, $cmdletToExport2, $dscResourceToExport, $prereleaseEntry, $tagsEntry, $requiredModulesEntry | Out-File -FilePath $moduleMan
 
     Publish-PSResource -Path $modulePath -Repository $repoName
 }
